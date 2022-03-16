@@ -16,6 +16,8 @@ npm init svelte@next my-app
 
 > Note: the `@next` is temporary
 
+Create a .env file into the root folder. 
+
 ## Developing
 
 Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:

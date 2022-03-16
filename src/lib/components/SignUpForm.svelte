@@ -31,7 +31,7 @@
 
 <form on:submit|preventDefault={submit} class="space-y-5 {$$props.class}">
 	<Input label="Email" id="email" name="email" type="email" bind:value={email} />
-	<Input label="Name" id="fullName" name="fullName" type="text" bind:value={fullName} />
+	<Input label="Name" id="full-name" name="full-name" type="text" bind:value={fullName} />
 	<Input label="Password" id="password" name="password" type="password" bind:value={password} />
 	<Input
 		label="Confirm Password"
