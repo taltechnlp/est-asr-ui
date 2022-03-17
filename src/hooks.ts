@@ -1,7 +1,7 @@
 import { parse } from 'cookie';
 import { getSession as getSessionFromApi, createSession } from './routes/api/_db';
 
-export async function handle({ event, resolve }) {
+/* export async function handle({ event, resolve }) {
 	const cookies = parse(event.request.headers.get('cookie') || '');
 	console.log('Cookies: ', cookies);
 	if (cookies.token) {
@@ -29,4 +29,4 @@ export function getSession(event) {
 				}
 		  }
 		: {};
-}
+} */

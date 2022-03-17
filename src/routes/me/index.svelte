@@ -13,7 +13,6 @@
 				}
 			}
 		`;
-		console.log(params, session, stuff);
 		const { me } = await client.request(query);
 		console.log('Me', me);
 		userStore.set(me);
@@ -28,15 +27,13 @@
 </script>
 
 <script>
-	import { user as userData } from '$lib/stores';
-
 	export let user;
-	let myData;
+	let userData;
 
-	userData.subscribe((value) => {
-		myData = value;
+	userStore.subscribe((value) => {
+		userData = value;
 	});
 </script>
 
-<p>My name is {myData ? myData.name : 'näeb'}</p>
+<p>My name is {userData ? userData.name : 'näeb'}</p>
 <p>My name is {user ? user.name : 'näeb'}</p>

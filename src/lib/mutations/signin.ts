@@ -1,6 +1,6 @@
 import { client } from '$lib/graphql-client';
 import { gql } from 'graphql-request';
-import { session } from '$app/stores';
+import { user as userStore } from '$lib/stores';
 
 export const signin = async (email: string, password: string) => {
 	try {
@@ -18,6 +18,7 @@ export const signin = async (email: string, password: string) => {
 			password
 		};
 		const { signin } = await client.request(mutation, variables);
+		userStore.set(signin);
 		return {
 			status: 200,
 			body: { user: signin }
