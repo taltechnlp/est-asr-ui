@@ -1,10 +1,14 @@
 <script>
   import Nav from "$lib/nav.svelte";
   import "../app.css";
+  import "../i18n"
 </script>
 
-<Nav></Nav>
+<div class="w-full flex justify-center">  
+  <Nav></Nav>
+</div>
 
-<main class="container max-w-xl mx-auto px-4">
+
+<main class="">
   <slot />
 </main>

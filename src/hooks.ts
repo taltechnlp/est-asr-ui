@@ -30,3 +30,13 @@ export function getSession(event) {
 		  }
 		: {};
 } */
+
+/** @type {import('@sveltejs/kit').Handle} */
+export async function handle({ event, resolve }) {
+	const response = await resolve(event, {
+	  ssr: !event.url.pathname.startsWith('/demo'),
+	  transformPage: ({ html }) => html.replace('old', 'new')
+	});
+   
+	return response;
+  }
