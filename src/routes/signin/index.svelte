@@ -1,19 +1,6 @@
-<script context="module">
-	export async function load({ session }) {
-		if (session.user) {
-			return {
-				status: 302,
-				redirect: '/'
-			};
-		}
-		return {};
-	}
-</script>
-
 <script lang="ts">
 	import SignInForm from '$lib/components/SignInForm.svelte';
 	import { signin } from '$lib/mutations/signin';
-	import { session } from '$app/stores';
 	import { goto } from '$app/navigation';
 
 	let error = null;
@@ -24,7 +11,7 @@
 			const content = await res.body;
 			if (content.user) {
 				// $session.user = content.user;
-				goto('/');
+				goto('/files');
 			} else {
 				console.log('Server error: no user details.');
 			}
@@ -38,7 +25,10 @@
 	}
 </script>
 
-<h1 class="text-2xl font-semibold text-center">Logi sisse</h1>
+<div class="tabs flex justify-center">
+	<a href="signin" class="tab tab-bordered tab-lg tab-active mr-8">Logi sisse</a> 
+	<a href="signup" class="tab tab-bordered tab-lg">Registreeru</a>
+</div>
 {#if error}
 	<p class="mt-3 text-red-500 text-center font-semibold">{JSON.stringify(error)}</p>
 {/if}

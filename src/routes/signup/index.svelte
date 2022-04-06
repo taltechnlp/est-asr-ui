@@ -12,7 +12,7 @@
 				// user.set(data.user);
 				console.log(data.user);
 			}
-			window.location.href = '/protected';
+			window.location.href = '/files';
 			return { props: { data } };
 		} else {
 			error = await res.body;
@@ -22,7 +22,10 @@
 	}
 </script>
 
-<h1 class="text-2xl font-semibold text-center">Sign Up</h1>
+<div class="tabs flex justify-center">
+	<a href="signin" class="tab tab-bordered tab-lg mr-8">Logi sisse</a> 
+	<a href="signup" class="tab tab-bordered tab-lg tab-active">Registreeru</a>
+</div>
 {#if error}
 	<p class="mt-3 text-red-500 text-center font-semibold">{JSON.stringify(error)}</p>
 {/if}

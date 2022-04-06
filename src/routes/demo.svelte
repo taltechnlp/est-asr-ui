@@ -9,8 +9,8 @@
 
 <main class="grid grid-rows-[1fr_auto] content-between">
 	<div class="self-stretch h-full mb-96">
-		<Tiptap />
+		<Tiptap content="" />
 	</div>
-	<div id="waveform" class="w-full h-auto fixed bottom-0 left-0 pb-1"><p>test</p></div> 
+	<div id="waveform" class="w-full h-auto fixed bottom-0 left-0 pb-1"><p></p></div> 
 	<Player />
 </main>

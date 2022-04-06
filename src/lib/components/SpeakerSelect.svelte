@@ -20,7 +20,6 @@
 		{ selected: false, label: 'Uus President', editing: false },
 		{ selected: false, label: 'Vana Peaminister', editing: false }
 	];
-	console.log(editor.view.state.doc.content);
 	const getSpeakerNames = () => {
 		const speakerNodes = editor.view.state.doc.content;
 		let speakerNames = new Set();
@@ -187,6 +186,7 @@
         grid-row-start: 2;
         grid-column-start: 1;
         justify-self: end;
+		height: max-content;
     }
 
     .speaker-time {

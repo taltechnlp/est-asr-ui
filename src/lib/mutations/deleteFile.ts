@@ -1,20 +1,18 @@
-import { user as userStore } from '$lib/stores';
 import { GRAPHQL_ENDPOINT } from '$lib/graphql-client'
 
-export const signin = async (email: string, password: string) => {
+export const deleteFileMutation = `
+    mutation DELETE_FILE_MUTATION($id: ID!) {
+        deleteFile(id: $id) {
+            id
+        }
+    }
+`;
+
+
+export const deleteFile = async (id: string) => {
 	try {
-		const mutation = `
-			mutation Signin($email: String!, $password: String!) {
-				signin(email: $email, password: $password) {
-					email
-					id
-					name
-				}
-			}
-		`;
 		const variables = {
-			email,
-			password
+			id
 		};
 		const response = await fetch(GRAPHQL_ENDPOINT, {
             method: 'POST',
@@ -23,15 +21,15 @@ export const signin = async (email: string, password: string) => {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                query: mutation,
+                query: deleteFileMutation,
 				variables
             })
         })
         const { data } = await response.json()
-		userStore.set(data.signin);
+        console.log("data: ", data)
 		return {
 			status: 200,
-			body: { user: signin }
+			body: { }
 		};
 	} catch (error) {
 		return {
@@ -40,3 +38,4 @@ export const signin = async (email: string, password: string) => {
 		};
 	}
 };
+
