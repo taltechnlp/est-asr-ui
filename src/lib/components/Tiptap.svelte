@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	// @ts-ignore
-	import { Editor } from '@tiptap/core';
+	import { Editor, getDebugJSON } from '@tiptap/core';
 	// @ts-ignore
 	import Document from '@tiptap/extension-document';
 	// import { CustomParagraph } from '$lib/customParagraph';
@@ -22,20 +22,24 @@
 	import rotateRigth from 'svelte-awesome/icons/rotate-right'
 	import download from 'svelte-awesome/icons/download'
 	import { downloadHandler } from '$lib/download'
+	import { saveChanges } from '$lib/mutations/save'
+	import { speakerNames } from '$lib/stores';
 
 	export let content;
-
+	export let fileId;
+	
 	let element;
 	let editor;
-
+	
+	
 	onMount(() => {
+		speakerNames.set([])
 		editor = new Editor({
 			element: element,
 			extensions: [
 				Document,
 				DropCursor,
 				GapCursor,
-				/* Paragraph, */
 				Text,
 				/*                 Heading.configure({
                   levels: [1, 2, 3],
@@ -58,26 +62,19 @@
                       }
                     }, */
 			},
-			/* content: `<speaker data-name="Aivo Olev">
-                </speaker>
-                <speaker data-name="Raul Olev">test<span start="0.57" end="1.2"></span><span start="0.57" end="1.2"/></speaker>
-                <speaker data-name="Eriti Pika Nimega Tolvan">test</speaker>
-				<speaker data-name="Aivo Olev">test</speaker>
-                      `, */
-			content
-			/* content: `<speaker data-name="Aivo Olev">
-                    <span start="0.57" end="1.2">Kavandatava</span> <span start="1.2" end="1.83">võimuliidu</span> <span start="1.83" end="2.4">erakondade</span> <span start="2.4" end="3.03">volikogud</span> <span start="3.51" end="3.81">heaks</span><span start="3.09" end="3.51">kiitsid</span>  <span start="3.81" end="4.8">koalitsioonileppe</span> <span start="4.83" end="5.07">ning</span> <span start="5.07" end="6.15">ministrikandidaadid.</span> <span start="6.51" end="7.08">Muuhulgas</span> <span start="7.08" end="7.35">läheb</span> <span start="7.35" end="8.22">koalitsioonileppe</span> <span start="8.22" end="8.49">ette</span> <span start="8.49" end="8.97">pensioni</span> <span start="8.97" end="9.27">teise</span> <span start="9.27" end="9.57">samba</span> <span start="9.57" end="10.14" confidence="76% kindlust" style="background-color: rgb(204, 232, 204);">reformi.</span>
-                </speaker>
-                <speaker data-name="Raul Olev">test<span start="0.57" end="1.2"></span><span start="0.57" end="1.2"/></speaker>
-                <speaker data-name="Eriti Pika Nimega Tolvan">test</speaker>
-				<speaker data-name="Aivo Olev">test</speaker>
-                      ` */
-			/* onTransaction: () => {
+			content: content, 
+
+			onTransaction: () => {
 				// force re-render so `editor.isActive` works as expected
 				editor = editor;
-				console.log(editor.schema);
-			} */
+				// console.log(editor.schema);
+			}
 		});
+		const names = getSpeakerNames()
+		console.log("names", names)
+		// @ts-ignore
+		speakerNames.set(names)
+		console.log("names", $speakerNames)
 	});
 
 	onDestroy(() => {
@@ -85,6 +82,20 @@
 			editor.destroy();
 		}
 	});
+
+	function handleSave() {
+		saveChanges(editor.getJSON(), fileId)
+	}
+
+	const getSpeakerNames = () => {
+		const speakerNodes = editor.view.state.doc.content;
+		let speakerNames = new Set();
+		speakerNodes.forEach((node) =>
+			node.attrs['data-name'] ? speakerNames.add(node.attrs['data-name']) : null
+		);
+		return Array.from(speakerNames);
+	};
+	
 </script>
 <div class="w-full fixed top-2 left-0 right-0 flex justify-center z-20">
 
@@ -107,13 +118,18 @@
 					class="ml-4 tooltip cursor-pointer" data-tip="redo">
 					<Icon data={rotateRigth} scale="{1.5}" />
 				</span>
+				<span on:click={handleSave}
+					class:disabled={!editor.can().redo()} style="color: rgba(0, 0, 0, 0.54);" 
+					class="ml-4 tooltip cursor-pointer">
+					Salvesta
+				</span>
 			</div>
 			<div class="flex mt-1">
 					<svg class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
 					<span>Salvestatud!</span>
 			</div>
 			<div class="flex">
-				<button class="btn btn-link btn-sm" on:click="{()=>downloadHandler('','','')}">
+				<button class="btn btn-link btn-sm" on:click="{()=>{downloadHandler('','','', true)}}">
 					<Icon data={download} scale="{1}" />
 					<span class="ml-2">
 						Laadi alla

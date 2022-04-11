@@ -3,10 +3,12 @@
 	import Player from '$lib/components/Player.svelte';
 	import { fileQuery, getFile } from '$lib/queries/file';
 	export async function load({ params, fetch, session, stuff }) {
-		console.log("params.fileId", params.fileId)
 		const file = await getFile(params.fileId);
+		console.log(file)
 		return { props: {file} };
 	}
+	import { GRAPHQL_ENDPOINT } from '$lib/graphql-client'
+
 </script>
 
 <script lang="ts">
@@ -28,15 +30,18 @@
 		)}</speaker>`;
 	};
 	const toEditorFormat = (transcription: EditorContent) => {
-		return transcription.sections.reduce((acc, section) => {
-			if (section.type==="speech" && section.turns) {
-				const res = acc
+		if (transcription && transcription.sections){
+			return transcription.sections.reduce((acc, section) => {
+				if (section.type==="speech" && section.turns) {
+					const res = acc
 					.concat(section.turns.map((turn) => {
 						const result = mapTurns(turn, transcription.speakers)
 						return result}))
-				return res
-			} else return acc;
-		}, []).join(' ');
+						return res
+					} else return acc;
+				}, []).join(' ');
+		}
+		else return ""
 	};
 
 	type SectionType = 'non-speech' | 'speech';
@@ -80,14 +85,21 @@
 			}
 		];
 	};
+	console.log(file.path, "path")
+	let json = JSON.parse(file && file.initialTranscription)
+	let editorContent
 
-	const editorContent: EditorContent = toEditorFormat(JSON.parse(file && file.initialTranscription));
-	console.log(editorContent)
+	if (json && !json.type) {
+		editorContent = toEditorFormat(json)
+	}
+	else if (json && json.content) editorContent = json
+	else editorContent = ""
+	
 </script>
 
 <main class="grid grid-rows-[1fr_auto] content-between">
 	<div class="self-stretch h-full mb-96">
-		<Tiptap content={editorContent} />
+		<Tiptap content={json} fileId = {file.id} />
 	</div>
     <div class="w-full h-auto fixed bottom-0 left-0 pb-1 bg-white">
         <div class="controls flex justify-between pt-0.5">
@@ -116,7 +128,10 @@
         </div>
         <div id="waveform" class=""></div>
         <div id="wave-timeline" class="w-full h-auto" />
-        <Player />
+        <Player url={`${
+			process.env.NODE_ENV === "development" ? GRAPHQL_ENDPOINT : GRAPHQL_ENDPOINT
+		  }/uploads?path=${file.path}`} />
+		 
     </div>
 </main>
 

@@ -3,6 +3,7 @@
 	import WaveSurfer from "wavesurfer.js";
 	import TimelinePlugin from "wavesurfer.js/dist/plugin/wavesurfer.timeline.min.js";
 	import RegionsPlugin from "wavesurfer.js/dist/plugin/wavesurfer.regions.min.js";
+	export let url
 
 	let wavesurfer;
 	onMount(() => {
@@ -37,7 +38,9 @@
 		wavesurfer.on('ready', function () {
 			wavesurfer.play();
 		});
-		wavesurfer.load('../../../static/demo.wav');
+		// console.log(url, "url")
+		wavesurfer.load(url);
+		// wavesurfer.load('../../../static/demo.wav');
 
 	
 	}); 
@@ -55,64 +58,117 @@
 	});
 
 	const fasterSpeed = () => {
-		if (wavesurfer.current) {
+		if (wavesurfer) {
 		if (playbackSpeed <= 1.75) {
-			wavesurfer.current.setPlaybackRate(playbackSpeed + 0.25);
+			wavesurfer.setPlaybackRate(playbackSpeed + 0.25);
 			setPlaybackSpeed(0.25);
 		}
 		}
 	};
 	const slowerSpeed = () => {
-		if (wavesurfer.current) {
+		if (wavesurfer) {
 		if (playbackSpeed >= 0.5) {
-			wavesurfer.current.setPlaybackRate(playbackSpeed - 0.25);
+			wavesurfer.setPlaybackRate(playbackSpeed - 0.25);
 			setPlaybackSpeed(-0.25);
 		}
 		}
 	};
 	const normalSpeed = () => {
-		if (wavesurfer.current) {
+		if (wavesurfer) {
 			setPlaybackSpeed(1);
-		wavesurfer.current.setPlaybackRate(1);
+		wavesurfer.setPlaybackRate(1);
 		}
 	};
 	const toggleRegions = () => {
 	};
 	const seekTo = pos => {
-		if (wavesurfer.current.getDuration() >= pos) {
-		wavesurfer.current.setCurrentTime(pos);
+		if (wavesurfer.getDuration() >= pos) {
+		wavesurfer.setCurrentTime(pos);
 		}
 	};
 	const play = () => {
-		wavesurfer.current.play();
+		wavesurfer.play();
 		playing = true;
 	};
 	const pause = () => {
-		wavesurfer.current.pause();
+		wavesurfer.pause();
 		playing = false;
 	};
 	const seekBackward = () => {
-		wavesurfer.current.skipBackward(5);
+		wavesurfer.skipBackward(5);
 	};
 	const seekForward = () => {
-		wavesurfer.current.skipForward(5);
+		wavesurfer.skipForward(5);
 	};
 	const toggleMute = () => {
-		wavesurfer.current.toggleMute();
+		wavesurfer.toggleMute();
 	};
 	const togglePlay = () => {
-		wavesurfer.current.playPause();
-		if (wavesurfer.current.isPlaying()) playing = true;
+		wavesurfer.playPause();
+		if (wavesurfer.isPlaying()) playing = true;
 		else playing = false;
 	};
 	const zoomOut = () => {
 		if (zoom > 5) (zoom = zoom - 20);
-		wavesurfer.current.zoom(zoom);
+		wavesurfer.zoom(zoom);
 	};
 	const zoomIn = () => {
 		if (zoom < 205) (zoom = zoom + 20);
-		wavesurfer.current.zoom(zoom);
+		wavesurfer.zoom(zoom);
 	};
+	wavesurfer.on("ready", function() {
+      if (window.innerWidth < 450) {
+        wavesurfer.setHeight(40);
+      }
+      wavesurfer.zoom(zoom);
+
+      //console.log("Player ready");
+      /* window.myWaveSurferPlayer = {};
+      window.myWaveSurferPlayer.seekTo = seekTo; */
+      //console.log(window.myWaveSurferPlayer.seekTo);
+
+      let isAlt = false;
+      document.onkeyup = function(e) {
+        if (e.which == 18) isAlt = false;
+      };
+      window.onkeydown = function(e) {
+        switch (e.which) {
+          case 18:
+            isAlt = true;
+            break;
+          case 49:
+            if (isAlt) seekBackward();
+            break;
+          case 50:
+            if (isAlt) togglePlay();
+            break;
+          case 32:
+            if (isAlt) togglePlay();
+            break;
+          case 51:
+            if (isAlt) seekForward();
+            break;
+          case 77:
+            if (isAlt) toggleMute();
+            break;
+        }
+      };
+
+      setIsReady(true);
+    });
+
+    wavesurfer.on("audioprocess", () =>
+      highlightWord(wavesurfer)
+    );
+    wavesurfer.on("mute", function(value) {
+      setMuted(value);
+    });
+    wavesurfer.on("region-in", function(value) {});
+
+    return function cleanup() {
+      wavesurfer.destroy();
+    };
+  }, []);
 </script>
 
 
