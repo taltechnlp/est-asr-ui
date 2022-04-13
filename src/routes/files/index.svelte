@@ -17,7 +17,6 @@
 				userId = user.id;
 			}
 		});
-		console.log('userId: ', userId, 'browser: ', browser);
 		if (!userId) {
 			/* const query = `
 				query {
@@ -76,14 +75,7 @@
 						userId
 					}
 				};
-		} /* else if (browser) {
-			return {
-				status: 303,
-				redirect: `/signin`
-			};
-		} */
-		// Server-side prerender which does not succeed
-		else return {};
+		} else return {};
 	}
 </script>
 
@@ -143,6 +135,7 @@
 			const data = await response.json();
 			const files = await getFiles(userId);
 			filesStore.set(files);
+			if (!timeoutID) longPolling();
 			return;
 		} catch (err) {
 			console.log('Upload failed', err);
@@ -162,6 +155,28 @@
 			goto(`/files/${fileId}`);
 		}
 	}
+	let timeoutID;
+	const longPolling = async () => {
+		if ($filesStore.find((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')) {
+			console.log('long-polling');
+			timeoutID = await setTimeout(async () => {
+				console.log('poll');
+				const files = await getFiles(userId);
+				if (files) {
+					filesStore.set(files);
+				}
+				if (!$filesStore.find((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')) {
+					clearTimeout(timeoutID);
+					timeoutID = null;
+				}
+			}, 20000);
+		} else if (timeoutID) {
+			clearTimeout(timeoutID);
+			timeoutID = null;
+		}
+	};
+
+	longPolling();
 </script>
 
 <div class="grid w-full justify-center grid-cols-[minmax(320px,_1280px)] overflow-x-auto">
@@ -209,24 +224,34 @@
 							{:else if file.state == 'PROCESSING_ERROR'}
 								<div class="badge badge-error">TRANSKRIBEERIMINE EBAÕNNESTUS</div>
 							{:else if file.state == 'PROCESSING'}
-								<div class="badge badge-accent">TÖÖTLEMISEL</div>
+								<div class="badge badge-accent loading">TÖÖTLEMISEL</div>
+								<span class="btn btn-ghost btn-xs loading" />
 							{:else if file.state == 'UPLOADED'}
-								<div class="badge badge-info">JÄRJEKORRAS</div>
+								<div class="badge badge-info loading">JÄRJEKORRAS</div>
+								<span class="btn btn-ghost btn-xs loading" />
 							{/if}
 						</td>
 						<td class="">
 							{toTime(file.uploadedAt)}
 						</td>
 						<td class="">
-							{#if file.state == "READY"}
+							{#if file.state == 'READY'}
 								<button class="btn btn-outline btn-xs">Ava</button>
-								<button class="btn btn-outline btn-xs" on:click={(e) => {e.stopPropagation();}}>Lae alla</button>
+								<button
+									class="btn btn-outline btn-xs"
+									on:click={(e) => {
+										e.stopPropagation();
+									}}>Lae alla</button
+								>
 							{/if}
 
 							<label
 								for="del-file-modal"
 								class="btn btn-outline btn-xs"
-								on:click={(e) => {delFileId = file.id; e.stopPropagation();}}>Kustuta</label
+								on:click={(e) => {
+									delFileId = file.id;
+									e.stopPropagation();
+								}}>Kustuta</label
 							>
 						</td>
 					</tr>
@@ -260,11 +285,11 @@
 					<li class="py-4 pt-0">Faili suurus kuni 100 MB.</li>
 				</ul>
 				{#if upload && upload[0]}
-					<button on:click={uploadFile} class="btn btn-active btn-secondary" type="submit"
+					<button on:click={uploadFile} class="btn btn-active btn-primary" type="submit"
 						>Lae ülesse</button
 					>
 				{:else}
-					<button class="btn btn-active btn-secondary" type="submit" disabled>Lae ülesse</button>
+					<button class="btn btn-active btn-primary" type="submit" disabled>Lae ülesse</button>
 				{/if}
 			</fieldset>
 		</label>

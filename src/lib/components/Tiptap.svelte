@@ -17,23 +17,28 @@
 	import History from '@tiptap/extension-history';
 	import { Speaker } from './speaker';
 	import { Word } from './word';
-	import Icon from 'svelte-awesome/components/Icon.svelte'
-	import rotateLeft from 'svelte-awesome/icons/rotate-left'
-	import rotateRigth from 'svelte-awesome/icons/rotate-right'
-	import download from 'svelte-awesome/icons/download'
-	import { downloadHandler } from '$lib/download'
-	import { saveChanges } from '$lib/mutations/save'
+	import Icon from 'svelte-awesome/components/Icon.svelte';
+	import rotateLeft from 'svelte-awesome/icons/rotate-left';
+	import rotateRigth from 'svelte-awesome/icons/rotate-right';
+	import download from 'svelte-awesome/icons/download';
+	import debounce from 'lodash/debounce';
+	import { downloadHandler } from '$lib/download';
+	import { saveChanges } from '$lib/mutations/save';
 	import { speakerNames } from '$lib/stores';
 
 	export let content;
 	export let fileId;
-	
+
 	let element;
 	let editor;
-	
-	
+
+	const debouncedSave = debounce(handleSave, 10000, {
+		leading: false,
+		trailing: true
+	});
+
 	onMount(() => {
-		speakerNames.set([])
+		speakerNames.set([]);
 		editor = new Editor({
 			element: element,
 			extensions: [
@@ -62,19 +67,20 @@
                       }
                     }, */
 			},
-			content: content, 
+			content: content,
 
 			onTransaction: () => {
 				// force re-render so `editor.isActive` works as expected
 				editor = editor;
+				debouncedSave();
 				// console.log(editor.schema);
 			}
 		});
-		const names = getSpeakerNames()
-		console.log("names", names)
+		const names = getSpeakerNames();
+		console.log('names', names);
 		// @ts-ignore
-		speakerNames.set(names)
-		console.log("names", $speakerNames)
+		speakerNames.set(names);
+		console.log('names', $speakerNames);
 	});
 
 	onDestroy(() => {
@@ -84,7 +90,8 @@
 	});
 
 	function handleSave() {
-		saveChanges(editor.getJSON(), fileId)
+		saveChanges(editor.getJSON(), fileId);
+		console.log('Saved changes!');
 	}
 
 	const getSpeakerNames = () => {
@@ -95,47 +102,46 @@
 		);
 		return Array.from(speakerNames);
 	};
-	
 </script>
-<div class="w-full fixed top-2 left-0 right-0 flex justify-center z-20">
 
-	
-</div>
+<div class="w-full fixed top-2 left-0 right-0 flex justify-center z-20" />
 <div class="grid w-full mt-4 mb-12 justify-center">
 	<div class="editor">
 		{#if editor}
-
-		<div class="toolbar sticky top-0 z-10 pt-1 pb-1">
-			<div></div>
-			<div>
-				<span on:click={() => editor.chain().focus().undo().run()}
-					class:disabled={!editor.can().undo()} style="color: rgba(0, 0, 0, 0.54);" 
-					class="ml-4 tooltip cursor-pointer" data-tip="undo">
-					<Icon data={rotateLeft} scale="{1.5}" />
-				</span>
-				<span on:click={() => editor.chain().focus().redo().run()}
-					class:disabled={!editor.can().redo()} style="color: rgba(0, 0, 0, 0.54);" 
-					class="ml-4 tooltip cursor-pointer" data-tip="redo">
-					<Icon data={rotateRigth} scale="{1.5}" />
-				</span>
-				<span on:click={handleSave}
-					class:disabled={!editor.can().redo()} style="color: rgba(0, 0, 0, 0.54);" 
-					class="ml-4 tooltip cursor-pointer">
-					Salvesta
-				</span>
+			<div class="toolbar sticky top-0 z-10 pt-1 pb-1">
+				<div />
+				<div>
+					<span
+						on:click={() => editor.chain().focus().undo().run()}
+						class:disabled={!editor.can().undo()}
+						style="color: rgba(0, 0, 0, 0.54);"
+						class="ml-4 tooltip cursor-pointer mt-1"
+						data-tip="undo"
+					>
+						<Icon data={rotateLeft} scale={1.5} />
+					</span>
+					<span
+						on:click={() => editor.chain().focus().redo().run()}
+						class:disabled={!editor.can().redo()}
+						style="color: rgba(0, 0, 0, 0.54);"
+						class="ml-3 tooltip cursor-pointer mt-1"
+						data-tip="redo"
+					>
+						<Icon data={rotateRigth} scale={1.5} />
+					</span>
+				</div>
+				<div class="flex">
+					<button
+						class="btn btn-link btn-sm"
+						on:click={() => {
+							downloadHandler('', '', '', true);
+						}}
+					>
+						<Icon data={download} scale={1} />
+						<span class="ml-2"> Laadi alla </span>
+					</button>
+				</div>
 			</div>
-			<div class="flex mt-1">
-					<svg class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-					<span>Salvestatud!</span>
-			</div>
-			<div class="flex">
-				<button class="btn btn-link btn-sm" on:click="{()=>{downloadHandler('','','', true)}}">
-					<Icon data={download} scale="{1}" />
-					<span class="ml-2">
-						Laadi alla
-					</span> </button>
-			</div>
-		</div>
 		{/if}
 		<div bind:this={element} class="max-w-5xl " />
 	</div>
@@ -152,8 +158,8 @@
 	.toolbar {
 		display: flex;
 		justify-content: space-between;
-		background-color: #f5f5f5!important;
-    	border-color: #f5f5f5!important;
+		background-color: #f5f5f5 !important;
+		border-color: #f5f5f5 !important;
 	}
 	.toolbar > button {
 		background-color: -internal-light-dark(rgb(239, 239, 239), rgb(59, 59, 59));

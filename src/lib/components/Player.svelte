@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import WaveSurfer from "wavesurfer.js";
-	import TimelinePlugin from "wavesurfer.js/dist/plugin/wavesurfer.timeline.min.js";
-	import RegionsPlugin from "wavesurfer.js/dist/plugin/wavesurfer.regions.min.js";
-	export let url
+	import WaveSurfer from 'wavesurfer.js';
+	import TimelinePlugin from 'wavesurfer.js/dist/plugin/wavesurfer.timeline.min.js';
+	import RegionsPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.regions.min.js';
+	export let url;
 
 	let wavesurfer;
+
 	onMount(() => {
 		wavesurfer = WaveSurfer.create({
 			container: '#waveform',
@@ -13,7 +14,7 @@
 			progressColor: 'purple',
 			autoCenter: true,
 			// bargap: 1,
-			// barWidth: 3, 
+			// barWidth: 3,
 			normalize: true,
 			height: 80,
 			//partialRender: true,
@@ -25,31 +26,30 @@
 			maxCanvasWidth: 4000,
 			pixelRatio: 1,
 			//forceDecode: true,
-			
+
 			plugins: [
 				RegionsPlugin.create({
 					regions: []
 				}),
 				TimelinePlugin.create({
-					container: "#wave-timeline"
+					container: '#wave-timeline'
 				})
-			] 
+			]
 		});
 		wavesurfer.on('ready', function () {
+			// @ts-ignore
+			window.myPlayer = wavesurfer;
 			wavesurfer.play();
 		});
 		// console.log(url, "url")
 		wavesurfer.load(url);
 		// wavesurfer.load('../../../static/demo.wav');
-
-	
-	}); 
+	});
 
 	let playbackSpeed = 0;
-	const setPlaybackSpeed = (speed: number) => speed = playbackSpeed + speed
-	let playing = false
+	const setPlaybackSpeed = (speed: number) => (speed = playbackSpeed + speed);
+	let playing = false;
 	let zoom = 20;
-
 
 	onDestroy(() => {
 		if (wavesurfer) {
@@ -57,74 +57,73 @@
 		}
 	});
 
-	const fasterSpeed = () => {
+	export const fasterSpeed = () => {
 		if (wavesurfer) {
-		if (playbackSpeed <= 1.75) {
-			wavesurfer.setPlaybackRate(playbackSpeed + 0.25);
-			setPlaybackSpeed(0.25);
-		}
+			if (playbackSpeed <= 1.75) {
+				wavesurfer.setPlaybackRate(playbackSpeed + 0.25);
+				setPlaybackSpeed(0.25);
+			}
 		}
 	};
-	const slowerSpeed = () => {
+	export const slowerSpeed = () => {
 		if (wavesurfer) {
-		if (playbackSpeed >= 0.5) {
-			wavesurfer.setPlaybackRate(playbackSpeed - 0.25);
-			setPlaybackSpeed(-0.25);
-		}
+			if (playbackSpeed >= 0.5) {
+				wavesurfer.setPlaybackRate(playbackSpeed - 0.25);
+				setPlaybackSpeed(-0.25);
+			}
 		}
 	};
-	const normalSpeed = () => {
+	export const normalSpeed = () => {
 		if (wavesurfer) {
 			setPlaybackSpeed(1);
-		wavesurfer.setPlaybackRate(1);
+			wavesurfer.setPlaybackRate(1);
 		}
 	};
-	const toggleRegions = () => {
-	};
-	const seekTo = pos => {
+	export const toggleRegions = () => {};
+	export const seekTo = (pos) => {
 		if (wavesurfer.getDuration() >= pos) {
-		wavesurfer.setCurrentTime(pos);
+			wavesurfer.setCurrentTime(pos);
 		}
 	};
-	const play = () => {
+	export const play = () => {
 		wavesurfer.play();
 		playing = true;
 	};
-	const pause = () => {
+	export const pause = () => {
 		wavesurfer.pause();
 		playing = false;
 	};
-	const seekBackward = () => {
+	export const seekBackward = () => {
 		wavesurfer.skipBackward(5);
 	};
-	const seekForward = () => {
+	export const seekForward = () => {
 		wavesurfer.skipForward(5);
 	};
-	const toggleMute = () => {
+	export const toggleMute = () => {
 		wavesurfer.toggleMute();
 	};
-	const togglePlay = () => {
+	export const togglePlay = () => {
 		wavesurfer.playPause();
 		if (wavesurfer.isPlaying()) playing = true;
 		else playing = false;
 	};
-	const zoomOut = () => {
-		if (zoom > 5) (zoom = zoom - 20);
+	export const zoomOut = () => {
+		if (zoom > 5) zoom = zoom - 20;
 		wavesurfer.zoom(zoom);
 	};
-	const zoomIn = () => {
-		if (zoom < 205) (zoom = zoom + 20);
+	export const zoomIn = () => {
+		if (zoom < 205) zoom = zoom + 20;
 		wavesurfer.zoom(zoom);
 	};
-	wavesurfer.on("ready", function() {
+	/* wavesurfer.on("ready", function() {
       if (window.innerWidth < 450) {
         wavesurfer.setHeight(40);
       }
       wavesurfer.zoom(zoom);
 
       //console.log("Player ready");
-      /* window.myWaveSurferPlayer = {};
-      window.myWaveSurferPlayer.seekTo = seekTo; */
+      window.myWaveSurferPlayer = {};
+      window.myWaveSurferPlayer.seekTo = seekTo;
       //console.log(window.myWaveSurferPlayer.seekTo);
 
       let isAlt = false;
@@ -168,10 +167,8 @@
     return function cleanup() {
       wavesurfer.destroy();
     };
-  }, []);
+  }, []); */
 </script>
-
-
 
 <style>
 	button.active {
@@ -179,9 +176,9 @@
 		color: white;
 	}
 	.wavesurfer-region {
-        border-color: #b2b0b6;
-        border-style: solid;
-        border-width: 0 1px 0;
-        opacity: 0.3;
-    }
+		border-color: #b2b0b6;
+		border-style: solid;
+		border-width: 0 1px 0;
+		opacity: 0.3;
+	}
 </style>
