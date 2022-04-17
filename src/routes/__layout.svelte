@@ -1,6 +1,11 @@
 <script context="module">
 	import { user as userStore } from '$lib/stores';
 	import { getUser } from '$lib/queries/user';
+  import { waitLocale } from 'svelte-i18n'
+
+  export async function preload() {
+    return waitLocale()
+  }
 	
 	export async function load({ params, fetch, session, stuff }) {
 		const user = await getUser()

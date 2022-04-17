@@ -5,6 +5,10 @@ export const files = writable([]);
 export const lang = writable({ language: 'ET' });
 export const speakerNames = writable(['']);
 export const editor = writable(null);
+export const player = writable({
+	playing: false,
+	muted: false
+})
 
 const getSpeakerNames = (editor) => {
 	const speakerNodes = editor.view.state.doc.content;

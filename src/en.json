@@ -1,5 +1,11 @@
 {
     "sign_in": "Sign in",
     "sign_up": "Sign up",
-    "index.title": "Home | teksiks.ee"
+    "index":{
+      "title": "Home | teksiks.ee",
+      "headerTitle": "Home",
+      "headerFiles": "Files",
+      "headerDemo": "Demo",
+      "login": "Log in"
+    }
   }

@@ -4,7 +4,6 @@
 	import { fileQuery, getFile } from '$lib/queries/file';
 	export async function load({ params, fetch, session, stuff }) {
 		const file = await getFile(params.fileId);
-		console.log(file);
 		return { props: { file } };
 	}
 	import { GRAPHQL_ENDPOINT } from '$lib/graphql-client';
@@ -90,12 +89,12 @@
 
 	let json = JSON.parse(file && file.initialTranscription);
 	let editorContent;
-
+	console.log(json, !json.type);
 	if (json && !json.type) {
 		editorContent = toEditorFormat(json);
 	} else if (json && json.content) editorContent = json;
 	else editorContent = '';
-
+	console.log("editorcontent", editorContent);
 	// @ts-ignore
 	let playing = true;
 	const togglePlay = () => {

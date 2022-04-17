@@ -2,6 +2,8 @@
 	import { user as userStore, lang as langStore } from '$lib/stores';
 	import { afterNavigate } from '$app/navigation';
 	import Logo from '$lib/components/Logo.svelte';
+	import { createEventDispatcher } from 'svelte';
+	import { _, locale } from 'svelte-i18n';
 
 	let loggedIn;
 	let initials;
@@ -11,8 +13,7 @@
 			const rgx = new RegExp(/(\p{L}{1})\p{L}+/, 'gu');
 			let initialsArr = [...value.name.matchAll(rgx)] || [];
 			initials = ((initialsArr.shift()?.[1] || '') + (initialsArr.pop()?.[1] || '')).toUpperCase();
-		}
-		else loggedIn = false;
+		} else loggedIn = false;
 	});
 	let path = '';
 	afterNavigate((nav) => {
@@ -20,21 +21,21 @@
 		return;
 	});
 
-	let lang;
-	langStore.subscribe((x) => {
-		if (x && x.language) {
-			lang = x.language;
-		}
-	});
-	const setLang = (language) => {
-		langStore.set({ language });
-		console.log(language);
+	const languageDict = {
+		et: { id: 'et', text: 'ET', flag: [0x1f1ea, 0x1f1ea] },
+		en: { id: 'en', text: 'EN', flag: [0x1f1ec, 0x1f1e7] }
 	};
-	let languages = [
-		{ id: 'ET', text: 'ET', flag: [0x1f1ea, 0x1f1ea] },
-		{ id: 'EN', text: 'EN', flag: [0x1f1ec, 0x1f1e7] }
-	];
+	const languages = ['et', 'en'];
+
 	let selected;
+
+	const dispatch = createEventDispatcher();
+
+	function switchLocale(event) {
+		event.preventDefault();
+		locale.set(event.target.value);
+		dispatch('locale-changed', event.target.value);
+	}
 </script>
 
 <div class="max-w-screen-2xl w-full">
@@ -50,34 +51,33 @@
 		<div class="hidden navbar-end sm:flex">
 			<div class="flex">
 				<a href="/" class="btn btn-ghost btn-md rounded-btn {path == '/' ? 'text-orange-600' : ''}">
-					Esileht
+					{$_('index.headerTitle')}
 				</a>
 				{#if loggedIn}
 					<a
 						href="/files"
 						class="btn btn-ghost btn-md rounded-btn {path == '/files' ? 'text-orange-600' : ''}"
 					>
-						Failid
+						{$_('index.headerFiles')}
 					</a>
 				{/if}
 				<a
 					href="/demo"
 					class="btn btn-ghost btn-md rounded-btn {path == '/demo' ? 'text-orange-600' : ''}"
 				>
-					Demo
+					{$_('index.headerDemo')}
 				</a>
-				<select
-					class="select select-ghost max-w-xs"
-					bind:value={selected}
-					on:change={() => setLang(selected.id)}
-				>
+				<select class="select select-ghost max-w-xs" bind:value={selected} on:change={switchLocale}>
 					{#each languages as language}
 						<option value={language}>
 							<span class="">
-								{String.fromCodePoint(language.flag[0], language.flag[1])}
+								{String.fromCodePoint(
+									languageDict[language].flag[0],
+									languageDict[language].flag[1]
+								)}
 							</span>
 							<span class="">
-								{language.text}
+								{languageDict[language].text}
 							</span>
 						</option>
 					{/each}
@@ -87,7 +87,7 @@
 						href="/signin"
 						class="btn btn-ghost btn-md rounded-btn {path == '/signin' ? 'text-orange-600' : ''}"
 					>
-						Login
+						{$_('index.login')}
 					</a>
 				{/if}
 				{#if loggedIn}

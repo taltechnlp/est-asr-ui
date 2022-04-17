@@ -4,6 +4,7 @@
 	import TimelinePlugin from 'wavesurfer.js/dist/plugin/wavesurfer.timeline.min.js';
 	import RegionsPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.regions.min.js';
 	export let url;
+	import { player } from '$lib/stores';
 
 	let wavesurfer;
 
@@ -40,6 +41,12 @@
 			// @ts-ignore
 			window.myPlayer = wavesurfer;
 			wavesurfer.play();
+		});
+		// wavesurfer.on('audioprocess', () => highlightWord());
+		wavesurfer.on('mute', function () {
+			player.update((x) => {
+				return { ...x, muted: true };
+			});
 		});
 		// console.log(url, "url")
 		wavesurfer.load(url);
@@ -114,6 +121,37 @@
 	export const zoomIn = () => {
 		if (zoom < 205) zoom = zoom + 20;
 		wavesurfer.zoom(zoom);
+	};
+
+	const highlightWord = () => {
+		if (
+			// @ts-ignore
+			window.myEditor &&
+			// @ts-ignore
+			window.myEditorWords
+		) {
+			const progress = Math.round(wavesurfer.getCurrentTime() * 100);
+			// @ts-ignore
+			const node = window.myEditorWords.get(progress);
+			if (node) {
+				console.log('node', node);
+				// @ts-ignore
+				if (window.myEditor.lastHighlighted) {
+					// @ts-ignore
+					if (window.myEditor.lastHighlighted !== node) {
+						// @ts-ignore
+						window.myEditor.lastHighlighted.setAttribute('style', 'background-color: #FFF;');
+						node.setAttribute('style', 'background-color: rgb(249, 204, 249);');
+						// @ts-ignore
+						window.myEditor.lastHighlighted = node;
+					}
+				} else {
+					node.setAttribute('style', 'background-color: rgb(249, 204, 249);');
+					// @ts-ignore
+					window.myEditor.lastHighlighted = node;
+				}
+			}
+		}
 	};
 	/* wavesurfer.on("ready", function() {
       if (window.innerWidth < 450) {

@@ -36,27 +36,19 @@ export const Word = Mark.create<WordOptions>({
 			start: {
 				default: null,
 				parseHTML: (element) => {
-					return {
-						start: element.getAttribute('start')
-					};
+					return element.getAttribute('start')
 				},
 				renderHTML: (attributes) => {
-					return {
-						start: attributes.start
-					};
+					return attributes.start
 				}
 			},
 			end: {
 				default: null,
 				parseHTML: (element) => {
-					return {
-						end: element.getAttribute('end')
-					};
+					return element.getAttribute('end')
 				},
 				renderHTML: (attributes) => {
-					return {
-						end: attributes.end
-					};
+					return attributes.end
 				}
 			}
 		};

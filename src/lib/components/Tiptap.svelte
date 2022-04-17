@@ -77,11 +77,38 @@
 			}
 		});
 		const names = getSpeakerNames();
-		console.log('names', names);
 		// @ts-ignore
 		speakerNames.set(names);
-		console.log('names', $speakerNames);
-	});
+
+		function handleWordClick(e) {
+			// @ts-ignore
+			if (window.myPlayer) {
+				// @ts-ignore
+				const startTime = parseFloat(
+					e.target.getAttribute("start")
+				);
+				// @ts-ignore
+				const location = startTime / window.myPlayer.getDuration()
+				// @ts-ignore
+				window.myPlayer.seekAndCenter(location);
+			}
+		}
+
+		const words = new Map();
+		document.querySelectorAll("span[start]").forEach(el => {
+			const start = Math.round(parseFloat(el.getAttribute("start")) * 100);
+			const end = Math.round(parseFloat(el.getAttribute("end")) * 100);
+			for (let i = start; i <= end; i++) {
+				words.set(i, el);
+			}
+			el.addEventListener("click", handleWordClick);
+		})
+		// @ts-ignore
+		window.myEditor = editor;
+		
+		// @ts-ignore
+		window.myEditorWords = words;
+    });
 
 	onDestroy(() => {
 		if (editor) {
@@ -115,7 +142,7 @@
 						on:click={() => editor.chain().focus().undo().run()}
 						class:disabled={!editor.can().undo()}
 						style="color: rgba(0, 0, 0, 0.54);"
-						class="ml-4 tooltip cursor-pointer mt-1"
+						class="ml-4 tooltip-bottom cursor-pointer mt-1"
 						data-tip="undo"
 					>
 						<Icon data={rotateLeft} scale={1.5} />
@@ -124,7 +151,7 @@
 						on:click={() => editor.chain().focus().redo().run()}
 						class:disabled={!editor.can().redo()}
 						style="color: rgba(0, 0, 0, 0.54);"
-						class="ml-3 tooltip cursor-pointer mt-1"
+						class="ml-3 tooltip-bottom cursor-pointer mt-1"
 						data-tip="redo"
 					>
 						<Icon data={rotateRigth} scale={1.5} />
