@@ -1,11 +1,47 @@
 {
-    "sign_in": "Sign in",
-    "sign_up": "Sign up",
-    "index":{
-      "title": "Home | teksiks.ee",
-      "headerTitle": "Home",
-      "headerFiles": "Files",
-      "headerDemo": "Demo",
-      "login": "Log in"
-    }
+  "sign_in": "Sign in",
+  "sign_up": "Sign up",
+  "index": {
+    "title": "Home | teksiks.ee",
+    "headerTitle": "Home",
+    "headerFiles": "Files",
+    "headerDemo": "Demo",
+    "login": "Log in"
+  },
+  "signin": {
+    "error": "Login error. Check username and password."
+  },
+  "files": {
+    "uploadButton": "Upload",
+    "filename": "Filename",
+    "status": "Status",
+    "uploadedAt": "Uploaded",
+    "actions": "Actions",
+    "openButton": "Open",
+    "downloadButton": "Download",
+    "deleteButton": "Delete",
+    "statusReady": "READY",
+    "statusError": "TRANSCRIPTION FAILED",
+    "statusProcessing": "PROCESSING",
+    "statusUploaded": "QUEUED",
+    "uploadHeader": "Upload a speech recording",
+    "supportedFormats": "Supported formats: wav, mp3, ogg, mp2, m4a, mp4, flac, amr, mpg.",
+    "fileSizeLimit": "File size limit is 100MB."
+  },
+  "me": {
+    "header": "Account details",
+    "email": "Email address",
+    "name": "Name",
+    "logoutButton": "Log out"
+  },
+  "file": {
+    "toolbarUndo": "Undo",
+    "toolbarRedo": "Redo",
+    "toolbarDownload": "Download"
+  },
+  "speakerSelect": {
+    "addNew": "Add new speaker",
+    "save": "Save",
+    "edit": "Edit"
   }
+}

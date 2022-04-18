@@ -34,22 +34,22 @@ export const Word = Mark.create<WordOptions>({
 	addAttributes() {
 		return {
 			start: {
-				default: null,
+				default: '' /* ,
 				parseHTML: (element) => {
-					return element.getAttribute('start')
+					return element.getAttribute('start');
 				},
 				renderHTML: (attributes) => {
-					return attributes.start
-				}
+					return attributes.start;
+				} */
 			},
 			end: {
-				default: null,
+				default: '' /* ,
 				parseHTML: (element) => {
-					return element.getAttribute('end')
+					return element.getAttribute('end');
 				},
 				renderHTML: (attributes) => {
-					return attributes.end
-				}
+					return attributes.end;
+				} */
 			}
 		};
 	},
@@ -63,8 +63,8 @@ export const Word = Mark.create<WordOptions>({
 	},
 
 	renderHTML({ HTMLAttributes }) {
-		return ['span', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes)];
-	},
+		return ['span', mergeAttributes(HTMLAttributes)];
+	}
 
 	/* addInputRules() {
 		return [markInputRule(inputRegex, this.type)];

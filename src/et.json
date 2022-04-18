@@ -7,5 +7,41 @@
         "headerFiles": "Failid",
         "headerDemo": "Demo",
         "login": "Logi sisse"
+    },
+    "signin": {
+        "error": "Viga sisse logimisel. Kontrolli kasutajanime ja parooli."
+    },
+    "files": {
+        "uploadButton": "Lae ülesse",
+        "filename": "Failinimi",
+        "status": "Staatus",
+        "uploadedAt": "Ülesse laetud",
+        "actions": "Tegevused",
+        "openButton": "Ava",
+        "downloadButton": "Lae alla",
+        "deleteButton": "Kustuta",
+        "statusReady": "VALMIS",
+        "statusError": "TRANSKRIBEERIMINE EBAÕNNESTUS",
+        "statusProcessing": "TÖÖTLEMISEL",
+        "statusUploaded": "JÄRJEKORRAS",
+        "uploadHeader": "Helisalvestise ülesse laadimine",
+        "supportedFormats": "Toetatud formaadid: wav, mp3, ogg, mp2, m4a, mp4, flac, amr, mpg.",
+        "fileSizeLimit": "Faili suurus kuni 100MB."
+    },
+    "me": {
+        "header": "Konto andmed",
+        "email": "E-posti aadress",
+        "name": "Nimi",
+        "logoutButton": "Logi välja"
+    },
+    "file": {
+        "toolbarUndo": "Võta tagasi",
+        "toolbarRedo": "Ennista",
+        "toolbarDownload": "Laadi alla"
+    },
+    "speakerSelect": {
+        "addNew": "Lisa uus kõneleja",
+        "save": "Salvesta",
+        "edit": "Muuda"
     }
 }

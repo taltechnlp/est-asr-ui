@@ -42,7 +42,7 @@
 			window.myPlayer = wavesurfer;
 			wavesurfer.play();
 		});
-		// wavesurfer.on('audioprocess', () => highlightWord());
+		wavesurfer.on('audioprocess', () => highlightWord());
 		wavesurfer.on('mute', function () {
 			player.update((x) => {
 				return { ...x, muted: true };
@@ -56,6 +56,7 @@
 	let playbackSpeed = 0;
 	const setPlaybackSpeed = (speed: number) => (speed = playbackSpeed + speed);
 	let playing = false;
+	let muted = false;
 	let zoom = 20;
 
 	onDestroy(() => {
@@ -108,6 +109,7 @@
 	};
 	export const toggleMute = () => {
 		wavesurfer.toggleMute();
+		muted = !muted;
 	};
 	export const togglePlay = () => {
 		wavesurfer.playPause();
@@ -122,7 +124,7 @@
 		if (zoom < 205) zoom = zoom + 20;
 		wavesurfer.zoom(zoom);
 	};
-
+	let lastProgress = 0;
 	const highlightWord = () => {
 		if (
 			// @ts-ignore
@@ -131,24 +133,28 @@
 			window.myEditorWords
 		) {
 			const progress = Math.round(wavesurfer.getCurrentTime() * 100);
-			// @ts-ignore
-			const node = window.myEditorWords.get(progress);
-			if (node) {
-				console.log('node', node);
+			// Skip if it's the same exact time
+			if (lastProgress !== progress) {
+				// console.log(lastProgress, progress);
+				lastProgress = progress;
 				// @ts-ignore
-				if (window.myEditor.lastHighlighted) {
+				const node = window.myEditorWords.get(progress);
+				if (node) {
 					// @ts-ignore
-					if (window.myEditor.lastHighlighted !== node) {
+					if (window.myEditor.lastHighlighted) {
 						// @ts-ignore
-						window.myEditor.lastHighlighted.setAttribute('style', 'background-color: #FFF;');
+						if (window.myEditor.lastHighlighted !== node) {
+							// @ts-ignore
+							window.myEditor.lastHighlighted.setAttribute('style', 'background-color: #FFF;');
+							node.setAttribute('style', 'background-color: rgb(249, 204, 249);');
+							// @ts-ignore
+							window.myEditor.lastHighlighted = node;
+						}
+					} else {
 						node.setAttribute('style', 'background-color: rgb(249, 204, 249);');
 						// @ts-ignore
 						window.myEditor.lastHighlighted = node;
 					}
-				} else {
-					node.setAttribute('style', 'background-color: rgb(249, 204, 249);');
-					// @ts-ignore
-					window.myEditor.lastHighlighted = node;
 				}
 			}
 		}

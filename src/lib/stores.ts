@@ -8,16 +8,7 @@ export const editor = writable(null);
 export const player = writable({
 	playing: false,
 	muted: false
-})
-
-const getSpeakerNames = (editor) => {
-	const speakerNodes = editor.view.state.doc.content;
-	const speakerNames = new Set();
-	speakerNodes.forEach((node) =>
-		node.attrs['data-name'] ? speakerNames.add(node.attrs['data-name']) : null
-	);
-	return Array.from(speakerNames);
-};
+});
 
 export const changeName = (id, newName) =>
 	speakerNames.update((names) => {

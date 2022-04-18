@@ -1,5 +1,5 @@
 import { user as userStore } from '$lib/stores';
-import { GRAPHQL_ENDPOINT } from '$lib/graphql-client'
+import { GRAPHQL_ENDPOINT } from '$lib/graphql-client';
 
 export const signin = async (email: string, password: string) => {
 	try {
@@ -17,22 +17,29 @@ export const signin = async (email: string, password: string) => {
 			password
 		};
 		const response = await fetch(GRAPHQL_ENDPOINT, {
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                query: mutation,
+			method: 'POST',
+			credentials: 'include',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				query: mutation,
 				variables
-            })
-        })
-        const { data } = await response.json()
-		userStore.set(data.signin);
-		return {
-			status: 200,
-			body: { user: signin }
-		};
+			})
+		});
+		const { data } = await response.json();
+		if (data) {
+			userStore.set(data.signin);
+			return {
+				status: 200,
+				body: { user: signin }
+			};
+		} else {
+			return {
+				status: 500,
+				body: { error: 'signin.error' }
+			};
+		}
 	} catch (error) {
 		return {
 			status: 500,

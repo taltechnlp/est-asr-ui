@@ -94,9 +94,11 @@
 		editorContent = toEditorFormat(json);
 	} else if (json && json.content) editorContent = json;
 	else editorContent = '';
-	console.log("editorcontent", editorContent);
+	console.log('editorcontent', editorContent);
 	// @ts-ignore
 	let playing = true;
+	let muted = false;
+	let zoom = 20;
 	const togglePlay = () => {
 		// @ts-ignore
 		if (window.myPlayer) {
@@ -126,6 +128,24 @@
 		if (window.myPlayer) {
 			// @ts-ignore
 			window.myPlayer.toggleMute();
+			// @ts-ignore
+			muted = window.myPlayer.getMute();
+		}
+	};
+	const zoomOut = () => {
+		// @ts-ignore
+		if (window.myPlayer) {
+			if (zoom > 5) zoom = zoom - 20;
+			// @ts-ignore
+			window.myPlayer.zoom(zoom);
+		}
+	};
+	export const zoomIn = () => {
+		// @ts-ignore
+		if (window.myPlayer) {
+			if (zoom < 205) zoom = zoom + 20;
+			// @ts-ignore
+			window.myPlayer.zoom(zoom);
 		}
 	};
 </script>
@@ -137,10 +157,10 @@
 	<div class="w-full h-auto fixed bottom-0 left-0 pb-1 bg-white">
 		<div class="controls flex justify-between pt-0.5">
 			<div class="flex justify-center content-center mt-3">
-				<button class="btn btn-square btn-sm control-button ml-5">
+				<button class="btn btn-square btn-sm control-button ml-5" on:click={zoomIn}>
 					<Icon data={plus} scale={1} />
 				</button>
-				<button class="btn btn-square btn-sm control-button ml-2">
+				<button class="btn btn-square btn-sm control-button ml-2" on:click={zoomOut}>
 					<Icon data={minus} scale={1} />
 				</button>
 			</div>
@@ -189,17 +209,29 @@
 					>
 				</button>
 			</div>
-			<div>
-				<button class="btn btn-square btn-sm control-button ml-5" on:click={toggleMute}>
-					<svg
-						viewBox="0 0 576 512"
-						class="h-6 w-6"
-						fill="rgba(0, 0, 0, 0.54)"
-						stroke="currentColor"
-						><path
-							d="M301.2 34.85c-11.5-5.188-25.02-3.122-34.44 5.253L131.8 160H48c-26.51 0-48 21.49-48 47.1v95.1c0 26.51 21.49 47.1 48 47.1h83.84l134.9 119.9c5.984 5.312 13.58 8.094 21.26 8.094c4.438 0 8.972-.9375 13.17-2.844c11.5-5.156 18.82-16.56 18.82-29.16V64C319.1 51.41 312.7 40 301.2 34.85zM513.9 255.1l47.03-47.03c9.375-9.375 9.375-24.56 0-33.94s-24.56-9.375-33.94 0L480 222.1L432.1 175c-9.375-9.375-24.56-9.375-33.94 0s-9.375 24.56 0 33.94l47.03 47.03l-47.03 47.03c-9.375 9.375-9.375 24.56 0 33.94c9.373 9.373 24.56 9.381 33.94 0L480 289.9l47.03 47.03c9.373 9.373 24.56 9.381 33.94 0c9.375-9.375 9.375-24.56 0-33.94L513.9 255.1z"
-						/></svg
-					>
+			<div class="flex justify-center content-center mt-3">
+				<button class="btn btn-square btn-sm control-button mr-5" on:click={toggleMute}>
+					{#if muted}
+						<svg
+							viewBox="0 0 576 512"
+							class="h-6 w-6"
+							fill="rgba(0, 0, 0, 0.54)"
+							stroke="currentColor"
+							><path
+								d="M301.2 34.85c-11.5-5.188-25.02-3.122-34.44 5.253L131.8 160H48c-26.51 0-48 21.49-48 47.1v95.1c0 26.51 21.49 47.1 48 47.1h83.84l134.9 119.9c5.984 5.312 13.58 8.094 21.26 8.094c4.438 0 8.972-.9375 13.17-2.844c11.5-5.156 18.82-16.56 18.82-29.16V64C319.1 51.41 312.7 40 301.2 34.85zM513.9 255.1l47.03-47.03c9.375-9.375 9.375-24.56 0-33.94s-24.56-9.375-33.94 0L480 222.1L432.1 175c-9.375-9.375-24.56-9.375-33.94 0s-9.375 24.56 0 33.94l47.03 47.03l-47.03 47.03c-9.375 9.375-9.375 24.56 0 33.94c9.373 9.373 24.56 9.381 33.94 0L480 289.9l47.03 47.03c9.373 9.373 24.56 9.381 33.94 0c9.375-9.375 9.375-24.56 0-33.94L513.9 255.1z"
+							/></svg
+						>
+					{:else}
+						<svg
+							viewBox="0 0 24 24"
+							class="h-6 w-6"
+							fill="rgba(0, 0, 0, 0.54)"
+							stroke="currentColor"
+							><path d="M2,6A2,2,0,0,0,0,8v8a2,2,0,0,0,2,2H4.8L12,23.977V.017L4.8,6Z" /><path
+								d="M20,12a5.006,5.006,0,0,0-5-5H14V9h1a3,3,0,0,1,0,6H14v2h1A5.006,5.006,0,0,0,20,12Z"
+							/><path d="M15,3H14V5h1a7,7,0,0,1,0,14H14v2h1A9,9,0,0,0,15,3Z" /></svg
+						>
+					{/if}
 				</button>
 			</div>
 		</div>

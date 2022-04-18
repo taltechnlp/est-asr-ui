@@ -3,6 +3,7 @@
 	import { client } from '$lib/graphql-client';
 	import { gql } from 'graphql-request';
 	import { signOut } from '$lib/mutations/signout';
+	import { _ } from 'svelte-i18n';
 
 	export async function load({ params, fetch, session, stuff }) {
 		const query = gql`
@@ -33,20 +34,20 @@
 	userStore.subscribe((value) => {
 		userData = value;
 	});
-
-	
 </script>
 
 <div class="grid w-full justify-center grid-cols-[minmax(320px,_640px)] m-1">
-	<h2 class="text-xl mb-10 font-extrabold mt-6">Konto andmed</h2>
+	<h2 class="text-xl mb-10 font-extrabold mt-6">{$_('me.header')}</h2>
 	<div class="grid grid-cols-2 gap-5">
-		<p>E-posti aadress:</p>
+		<p>{$_('me.email')}:</p>
 		<p>{userData ? userData.email : ''}</p>
 
-		<p>Nimi:</p>
+		<p>{$_('me.name')}:</p>
 		<p>{userData ? userData.name : ''}</p>
 	</div>
 	<div class="mt-10">
-		<button class="btn btn-outline" on:click="{async ()=> await signOut()}">Logi välja</button>
+		<button class="btn btn-outline" on:click={async () => await signOut()}
+			>{$_('me.logoutButton')}</button
+		>
 	</div>
 </div>

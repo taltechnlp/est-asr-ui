@@ -25,6 +25,7 @@
 	import { downloadHandler } from '$lib/download';
 	import { saveChanges } from '$lib/mutations/save';
 	import { speakerNames } from '$lib/stores';
+	import { _ } from 'svelte-i18n';
 
 	export let content;
 	export let fileId;
@@ -84,31 +85,29 @@
 			// @ts-ignore
 			if (window.myPlayer) {
 				// @ts-ignore
-				const startTime = parseFloat(
-					e.target.getAttribute("start")
-				);
+				const startTime = parseFloat(e.target.getAttribute('start'));
 				// @ts-ignore
-				const location = startTime / window.myPlayer.getDuration()
+				const location = startTime / window.myPlayer.getDuration();
 				// @ts-ignore
 				window.myPlayer.seekAndCenter(location);
 			}
 		}
 
 		const words = new Map();
-		document.querySelectorAll("span[start]").forEach(el => {
-			const start = Math.round(parseFloat(el.getAttribute("start")) * 100);
-			const end = Math.round(parseFloat(el.getAttribute("end")) * 100);
+		document.querySelectorAll('span[start]').forEach((el) => {
+			const start = Math.round(parseFloat(el.getAttribute('start')) * 100);
+			const end = Math.round(parseFloat(el.getAttribute('end')) * 100);
 			for (let i = start; i <= end; i++) {
 				words.set(i, el);
 			}
-			el.addEventListener("click", handleWordClick);
-		})
+			el.addEventListener('click', handleWordClick);
+		});
 		// @ts-ignore
 		window.myEditor = editor;
-		
+
 		// @ts-ignore
 		window.myEditorWords = words;
-    });
+	});
 
 	onDestroy(() => {
 		if (editor) {
@@ -136,14 +135,13 @@
 	<div class="editor">
 		{#if editor}
 			<div class="toolbar sticky top-0 z-10 pt-1 pb-1">
-				<div />
 				<div>
 					<span
 						on:click={() => editor.chain().focus().undo().run()}
 						class:disabled={!editor.can().undo()}
 						style="color: rgba(0, 0, 0, 0.54);"
-						class="ml-4 tooltip-bottom cursor-pointer mt-1"
-						data-tip="undo"
+						class="ml-4 tooltip tooltip-bottom cursor-pointer"
+						data-tip={$_('file.toolbarUndo')}
 					>
 						<Icon data={rotateLeft} scale={1.5} />
 					</span>
@@ -151,8 +149,8 @@
 						on:click={() => editor.chain().focus().redo().run()}
 						class:disabled={!editor.can().redo()}
 						style="color: rgba(0, 0, 0, 0.54);"
-						class="ml-3 tooltip-bottom cursor-pointer mt-1"
-						data-tip="redo"
+						class="ml-3 tooltip tooltip-bottom cursor-pointer"
+						data-tip={$_('file.toolbarRedo')}
 					>
 						<Icon data={rotateRigth} scale={1.5} />
 					</span>
@@ -165,7 +163,7 @@
 						}}
 					>
 						<Icon data={download} scale={1} />
-						<span class="ml-2"> Laadi alla </span>
+						<span class="ml-2"> {$_('file.toolbarDownload')} </span>
 					</button>
 				</div>
 			</div>

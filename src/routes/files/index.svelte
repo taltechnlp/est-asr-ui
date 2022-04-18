@@ -5,6 +5,7 @@
 	import { getUser } from '$lib/queries/user';
 	import { deleteFile } from '$lib/mutations/deleteFile';
 	import { getFiles } from '$lib/queries/files';
+	import { _ } from 'svelte-i18n';
 
 	0; // TODO: sundida load fn uuesti laadima pärast failide mutatsiooni.
 	// Selleks piisab kui parameetrid muutuvad. Teine variant on igas mutatsioonis uuesti laadida.
@@ -127,6 +128,7 @@
 		formData.append('0', upload[0]);
 		console.log('formData', formData);
 		try {
+			error = '';
 			const response = await fetch(GRAPHQL_ENDPOINT, {
 				method: 'POST',
 				credentials: 'include',
@@ -136,9 +138,12 @@
 			const files = await getFiles(userId);
 			filesStore.set(files);
 			if (!timeoutID) longPolling();
+			const checkBox = document.getElementById('file-upload');
+			// @ts-ignore
+			checkBox.checked = false;
 			return;
 		} catch (err) {
-			console.log('Upload failed', err);
+			error = err;
 			return;
 		}
 	};
@@ -175,14 +180,15 @@
 			timeoutID = null;
 		}
 	};
-
 	longPolling();
+
+	let uploadFormOpen;
 </script>
 
 <div class="grid w-full justify-center grid-cols-[minmax(320px,_1280px)] overflow-x-auto">
 	<div class="flex justify-end max-w-screen-2xl">
 		<label for="file-upload" class="btn btn-primary gap-2 mt-5 mb-2 modal-button right">
-			Lae ülesse
+			{$_('files.uploadButton')}
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
 				id="Outline"
@@ -201,10 +207,10 @@
 		<thead>
 			<tr>
 				<th />
-				<th>Failinimi</th>
-				<th>Staatus</th>
-				<th>Üles laetud</th>
-				<th>Tegevused</th>
+				<th>{$_('files.filename')}</th>
+				<th>{$_('files.status')}</th>
+				<th>{$_('files.uploadedAt')}</th>
+				<th>{$_('files.actions')}</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -220,14 +226,14 @@
 						</td>
 						<td href="/files/{file.id}">
 							{#if file.state == 'READY'}
-								<div class="badge badge-success">VALMIS</div>
+								<div class="badge badge-success">{$_('files.statusReady')}</div>
 							{:else if file.state == 'PROCESSING_ERROR'}
-								<div class="badge badge-error">TRANSKRIBEERIMINE EBAÕNNESTUS</div>
+								<div class="badge badge-error">{$_('files.statusError')}</div>
 							{:else if file.state == 'PROCESSING'}
-								<div class="badge badge-accent loading">TÖÖTLEMISEL</div>
+								<div class="badge badge-accent loading">{$_('files.statusProcessing')}</div>
 								<span class="btn btn-ghost btn-xs loading" />
 							{:else if file.state == 'UPLOADED'}
-								<div class="badge badge-info loading">JÄRJEKORRAS</div>
+								<div class="badge badge-info loading">{$_('files.statusUploaded')}</div>
 								<span class="btn btn-ghost btn-xs loading" />
 							{/if}
 						</td>
@@ -236,12 +242,12 @@
 						</td>
 						<td class="">
 							{#if file.state == 'READY'}
-								<button class="btn btn-outline btn-xs">Ava</button>
+								<button class="btn btn-outline btn-xs">{$_('files.openButton')}</button>
 								<button
 									class="btn btn-outline btn-xs"
 									on:click={(e) => {
 										e.stopPropagation();
-									}}>Lae alla</button
+									}}>{$_('files.downloadButton')}</button
 								>
 							{/if}
 
@@ -251,7 +257,7 @@
 								on:click={(e) => {
 									delFileId = file.id;
 									e.stopPropagation();
-								}}>Kustuta</label
+								}}>{$_('files.deleteButton')}</label
 							>
 						</td>
 					</tr>
@@ -269,7 +275,7 @@
 				<label for="file-upload" class="btn btn-sm btn-circle absolute right-2 top-2" lang="et"
 					>✕</label
 				>
-				<h3 class="text-lg font-bold mb-4">Helisalvestise ülesse laadimine</h3>
+				<h3 class="text-lg font-bold mb-4">{$_('files.uploadHeader')}</h3>
 				<input
 					class="input input-bordered pt-1"
 					type="file"
@@ -281,15 +287,20 @@
 					required
 				/>
 				<ul class="list-disc list-inside">
-					<li class="py-4">Toetatud formaadid: wav, mp3, ogg, mp2, m4a, mp4, flac, amr, mpg.</li>
-					<li class="py-4 pt-0">Faili suurus kuni 100 MB.</li>
+					<li class="py-4">{$_('files.supportedFormats')}</li>
+					<li class="py-4 pt-0">{$_('files.fileSizeLimit')}</li>
 				</ul>
+				{#if error}
+					<p class="mt-3 text-red-500 text-center font-semibold">{error}</p>
+				{/if}
 				{#if upload && upload[0]}
 					<button on:click={uploadFile} class="btn btn-active btn-primary" type="submit"
 						>Lae ülesse</button
 					>
 				{:else}
-					<button class="btn btn-active btn-primary" type="submit" disabled>Lae ülesse</button>
+					<button class="btn btn-active btn-primary" type="submit" disabled
+						>{$_('files.uploadButton')}</button
+					>
 				{/if}
 			</fieldset>
 		</label>
