@@ -36,6 +36,10 @@
 	});
 </script>
 
+<svelte:head>
+	<title>{$_('me.title')}</title>
+</svelte:head>
+
 <div class="grid w-full justify-center grid-cols-[minmax(320px,_640px)] m-1">
 	<h2 class="text-xl mb-10 font-extrabold mt-6">{$_('me.header')}</h2>
 	<div class="grid grid-cols-2 gap-5">

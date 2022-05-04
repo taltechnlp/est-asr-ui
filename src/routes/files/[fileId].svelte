@@ -13,6 +13,7 @@
 	import Icon from 'svelte-awesome/components/Icon.svelte';
 	import minus from 'svelte-awesome/icons/minus-circle';
 	import plus from 'svelte-awesome/icons/plus-circle';
+	import { fromDelta } from '$lib/components/deltaFormat';
 
 	export let file;
 	const combineWords = (acc, word: Word) => {
@@ -90,7 +91,10 @@
 	let json = JSON.parse(file && file.initialTranscription);
 	let editorContent;
 	console.log(json, !json.type);
-	if (json && !json.type) {
+
+	// Delta format from old Quill library.
+	if (json && json.ops) editorContent = fromDelta(json);
+	else if (json && !json.type) {
 		editorContent = toEditorFormat(json);
 	} else if (json && json.content) editorContent = json;
 	else editorContent = '';
@@ -152,7 +156,7 @@
 
 <main class="grid grid-rows-[1fr_auto] content-between">
 	<div class="self-stretch h-full mb-96">
-		<Tiptap content={editorContent} fileId={file.id} />
+		<Tiptap content={editorContent} fileId={file.id} demo={false} />
 	</div>
 	<div class="w-full h-auto fixed bottom-0 left-0 pb-1 bg-white">
 		<div class="controls flex justify-between pt-0.5">
@@ -213,12 +217,12 @@
 				<button class="btn btn-square btn-sm control-button mr-5" on:click={toggleMute}>
 					{#if muted}
 						<svg
-							viewBox="0 0 576 512"
+							viewBox="0 0 24 24"
 							class="h-6 w-6"
 							fill="rgba(0, 0, 0, 0.54)"
 							stroke="currentColor"
 							><path
-								d="M301.2 34.85c-11.5-5.188-25.02-3.122-34.44 5.253L131.8 160H48c-26.51 0-48 21.49-48 47.1v95.1c0 26.51 21.49 47.1 48 47.1h83.84l134.9 119.9c5.984 5.312 13.58 8.094 21.26 8.094c4.438 0 8.972-.9375 13.17-2.844c11.5-5.156 18.82-16.56 18.82-29.16V64C319.1 51.41 312.7 40 301.2 34.85zM513.9 255.1l47.03-47.03c9.375-9.375 9.375-24.56 0-33.94s-24.56-9.375-33.94 0L480 222.1L432.1 175c-9.375-9.375-24.56-9.375-33.94 0s-9.375 24.56 0 33.94l47.03 47.03l-47.03 47.03c-9.375 9.375-9.375 24.56 0 33.94c9.373 9.373 24.56 9.381 33.94 0L480 289.9l47.03 47.03c9.373 9.373 24.56 9.381 33.94 0c9.375-9.375 9.375-24.56 0-33.94L513.9 255.1z"
+								d="M3,9H7L12,4V20L7,15H3V9M16.59,12L14,9.41L15.41,8L18,10.59L20.59,8L22,9.41L19.41,12L22,14.59L20.59,16L18,13.41L15.41,16L14,14.59L16.59,12Z"
 							/></svg
 						>
 					{:else}
@@ -227,9 +231,9 @@
 							class="h-6 w-6"
 							fill="rgba(0, 0, 0, 0.54)"
 							stroke="currentColor"
-							><path d="M2,6A2,2,0,0,0,0,8v8a2,2,0,0,0,2,2H4.8L12,23.977V.017L4.8,6Z" /><path
-								d="M20,12a5.006,5.006,0,0,0-5-5H14V9h1a3,3,0,0,1,0,6H14v2h1A5.006,5.006,0,0,0,20,12Z"
-							/><path d="M15,3H14V5h1a7,7,0,0,1,0,14H14v2h1A9,9,0,0,0,15,3Z" /></svg
+							><path
+								d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.84 14,18.7V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z"
+							/></svg
 						>
 					{/if}
 				</button>

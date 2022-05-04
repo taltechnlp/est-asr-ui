@@ -13,12 +13,11 @@
 			if (content.user) {
 				goto('/files');
 			} else {
-				console.log('Server error: no user details.');
+				return { error: { error: 'Server error: no user details.' } };
 			}
 			return { props: { content } };
 		} else {
 			error = await res.body;
-			console.log(error);
 			return;
 		}
 	}
@@ -29,9 +28,13 @@
 	};
 </script>
 
+<svelte:head>
+	<title>{$_('signin.header')}</title>
+</svelte:head>
+
 <div class="tabs flex justify-center">
-	<a href="signin" class="tab tab-bordered tab-lg tab-active mr-8">Logi sisse</a>
-	<a href="signup" class="tab tab-bordered tab-lg">Registreeru</a>
+	<a href="signin" class="tab tab-bordered tab-lg tab-active mr-8">{$_('signin.login')}</a>
+	<a href="signup" class="tab tab-bordered tab-lg">{$_('signin.register')}</a>
 </div>
 {#if error}
 	<p class="mt-3 text-red-500 text-center font-semibold">{printError(error)}</p>

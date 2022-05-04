@@ -208,7 +208,7 @@
 			{/each}
 		</div>
 	{/if}
-	<div on:click={() => console.log('test')} use:editable class="content editable" />
+	<div use:editable class="content editable" />
 </NodeViewWrapper>
 
 <style>

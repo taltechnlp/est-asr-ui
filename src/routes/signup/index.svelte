@@ -1,6 +1,7 @@
 <script>
 	import SignUpForm from '$lib/components/SignUpForm.svelte';
 	import { signup } from './index.json';
+	import { _ } from 'svelte-i18n';
 
 	let error;
 
@@ -22,8 +23,12 @@
 	}
 </script>
 
+<svelte:head>
+	<title>{$_('signup.header')}</title>
+</svelte:head>
+
 <div class="tabs flex justify-center">
-	<a href="signin" class="tab tab-bordered tab-lg mr-8">Logi sisse</a> 
+	<a href="signin" class="tab tab-bordered tab-lg mr-8">Logi sisse</a>
 	<a href="signup" class="tab tab-bordered tab-lg tab-active">Registreeru</a>
 </div>
 {#if error}

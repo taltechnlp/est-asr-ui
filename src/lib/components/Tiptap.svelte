@@ -29,6 +29,7 @@
 
 	export let content;
 	export let fileId;
+	export let demo;
 
 	let element;
 	let editor;
@@ -73,7 +74,7 @@
 			onTransaction: () => {
 				// force re-render so `editor.isActive` works as expected
 				editor = editor;
-				debouncedSave();
+				if (!demo) debouncedSave();
 				// console.log(editor.schema);
 			}
 		});
@@ -86,10 +87,12 @@
 			if (window.myPlayer) {
 				// @ts-ignore
 				const startTime = parseFloat(e.target.getAttribute('start'));
-				// @ts-ignore
-				const location = startTime / window.myPlayer.getDuration();
-				// @ts-ignore
-				window.myPlayer.seekAndCenter(location);
+				if (startTime) {
+					// @ts-ignore
+					const location = startTime / window.myPlayer.getDuration();
+					// @ts-ignore
+					window.myPlayer.seekAndCenter(location);
+				}
 			}
 		}
 
@@ -117,7 +120,6 @@
 
 	function handleSave() {
 		saveChanges(editor.getJSON(), fileId);
-		console.log('Saved changes!');
 	}
 
 	const getSpeakerNames = () => {

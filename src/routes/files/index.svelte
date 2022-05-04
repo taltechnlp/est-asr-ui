@@ -19,43 +19,6 @@
 			}
 		});
 		if (!userId) {
-			/* const query = `
-				query {
-					me {
-						id
-						email
-						name
-					}
-				}
-			`;
-			
-			try {
-				const response = await fetch(GRAPHQL_ENDPOINT, {
-					method: 'POST',
-					credentials: 'include',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({
-						query
-					})
-				})
-				const { data } = await response.json()
-				console.log("Native fetch browser", browser, "me", data)
-
-				userStore.set(data.me);
-			}
-			catch(err) {
-				console.log(err)
-				return {
-					status: 503,
-					props: {
-						error: "Süsteemi viga, teenus pole hetkel saadaval.",
-						files: []
-					}
-				};
-			} */
-			console.log('getUser');
 			const user = await getUser();
 			if (user) userStore.set(user);
 		}
@@ -295,7 +258,7 @@
 				{/if}
 				{#if upload && upload[0]}
 					<button on:click={uploadFile} class="btn btn-active btn-primary" type="submit"
-						>Lae ülesse</button
+						>{$_('files.uploadButton')}</button
 					>
 				{:else}
 					<button class="btn btn-active btn-primary" type="submit" disabled
@@ -309,14 +272,15 @@
 	<input type="checkbox" id="del-file-modal" class="modal-toggle" />
 	<label for="del-file-modal" class="modal cursor-pointer">
 		<label class="modal-box relative" for="">
-			<h3 class="font-bold text-lg">Faili kustutamine</h3>
+			<h3 class="font-bold text-lg">{$_('files.fileDeletion')}</h3>
 			<p class="py-4">
-				Hoiatus! See kustutab nii faili kui ka transkriptsiooni! Kas oled kindel, et soovid selle
-				faili ja sellega seotud transkriptsiooni kustutada?
+				{$_('files.fileDeletionWarning')}
 			</p>
 			<div class="modal-action">
-				<label for="del-file-modal" class="btn btn-outline">Tühista</label>
-				<label for="del-file-modal" class="btn" on:click={() => delFile(delFileId)}>Kustuta</label>
+				<label for="del-file-modal" class="btn btn-outline">{$_('files.cancel')}</label>
+				<label for="del-file-modal" class="btn" on:click={() => delFile(delFileId)}
+					>{$_('files.delete')}</label
+				>
 			</div>
 		</label>
 	</label>
