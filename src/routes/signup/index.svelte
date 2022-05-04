@@ -17,10 +17,14 @@
 			return { props: { data } };
 		} else {
 			error = await res.body;
-			console.log(error);
 			return;
 		}
 	}
+	const printError = (error) => {
+		if (error.error === 'signin.error') {
+			return $_('signin.error');
+		} else return error.error;
+	};
 </script>
 
 <svelte:head>
@@ -32,6 +36,6 @@
 	<a href="signup" class="tab tab-bordered tab-lg tab-active">Registreeru</a>
 </div>
 {#if error}
-	<p class="mt-3 text-red-500 text-center font-semibold">{JSON.stringify(error)}</p>
+	<p class="mt-3 text-red-500 text-center font-semibold">{printError(error)}</p>
 {/if}
 <SignUpForm class="max-w-xl mx-auto mt-8" on:submit={handleSubmit} />
