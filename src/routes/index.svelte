@@ -50,7 +50,7 @@
 		</p>
 		<div class="grid md:grid-cols-2 grid-cols-1 gap-10 mb-10">
 			<img class="screenshot" src="/static/screenshot_demo.png" alt="Ekraanitõmmis rakendusest" />
-			<div class="mw-400px">
+			<div class="mw-400px flex flex-col">
 				<h4>1. Lae kõnesalvestis ülesse</h4>
 				<p>Toetatud on enamlevinud heli- ja videoformaadid. Maksimaalne suurus on 500MB</p>
 				<h4>2. Oota teksti valmimist</h4>

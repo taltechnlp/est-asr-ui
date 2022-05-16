@@ -204,7 +204,7 @@
 <style>
 	:global(.speaker) {
 		display: grid;
-		grid-template-columns: auto auto;
+		grid-template-columns: minmax(auto, 150px) auto;
 		grid-template-rows: min-content auto;
 		width: auto;
 		grid-column-gap: 1px;

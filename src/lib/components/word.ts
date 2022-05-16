@@ -7,13 +7,7 @@ export interface WordOptions {
 declare module '@tiptap/core' {
 	interface Commands<ReturnType> {
 		word: {
-			/**
-			 * Set start and end times
-			 */
 			setWord: (attributes?: { start: number; end: number }) => ReturnType;
-			/**
-			 * Unset a highlight mark
-			 */
 			unsetWord: () => ReturnType;
 		};
 	}
@@ -26,6 +20,8 @@ export const Word = Mark.create<WordOptions>({
 	name: 'word',
 
 	priority: 1000,
+
+	marks: '_',
 
 	defaultOptions: {
 		HTMLAttributes: {}

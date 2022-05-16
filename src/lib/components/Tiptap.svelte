@@ -11,6 +11,7 @@
 	import Text from '@tiptap/extension-text';
 	import DropCursor from '@tiptap/extension-dropcursor';
 	import GapCursor from '@tiptap/extension-gapcursor';
+	import TextStyle from '@tiptap/extension-text-style';
 	/* import StarterKit from '@tiptap/starter-kit'; */
 	// import type {Readable} from 'svelte/store'
 	// @ts-ignore
@@ -40,7 +41,6 @@
 	});
 
 	onMount(() => {
-		console.log(content)
 		const names = getSpeakerNames(content);
 		// @ts-ignore
 		speakerNames.set(names);
@@ -51,6 +51,7 @@
 				DropCursor,
 				GapCursor,
 				Text,
+				TextStyle,
 				/*                 Heading.configure({
                   levels: [1, 2, 3],
                 }), */

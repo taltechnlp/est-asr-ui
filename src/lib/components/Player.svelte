@@ -42,7 +42,10 @@
 			window.myPlayer = wavesurfer;
 			wavesurfer.play();
 		});
-		wavesurfer.on('audioprocess', () => highlightWord());
+		let skip = 0;
+		wavesurfer.on('audioprocess', () => {
+				highlightWord();
+		})
 		wavesurfer.on('mute', function () {
 			player.update((x) => {
 				return { ...x, muted: true };
