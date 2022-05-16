@@ -38,3 +38,13 @@
 	</p>
 	<p class="mb-2 mt-3 font-extrabold">Kasutustingimused kehtivad alates 09.05.2022</p>
 </div>
+
+<footer class="footer footer-center p-10 bg-[#13070C] rounded text-white mt-52">
+	<div class="grid grid-flow-col gap-4">
+		<a href="/contact" class="link link-hover">{$_('index.contact')}</a>
+		<a href="/terms" class="link link-hover">{$_('index.terms')}</a>
+	</div>
+	<a href="https://taltech.ee/tarkvarateaduse-instituut" target="_blank">
+		<img src="/static/taltech-logo-cutout.svg" alt="TalTech" />
+	</a>
+</footer>

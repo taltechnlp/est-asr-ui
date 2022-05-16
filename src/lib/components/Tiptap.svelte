@@ -40,7 +40,10 @@
 	});
 
 	onMount(() => {
-		speakerNames.set([]);
+		console.log(content)
+		const names = getSpeakerNames(content);
+		// @ts-ignore
+		speakerNames.set(names);
 		editor = new Editor({
 			element: element,
 			extensions: [
@@ -73,14 +76,12 @@
 
 			onTransaction: () => {
 				// force re-render so `editor.isActive` works as expected
-				editor = editor;
+				// editor = editor;
 				if (!demo) debouncedSave();
 				// console.log(editor.schema);
 			}
 		});
-		const names = getSpeakerNames();
-		// @ts-ignore
-		speakerNames.set(names);
+		
 
 		function handleWordClick(e) {
 			// @ts-ignore
@@ -122,10 +123,9 @@
 		saveChanges(editor.getJSON(), fileId);
 	}
 
-	const getSpeakerNames = () => {
-		const speakerNodes = editor.view.state.doc.content;
+	const getSpeakerNames = (content) => {;
 		let speakerNames = new Set();
-		speakerNodes.forEach((node) =>
+		content.content.forEach((node) =>
 			node.attrs['data-name'] ? speakerNames.add(node.attrs['data-name']) : null
 		);
 		return Array.from(speakerNames);

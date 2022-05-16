@@ -29,29 +29,24 @@
 	 1. 
 	*/
 
-	const getSpeakerNames = () => {
-		const speakerNodes = editor.view.state.doc.content;
-		let speakerNames = new Set();
-		speakerNodes.forEach((node) =>
-			node.attrs['data-name'] ? speakerNames.add(node.attrs['data-name']) : null
-		);
-		return Array.from(speakerNames);
-	};
 
-	$: isListOpen = false;
-	let selectedValue = node.attrs['data-name'];
-	let selectedId;
-	const setSelectedId = (selectedValue) => {
+	let isListOpen = false;
+	let initialName = node.attrs['data-name'];
+	$: selectedValue = $speakerNames[selectedId]
+	const getSelectedId = (selectedValue) => {
 		const i = $speakerNames.findIndex((x) => x === selectedValue);
-		if (i) selectedId = i;
+		if (i >= 0 ) return i
+		else {
+			return -1}
 	};
-	setSelectedId(selectedValue);
+	
+	let selectedId = getSelectedId(initialName);
 	let newSpeaker = '';
 	let editSpeakerId = -1;
 	let editingValue = '';
 	$: ids = $speakerNames.map((x, i) => i);
 
-	const showSpeakerName = (id) => {
+	const getSpeakerName = (id) => {
 		const res = $speakerNames[id];
 		if (res) return $speakerNames[id];
 		else return selectedValue;
@@ -95,7 +90,7 @@
 	const handleNewSpeakerSave = (name) => {
 		if (name.length > 0) {
 			addName(name);
-			setSelectedId(name);
+			selectedId = getSelectedId(name);
 			updateAttributes({ 'data-name': name });
 			newSpeaker = '';
 		}
@@ -106,34 +101,29 @@
 		if (e.charCode === 13) handleNewSpeakerSave(name);
 	};
 
-	/* 	const handleClickOutside = (e) => { isListOpen = false}; */
-
 	const selectSpeaker = (id) => {
 		selectedId = id;
-		updateAttributes({ 'data-name': showSpeakerName(id) });
-		/* speakers = speakers.map(x =>{
-            if (x.label === selection) return {selected: true, label: x.label, editing: false}
-            else return {selected: false, label: x.label, editing: false}
-        }) */
+		updateAttributes({ 'data-name': getSpeakerName(id) });
 	};
 
 	const handleStartEdit = (speakerId) => {
 		if (typeof speakerId == 'number') {
 			editSpeakerId = speakerId;
-			editingValue = showSpeakerName(speakerId);
+			editingValue = getSpeakerName(speakerId);
 		}
 	};
 
 	const handleSave = (speakerId) => {
 		const speakerNodes = editor.view.state.doc.content;
-		const name = showSpeakerName(speakerId);
+		const name = getSpeakerName(speakerId);
 		speakerNodes.forEach((node) =>
 			// @ts-ignore
 			node.attrs['data-name'] === name ? (node.attrs['data-name'] = editingValue) : null
 		);
 		changeName(speakerId, editingValue);
-		selectedId = $speakerNames.findIndex((x) => x === editingValue);
-		updateAttributes({ 'data-name': showSpeakerName(speakerId) });
+		selectedId = getSelectedId(editingValue);
+		// updateAttributes({ 'data-name': getSpeakerName(speakerId) });
+		
 		// updateAttributes({ 'data-name': editingValue });
 		editingValue = '';
 		editSpeakerId = -1;
@@ -152,7 +142,7 @@
 <NodeViewWrapper class="svelte-component speaker {selected}">
 	<div class="speaker-name flex group cursor-pointer w-auto hover:bg-accent" on:click={handleClick}>
 		<Icon name="user" class="" />
-		<span class="text-primary font-bold font-sans">{showSpeakerName(selectedId)}</span>
+		<span class="text-primary font-bold font-sans">{selectedValue}</span>
 		<Icon name="dropdown-arrow" class="invisible group-hover:visible" />
 	</div>
 	<div class="speaker-time">{numberToTime(time)}</div>
@@ -184,19 +174,19 @@
 							<button
 								class="w-min hover:text-primary"
 								on:click={() => {
-									/* speaker.editing=false; */ handleSave(speakerId);
+									handleSave(speakerId);
 								}}>{$_('speakerSelect.save')}</button
 							>
 						</div>
 					{:else}
 						<div
 							on:click={() => {
-								/* selectedValue = speaker.label */ selectSpeaker(speakerId);
+								selectSpeaker(speakerId);
 								isListOpen = false;
 							}}
 							class="cursor-pointer inline w-48"
 						>
-							{showSpeakerName(speakerId)}
+							{getSpeakerName(speakerId)}
 						</div>
 						<div>
 							<button class="w-min hover:text-primary" on:click={() => handleStartEdit(speakerId)}
@@ -214,10 +204,10 @@
 <style>
 	:global(.speaker) {
 		display: grid;
-		grid-template-columns: 150px auto;
+		grid-template-columns: auto auto;
 		grid-template-rows: min-content auto;
 		width: auto;
-		grid-column-gap: 10px;
+		grid-column-gap: 1px;
 		margin-bottom: 10px;
 	}
 

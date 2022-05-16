@@ -141,7 +141,7 @@
 	</div>
 </div>
 
-<footer class="footer footer-center p-10 bg-[#13070C] text-base-content rounded text-white">
+<footer class="footer footer-center p-10 bg-[#13070C] rounded text-white">
 	<div class="grid grid-flow-col gap-4">
 		<a href="/contact" class="link link-hover">{$_('index.contact')}</a>
 		<a href="/terms" class="link link-hover">{$_('index.terms')}</a>
