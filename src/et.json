@@ -54,6 +54,7 @@
         "email": "E-posti aadress"
     },
     "files": {
+        "title": "Failid | tekstiks.ee",
         "uploadButton": "Lae ülesse",
         "filename": "Failinimi",
         "status": "Staatus",

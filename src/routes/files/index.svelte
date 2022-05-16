@@ -89,7 +89,7 @@
 		const map = `{"0": ["variables.file"]}`;
 		formData.append('map', map);
 		formData.append('0', upload[0]);
-		console.log('formData', formData);
+		loading = true;
 		try {
 			error = '';
 			const response = await fetch(GRAPHQL_ENDPOINT, {
@@ -104,9 +104,11 @@
 			const checkBox = document.getElementById('file-upload');
 			// @ts-ignore
 			checkBox.checked = false;
+			loading = false;
 			return;
 		} catch (err) {
 			error = err;
+			loading = false;
 			return;
 		}
 	};
@@ -126,9 +128,7 @@
 	let timeoutID;
 	const longPolling = async () => {
 		if ($filesStore.find((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')) {
-			console.log('long-polling');
 			timeoutID = await setTimeout(async () => {
-				console.log('poll');
 				const files = await getFiles(userId);
 				if (files) {
 					filesStore.set(files);
@@ -147,6 +147,10 @@
 
 	let uploadFormOpen;
 </script>
+
+<svelte:head>
+	<title>{$_('files.title')}</title>
+</svelte:head>
 
 <div class="grid w-full justify-center grid-cols-[minmax(320px,_1280px)] overflow-x-auto">
 	<div class="flex justify-end max-w-screen-2xl">

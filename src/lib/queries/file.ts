@@ -1,4 +1,4 @@
-import { GRAPHQL_ENDPOINT } from '$lib/graphql-client'
+import { GRAPHQL_ENDPOINT } from '$lib/graphql-client';
 
 export const fileQuery = `
             query File($fileId: ID!) {
@@ -26,25 +26,22 @@ export const UPDATE_FILE_MUTATION = `
           `;
 
 export const getFile = async (fileId) => {
-    const variables = {fileId}
-    console.log(variables)
-    try {
-        const response = await fetch(GRAPHQL_ENDPOINT, {
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                query: fileQuery,
-                variables
-            })
-        })
-        const { data } = await response.json()
-        console.log("data: ", data)
-        return data.file;
-    } catch (error) {
-        return {}
-    }
-
-}
+	const variables = { fileId };
+	try {
+		const response = await fetch(GRAPHQL_ENDPOINT, {
+			method: 'POST',
+			credentials: 'include',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				query: fileQuery,
+				variables
+			})
+		});
+		const { data } = await response.json();
+		return data.file;
+	} catch (error) {
+		return {};
+	}
+};

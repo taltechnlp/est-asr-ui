@@ -14,14 +14,12 @@ export const downloadHandler = (content, author, title, exportNames) => {
 		a.href = url;
 		a.download = 'transkriptsioon.docx';
 		document.body.appendChild(a); // we need to append the element to the dom -> otherwise it will not work in firefox
-		console.log(a);
 		a.click();
 		a.remove(); //afterwards we remove the element again
 	});
 };
 
 const mapSentences = (sentence: Sentence) => {
-	console.log(sentence);
 	return new Paragraph({
 		children: [new TextRun(sentence.content.reduce((sum, word) => sum + ' ' + word.text, ''))]
 	});

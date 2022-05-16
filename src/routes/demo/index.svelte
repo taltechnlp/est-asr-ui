@@ -6,7 +6,7 @@
 	const file = {
 		json: content,
 		id: 1,
-		name: 'päevakaja.mp3'
+		name: 'demo.mp3'
 	};
 </script>
 

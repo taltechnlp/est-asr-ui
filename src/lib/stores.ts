@@ -13,7 +13,6 @@ export const player = writable({
 export const changeName = (id, newName) =>
 	speakerNames.update((names) => {
 		names[id] = newName;
-		console.log(names);
 		return names;
 	});
 

@@ -1,4 +1,4 @@
-import {GRAPHQL_ENDPOINT} from '$lib/graphql-client'
+import { GRAPHQL_ENDPOINT } from '$lib/graphql-client';
 
 export const userQuery = `
 				query {
@@ -11,22 +11,20 @@ export const userQuery = `
 			`;
 
 export const getUser = async () => {
-    try {
-        const response = await fetch(GRAPHQL_ENDPOINT, {
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                query: userQuery
-            })
-        })
-        const { data } = await response.json()
-        console.log("data: ",data)
-        return data.me;
-    } catch (error) {
-        return {}
-    }
-    
-}
+	try {
+		const response = await fetch(GRAPHQL_ENDPOINT, {
+			method: 'POST',
+			credentials: 'include',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				query: userQuery
+			})
+		});
+		const { data } = await response.json();
+		return data.me;
+	} catch (error) {
+		return {};
+	}
+};

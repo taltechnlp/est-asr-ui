@@ -38,34 +38,20 @@
 	<div class="grid place-items-center max-w-screen-2xl">
 		<h1 class="text-2xl mb-10 font-extrabold mt-12">{$_('index.howItWorks')}</h1>
 		<p class="mb-10">
-			<a href="/">Tekstiks.ee</a> on TTÜ kõnetehnoloogia labori avalik kõnetuvastuse teenus. Süsteem
-			kasutab meie laboris väljatöötatud tehnoloogiat ja mudeleid, mis annavad eesti keele
-			tuvastamisel seni oluliselt parimaid tulemusi kui kommertslikud alternatiivid. Süsteem on
-			täisautomaatne ja samaaegselt võimeline töötlema mitut salvestist. Sellegi poolest võib
-			tööpäevadel esineda suuremat koormust ning pikemat ooteaega. Järjekorra puudumisel kulub
-			kõnetuvastusele ligi pool kõnesalvestise kestusest.
-			<span class="text-red-700"
-				>Lähiajal lisandub võimalus ka näha töötlemise progressi ning ennustatavat valmimise aega.</span
-			>
+			<a href="/">Tekstiks.ee</a>{$_('index.tekstiksIntro')}
+			<span class="text-red-700">{$_('index.tekstiksIntroRemark')}</span>
 		</p>
 		<div class="grid md:grid-cols-2 grid-cols-1 gap-10 mb-10">
 			<img class="screenshot" src="/static/screenshot_demo.png" alt="Ekraanitõmmis rakendusest" />
 			<div class="mw-400px flex flex-col">
-				<h4>1. Lae kõnesalvestis ülesse</h4>
-				<p>Toetatud on enamlevinud heli- ja videoformaadid. Maksimaalne suurus on 500MB</p>
-				<h4>2. Oota teksti valmimist</h4>
-				<p>
-					Masinõppe meetoditega treenitud süsteem otsib kõigepealt eestikeelset kõne ning kõnelejate
-					vahetumisi, seejärel transkribeerib kõne tekstiks ning lõpuks lisab kirjavahemärgid.
-					Mitmed tuntud eestlased identifitseerib süsteem ka nimeliselt.
-				</p>
-				<h4>3. Paranda tuvastusvead</h4>
-				<p>
-					Teksti redigeerimine on interaktiivne. Heli mängides värvub hetkel kuuldaolev sõna, mis
-					aitab keerulisemad kohad üle kuulata ja seeläbi teksti käsitsi korrigeerida.
-				</p>
-				<h4>4. Laadi tulemus alla</h4>
-				<p>Toetatud on DOCX formaat.</p>
+				<h4>{$_('index.step1')}</h4>
+				<p>{$_('index.step1Desc')}</p>
+				<h4>{$_('index.step2')}</h4>
+				<p>{$_('index.step2Desc')}</p>
+				<h4>{$_('index.step3')}</h4>
+				<p>{$_('index.step3Desc')}</p>
+				<h4>{$_('index.step4')}</h4>
+				<p>{$_('index.step4Desc')}</p>
 			</div>
 		</div>
 	</div>
@@ -73,28 +59,20 @@
 
 <div class="flex flex-row w-full justify-center pl-1 pr-1 bg-[#EFF9F0]">
 	<div class="grid place-items-center max-w-screen-xl">
-		<h1 class="text-2xl mb-10 font-extrabold mt-12">Nõuanded</h1>
+		<h1 class="text-2xl mb-10 font-extrabold mt-12">{$_('index.recommendations')}</h1>
 		<ul class="mb-10 list-disc">
 			<li>
-				Helifailis olev kõne peaks olema võimalikult hea kvaliteediga, s.t. lindistatud suu lähedal
-				oleva mikrofoniga müravabas keskkonnas. Helifail peaks olema vähemalt 16-bit kodeeringus ja
-				16 KHz sagedusega, eelistatult WAV formaadis.
+				{$_('index.rec1')}
 			</li>
 			<li>
-				Kuna maksimaalne üleslaetava faili suurus on 500 MB, siis võib pikemad WAV-failid kodeerida
-				mp3 või ogg vormingusse, aga soovitav on siis kasutada vähemalt 128 kbit kodeeringut. Mahtu
-				aitab kokku hoida ka stereovormingu muutmine monoks (tuvastuse käigus tehakse seda nagunii).
+				{$_('index.rec2')}
 			</li>
 			<li>
-				Süsteem ei tööta hästi kahest tunnist pikemate helifailidega. Selliste failidega võib
-				tuvastus ebaõnnetuda ja tuvastustulemust siis kasutajale ei saadata. Soovitame pikad failid
-				eelnevalt tükeldada.
+				{$_('index.rec3')}
 			</li>
 			<li>
-				<span class="badge badge-md">NB!</span> Kuna tuvastusserveri ressurss on piiratud, siis palume
-				mitte üles laadida rohkem kui 10 salvestust päevas. Vastasel juhul tekib süsteemis pikk järjekord
-				kõikide kasutajate jaoks. Kui vajate väga paljude failide (näit. terve heliarhiivi) transkribeerimist,
-				siis kontakteeruge meiega.
+				<span class="badge badge-md">NB!</span>
+				{$_('index.rec4')}
 			</li>
 		</ul>
 	</div>
@@ -102,13 +80,11 @@
 
 <div class="flex flex-row w-full justify-center pl-1 pr-1 ">
 	<div class="grid place-items-center max-w-screen-xl">
-		<h1 class="text-2xl mb-10 font-extrabold mt-12">Viitamine</h1>
+		<h1 class="text-2xl mb-10 font-extrabold mt-12">{$_('index.citing')}</h1>
 		<p class="mb-10">
-			Kui kasutate seda süsteemi teadustööks, siis palun viidata oma publikatsioonides alltoodud
-			artiklile (saadaval <a
-				class="link"
-				target="_blank"
-				href="https://ebooks.iospress.nl/volumearticle/50297">siin</a
+			{$_('index.citing1')}
+			<a class="link" target="_blank" href="https://ebooks.iospress.nl/volumearticle/50297"
+				>{$_('index.citing2')}</a
 			>): Alumäe, Tanel; Tilk, Ottokar; Asadullah. "Advanced Rich Transcription System for Estonian
 			Speech" Baltic HLT 2018.
 		</p>
@@ -117,22 +93,20 @@
 
 <div class="flex w-full justify-center pl-1 pr-1 bg-[#EFF9F0]">
 	<div class="grid place-items-center max-w-screen-xl">
-		<h1 class="text-2xl mb-10 font-extrabold mt-12">Vabavara</h1>
+		<h1 class="text-2xl mb-10 font-extrabold mt-12">{$_('index.os')}</h1>
 		<p class="mb-5 justify-self-start">
-			<a class="link" href="/">Tekstiks.ee</a> põhineb vabavaralistel lahendustel, mida on lihtne ise
-			ülesse seada. Tuvastussüsteemi saab kasutada ka Docker konteineri baasil (soovituslik).
+			<a class="link" href="/">Tekstiks.ee</a>
+			{$_('index.osDesc')}
 		</p>
 		<ul class="list-disc ml-5 mb-10">
 			<li>
-				Kõnetuvastuse süsteem. Toimib samm-sammulise protsessina, mille sammude läbimist on võimalik
-				jälgida. Käivitatav käsurealt.
+				{$_('index.osASR')}
 				<a class="link" target="_blank" href="https://github.com/taltechnlp/est-asr-pipeline"
 					>https://github.com/taltechnlp/est-asr-pipeline</a
 				>
 			</li>
 			<li>
-				Veebiserveri lahendus, mille abil saab luua lihtsa API, mille kaudu kõnetuvastust kasutada.
-				Toetab ka reaalajas töötlemise progressi tagastamist.
+				{$_('index.osServer')}
 				<a class="link" target="_blank" href="https://github.com/taltechnlp/est-asr-backend"
 					>https://github.com/taltechnlp/est-asr-backend</a
 				>

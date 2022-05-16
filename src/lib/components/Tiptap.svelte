@@ -82,7 +82,6 @@
 				// console.log(editor.schema);
 			}
 		});
-		
 
 		function handleWordClick(e) {
 			// @ts-ignore
@@ -124,11 +123,15 @@
 		saveChanges(editor.getJSON(), fileId);
 	}
 
-	const getSpeakerNames = (content) => {;
+	const getSpeakerNames = (content) => {
 		let speakerNames = new Set();
-		content.content.forEach((node) =>
-			node.attrs['data-name'] ? speakerNames.add(node.attrs['data-name']) : null
-		);
+		if (content && content.content) {
+			content.content.forEach((node) => {
+				if (node.attrs['data-name'] && node.attrs['data-name'] !== '') {
+					speakerNames.add(node.attrs['data-name']);
+				}
+			});
+		}
 		return Array.from(speakerNames);
 	};
 </script>

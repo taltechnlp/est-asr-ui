@@ -90,7 +90,6 @@
 
 	let json = JSON.parse(file && file.initialTranscription);
 	let editorContent;
-	console.log(json, !json.type);
 
 	// Delta format from old Quill library.
 	if (json && json.ops) editorContent = fromDelta(json);
@@ -98,7 +97,6 @@
 		editorContent = toEditorFormat(json);
 	} else if (json && json.content) editorContent = json;
 	else editorContent = '';
-	console.log('editorcontent', editorContent);
 	// @ts-ignore
 	let playing = true;
 	let muted = false;

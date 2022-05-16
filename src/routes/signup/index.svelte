@@ -9,10 +9,6 @@
 		const res = await signup(email, password, name);
 		if (res.status === 200) {
 			const data = await res.body;
-			if (data && data.user) {
-				// user.set(data.user);
-				console.log(data.user);
-			}
 			window.location.href = '/files';
 			return { props: { data } };
 		} else {
