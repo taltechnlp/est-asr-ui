@@ -234,7 +234,7 @@
 		</div>
 		<div id="waveform" class="" />
 		<div id="wave-timeline" class="w-full h-auto" />
-		<Player url={`/static/${file.name}`} />
+		<Player url={`/${file.name}`} />
 	</div>
 </main>
 

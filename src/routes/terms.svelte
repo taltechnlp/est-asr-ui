@@ -45,6 +45,6 @@
 		<a href="/terms" class="link link-hover">{$_('index.terms')}</a>
 	</div>
 	<a href="https://taltech.ee/tarkvarateaduse-instituut" target="_blank">
-		<img src="/static/taltech-logo-cutout.svg" alt="TalTech" />
+		<img src="/taltech-logo-cutout.svg" alt="TalTech" />
 	</a>
 </footer>

@@ -42,7 +42,7 @@
 			<span class="text-red-700">{$_('index.tekstiksIntroRemark')}</span>
 		</p>
 		<div class="grid md:grid-cols-2 grid-cols-1 gap-10 mb-10">
-			<img class="screenshot" src="/static/screenshot_demo.png" alt="Ekraanitõmmis rakendusest" />
+			<img class="screenshot" src="/screenshot_demo.png" alt="Ekraanitõmmis rakendusest" />
 			<div class="mw-400px flex flex-col">
 				<h4>{$_('index.step1')}</h4>
 				<p>{$_('index.step1Desc')}</p>
@@ -121,14 +121,14 @@
 		<a href="/terms" class="link link-hover">{$_('index.terms')}</a>
 	</div>
 	<a href="https://taltech.ee/tarkvarateaduse-instituut" target="_blank">
-		<img src="/static/taltech-logo-cutout.svg" alt="TalTech" />
+		<img src="/taltech-logo-cutout.svg" alt="TalTech" />
 	</a>
 </footer>
 
 <style>
 	.hero {
 		color: white;
-		background: url(/static/wave.svg) center center / contain no-repeat #6b4d57;
+		background: url(/wave.svg) center center / contain no-repeat #6b4d57;
 		background-blend-mode: multiply;
 	}
 	.screenshot {

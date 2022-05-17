@@ -44,8 +44,8 @@
 		});
 		let skip = 0;
 		wavesurfer.on('audioprocess', () => {
-				highlightWord();
-		})
+			highlightWord();
+		});
 		wavesurfer.on('mute', function () {
 			player.update((x) => {
 				return { ...x, muted: true };
@@ -53,7 +53,6 @@
 		});
 		// console.log(url, "url")
 		wavesurfer.load(url);
-		// wavesurfer.load('../../../static/demo.wav');
 	});
 
 	let playbackSpeed = 0;
