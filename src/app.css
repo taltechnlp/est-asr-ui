@@ -1,3 +1,11 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.playing {
+    color: #70ACC7;
+}
+
+.played {
+    color: #9b9b9b;
+}

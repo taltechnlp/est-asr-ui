@@ -45,6 +45,7 @@
     "@tiptap/extension-document": "^2.0.0-beta.15",
     "@tiptap/extension-dropcursor": "^2.0.0-beta.25",
     "@tiptap/extension-gapcursor": "^2.0.0-beta.34",
+    "@tiptap/extension-highlight": "^2.0.0-beta.33",
     "@tiptap/extension-history": "^2.0.0-beta.21",
     "@tiptap/extension-text": "^2.0.0-beta.15",
     "@tiptap/extension-text-style": "^2.0.0-beta.23",

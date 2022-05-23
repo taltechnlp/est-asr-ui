@@ -9,6 +9,7 @@ export const player = writable({
 	playing: false,
 	muted: false
 });
+export const playingTime = writable(0)
 
 export const changeName = (id, newName) =>
 	speakerNames.update((names) => {

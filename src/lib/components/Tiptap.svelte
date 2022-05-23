@@ -12,6 +12,7 @@
 	import DropCursor from '@tiptap/extension-dropcursor';
 	import GapCursor from '@tiptap/extension-gapcursor';
 	import TextStyle from '@tiptap/extension-text-style';
+	import Highlight from '@tiptap/extension-highlight';
 	/* import StarterKit from '@tiptap/starter-kit'; */
 	// import type {Readable} from 'svelte/store'
 	// @ts-ignore
@@ -57,7 +58,12 @@
                 }), */
 				History,
 				Word,
-				Speaker
+				Speaker,
+				Highlight.configure({
+					HTMLAttributes: {
+						class: 'playing',
+					},
+				})
 			],
 			editorProps: {
 				attributes: {
@@ -82,6 +88,7 @@
 				// console.log(editor.schema);
 			}
 		});
+		
 
 		function handleWordClick(e) {
 			// @ts-ignore
@@ -123,15 +130,11 @@
 		saveChanges(editor.getJSON(), fileId);
 	}
 
-	const getSpeakerNames = (content) => {
+	const getSpeakerNames = (content) => {;
 		let speakerNames = new Set();
-		if (content && content.content) {
-			content.content.forEach((node) => {
-				if (node.attrs['data-name'] && node.attrs['data-name'] !== '') {
-					speakerNames.add(node.attrs['data-name']);
-				}
-			});
-		}
+		content.content.forEach((node) =>
+			node.attrs['data-name'] ? speakerNames.add(node.attrs['data-name']) : null
+		);
 		return Array.from(speakerNames);
 	};
 </script>
@@ -159,6 +162,17 @@
 						data-tip={$_('file.toolbarRedo')}
 					>
 						<Icon data={rotateRigth} scale={1.5} />
+					</span>
+					<span
+						on:click={() => {
+							console.log(editor.view.state.doc.content.content[0].content.content[0].eq);
+							editor.commands.setHighlight()}}
+						class:disabled={!editor.can().redo()}
+						style="color: rgba(0, 0, 0, 0.54);"
+						class="ml-3 tooltip tooltip-bottom cursor-pointer"
+						data-tip={$_('file.toolbarRedo')}
+					>
+						Highlight
 					</span>
 				</div>
 				<div class="flex">
@@ -192,6 +206,7 @@
 		background-color: #f5f5f5 !important;
 		border-color: #f5f5f5 !important;
 	}
+
 	.toolbar > button {
 		background-color: -internal-light-dark(rgb(239, 239, 239), rgb(59, 59, 59));
 		margin: 0 0.5rem;

@@ -5,6 +5,7 @@
 	import RegionsPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.regions.min.js';
 	export let url;
 	import { player } from '$lib/stores';
+	import { playingTime } from '$lib/stores';
 
 	let wavesurfer;
 
@@ -44,7 +45,12 @@
 		});
 		let skip = 0;
 		wavesurfer.on('audioprocess', () => {
-			highlightWord();
+			const progress = Math.round(wavesurfer.getCurrentTime() * 100) / 100
+			if (progress !== $playingTime) {
+				playingTime.set(progress);
+				console.log(progress)
+			}
+			// highlightWord();
 		});
 		wavesurfer.on('mute', function () {
 			player.update((x) => {
