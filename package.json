@@ -2,7 +2,8 @@
   "name": "fe-tekstiks",
   "version": "0.0.1",
   "scripts": {
-    "dev": "env-cmd svelte-kit dev -p 3333",
+    "prod": "node build/index.js",
+    "dev": "svelte-kit dev -p 3333",
     "build": "svelte-kit build",
     "package": "svelte-kit package",
     "preview": "svelte-kit preview",
