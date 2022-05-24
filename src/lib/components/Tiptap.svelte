@@ -32,6 +32,7 @@
 	export let content;
 	export let fileId;
 	export let demo;
+	export let speakers;
 
 	let element;
 	let editor;
@@ -42,9 +43,13 @@
 	});
 
 	onMount(() => {
-		const names = getSpeakerNames(content);
-		// @ts-ignore
-		speakerNames.set(names);
+		if (speakers.length > 0) {
+			speakerNames.set(speakers);
+		} else {
+			const names = getSpeakerNames(content);
+			// @ts-ignore
+			speakerNames.set(names);
+		}
 		editor = new Editor({
 			element: element,
 			extensions: [
@@ -58,12 +63,12 @@
                 }), */
 				History,
 				Word,
-				Speaker,
+				Speaker /* ,
 				Highlight.configure({
 					HTMLAttributes: {
-						class: 'playing',
-					},
-				})
+						class: 'playing'
+					}
+				}) */
 			],
 			editorProps: {
 				attributes: {
@@ -88,23 +93,8 @@
 				// console.log(editor.schema);
 			}
 		});
-		
 
-		function handleWordClick(e) {
-			// @ts-ignore
-			if (window.myPlayer) {
-				// @ts-ignore
-				const startTime = parseFloat(e.target.getAttribute('start'));
-				if (startTime) {
-					// @ts-ignore
-					const location = startTime / window.myPlayer.getDuration();
-					// @ts-ignore
-					window.myPlayer.seekAndCenter(location);
-				}
-			}
-		}
-
-		const words = new Map();
+		/* const words = new Map();
 		document.querySelectorAll('span[start]').forEach((el) => {
 			const start = Math.round(parseFloat(el.getAttribute('start')) * 100);
 			const end = Math.round(parseFloat(el.getAttribute('end')) * 100);
@@ -112,12 +102,12 @@
 				words.set(i, el);
 			}
 			el.addEventListener('click', handleWordClick);
-		});
+		}); */
 		// @ts-ignore
 		window.myEditor = editor;
 
 		// @ts-ignore
-		window.myEditorWords = words;
+		// window.myEditorWords = words;
 	});
 
 	onDestroy(() => {
@@ -130,11 +120,14 @@
 		saveChanges(editor.getJSON(), fileId);
 	}
 
-	const getSpeakerNames = (content) => {;
+	const getSpeakerNames = (content) => {
 		let speakerNames = new Set();
-		content.content.forEach((node) =>
-			node.attrs['data-name'] ? speakerNames.add(node.attrs['data-name']) : null
-		);
+		if (content.content) {
+			content.content.forEach((node) =>
+				node.attrs['data-name'] ? speakerNames.add(node.attrs['data-name']) : null
+			);
+		} else {
+		}
 		return Array.from(speakerNames);
 	};
 </script>
@@ -149,7 +142,7 @@
 						on:click={() => editor.chain().focus().undo().run()}
 						class:disabled={!editor.can().undo()}
 						style="color: rgba(0, 0, 0, 0.54);"
-						class="ml-4 tooltip tooltip-bottom cursor-pointer"
+						class="ml-6 tooltip tooltip-bottom cursor-pointer"
 						data-tip={$_('file.toolbarUndo')}
 					>
 						<Icon data={rotateLeft} scale={1.5} />
@@ -163,23 +156,12 @@
 					>
 						<Icon data={rotateRigth} scale={1.5} />
 					</span>
-					<span
-						on:click={() => {
-							console.log(editor.view.state.doc.content.content[0].content.content[0].eq);
-							editor.commands.setHighlight()}}
-						class:disabled={!editor.can().redo()}
-						style="color: rgba(0, 0, 0, 0.54);"
-						class="ml-3 tooltip tooltip-bottom cursor-pointer"
-						data-tip={$_('file.toolbarRedo')}
-					>
-						Highlight
-					</span>
 				</div>
 				<div class="flex">
 					<button
 						class="btn btn-link btn-sm"
 						on:click={() => {
-							downloadHandler('', '', '', true);
+							downloadHandler(editor.getJSON(), '', '', true);
 						}}
 					>
 						<Icon data={download} scale={1} />

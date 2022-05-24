@@ -3,9 +3,13 @@
 @tailwind utilities;
 
 .playing {
-    color: #70ACC7;
+	color: #70acc7;
 }
 
 .played {
-    color: #9b9b9b;
+	color: #9b9b9b;
+}
+
+.svelte-renderer {
+	display: inline-block;
 }

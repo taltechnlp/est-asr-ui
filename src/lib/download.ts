@@ -1,7 +1,6 @@
 import { Document, Packer, Paragraph, TextRun, SectionType } from 'docx';
-import { testContent } from './testEditorContent';
 
-export const downloadHandler = (content, author, title, exportNames) => {
+export const downloadHandler = (content: MyEditorContent, author, title, exportNames) => {
 	const doc = new Document({
 		creator: author,
 		title,
@@ -21,13 +20,13 @@ export const downloadHandler = (content, author, title, exportNames) => {
 
 const mapSentences = (sentence: Sentence) => {
 	return new Paragraph({
-		children: [new TextRun(sentence.content.reduce((sum, word) => sum + ' ' + word.text, ''))]
-	});
-};
-
-const mapSentencesWithNames = (sentence: Sentence) => {
-	return new Paragraph({
-		children: [new TextRun(sentence.content.reduce((sum, word) => sum + ' ' + word.text, ''))]
+		children: [
+			new TextRun(
+				sentence.content.reduce((sum, word) => {
+					return sum + ' ' + word.content[0].text;
+				}, '')
+			)
+		]
 	});
 };
 
@@ -37,7 +36,7 @@ const processContent = (content, exportNames) => {
 			properties: {
 				type: SectionType.CONTINUOUS
 			},
-			children: testContent.content.reduce((acc, val) => {
+			children: content.content.reduce((acc, val) => {
 				if (exportNames && val.attrs['data-name']) {
 					acc = acc.concat(
 						new Paragraph({
@@ -59,18 +58,18 @@ type Sentence = {
 	};
 	content: {
 		type: string;
-		marks: {
-			type: string;
-			attrs: {
-				start: {
-					start: string;
-				};
-				end: {
-					end: string;
-				};
+		attrs: {
+			start: {
+				start: string;
 			};
+			end: {
+				end: string;
+			};
+		};
+		content: {
+			text: string;
+			type: string;
 		}[];
-		text: string;
 	}[];
 };
 

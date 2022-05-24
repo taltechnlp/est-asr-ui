@@ -45,12 +45,17 @@
 		});
 		let skip = 0;
 		wavesurfer.on('audioprocess', () => {
-			const progress = Math.round(wavesurfer.getCurrentTime() * 100) / 100
+			const progress = Math.round(wavesurfer.getCurrentTime() * 100) / 100;
 			if (progress !== $playingTime) {
 				playingTime.set(progress);
-				console.log(progress)
 			}
 			// highlightWord();
+		});
+		wavesurfer.on('seek', () => {
+			const progress = Math.round(wavesurfer.getCurrentTime() * 100) / 100;
+			if (progress !== $playingTime) {
+				playingTime.set(progress);
+			}
 		});
 		wavesurfer.on('mute', function () {
 			player.update((x) => {
@@ -132,8 +137,8 @@
 		if (zoom < 205) zoom = zoom + 20;
 		wavesurfer.zoom(zoom);
 	};
-	let lastProgress = 0;
-	const highlightWord = () => {
+	// let lastProgress = 0;
+	/* const highlightWord = () => {
 		if (
 			// @ts-ignore
 			window.myEditor &&
@@ -166,7 +171,7 @@
 				}
 			}
 		}
-	};
+	}; */
 	/* wavesurfer.on("ready", function() {
       if (window.innerWidth < 450) {
         wavesurfer.setHeight(40);

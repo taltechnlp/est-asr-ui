@@ -21,8 +21,10 @@
 			acc + `<span start="${word.start}" end="${word.end}">${word.word_with_punctuation} </span>`
 		);
 	};
-
+	let speakerMap = new Set();
 	const mapTurns = (turn: Turn, speakers: Speakers) => {
+		if (speakers[turn.speaker].name) speakerMap.add(speakers[turn.speaker].name);
+		else if (turn.speaker) speakerMap.add(speakers[turn.speaker].name);
 		return `<speaker data-name="${speakers[turn.speaker].name || turn.speaker}">${turn.words.reduce(
 			combineWords,
 			''
@@ -154,7 +156,12 @@
 
 <main class="grid grid-rows-[1fr_auto] content-between">
 	<div class="self-stretch h-full mb-96">
-		<Tiptap content={editorContent} fileId={file.id} demo={false} />
+		<Tiptap
+			content={editorContent}
+			speakers={Array.from(speakerMap)}
+			fileId={file.id}
+			demo={false}
+		/>
 	</div>
 	<div class="w-full h-auto fixed bottom-0 left-0 pb-1 bg-white">
 		<div class="controls flex justify-between pt-0.5">

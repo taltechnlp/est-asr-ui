@@ -67,7 +67,7 @@ export const Word = Node.create<WordOptions>({
 
 	addNodeView() {
 		return SvelteNodeViewRenderer(WordNode);
-	}	
+	}
 
 	/* addInputRules() {
 		return [markInputRule(inputRegex, this.type)];

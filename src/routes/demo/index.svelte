@@ -149,7 +149,7 @@
 
 <main class="grid grid-rows-[1fr_auto] content-between">
 	<div class="self-stretch h-full mb-96">
-		<Tiptap content={file.json} fileId={file.id} demo={true} />
+		<Tiptap content={file.json} speakers={[]} fileId={file.id} demo={true} />
 	</div>
 	<div class="w-full h-auto fixed bottom-0 left-0 pb-1 bg-white">
 		<div class="controls flex justify-between pt-0.5">

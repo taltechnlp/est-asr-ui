@@ -210,12 +210,6 @@
 						<td class="">
 							{#if file.state == 'READY'}
 								<button class="btn btn-outline btn-xs">{$_('files.openButton')}</button>
-								<button
-									class="btn btn-outline btn-xs"
-									on:click={(e) => {
-										e.stopPropagation();
-									}}>{$_('files.downloadButton')}</button
-								>
 							{/if}
 
 							<label
