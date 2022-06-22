@@ -72,7 +72,7 @@
 			if (done) break;
 			i++;
 		} while (!done && node);
-
+		
 		return startTime;
 	};
 
@@ -130,8 +130,8 @@
 	};
 
 	const numberToTime = (number) => {
-		if (number && number.start) {
-			const nr = parseFloat(number.start);
+		if (number) {
+			const nr = parseFloat(number);
 			const time = new Date(0);
 			time.setSeconds(nr);
 			return nr < 60 ? time.toISOString().substr(14, 5) : time.toISOString().substr(11, 8);

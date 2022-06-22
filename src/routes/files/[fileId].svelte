@@ -2,18 +2,19 @@
 	import Tiptap from '$lib/components/Tiptap.svelte';
 	import Player from '$lib/components/Player.svelte';
 	import { fileQuery, getFile } from '$lib/queries/file';
+	import { GRAPHQL_ENDPOINT } from '$lib/graphql-client';
 	export async function load({ params, fetch, session, stuff }) {
 		const file = await getFile(params.fileId);
 		return { props: { file } };
 	}
-	import { GRAPHQL_ENDPOINT } from '$lib/graphql-client';
 </script>
 
 <script lang="ts">
+	import type {EditorContent, SectionType, Speakers, Word, Turn} from './types.dt';
 	import Icon from 'svelte-awesome/components/Icon.svelte';
 	import minus from 'svelte-awesome/icons/minus-circle';
 	import plus from 'svelte-awesome/icons/plus-circle';
-	import { fromDelta } from '$lib/components/deltaFormat';
+	import { fromDelta/* , deltaTest */ } from '$lib/components/deltaFormat';
 
 	export let file;
 	const combineWords = (acc, word: Word) => {
@@ -30,7 +31,7 @@
 			''
 		)}</speaker>`;
 	};
-	const toEditorFormat = (transcription: EditorContent) => {
+	const toEditorFormat = (transcription: EditorContent, speakerMap) => {
 		if (transcription && transcription.sections) {
 			return transcription.sections
 				.reduce((acc, section) => {
@@ -48,57 +49,28 @@
 		} else return '';
 	};
 
-	type SectionType = 'non-speech' | 'speech';
-	type Speakers = {
-		[index: string]: { name?: string };
-	};
-	type Word = {
-		confidence: number;
-		start: number;
-		end: number;
-		punctuation: number;
-		word: string;
-		word_with_punctuation: string;
-		unnormalized_words?: [
-			{
-				confidence: number;
-				end: number;
-				word_with_punctuation: string;
-				punctuation: string;
-				start: number;
-				word: string;
-			}
-		];
-	};
-	type Turn = {
-		start: number;
-		end: number;
-		speaker: string;
-		transcript: string;
-		unnormalized_transcript: string;
-		words?: [Word];
-	};
-	type EditorContent = {
-		speakers: Speakers;
-		sections: [
-			{
-				start: number;
-				end: number;
-				type: SectionType;
-				turns?: [Turn];
-			}
-		];
-	};
+	
 
 	let json = JSON.parse(file && file.initialTranscription);
+	// json = deltaTest
 	let editorContent;
 
 	// Delta format from old Quill library.
-	if (json && json.ops) editorContent = fromDelta(json);
+	if (json && json.ops) editorContent = fromDelta(json, speakerMap);
 	else if (json && !json.type) {
-		editorContent = toEditorFormat(json);
-	} else if (json && json.content) editorContent = json;
+		editorContent = toEditorFormat(json, speakerMap);
+	} else if (json && json.content) {
+		editorContent = json;
+		if (editorContent && editorContent.content) {
+			editorContent.content.forEach((node) =>
+			node.attrs['data-name'] ? speakerMap.add(node.attrs['data-name']) : null
+			);
+		}
+	}
 	else editorContent = '';
+	// console.log("speakers", speakerMap)
+	// console.log(editorContent)
+	
 	// @ts-ignore
 	let playing = true;
 	let muted = false;

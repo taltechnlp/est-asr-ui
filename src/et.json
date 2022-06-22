@@ -43,7 +43,8 @@
         "login": "Logi sisse",
         "register": "Registreeru",
         "password": "Parool",
-        "email": "E-posti aadress"
+        "email": "E-posti aadress",
+        "forgotPassword": "Unustasid parooli?"
     },
     "signup": {
         "header": "Registreeru | tekstiks.ee",
@@ -51,7 +52,8 @@
         "name": "Nimi",
         "password": "Parool",
         "passwordConfirm": "Korda parooli",
-        "email": "E-posti aadress"
+        "email": "E-posti aadress",
+        "passwordsDontMatch": "Sisestatud paroolid ei kattu!"
     },
     "files": {
         "title": "Failid | tekstiks.ee",
@@ -73,7 +75,8 @@
         "cancel": "Tühista",
         "delete": "Kustuta lõplikult",
         "fileDeletion": "Faili kustutamine",
-        "fileDeletionWarning": "Hoiatus! See kustutab nii faili kui ka transkriptsiooni! Kas oled kindel, et soovid selle faili ja sellega seotud transkriptsiooni kustutada?"
+        "fileDeletionWarning": "Hoiatus! See kustutab nii faili kui ka transkriptsiooni! Kas oled kindel, et soovid selle faili ja sellega seotud transkriptsiooni kustutada?",
+        "uploadError": "Faili ülesse laadimine ebaõnnestus!"
     },
     "me": {
         "title": "Konto andmed | tekstiks.ee",
@@ -100,5 +103,16 @@
     },
     "demo": {
         "title": "Demo"
+    },
+    "passwordReset": {
+        "title": "Parooli lähtestamine | teksiks.ee",
+        "header": "Parooli lähtestamine",
+        "submit": "Telli lähtestamise link",
+        "success": "Päring edukas! Kontrolli oma postkasti, seal peaks varsti olema parooli lähtestamise link!",
+        "error": "Päring ebaõnnestus!",
+        "password": "Parool",
+        "passwordConfirm": "Korda parooli",
+        "passwordsDontMatch": "Paroolid ei kattu!",
+        "change": "Muuda parool"
     }
 }

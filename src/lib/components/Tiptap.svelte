@@ -19,6 +19,7 @@
 	import History from '@tiptap/extension-history';
 	import { Speaker } from './speaker';
 	import { Word } from './word';
+	import {WordColor} from './wordColor'
 	import Icon from 'svelte-awesome/components/Icon.svelte';
 	import rotateLeft from 'svelte-awesome/icons/rotate-left';
 	import rotateRigth from 'svelte-awesome/icons/rotate-right';
@@ -63,6 +64,7 @@
                 }), */
 				History,
 				Word,
+				WordColor,
 				Speaker /* ,
 				Highlight.configure({
 					HTMLAttributes: {
@@ -170,7 +172,7 @@
 				</div>
 			</div>
 		{/if}
-		<div bind:this={element} class="max-w-5xl " />
+		<div bind:this={element} id="myEditor" class="max-w-5xl " />
 	</div>
 </div>
 

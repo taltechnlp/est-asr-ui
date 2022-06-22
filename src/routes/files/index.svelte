@@ -7,7 +7,7 @@
 	import { getFiles } from '$lib/queries/files';
 	import { _ } from 'svelte-i18n';
 
-	0; // TODO: sundida load fn uuesti laadima pärast failide mutatsiooni.
+	// TODO: sundida load fn uuesti laadima pärast failide mutatsiooni.
 	// Selleks piisab kui parameetrid muutuvad. Teine variant on igas mutatsioonis uuesti laadida.
 
 	// TODO: Long polling kui state on mõnel failil processing.
@@ -137,6 +137,9 @@
 					clearTimeout(timeoutID);
 					timeoutID = null;
 				}
+				else {
+					longPolling();
+				}
 			}, 20000);
 		} else if (timeoutID) {
 			clearTimeout(timeoutID);
@@ -252,14 +255,19 @@
 					<li class="py-4 pt-0">{$_('files.fileSizeLimit')}</li>
 				</ul>
 				{#if error}
-					<p class="mt-3 text-red-500 text-center font-semibold">{error}</p>
+					<p class="mt-3 text-red-500 text-center font-semibold">{$_('files.uploadError')}</p>
 				{/if}
-				{#if upload && upload[0]}
+				{#if loading}
+					<button class="btn" type="submit" disabled
+						><span class="btn btn-ghost btn-xs loading" /></button
+					>
+				{:else if upload && upload[0]}
 					<button on:click={uploadFile} class="btn btn-active btn-primary" type="submit"
 						>{$_('files.uploadButton')}</button
 					>
+				
 				{:else}
-					<button class="btn btn-active btn-primary" type="submit" disabled
+					<button class="btn" type="submit" disabled
 						>{$_('files.uploadButton')}</button
 					>
 				{/if}
@@ -283,3 +291,7 @@
 		</label>
 	</label>
 </div>
+
+<style>
+
+</style>

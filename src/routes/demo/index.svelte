@@ -1,8 +1,7 @@
 <script context="module">
 	import Tiptap from '$lib/components/Tiptap.svelte';
 	import Player from '$lib/components/Player.svelte';
-	import { GRAPHQL_ENDPOINT } from '$lib/graphql-client';
-	import content from './content.json';
+	import { content } from './content';
 	const file = {
 		json: content,
 		id: 1,
@@ -22,7 +21,15 @@
 		);
 	};
 
+	let speakerMap = new Set();
+	if (content && content.content) {
+		content.content.forEach((node) =>
+			node.attrs['data-name'] ? speakerMap.add(node.attrs['data-name']) : null
+		);
+	}
 	const mapTurns = (turn: Turn, speakers: Speakers) => {
+		if (speakers[turn.speaker].name) speakerMap.add(speakers[turn.speaker].name);
+		else if (turn.speaker) speakerMap.add(speakers[turn.speaker].name);
 		return `<speaker data-name="${speakers[turn.speaker].name || turn.speaker}">${turn.words.reduce(
 			combineWords,
 			''
@@ -149,7 +156,7 @@
 
 <main class="grid grid-rows-[1fr_auto] content-between">
 	<div class="self-stretch h-full mb-96">
-		<Tiptap content={file.json} speakers={[]} fileId={file.id} demo={true} />
+		<Tiptap content={file.json} speakers={Array.from(speakerMap)} fileId={file.id} demo={true} />
 	</div>
 	<div class="w-full h-auto fixed bottom-0 left-0 pb-1 bg-white">
 		<div class="controls flex justify-between pt-0.5">

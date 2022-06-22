@@ -13,7 +13,7 @@ type Delta = {
 	ops: Op[];
 };
 
-const mapOps = (op) => {
+function mapOps(op, speakerMap){
 	if (op.insert && typeof op.insert === 'string') {
 		if (op.insert.includes('\n')) {
 			return '</speaker>';
@@ -23,10 +23,13 @@ const mapOps = (op) => {
 			} ${op.attributes && op.attributes.end ? `end="${op.attributes.end}"` : ''}>${
 				op.insert
 			}</span>`;
-	} else if (op.insert && op.insert.speaker) return `<speaker data-name="${op.insert.speaker}">`;
+	} else if (op.insert && op.insert.speaker) {
+		speakerMap.add(op.insert.speaker)
+		return `<speaker data-name="${op.insert.speaker}">`
+	};
 };
 
-export const fromDelta = (delta: Delta) => delta.ops.map(mapOps).join(' ');
+export const fromDelta = (delta: Delta, speakerMap) => delta.ops.map(x=>mapOps(x, speakerMap)).join(' ');
 
 export const deltaTest: Delta = {
 	ops: [

@@ -43,14 +43,31 @@
 			window.myPlayer = wavesurfer;
 			wavesurfer.play();
 		});
+
+		
+		// Event subscriptions
+		wavesurfer.on('play', function () {
+			playing = true;
+		})
+		wavesurfer.on('pause', function () {
+			playing = false;
+		})
 		let skip = 0;
+		
+		// TODO: Refactor to use myEditor from props
 		wavesurfer.on('audioprocess', () => {
 			const progress = Math.round(wavesurfer.getCurrentTime() * 100) / 100;
 			if (progress !== $playingTime) {
 				playingTime.set(progress);
+				if (window.myEditor) {
+					let newState = window.myEditor.view.state.apply(window.myEditor.view.state.tr.setMeta("wordColor", progress).setMeta("addToHistory", false))
+    				window.myEditor.view.updateState(newState)
+				}
+				
 			}
 			// highlightWord();
 		});
+
 		wavesurfer.on('seek', () => {
 			const progress = Math.round(wavesurfer.getCurrentTime() * 100) / 100;
 			if (progress !== $playingTime) {
@@ -66,11 +83,14 @@
 		wavesurfer.load(url);
 	});
 
+	// Local state
 	let playbackSpeed = 0;
-	const setPlaybackSpeed = (speed: number) => (speed = playbackSpeed + speed);
 	let playing = false;
 	let muted = false;
 	let zoom = 20;
+
+	// Local functions
+	const setPlaybackSpeed = (speed: number) => (speed = playbackSpeed + speed);
 
 	onDestroy(() => {
 		if (wavesurfer) {
@@ -126,8 +146,8 @@
 	};
 	export const togglePlay = () => {
 		wavesurfer.playPause();
-		if (wavesurfer.isPlaying()) playing = true;
-		else playing = false;
+		/* if (wavesurfer.isPlaying()) playing = true;
+		else playing = false; */
 	};
 	export const zoomOut = () => {
 		if (zoom > 5) zoom = zoom - 20;

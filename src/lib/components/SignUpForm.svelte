@@ -16,7 +16,7 @@
 	function submit() {
 		error = null;
 		if (password !== confirmPassword) {
-			error = 'Passwords do not match.';
+			error = $_('signup.passwordsDontMatch');
 			confirmPasswordInputRef.focus();
 			return;
 		}

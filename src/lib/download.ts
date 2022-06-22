@@ -23,7 +23,7 @@ const mapSentences = (sentence: Sentence) => {
 		children: [
 			new TextRun(
 				sentence.content.reduce((sum, word) => {
-					return sum + ' ' + word.content[0].text;
+					return sum + ' ' + word.text;
 				}, '')
 			)
 		]
@@ -57,18 +57,15 @@ type Sentence = {
 		id?: string;
 	};
 	content: {
+		text: string;
 		type: string;
-		attrs: {
-			start: {
-				start: string;
-			};
-			end: {
-				end: string;
-			};
-		};
-		content: {
-			text: string;
+		marks: {
 			type: string;
+			attrs:{
+				start: string;
+				end: string;
+
+			}
 		}[];
 	}[];
 };

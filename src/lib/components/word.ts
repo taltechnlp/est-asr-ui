@@ -1,6 +1,4 @@
-import { Mark, markInputRule, markPasteRule, mergeAttributes, Node } from '@tiptap/core';
-import { SvelteNodeViewRenderer } from 'svelte-tiptap';
-import WordNode from './WordNode.svelte';
+import { Mark, markInputRule, markPasteRule, mergeAttributes } from '@tiptap/core';
 
 export interface WordOptions {
 	HTMLAttributes: Record<string, any>;
@@ -18,13 +16,12 @@ declare module '@tiptap/core' {
 export const inputRegex = /(?:^|\s)((?:==)((?:[^~]+))(?:==))$/gm;
 export const pasteRegex = /(?:^|\s)((?:==)((?:[^~]+))(?:==))/gm;
 
-export const Word = Node.create<WordOptions>({
+export const Word = Mark.create<WordOptions>({
 	name: 'word',
-	group: 'inline',
-	inline: true,
-	content: 'text*',
 
 	priority: 1000,
+
+	marks: '_',
 
 	defaultOptions: {
 		HTMLAttributes: {}
@@ -33,13 +30,15 @@ export const Word = Node.create<WordOptions>({
 	addAttributes() {
 		return {
 			start: {
-				default: '' /* ,
+				default: ''
+				// parseHTML: element => element.getAttribute('start'),
+				/* ,
 				parseHTML: (element) => {
 					return element.getAttribute('start');
-				},
-				renderHTML: (attributes) => {
+				},*/
+				/* renderHTML: (attributes) => {
 					return attributes.start;
-				} */
+				}  */
 			},
 			end: {
 				default: '' /* ,
@@ -63,10 +62,6 @@ export const Word = Node.create<WordOptions>({
 
 	renderHTML({ HTMLAttributes }) {
 		return ['span', mergeAttributes(HTMLAttributes)];
-	},
-
-	addNodeView() {
-		return SvelteNodeViewRenderer(WordNode);
 	}
 
 	/* addInputRules() {

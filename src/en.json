@@ -43,7 +43,8 @@
     "login": "Sign in",
     "register": "Register",
     "password": "Password",
-    "email": "Email"
+    "email": "Email",
+    "forgotPassword": "Forgot password?"
   },
   "signup": {
     "header": "Register | tekstiks.ee",
@@ -51,7 +52,8 @@
     "name": "Name",
     "password": "Password",
     "passwordConfirm": "Repeat password",
-    "email": "Email"
+    "email": "Email",
+    "passwordsDontMatch": "Passwords do not match!"
   },
   "files": {
     "title": "Files | tekstiks.ee",
@@ -73,7 +75,8 @@
     "cancel": "Cancel",
     "delete": "Delete permanently",
     "fileDeletion": "Delete file",
-    "fileDeletionWarning": "Warning! This will permanently delete the the file and the transcription! Are you sure you want to proceed?"
+    "fileDeletionWarning": "Warning! This will permanently delete the the file and the transcription! Are you sure you want to proceed?",
+    "uploadError": "File upload failed."
   },
   "me": {
     "title": "Account details | tekstiks.ee",
@@ -97,5 +100,16 @@
   },
   "terms": {
     "title": "Terms of Use | tekstiks.ee"
+  },
+  "passwordReset": {
+    "title": "Password reset | teksiks.ee",
+    "header": "Password reset",
+    "submit": "Request password reset",
+    "success": "Request successful! Check your email for a password reset link.",
+    "error": "Request failed!",
+    "password": "Password",
+    "passwordConfirm": "Repeat password",
+    "passwordsDontMatch": "Passwords do not match!",
+    "change": "Change password"
   }
 }
