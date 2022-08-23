@@ -6,25 +6,30 @@
 
 	let error = null;
 
-	async function handleSubmit({ detail: { email, password } }) {
-		const res = await signin(email, password);
-		if (res.status === 200) {
-			const content = await res.body;
-			if (content.user) {
-				goto('/files');
-			} else {
-				return { error: { error: 'Server error: no user details.' } };
+	async function handleSubmit({detail: {email, password}}) {
+		const response = await fetch('/api/signin', {
+			method: 'POST',
+			body: JSON.stringify({email, password}),
+			headers: {
+				'Content-Type': 'application/json'
 			}
-			return { props: { content } };
-		} else {
-			error = await res.body;
+		});
+
+		if (!response.ok) {
+			error = (await response.json()).error;
 			return;
+		}
+		else {
+			goto('/files');
 		}
 	}
 	const printError = (error) => {
-		if (error.error === 'signin.error') {
-			return $_('signin.error');
-		} else return error.error;
+		if (error === 'password') {
+			return $_('signin.passwordError');
+		} else if (error === 'email') {
+			return $_('signin.emailError')
+		}
+		else return error.error;
 	};
 </script>
 

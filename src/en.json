@@ -38,7 +38,8 @@
     "terms": "Terms of use"
   },
   "signin": {
-    "error": "Login error. Check username and password.",
+    "passwordError": "Login error. Incorrect password.",
+    "emailError": "Login error. Account with this email does not exist.",
     "header": "Signin| tekstiks.ee",
     "login": "Sign in",
     "register": "Register",

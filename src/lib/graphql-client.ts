@@ -1,5 +1,6 @@
 import { GraphQLClient } from 'graphql-request';
-const API_ENDPOINT = 'https://uus.tekstiks.ee/api';
+import { variables } from '$lib/variables';
+const API_ENDPOINT = variables.apiEndpoint
 // const API_ENDPOINT = 'http://localhost:4444';
 // import { API_ENDPOINT } from '../../env';
 export const GRAPHQL_ENDPOINT = API_ENDPOINT;

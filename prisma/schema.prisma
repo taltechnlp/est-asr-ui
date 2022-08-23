@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model File {
+  id                       String    @id @db.VarChar(30) 
+  state                    String    @default("UPLOADED") @db.Text()
+  text                     String?    @db.Text()
+  path                     String     @db.Text()
+  filename                 String     @db.Text()
+  duration                 Decimal?
+  uploadedAt               DateTime? 	
+  mimetype                 String     @db.Text()
+  encoding                 String     @db.Text()
+  externalId               String     @db.Text()
+  textTitle                String?    @db.Text()
+  initialTranscriptionPath String?    @db.Text()
+  initialTranscription     String?    @db.Text()
+  uploader                 String?   @db.VarChar(30)
+  User                     User?     @relation(fields: [uploader], references: [id], onUpdate: NoAction)
+}
+
+model User {
+  id               String   @id @db.VarChar(30)
+  email            String   @unique(map: "default$default.User.email._UNIQUE")
+  name             String
+  password         String
+  resetToken       String?
+  resetTokenExpiry Decimal?
+  files             File[]
+}

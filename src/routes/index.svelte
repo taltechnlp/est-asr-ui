@@ -1,11 +1,12 @@
 <script context="module">
 </script>
 
-<script>
+<script lang="ts">
 	import { user } from '$lib/stores';
 	import Hero from '$lib/components/Hero.svelte';
 	import { _ } from 'svelte-i18n';
 
+	export let users;
 	let myData;
 	let loggedIn;
 
@@ -33,7 +34,6 @@
 		<a href="/demo" class="btn btn-outline btn-lg mt-6 ml-2 text-white">{$_('index.demoButton')}</a>
 	</div>
 </div>
-
 <div class="flex flex-row w-full justify-center pl-1 pr-1 ">
 	<div class="grid place-items-center max-w-screen-2xl">
 		<h1 class="text-2xl mb-10 font-extrabold mt-12">{$_('index.howItWorks')}</h1>

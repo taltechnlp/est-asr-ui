@@ -10,7 +10,7 @@
 </script>
 
 <script lang="ts">
-	import type {EditorContent, SectionType, Speakers, Word, Turn} from './types.dt';
+	import type {EditorContent, SectionType, Speakers, Word, Turn} from './types';
 	import Icon from 'svelte-awesome/components/Icon.svelte';
 	import minus from 'svelte-awesome/icons/minus-circle';
 	import plus from 'svelte-awesome/icons/plus-circle';

@@ -38,7 +38,8 @@
         "terms": "Kasutustingmused"
     },
     "signin": {
-        "error": "Viga sisse logimisel. Kontrolli kasutajanime ja parooli.",
+        "passwordError": "Viga sisse logimisel. Vale parool.",
+        "emailError": "Viga sisse logimisel. Sellise e-posti aadressiga konto puudub.",
         "header": "Logi sisse | tekstiks.ee",
         "login": "Logi sisse",
         "register": "Registreeru",

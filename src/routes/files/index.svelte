@@ -7,11 +7,7 @@
 	import { getFiles } from '$lib/queries/files';
 	import { _ } from 'svelte-i18n';
 
-	// TODO: sundida load fn uuesti laadima pärast failide mutatsiooni.
-	// Selleks piisab kui parameetrid muutuvad. Teine variant on igas mutatsioonis uuesti laadida.
-
-	// TODO: Long polling kui state on mõnel failil processing.
-	export async function load({ params, fetch, session, stuff }) {
+	/* export async function load({ params, fetch, session, stuff }) {
 		let userId;
 		userStore.subscribe((user) => {
 			if (user && user.id) {
@@ -40,14 +36,15 @@
 					}
 				};
 		} else return {};
-	}
+	} */
 </script>
 
 <script>
 	import { goto } from '$app/navigation';
-	import { identity } from 'svelte/internal';
 	export let userId = '';
 	export let error = '';
+	export let files
+	filesStore.set(files);
 	const toTime = (timestampt) => {
 		const ts = new Date(timestampt);
 		const date = ts.toLocaleDateString('et-ET', {
@@ -68,29 +65,31 @@
 
 	const uploadFile = async () => {
 		const formData = new FormData();
-		const query = `
-			mutation Mutation($file: Upload!) {
-				singleUpload(file: $file) {
-					id
-					filename
-					duration
-					uploadedAt
-					textTitle
-					state
-				}
-			}
-		`;
-		const variables = { file: null };
-		const operations = JSON.stringify({
-			query,
-			variables
-		});
-		formData.append('operations', operations);
-		const map = `{"0": ["variables.file"]}`;
-		formData.append('map', map);
-		formData.append('0', upload[0]);
+		formData.append('file', upload[0]);
 		loading = true;
-		try {
+
+		const result = await fetch('files', {
+                method: 'POST',
+                body: formData
+            }).catch(error => {
+				loading = false;
+				return error
+			})
+		loading = false;
+		if (result.ok) {
+			console.log("Ülesse laetud")
+			goto('/files');
+			/* const res = await fetch('files', {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			}).catch(error => {
+				return error
+			})
+			console.log(res.body) */
+		}
+		/* try {
 			error = '';
 			const response = await fetch(GRAPHQL_ENDPOINT, {
 				method: 'POST',
@@ -110,7 +109,7 @@
 			error = err;
 			loading = false;
 			return;
-		}
+		} */
 	};
 
 	let delFileId;
@@ -261,7 +260,7 @@
 					<button class="btn" type="submit" disabled
 						><span class="btn btn-ghost btn-xs loading" /></button
 					>
-				{:else if upload && upload[0]}
+				{:else if upload}
 					<button on:click={uploadFile} class="btn btn-active btn-primary" type="submit"
 						>{$_('files.uploadButton')}</button
 					>
