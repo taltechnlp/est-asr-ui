@@ -1,4 +1,21 @@
 <script context="module">
+	// import Tiptap from '$lib/components/Tiptap.svelte';
+	// import Player from '$lib/components/Player.svelte';
+	// import { content } from './content';
+	// const file = {
+	// 	json: content,
+	// 	id: 1,
+	// 	name: 'demo.mp3'
+	// };
+</script>
+
+<script lang="ts">
+	import Icon from 'svelte-awesome/components/Icon.svelte';
+	import minus from 'svelte-awesome/icons/minus-circle';
+	import plus from 'svelte-awesome/icons/plus-circle';
+	import { _ } from 'svelte-i18n';
+	import type { SectionType, Speakers, Word, Turn, EditorContent} from './$types';
+
 	import Tiptap from '$lib/components/Tiptap.svelte';
 	import Player from '$lib/components/Player.svelte';
 	import { content } from './content';
@@ -7,13 +24,6 @@
 		id: 1,
 		name: 'demo.mp3'
 	};
-</script>
-
-<script lang="ts">
-	import Icon from 'svelte-awesome/components/Icon.svelte';
-	import minus from 'svelte-awesome/icons/minus-circle';
-	import plus from 'svelte-awesome/icons/plus-circle';
-	import { _ } from 'svelte-i18n';
 
 	const combineWords = (acc, word: Word) => {
 		return (
@@ -53,47 +63,7 @@
 		} else return '';
 	};
 
-	type SectionType = 'non-speech' | 'speech';
-	type Speakers = {
-		[index: string]: { name?: string };
-	};
-	type Word = {
-		confidence: number;
-		start: number;
-		end: number;
-		punctuation: number;
-		word: string;
-		word_with_punctuation: string;
-		unnormalized_words?: [
-			{
-				confidence: number;
-				end: number;
-				word_with_punctuation: string;
-				punctuation: string;
-				start: number;
-				word: string;
-			}
-		];
-	};
-	type Turn = {
-		start: number;
-		end: number;
-		speaker: string;
-		transcript: string;
-		unnormalized_transcript: string;
-		words?: [Word];
-	};
-	type EditorContent = {
-		speakers: Speakers;
-		sections: [
-			{
-				start: number;
-				end: number;
-				type: SectionType;
-				turns?: [Turn];
-			}
-		];
-	};
+	
 
 	// @ts-ignore
 	let playing = true;

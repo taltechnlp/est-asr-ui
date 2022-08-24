@@ -1,16 +1,6 @@
-<script context="module">
-    export async function load({ params, url}) {
-      const resetToken = url.searchParams.get('resetToken') || '';
-      return {
-        status: 200,
-        props: {
-            resetToken
-        }
-      };
-    }
-</script>
-
 <script>
+	throw new Error("@migration task: Add data prop (https://github.com/sveltejs/kit/discussions/5774#discussioncomment-3292707)");
+
 	import PasswordResetForm from '$lib/components/PasswordResetForm.svelte';
 	import { resetPassword } from './index.json';
 	import { _ } from 'svelte-i18n';

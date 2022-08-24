@@ -1,21 +1,23 @@
 import { prisma } from "$lib/db/client";
+import { json } from "@sveltejs/kit";
+import type { RequestHandler } from './$types';
 
-export async function get({ params }) {
+export const GET: RequestHandler = async ({ params }) => {
     const user = await prisma.user.findUnique({
         where: {
             id: params.id
         }
     })
     if (!user) {
-        return {
-            status: 404,
+        return json({
+            ok: false,
             body: {
                 error: 'userNotFound',
             },
-        };
+        });
     }
-    return {
-        status: 200,
+    return json({
+        ok: true,
         body: {
             user: {
                 id: user.id,
@@ -23,6 +25,6 @@ export async function get({ params }) {
                 name: user.name
             }
         },
-    };
+    });
 }
         

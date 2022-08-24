@@ -1,49 +1,54 @@
 <script context="module">
-	import { user as userStore, files as filesStore } from '$lib/stores';
-	import { browser } from '$app/env';
-	import { GRAPHQL_ENDPOINT } from '$lib/graphql-client';
-	import { getUser } from '$lib/queries/user';
-	import { deleteFile } from '$lib/mutations/deleteFile';
-	import { getFiles } from '$lib/queries/files';
-	import { _ } from 'svelte-i18n';
+	throw new Error("@migration task: Check code was safely removed (https://github.com/sveltejs/kit/discussions/5774#discussioncomment-3292722)");
 
-	/* export async function load({ params, fetch, session, stuff }) {
-		let userId;
-		userStore.subscribe((user) => {
-			if (user && user.id) {
-				userId = user.id;
-			}
-		});
-		if (!userId) {
-			const user = await getUser();
-			if (user) userStore.set(user);
-		}
-		if (userId) {
-			const files = await getFiles(userId);
-			if (files) {
-				filesStore.set(files);
-				return {
-					status: 200,
-					props: {
-						userId
-					}
-				};
-			} else
-				return {
-					status: 200,
-					props: {
-						userId
-					}
-				};
-		} else return {};
-	} */
+	// import { user as userStore, files as filesStore } from '$lib/stores';
+	// import { browser } from '$app/env';
+	// import { GRAPHQL_ENDPOINT } from '$lib/graphql-client';
+	// import { getUser } from '$lib/queries/user';
+	// import { deleteFile } from '$lib/mutations/deleteFile';
+	// import { getFiles } from '$lib/queries/files';
+	// import { _ } from 'svelte-i18n';
+
+	// /* export async function load({ params, fetch, session, stuff }) {
+	// 	let userId;
+	// 	userStore.subscribe((user) => {
+	// 		if (user && user.id) {
+	// 			userId = user.id;
+	// 		}
+	// 	});
+	// 	if (!userId) {
+	// 		const user = await getUser();
+	// 		if (user) userStore.set(user);
+	// 	}
+	// 	if (userId) {
+	// 		const files = await getFiles(userId);
+	// 		if (files) {
+	// 			filesStore.set(files);
+	// 			return {
+	// 				status: 200,
+	// 				props: {
+	// 					userId
+	// 				}
+	// 			};
+	// 		} else
+	// 			return {
+	// 				status: 200,
+	// 				props: {
+	// 					userId
+	// 				}
+	// 			};
+	// 	} else return {};
+	// } */
 </script>
 
 <script>
+	throw new Error("@migration task: Add data prop (https://github.com/sveltejs/kit/discussions/5774#discussioncomment-3292707)");
+
 	import { goto } from '$app/navigation';
 	export let userId = '';
 	export let error = '';
-	export let files
+	export let files;
+	export let data;
 	filesStore.set(files);
 	const toTime = (timestampt) => {
 		const ts = new Date(timestampt);

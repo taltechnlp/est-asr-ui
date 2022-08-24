@@ -25,10 +25,10 @@ export async function handle({ event, resolve }) {
 }
 
 /** @type {import('@sveltejs/kit').GetSession} */
-export function getSession(event) {
+/* export function getSession(event) {
 	return event.locals.userId
 	  ? {
 		  userId: event.locals.userId
 		}
 	  : {};
-  }
+  } */

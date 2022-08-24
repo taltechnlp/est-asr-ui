@@ -1,3 +1,5 @@
+
+// @migration task: Check imports
 import { client } from '$lib/graphql-client';
 import { gql } from 'graphql-request';
 

@@ -1,32 +1,36 @@
 <script context="module">
-	import { user as userStore } from '$lib/stores';
-	import { client } from '$lib/graphql-client';
-	import { gql } from 'graphql-request';
-	import { _ } from 'svelte-i18n';
+	throw new Error("@migration task: Check code was safely removed (https://github.com/sveltejs/kit/discussions/5774#discussioncomment-3292722)");
 
-	export async function load({ params, fetch, session, stuff }) {
-		const query = gql`
-			query {
-				me {
-					id
-					email
-					name
-				}
-			}
-		`;
-		const { me } = await client.request(query);
-		userStore.set(me);
+	// import { user as userStore } from '$lib/stores';
+	// import { client } from '$lib/graphql-client';
+	// import { gql } from 'graphql-request';
+	// import { _ } from 'svelte-i18n';
 
-		return {
-			status: 200,
-			props: {
-				user: me
-			}
-		};
-	}
+	// export async function load({ params, fetch, session, stuff }) {
+	// 	const query = gql`
+	// 		query {
+	// 			me {
+	// 				id
+	// 				email
+	// 				name
+	// 			}
+	// 		}
+	// 	`;
+	// 	const { me } = await client.request(query);
+	// 	userStore.set(me);
+
+	// 	return {
+	// 		status: 200,
+	// 		props: {
+	// 			user: me
+	// 		}
+	// 	};
+	// }
 </script>
 
 <script>
+	throw new Error("@migration task: Add data prop (https://github.com/sveltejs/kit/discussions/5774#discussioncomment-3292707)");
+
 	import { goto } from '$app/navigation';
 	export let user;
 	let userData;

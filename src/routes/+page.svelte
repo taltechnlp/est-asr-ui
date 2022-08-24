@@ -1,12 +1,9 @@
-<script context="module">
-</script>
-
 <script lang="ts">
 	import { user } from '$lib/stores';
 	import Hero from '$lib/components/Hero.svelte';
 	import { _ } from 'svelte-i18n';
 
-	export let users;
+	export let data;
 	let myData;
 	let loggedIn;
 

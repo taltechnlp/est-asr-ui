@@ -1,16 +1,20 @@
 <script context="module">
-	import Tiptap from '$lib/components/Tiptap.svelte';
-	import Player from '$lib/components/Player.svelte';
-	import { fileQuery, getFile } from '$lib/queries/file';
-	import { GRAPHQL_ENDPOINT } from '$lib/graphql-client';
-	export async function load({ params, fetch, session, stuff }) {
-		const file = await getFile(params.fileId);
-		return { props: { file } };
-	}
+	throw new Error("@migration task: Check code was safely removed (https://github.com/sveltejs/kit/discussions/5774#discussioncomment-3292722)");
+
+	// import Tiptap from '$lib/components/Tiptap.svelte';
+	// import Player from '$lib/components/Player.svelte';
+	// import { fileQuery, getFile } from '$lib/queries/file';
+	// import { GRAPHQL_ENDPOINT } from '$lib/graphql-client';
+	// export async function load({ params, fetch, session, stuff }) {
+	// 	const file = await getFile(params.fileId);
+	// 	return { props: { file } };
+	// }
 </script>
 
 <script lang="ts">
-	import type {EditorContent, SectionType, Speakers, Word, Turn} from './types';
+	throw new Error("@migration task: Add data prop (https://github.com/sveltejs/kit/discussions/5774#discussioncomment-3292707)");
+
+	import type {EditorContent, SectionType, Speakers, Word, Turn} from '../types';
 	import Icon from 'svelte-awesome/components/Icon.svelte';
 	import minus from 'svelte-awesome/icons/minus-circle';
 	import plus from 'svelte-awesome/icons/plus-circle';

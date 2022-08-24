@@ -13,7 +13,7 @@ export const get = async ({ locals }) => {
 	if (allUsers) {
         // console.dir(allUsers, { depth: null })
 		return {
-			body: {
+			data: {
 				users: await allUsers
 			}
 		};
