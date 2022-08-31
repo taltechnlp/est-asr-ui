@@ -1,13 +1,13 @@
 import {parse} from 'cookie';
 import jwt from 'jsonwebtoken'
-import {variables} from '$lib/variables'
+import {variables} from '$lib/variables';
+import type { Handle } from '@sveltejs/kit';
 
 const checkPath = (event) => {
 	return !event.url.pathname.startsWith('/demo') && !event.url.pathname.startsWith('/files/');
 };
 
-/** @type {import('@sveltejs/kit').Handle} */
-export async function handle({ event, resolve }) {
+export const handle: Handle = async ({ event, resolve }) => {
 	const cookie = await parse(event.request.headers.get('cookie') || '');
 	if (cookie.token) {
 		const userDetails = jwt.verify(cookie.token, variables.secretKey);
@@ -24,11 +24,3 @@ export async function handle({ event, resolve }) {
 	return response;
 }
 
-/** @type {import('@sveltejs/kit').GetSession} */
-/* export function getSession(event) {
-	return event.locals.userId
-	  ? {
-		  userId: event.locals.userId
-		}
-	  : {};
-  } */

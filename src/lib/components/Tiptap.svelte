@@ -1,13 +1,11 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	// @ts-ignore
 	import { Editor, getDebugJSON } from '@tiptap/core';
-	// @ts-ignore
 	import Document from '@tiptap/extension-document';
 	// import { CustomParagraph } from '$lib/customParagraph';
 	// import Paragraph from '@tiptap/extension-paragraph';
 	// import Heading from '@tiptap/extension-heading';
-	// @ts-ignore
+
 	import Text from '@tiptap/extension-text';
 	import DropCursor from '@tiptap/extension-dropcursor';
 	import GapCursor from '@tiptap/extension-gapcursor';
@@ -15,7 +13,6 @@
 	import Highlight from '@tiptap/extension-highlight';
 	/* import StarterKit from '@tiptap/starter-kit'; */
 	// import type {Readable} from 'svelte/store'
-	// @ts-ignore
 	import History from '@tiptap/extension-history';
 	import { Speaker } from './speaker';
 	import { Word } from './word';
@@ -35,8 +32,8 @@
 	export let demo;
 	export let speakers;
 
-	let element;
-	let editor;
+	let element: HTMLDivElement | undefined;
+	let editor: undefined | Editor;
 
 	const debouncedSave = debounce(handleSave, 10000, {
 		leading: false,
@@ -59,9 +56,6 @@
 				GapCursor,
 				Text,
 				TextStyle,
-				/*                 Heading.configure({
-                  levels: [1, 2, 3],
-                }), */
 				History,
 				Word,
 				WordColor,
@@ -105,10 +99,8 @@
 			}
 			el.addEventListener('click', handleWordClick);
 		}); */
-		// @ts-ignore
 		window.myEditor = editor;
 
-		// @ts-ignore
 		// window.myEditorWords = words;
 	});
 

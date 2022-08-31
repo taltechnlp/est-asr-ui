@@ -8,7 +8,6 @@
 	import { playingTime } from '$lib/stores';
 
 	let wavesurfer;
-
 	onMount(() => {
 		wavesurfer = WaveSurfer.create({
 			container: '#waveform',

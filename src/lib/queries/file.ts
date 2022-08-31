@@ -25,7 +25,7 @@ export const UPDATE_FILE_MUTATION = `
             }
           `;
 
-export const getFile = async (fileId) => {
+export const getFile = async (fileId: string) => {
 	const variables = { fileId };
 	try {
 		const response = await fetch(GRAPHQL_ENDPOINT, {
@@ -39,9 +39,12 @@ export const getFile = async (fileId) => {
 				variables
 			})
 		});
+    console.log(response)
 		const { data } = await response.json();
+    console.log("file data", data)
 		return data.file;
 	} catch (error) {
+    console.log("file error")
 		return {};
 	}
 };

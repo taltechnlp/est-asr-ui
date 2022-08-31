@@ -71,6 +71,6 @@ type Sentence = {
 };
 
 type MyEditorContent = {
-	type: string;
+	type?: string;
 	content: Sentence[];
 };

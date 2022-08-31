@@ -1,26 +1,23 @@
 <script context="module">
-	throw new Error("@migration task: Check code was safely removed (https://github.com/sveltejs/kit/discussions/5774#discussioncomment-3292722)");
-
-	// import Tiptap from '$lib/components/Tiptap.svelte';
-	// import Player from '$lib/components/Player.svelte';
 	// import { fileQuery, getFile } from '$lib/queries/file';
-	// import { GRAPHQL_ENDPOINT } from '$lib/graphql-client';
 	// export async function load({ params, fetch, session, stuff }) {
-	// 	const file = await getFile(params.fileId);
-	// 	return { props: { file } };
-	// }
-</script>
+		// 	const file = await getFile(params.fileId);
+		// 	return { props: { file } };
+		// }
+	</script>
 
 <script lang="ts">
-	throw new Error("@migration task: Add data prop (https://github.com/sveltejs/kit/discussions/5774#discussioncomment-3292707)");
-
+	import Tiptap from '$lib/components/Tiptap.svelte';
+	import Player from '$lib/components/Player.svelte';
 	import type {EditorContent, SectionType, Speakers, Word, Turn} from '../types';
 	import Icon from 'svelte-awesome/components/Icon.svelte';
 	import minus from 'svelte-awesome/icons/minus-circle';
 	import plus from 'svelte-awesome/icons/plus-circle';
 	import { fromDelta/* , deltaTest */ } from '$lib/components/deltaFormat';
-
-	export let file;
+	export const prerender = false;
+	export const hydrate = false;
+	export let data;
+	console.log(data.file)
 	const combineWords = (acc, word: Word) => {
 		return (
 			acc + `<span start="${word.start}" end="${word.end}">${word.word_with_punctuation} </span>`
@@ -35,7 +32,7 @@
 			''
 		)}</speaker>`;
 	};
-	const toEditorFormat = (transcription: EditorContent, speakerMap) => {
+	const toEditorFormat = (transcription: EditorContent) => {
 		if (transcription && transcription.sections) {
 			return transcription.sections
 				.reduce((acc, section) => {
@@ -55,14 +52,14 @@
 
 	
 
-	let json = JSON.parse(file && file.initialTranscription);
+	let json = JSON.parse(data.file && data.file.content);
 	// json = deltaTest
 	let editorContent;
 
 	// Delta format from old Quill library.
 	if (json && json.ops) editorContent = fromDelta(json, speakerMap);
 	else if (json && !json.type) {
-		editorContent = toEditorFormat(json, speakerMap);
+		editorContent = toEditorFormat(json);
 	} else if (json && json.content) {
 		editorContent = json;
 		if (editorContent && editorContent.content) {
@@ -135,7 +132,7 @@
 		<Tiptap
 			content={editorContent}
 			speakers={Array.from(speakerMap)}
-			fileId={file.id}
+			fileId={data.file.id}
 			demo={false}
 		/>
 	</div>
@@ -223,9 +220,7 @@
 		<div id="waveform" class="" />
 		<div id="wave-timeline" class="w-full h-auto" />
 		<Player
-			url={`${
-				process.env.NODE_ENV === 'development' ? GRAPHQL_ENDPOINT : GRAPHQL_ENDPOINT
-			}/uploads?path=${file.path}`}
+			url={`${data.url}/uploaded/${data.file.id}`}
 		/>
 	</div>
 </main>

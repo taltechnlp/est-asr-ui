@@ -8,55 +8,12 @@ import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 import busboy from 'busboy';
 import { pipeline } from 'stream/promises';
-import axios from 'axios';
+import { checkCompletion } from "./helpers";
+import {files as filesStore } from '$lib/stores';
+import type { PageServerLoad } from './$types'; 
+import { error } from '@sveltejs/kit';
 
-const checkCompletion = async (fileId, externalId, path) => {
-    // console.log(fileId, externalId, path)
-    await axios.get("http://bark.phon.ioc.ee/transcribe/v1/result?id=" + externalId)
-    .then(res => {const data = (res.data);  return data})
-    .then(async resultFile => {
-      if (resultFile.done) {
-          // console.log(`Transcription of ${fileId}`, resultFile.done);
-          if (resultFile.error) {
-            const updatePrisma = await prisma.file.update({
-              data: { state: "PROCESSING_ERROR" },
-              where: {
-                id: fileId
-              }
-            });
-            console.log(
-              `Failed to transcribe ${fileId}. Failed with code`,
-              resultFile.error.code,
-              resultFile.error.message
-            );
-            fs.unlinkSync(path);
-          } else {
-            const path = `${variables.uploadDir}/${fileId}.json`;
-            const text = JSON.stringify(resultFile.result);
-            const writeStream = fs.createWriteStream(path);
-            writeStream.on("finish", async function() {
-                console.log("file has been written");
-                const updatePrisma = await prisma.file.update({
-                  data: {
-                    initialTranscriptionPath: path,
-                    state: "READY"
-                  },
-                  where: {
-                    id: fileId
-                  }
-                });
-              });
-              writeStream.write(text);
-              writeStream.end();
-            }
-          }
-          return;
-        }
-      )
-      .catch(error => console.log(error));
-};
-
-export async function get({ locals }) {
+export const load: PageServerLoad = async ({locals}) => {
     const { files } = await prisma.user.findUnique({
         where: {
             id: locals.userId
@@ -75,21 +32,17 @@ export async function get({ locals }) {
                 state: file.state,
                 text: file.text,
                 filename: file.filename,
-                duration: file.duration,
+                duration: file.duration?.toNumber(),
                 mimetype: file.mimetype,
-                uploadedAt: file.uploadedAt,
+                uploadedAt: file.uploadedAt?.toString(),
                 textTitle: file.textTitle,
                 initialTranscription: file.initialTranscription
             }
 
         }
     )
-    return {
-        status: 200,
-        body: {
-            files: result
-        },
-    };
+    filesStore.set(result);
+    return {files: result};
 }
 
 const uploadToTranscriber = async (pathString, filename) => {
@@ -100,7 +53,7 @@ const uploadToTranscriber = async (pathString, filename) => {
     const stats = statSync(pathString);
     const fileSizeInBytes = stats.size;
     const uploadedAt = stats.ctime;
-    const file = await readFile(pathString);
+    const file = await readFile(pathString, "binary");
     // await writeFile('test30.wav', file)
     const result = await fetch(
         "http://bark.phon.ioc.ee/transcribe/v1/upload?extension=" + extension,
@@ -189,6 +142,7 @@ export async function post({ request, locals }) {
             body: error
         }
     })
+    console.log("hakkan teenusesse saatma")
     const uploaded = await uploadToTranscriber(fileData.path, fileData.filename).catch(
         error => {
             console.log(error)

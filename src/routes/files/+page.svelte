@@ -1,55 +1,12 @@
-<script context="module">
-	throw new Error("@migration task: Check code was safely removed (https://github.com/sveltejs/kit/discussions/5774#discussioncomment-3292722)");
-
-	// import { user as userStore, files as filesStore } from '$lib/stores';
-	// import { browser } from '$app/env';
-	// import { GRAPHQL_ENDPOINT } from '$lib/graphql-client';
-	// import { getUser } from '$lib/queries/user';
-	// import { deleteFile } from '$lib/mutations/deleteFile';
-	// import { getFiles } from '$lib/queries/files';
-	// import { _ } from 'svelte-i18n';
-
-	// /* export async function load({ params, fetch, session, stuff }) {
-	// 	let userId;
-	// 	userStore.subscribe((user) => {
-	// 		if (user && user.id) {
-	// 			userId = user.id;
-	// 		}
-	// 	});
-	// 	if (!userId) {
-	// 		const user = await getUser();
-	// 		if (user) userStore.set(user);
-	// 	}
-	// 	if (userId) {
-	// 		const files = await getFiles(userId);
-	// 		if (files) {
-	// 			filesStore.set(files);
-	// 			return {
-	// 				status: 200,
-	// 				props: {
-	// 					userId
-	// 				}
-	// 			};
-	// 		} else
-	// 			return {
-	// 				status: 200,
-	// 				props: {
-	// 					userId
-	// 				}
-	// 			};
-	// 	} else return {};
-	// } */
-</script>
-
-<script>
-	throw new Error("@migration task: Add data prop (https://github.com/sveltejs/kit/discussions/5774#discussioncomment-3292707)");
-
-	import { goto } from '$app/navigation';
-	export let userId = '';
+<script lang="ts">
+	import { files as filesStore } from '$lib/stores';
+	import { goto } from '$app/navigation';	
+	import { deleteFile } from '$lib/mutations/deleteFile';
+	import { getFiles } from '$lib/queries/files';
+	import { _ } from 'svelte-i18n';
 	export let error = '';
-	export let files;
 	export let data;
-	filesStore.set(files);
+	filesStore.set(data.files); 
 	const toTime = (timestampt) => {
 		const ts = new Date(timestampt);
 		const date = ts.toLocaleDateString('et-ET', {
@@ -92,7 +49,6 @@
 			}).catch(error => {
 				return error
 			})
-			console.log(res.body) */
 		}
 		/* try {
 			error = '';
@@ -115,12 +71,12 @@
 			loading = false;
 			return;
 		} */
-	};
-
+	}
+	}
 	let delFileId;
 	const delFile = async (fileId) => {
 		await deleteFile(fileId);
-		const files = await getFiles(userId);
+		const files = await getFiles(data.userId);
 		filesStore.set(files);
 	};
 
@@ -133,7 +89,7 @@
 	const longPolling = async () => {
 		if ($filesStore.find((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')) {
 			timeoutID = await setTimeout(async () => {
-				const files = await getFiles(userId);
+				const files = await getFiles(data.userId);
 				if (files) {
 					filesStore.set(files);
 				}

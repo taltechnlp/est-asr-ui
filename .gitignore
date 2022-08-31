@@ -8,3 +8,5 @@ node_modules
 !.env.example
 .vscode
 env.ts
+/uploads
+/transcripts
