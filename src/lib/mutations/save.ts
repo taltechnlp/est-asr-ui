@@ -1,9 +1,9 @@
-import { GRAPHQL_ENDPOINT } from '$lib/graphql-client';
+import { SECRET_API_ENDPOINT } from '$env/static/private';
 
 export const saveChanges = async (text, fileId) => {
 	console.log(text);
 	const res = await fetch(
-		(process.env.NODE_ENV === 'development' ? GRAPHQL_ENDPOINT : GRAPHQL_ENDPOINT) +
+		(process.env.NODE_ENV === 'development' ? SECRET_API_ENDPOINT : SECRET_API_ENDPOINT) +
 			`/transcript?id=${fileId}`,
 		{
 			method: 'POST',

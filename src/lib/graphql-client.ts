@@ -1,4 +1,4 @@
 import { GraphQLClient } from 'graphql-request';
-export const GRAPHQL_ENDPOINT = process.env.VITE_API_ENDPOINT;
+import { SECRET_API_ENDPOINT } from '$env/static/private';
 
-export const client = new GraphQLClient(GRAPHQL_ENDPOINT, { credentials: 'include' });
+export const client = new GraphQLClient(SECRET_API_ENDPOINT, { credentials: 'include' });

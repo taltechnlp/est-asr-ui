@@ -11,6 +11,7 @@ import { checkCompletion } from "./helpers";
 import {files as filesStore } from '$lib/stores';
 import type { PageServerLoad } from './$types'; 
 import { error } from '@sveltejs/kit';
+import { SECRET_UPLOAD_DIR } from '$env/static/private';
 
 export const load: PageServerLoad = async ({locals}) => {
     const { files } = await prisma.user.findUnique({
@@ -104,7 +105,7 @@ export async function post({ request, locals }) {
     bb.on('file', (name, file, info) => {
         let { filename, encoding, mimeType } = info;
         filename = `${Date.now()}-${Math.round(Math.random() * 1E4)}-${filename}`
-        const uploadDir = process.env.VITE_UPLOAD_DIR;
+        const uploadDir = SECRET_UPLOAD_DIR;
         const saveTo = join(uploadDir, filename);
         console.log(
             `File [${name}]: filename: %j, encoding: %j, mimeType: %j, path: %j`,

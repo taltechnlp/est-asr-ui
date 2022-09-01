@@ -2,8 +2,9 @@ import axios from 'axios';
 import { prisma } from "$lib/db/client";
 import { unlink } from 'fs/promises';
 import fs from 'fs'
+import { SECRET_UPLOAD_DIR} from '$env/static/private';
 
-const uploadDir = process.env.VITE_UPLOAD_DIR;
+const uploadDir = SECRET_UPLOAD_DIR;
 export const checkCompletion = async (fileId, externalId, path) => {
     // console.log(fileId, externalId, path)
     await axios.get("http://bark.phon.ioc.ee/transcribe/v1/result?id=" + externalId)

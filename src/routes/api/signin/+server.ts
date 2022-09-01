@@ -2,6 +2,7 @@ import { prisma } from "$lib/db/client";
 import { serialize } from 'cookie';
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
+import { SECRET_API_ENDPOINT } from '$env/static/private';
 
 export async function post({ request }) {
     const { email, password } = await request.json() 
@@ -28,7 +29,7 @@ export async function post({ request }) {
          },
      };
     }
-    const secretKey = process.env.VITE_APP_SECRET;
+    const secretKey = SECRET_API_ENDPOINT;
     const token = jwt.sign({ userId: user.id }, secretKey);
     return {
         status: 201,

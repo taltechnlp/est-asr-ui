@@ -3,6 +3,7 @@ import { error } from '@sveltejs/kit';
 import type {RequestHandler} from './$types';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { SECRET_UPLOAD_DIR } from '$env/static/private';
 
 export const GET: RequestHandler = async ({ params, locals }) => {
     const file = await prisma.file.findUnique({
@@ -11,7 +12,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
         }
     })
     if (locals.userId && locals.userId === file.uploader) {
-        const uploadDir = process.env.VITE_UPLOAD_DIR;
+        const uploadDir = SECRET_UPLOAD_DIR;
         const filePath = path.join(uploadDir, file.path)
         const data = await fs.readFile(filePath)
         return new Response(data);
