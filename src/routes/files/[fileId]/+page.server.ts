@@ -2,6 +2,7 @@ import { prisma } from "$lib/db/client";
 import type { PageServerLoad } from './$types';
 import { promises as fs } from 'fs';
 import { error } from '@sveltejs/kit';
+import type { Action } from "./$types";
 
 export const load: PageServerLoad =  async ({ params, locals, url }) => {
 	const file = await prisma.file.findUnique({

@@ -1,9 +1,9 @@
 import axios from 'axios';
 import { prisma } from "$lib/db/client";
-import { variables } from "$lib/variables";
 import { unlink } from 'fs/promises';
 import fs from 'fs'
 
+const uploadDir = process.env.VITE_UPLOAD_DIR;
 export const checkCompletion = async (fileId, externalId, path) => {
     // console.log(fileId, externalId, path)
     await axios.get("http://bark.phon.ioc.ee/transcribe/v1/result?id=" + externalId)
@@ -25,7 +25,7 @@ export const checkCompletion = async (fileId, externalId, path) => {
             );
             await unlink(path);
           } else {
-            const path = `${variables.uploadDir}/${fileId}.json`;
+            const path = `${uploadDir}/${fileId}.json`;
             const text = JSON.stringify(resultFile.result);
             const writeStream = fs.createWriteStream(path);
             writeStream.on("finish", async function() {

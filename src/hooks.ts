@@ -1,6 +1,5 @@
 import {parse} from 'cookie';
 import jwt from 'jsonwebtoken'
-import {variables} from '$lib/variables';
 import type { Handle } from '@sveltejs/kit';
 
 const checkPath = (event) => {
@@ -8,9 +7,10 @@ const checkPath = (event) => {
 };
 
 export const handle: Handle = async ({ event, resolve }) => {
+	const secretKey = process.env.VITE_APP_SECRET;
 	const cookie = await parse(event.request.headers.get('cookie') || '');
 	if (cookie.token) {
-		const userDetails = jwt.verify(cookie.token, variables.secretKey);
+		const userDetails = jwt.verify(cookie.token, secretKey);
 		if(userDetails.userId){
 			event.locals.userId = userDetails.userId
 		}

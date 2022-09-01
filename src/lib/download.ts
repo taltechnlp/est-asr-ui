@@ -51,17 +51,17 @@ const processContent = (content, exportNames) => {
 };
 
 type Sentence = {
-	type: string;
-	attrs: {
-		'data-name': string;
+	type?: string;
+	attrs?: {
+		'data-name'?: string;
 		id?: string;
 	};
-	content: {
-		text: string;
-		type: string;
-		marks: {
+	content?: {
+		text?: string;
+		type?: string;
+		marks?: {
 			type: string;
-			attrs:{
+			attrs?:{
 				start: string;
 				end: string;
 
@@ -72,5 +72,5 @@ type Sentence = {
 
 type MyEditorContent = {
 	type?: string;
-	content: Sentence[];
+	content?: Sentence[];
 };

@@ -1,7 +1,6 @@
 import { prisma } from "$lib/db/client";
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs'
-import { variables } from "$lib/variables";
 import path from 'path';
 import { readFileSync, createWriteStream, statSync, unlinkSync, createReadStream } from 'fs';
 import { readFile, writeFile } from 'fs/promises';
@@ -105,7 +104,8 @@ export async function post({ request, locals }) {
     bb.on('file', (name, file, info) => {
         let { filename, encoding, mimeType } = info;
         filename = `${Date.now()}-${Math.round(Math.random() * 1E4)}-${filename}`
-        const saveTo = join(variables.uploadDir, filename);
+        const uploadDir = process.env.VITE_UPLOAD_DIR;
+        const saveTo = join(uploadDir, filename);
         console.log(
             `File [${name}]: filename: %j, encoding: %j, mimeType: %j, path: %j`,
             filename,
@@ -166,8 +166,6 @@ export async function post({ request, locals }) {
         }
     })
     console.log(uploadedFile)
-    //.then(x=>console.log(x)).catch(e=>console.log(e))
-    // const { } = uploadToTranscriber(saveTo, mimeType, filename)
 
     return {
         status: 201,
