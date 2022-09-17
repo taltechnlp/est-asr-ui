@@ -1,11 +1,3 @@
-<script context="module">
-	// import { fileQuery, getFile } from '$lib/queries/file';
-	// export async function load({ params, fetch, session, stuff }) {
-		// 	const file = await getFile(params.fileId);
-		// 	return { props: { file } };
-		// }
-	</script>
-
 <script lang="ts">
 	import Tiptap from '$lib/components/Tiptap.svelte';
 	import Player from '$lib/components/Player.svelte';
@@ -14,8 +6,6 @@
 	import minus from 'svelte-awesome/icons/minus-circle';
 	import plus from 'svelte-awesome/icons/plus-circle';
 	import { fromDelta/* , deltaTest */ } from '$lib/components/deltaFormat';
-	export const prerender = false;
-	export const hydrate = false;
 	export let data;
 	console.log(data.file)
 	const combineWords = (acc, word: Word) => {

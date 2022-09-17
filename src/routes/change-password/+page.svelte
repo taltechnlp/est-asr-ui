@@ -1,16 +1,12 @@
 <script>
-	throw new Error("@migration task: Add data prop (https://github.com/sveltejs/kit/discussions/5774#discussioncomment-3292707)");
-
 	import PasswordResetForm from '$lib/components/PasswordResetForm.svelte';
-	import { resetPassword } from './index.json';
 	import { _ } from 'svelte-i18n';
-
-    export let resetToken;
+	export let data;
 	let error;
 
     // console.log("token", resetToken)
 	async function handleSubmit({ detail: { password } }) {
-		const res = await resetPassword(password, resetToken);
+		const res = await fetch ("/api/reset", password, data.resetToken);
 		if (res.status === 200) {
 			const data = await res.body;
 			window.location.href = '/signin';

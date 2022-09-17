@@ -1,8 +1,8 @@
 <script lang="ts">
 	import SignInForm from '$lib/components/SignInForm.svelte';
-	import { signin } from '$lib/mutations/signin';
 	import { goto } from '$app/navigation';
 	import { _ } from 'svelte-i18n';
+	import { user as userStore } from '$lib/stores';
 
 	let error = null;
 
@@ -16,10 +16,12 @@
 		});
 
 		if (!response.ok) {
-			error = (await response.json()).error;
+			error = (await response.json()).message;
 			return;
 		}
 		else {
+			const user = await response.json()
+			userStore.set(user);
 			goto('/files');
 		}
 	}
@@ -29,7 +31,7 @@
 		} else if (error === 'email') {
 			return $_('signin.emailError')
 		}
-		else return error.error;
+		else return error;
 	};
 </script>
 

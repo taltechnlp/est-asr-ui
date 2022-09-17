@@ -17,7 +17,7 @@
 	});
 	let path = '';
 	afterNavigate((nav) => {
-		path = nav.to.pathname;
+		path = nav.to.url.pathname;
 		return;
 	});
 

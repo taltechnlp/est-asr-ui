@@ -2,26 +2,14 @@
 	import { _ } from 'svelte-i18n';
     import Input from '$lib/components/Input.svelte';
 	import Button from '$lib/components/Button.svelte';
-    import { pwReset } from '$lib/mutations/passwordReset';
-    import { createEventDispatcher } from 'svelte';
+    import type { PageData, ActionData } from './$types'
 
-    const dispatch = createEventDispatcher();
-    let submitted = false;
-    let success = false;
+    export let data: PageData;
+    export let form: ActionData;
     let email = '';
-	async function handleSubmit({ detail: { email } }) {
-		const res = await pwReset(email);
-        submitted = true;
-		if (res.status === 200) {
-            success = true
-		} else {
-			success = false
-		}
-	}
 	const printError = (error) => {
-		if (error.error === 'reset.error') {
-			return $_('passwordReset.error');
-		} else return error.error;
+
+		return $_('passwordReset.error');
 	};
 </script>
 
@@ -31,7 +19,7 @@
 
 <h1 class="max-w-xl mx-auto mt-8 text-2xl font-extrabold">{$_('passwordReset.header')}</h1>
 <div class="max-w-xl mx-auto mt-8">
-	<form on:submit={(email)=>handleSubmit({ detail: { email } })} class="space-y-5 {$$props.class}">
+	<form method="POST" class="space-y-5">
         <Input
             label={$_('signin.email')}
             id="email"
@@ -42,9 +30,9 @@
         />
         <Button type="submit">{$_('passwordReset.submit')}</Button>
     </form>
-    {#if submitted && !success}
+    {#if form?.doesNotExist}
         <p class="mt-3 text-red-500 text-center font-semibold">{printError("reset.error")}</p>
-    {:else if submitted && success}
+    {:else if form?.success}
     <p class="mt-3 text-center font-semibold">{$_('passwordReset.success')}</p>
     {/if}
 </div>

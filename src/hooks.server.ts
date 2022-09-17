@@ -17,7 +17,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	const response = await resolve(event, {
-		ssr: (() => checkPath(event))(),
 		transformPageChunk: ({ html }) => html.replace('old', 'new')
 	});
 

@@ -1,21 +1,10 @@
-<script context="module">
-	// import Tiptap from '$lib/components/Tiptap.svelte';
-	// import Player from '$lib/components/Player.svelte';
-	// import { content } from './content';
-	// const file = {
-	// 	json: content,
-	// 	id: 1,
-	// 	name: 'demo.mp3'
-	// };
-</script>
-
 <script lang="ts">
 	import Icon from 'svelte-awesome/components/Icon.svelte';
 	import minus from 'svelte-awesome/icons/minus-circle';
 	import plus from 'svelte-awesome/icons/plus-circle';
 	import { _ } from 'svelte-i18n';
 	import type { SectionType, Speakers, Word, Turn, EditorContent} from './$types';
-
+	export const ssr = false;
 	import Tiptap from '$lib/components/Tiptap.svelte';
 	import Player from '$lib/components/Player.svelte';
 	import { content } from './content';

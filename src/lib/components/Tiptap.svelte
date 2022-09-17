@@ -23,7 +23,6 @@
 	import download from 'svelte-awesome/icons/download';
 	import debounce from 'lodash/debounce';
 	import { downloadHandler } from '$lib/download';
-	import { saveChanges } from '$lib/mutations/save';
 	import { speakerNames } from '$lib/stores';
 	import { _ } from 'svelte-i18n';
 
@@ -35,7 +34,7 @@
 	let element: HTMLDivElement | undefined;
 	let editor: undefined | Editor;
 
-	const debouncedSave = debounce(handleSave, 10000, {
+	const debouncedSave = debounce(handleSave, 5000, {
 		leading: false,
 		trailing: true
 	});
@@ -110,8 +109,15 @@
 		}
 	});
 
-	function handleSave() {
-		saveChanges(editor.getJSON(), fileId);
+	async function handleSave() {
+		const result = await fetch(`/api/files/${fileId}`, {
+			method: "PUT",
+			body: JSON.stringify(editor.getJSON())
+		});
+		if (!result.ok) {
+			return false;
+		}
+		return true;
 	}
 
 	const getSpeakerNames = (content) => {

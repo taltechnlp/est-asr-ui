@@ -2,7 +2,7 @@
 	import Input from '$lib/components/Input.svelte';
 	import Button from '$lib/components/Button.svelte';
 	import { _ } from 'svelte-i18n';
-	import { createEventDispatcher } from 'svelte';
+	import { enhance } from '$app/forms';
 
 	let email = '';
 	let password = '';
@@ -11,30 +11,29 @@
 	let error;
 	let confirmPasswordInputRef;
 
-	const dispatch = createEventDispatcher();
+	export let data;
+	export let form;
 
-	function submit() {
+</script>
+
+<form  method="POST" action="?/login" class="space-y-5 {$$props.class}" use:enhance={({ form, data, cancel }) => {
+    return async ({ result }) => {
 		error = null;
 		if (password !== confirmPassword) {
 			error = $_('signup.passwordsDontMatch');
 			confirmPasswordInputRef.focus();
+			cancel();
 			return;
 		}
 
-		dispatch('submit', {
-			email,
-			password,
-			name: fullName
-		});
-	}
-</script>
-
-<form on:submit|preventDefault={submit} class="space-y-5 {$$props.class}">
+    };
+  }}>
+  	<p>Data: {data} Form: {form} </p>
 	<Input label={$_('signup.email')} id="email" name="email" type="email" bind:value={email} />
 	<Input
 		label={$_('signup.name')}
-		id="full-name"
-		name="full-name"
+		id="name"
+		name="name"
 		type="text"
 		bind:value={fullName}
 	/>

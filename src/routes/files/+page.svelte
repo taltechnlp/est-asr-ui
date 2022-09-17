@@ -1,83 +1,60 @@
 <script lang="ts">
 	import { files as filesStore } from '$lib/stores';
-	import { goto } from '$app/navigation';	
-	import { deleteFile } from '$lib/mutations/deleteFile';
-	import { getFiles } from '$lib/queries/files';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { _ } from 'svelte-i18n';
+	import { toTime } from './helpers'
+	import { browser } from '$app/environment';
 	export let error = '';
 	export let data;
-	filesStore.set(data.files); 
-	const toTime = (timestampt) => {
-		const ts = new Date(timestampt);
-		const date = ts.toLocaleDateString('et-ET', {
-			day: '2-digit',
-			month: '2-digit',
-			year: 'numeric'
-		});
-		const time = ts.toLocaleTimeString('et-ET', {
-			hour: '2-digit',
-			minute: '2-digit',
-			second: '2-digit'
-		});
-		return `${date} ${time}`;
-	};
-
+	filesStore.set(data.files);
 	let loading = false;
 	let upload;
 
-	const uploadFile = async () => {
+	const uploadFile = async (event: Event) => {
+		event.preventDefault();
 		const formData = new FormData();
 		formData.append('file', upload[0]);
 		loading = true;
-
-		const result = await fetch('files', {
-                method: 'POST',
-                body: formData
-            }).catch(error => {
-				loading = false;
-				return error
-			})
-		loading = false;
-		if (result.ok) {
-			console.log("Ülesse laetud")
-			goto('/files');
-			/* const res = await fetch('files', {
-				method: 'GET',
-				headers: {
-					'Content-Type': 'application/json'
-				}
-			}).catch(error => {
-				return error
-			})
+		const result = await fetch('/api/files/upload', {
+			method: 'POST',
+			body: formData
+		});
+		if (!result.ok) {
+			loading = false;
+			const body = await result.json();
+			return body.error;
 		}
-		/* try {
-			error = '';
-			const response = await fetch(GRAPHQL_ENDPOINT, {
-				method: 'POST',
-				credentials: 'include',
-				body: formData
-			});
-			const data = await response.json();
-			const files = await getFiles(userId);
-			filesStore.set(files);
-			if (!timeoutID) longPolling();
-			const checkBox = document.getElementById('file-upload');
-			// @ts-ignore
-			checkBox.checked = false;
-			loading = false;
-			return;
-		} catch (err) {
-			error = err;
-			loading = false;
-			return;
-		} */
-	}
-	}
+		loading = false;
+		uploadModalOpen = false;
+		const response = await fetch('/api/files');
+		if (!response.ok) {
+			goto('/files');
+		}
+		const body = await response.json()
+		filesStore.set(body.files)
+		longPolling()
+	};
 	let delFileId;
 	const delFile = async (fileId) => {
-		await deleteFile(fileId);
-		const files = await getFiles(data.userId);
-		filesStore.set(files);
+		const response = await fetch('/api/files/' + fileId, {
+			method: 'DELETE'
+		});
+		if (!response.ok) {
+			console.log('Server error');
+		} else {
+			filesStore.set($filesStore.filter(x => x.id != fileId))	
+		}
+		return;
+	};
+
+	const updateFileStore = async () => {
+		console.log("invalidating")
+		const response = await fetch('/api/files');
+		if (!response.ok) {
+			console.log("Failed to update files. Check internet connection.")
+		}
+		const body = await response.json()
+		filesStore.set(body.files)
 	};
 
 	function openFile(fileId, fileState) {
@@ -89,15 +66,11 @@
 	const longPolling = async () => {
 		if ($filesStore.find((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')) {
 			timeoutID = await setTimeout(async () => {
-				const files = await getFiles(data.userId);
-				if (files) {
-					filesStore.set(files);
-				}
+				const files = await updateFileStore();
 				if (!$filesStore.find((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')) {
 					clearTimeout(timeoutID);
 					timeoutID = null;
-				}
-				else {
+				} else {
 					longPolling();
 				}
 			}, 20000);
@@ -106,9 +79,13 @@
 			timeoutID = null;
 		}
 	};
-	longPolling();
+	if (browser) longPolling();
 
-	let uploadFormOpen;
+	let uploadModalOpen = false;
+	const uploadModalClick = (e: Event) => {
+		e.preventDefault();
+		uploadModalOpen = !uploadModalOpen
+	}
 </script>
 
 <svelte:head>
@@ -192,8 +169,8 @@
 		</tbody>
 	</table>
 
-	<input type="checkbox" id="file-upload" class="modal-toggle" />
-	<label for="file-upload" class="modal cursor-pointer">
+	<input type="checkbox" id="file-upload" class="modal" on:click={uploadModalClick} />
+	<label for="file-upload" class="modal cursor-pointer {uploadModalOpen ? "modal-open" : ""}">
 		<label class="modal-box relative" for="">
 			<fieldset disabled={loading} aria-busy={loading}>
 				<label for="file-upload" class="btn btn-sm btn-circle absolute right-2 top-2" lang="et"
@@ -225,11 +202,8 @@
 					<button on:click={uploadFile} class="btn btn-active btn-primary" type="submit"
 						>{$_('files.uploadButton')}</button
 					>
-				
 				{:else}
-					<button class="btn" type="submit" disabled
-						>{$_('files.uploadButton')}</button
-					>
+					<button class="btn" type="submit" disabled>{$_('files.uploadButton')}</button>
 				{/if}
 			</fieldset>
 		</label>
@@ -253,5 +227,4 @@
 </div>
 
 <style>
-
 </style>

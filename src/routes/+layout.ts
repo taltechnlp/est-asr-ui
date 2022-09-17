@@ -7,7 +7,7 @@ export async function preload() {
 }
 
 export async function load({ fetch, parent, data }) {
-	if (data.userId) {
+	if (data && data.userId) {
 		const response = await fetch('/api/user/' + data.userId, {
 			method: 'GET',
 		}).catch((e) => {
@@ -17,7 +17,6 @@ export async function load({ fetch, parent, data }) {
 			};
 		});
 		const { body } = await response.json();
-		console.log("user", body.user)
 		if (body.user) {
 			userStore.set(body.user);
 			return body.user;

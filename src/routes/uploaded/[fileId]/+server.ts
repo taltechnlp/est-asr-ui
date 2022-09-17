@@ -2,9 +2,8 @@ import { prisma } from "$lib/db/client";
 import { error } from '@sveltejs/kit'; 
 import type {RequestHandler} from './$types';
 import { promises as fs } from 'fs';
-import path from 'path';
-import { SECRET_UPLOAD_DIR } from '$env/static/private';
 
+// Return the audio or video file for playback. Authorization requried.
 export const GET: RequestHandler = async ({ params, locals }) => {
     const file = await prisma.file.findUnique({
         where: {
@@ -12,9 +11,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
         }
     })
     if (locals.userId && locals.userId === file.uploader) {
-        const uploadDir = SECRET_UPLOAD_DIR;
-        const filePath = path.join(uploadDir, file.path)
-        const data = await fs.readFile(filePath)
+        const data = await fs.readFile(file.path)
         return new Response(data);
     }
     throw error(401, 'unauthorized'); 

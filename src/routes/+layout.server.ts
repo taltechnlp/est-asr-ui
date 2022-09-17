@@ -16,7 +16,7 @@ export const load: LayoutServerLoad = async ({ request }) => {
 		if (userDetails.userId) {
 			return {userId: userDetails.userId}
 		} else {
-			return;
+			return {};
 		}
-	} else return;
+	} else return {};
 }
