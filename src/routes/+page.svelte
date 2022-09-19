@@ -3,7 +3,6 @@
 	import Hero from '$lib/components/Hero.svelte';
 	import { _ } from 'svelte-i18n';
 
-	export let data;
 	let myData;
 	let loggedIn;
 
