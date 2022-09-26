@@ -53,3 +53,57 @@ export type EditorContent = {
         }
     ];
 };
+
+export type FinAsrResult = FinAsrPending | FinAsrSuccess;
+
+export type FinAsrPending = {
+    "processing_started?": number;
+    "status": "pending";
+}
+
+export type FinAsrSuccess = {
+    model: [FinModel];
+    processing_finished: number;
+    processing_started: number;
+    segments?: [FinSegment];   
+    status: "done"
+}
+
+export type FinSegment = {
+    duration: number;
+    jobid: string;
+    processing_finished: number;
+    processing_started: number;
+    responses?: [FinSegmentPart];
+    start: number;
+    status: FinSegmentStatus;
+    stop: number;
+    time: string;
+}
+
+export type FinAsrStatus = 'done' | '';
+export type FinSegmentStatus = 'done' | '';
+
+export type FinSegmentPart = {
+    confidence: number;
+    transcript?: string;
+    words?: [{
+        start: string;
+        end: string;
+        word: string;
+    }]
+}
+
+export type FinModel = {
+    "acoustic_scale": number;
+    "beam": number;
+    "frame_subsampling_factor": number;
+    "language_code": string;
+    "lattice_beam": number;
+    "max_active": number;
+    "min_active": number;
+    "n_decoders": number;
+    "name": string;
+    "path": string;
+    "silence_weight": number;
+}

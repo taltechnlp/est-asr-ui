@@ -14,6 +14,7 @@ model File {
   text                     String?    @db.Text()
   path                     String     @db.Text()
   filename                 String     @db.Text()
+  language                 String     @db.Text()
   duration                 Decimal?
   uploadedAt               DateTime? 	
   mimetype                 String     @db.Text()

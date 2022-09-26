@@ -62,6 +62,7 @@
     "jsonwebtoken": "^8.5.1",
     "lodash": "^4.17.21",
     "multer": "^1.4.5-lts.1",
+    "node-fetch": "^3.2.10",
     "node-mailjet": "^5.1.1",
     "nodemailer": "^6.7.8",
     "svelte-awesome": "^2.4.6",
