@@ -23,9 +23,10 @@
 
 	const languageDict = {
 		et: { id: 'et', text: 'ET', flag: [0x1f1ea, 0x1f1ea] },
-		en: { id: 'en', text: 'EN', flag: [0x1f1ec, 0x1f1e7] }
+		en: { id: 'en', text: 'EN', flag: [0x1f1ec, 0x1f1e7] },
+		fi: { id: 'fi', text: 'FI', flag: [0x1f1eb, 0x1f1ee] }
 	};
-	const languages = ['et', 'en'];
+	const languages = ['et', 'en', 'fi'];
 
 	let selected = 'et';
 	locale.set(selected);
