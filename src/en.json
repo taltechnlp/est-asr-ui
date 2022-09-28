@@ -80,7 +80,13 @@
     "delete": "Delete permanently",
     "fileDeletion": "Delete file",
     "fileDeletionWarning": "Warning! This will permanently delete the the file and the transcription! Are you sure you want to proceed?",
-    "uploadError": "File upload failed."
+    "uploadError": "File upload failed.",
+    "file": "File",
+    "language": "Language",
+    "languageChoices": {
+            "estonian": "Estonian",
+            "finnish": "Finnish"
+        }
   },
   "me": {
     "title": "Account details | tekstiks.ee",

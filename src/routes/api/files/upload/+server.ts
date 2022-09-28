@@ -1,21 +1,56 @@
 import { prisma } from "$lib/db/client";
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs'
-import path from 'path';
-import { readFileSync, createWriteStream, statSync, unlinkSync, createReadStream } from 'fs';
-import { readFile, writeFile } from 'fs/promises';
+import { createWriteStream, statSync, unlinkSync, readFileSync, createReadStream } from 'fs';
+import { readFile } from 'fs/promises';
 import { join } from 'path';
 import busboy from 'busboy';
 import { pipeline } from 'stream/promises';
-import {files as filesStore } from '$lib/stores';
 import type { RequestHandler } from './$types'; 
 import { error, json, redirect } from '@sveltejs/kit';
-import { SECRET_UPLOAD_DIR } from '$env/static/private';
+import { SECRET_UPLOAD_DIR, FIN_ASR_UPLOAD_URL } from '$env/static/private';
+import { Blob } from "buffer";
+import axios from 'axios'
+import fetch, { FormData as NodeFormData} from 'node-fetch';
+
 
 interface TranscriberError {
     code: number;
     message: string;
     log: string;
+}
+
+interface FinnishAsrResult {
+    file?: string;
+    jobid: string;
+}
+
+const uploadToFinnishAsr = async (pathString, filename, mimeType) => {
+    const stats = statSync(pathString);
+    const fileSizeInBytes = stats.size;
+    const uploadedAt = stats.ctime;
+    const readStream = createReadStream(pathString);
+    // form.append('file', stream);
+    // const formHeaders = form.getHeaders();
+	// formData.append('file', file);
+    const result = await fetch(
+        FIN_ASR_UPLOAD_URL, 
+        {
+            method: "POST",
+            headers: {
+                "Content-Length": fileSizeInBytes.toString(),
+                "Content-Type": mimeType 
+            },
+            body: readStream
+        }
+    )
+    console.log(result)
+    if (!result.ok) {
+        unlinkSync(pathString); // delete the file
+        throw error(result.status, result.statusText)
+    }
+    const body = await result.json() as FinnishAsrResult
+    return { jobid: body.jobid }
 }
 
 const uploadToTranscriber = async (pathString, filename) => {
@@ -27,7 +62,6 @@ const uploadToTranscriber = async (pathString, filename) => {
     const fileSizeInBytes = stats.size;
     const uploadedAt = stats.ctime;
     const file = await readFile(pathString);
-    // await writeFile('test30.wav', file)
     const result = await fetch(
         "http://bark.phon.ioc.ee/transcribe/v1/upload?extension=" + extension,
         {
@@ -110,8 +144,8 @@ export const POST: RequestHandler = async ({ request, locals, url }) => {
         throw error(500, 'fileUploadError')
     })
     await pipeline(request.body as any, bb);
-    const uploaded = await uploadToTranscriber(fileData.path, fileData.filename)
-    if (!uploaded.externalId) {
+    const uploaded = await uploadToFinnishAsr(fileData.path, fileData.filename, fileData.mimetype)
+   /*  if (!uploaded.externalId) {
         throw error(400, "transcriptionServiceError")
     }
     
@@ -126,7 +160,7 @@ export const POST: RequestHandler = async ({ request, locals, url }) => {
             }
         }
     })
-    console.log("Upload saved to DB", uploadedFile)
+    console.log("Upload saved to DB", uploadedFile) */
 
     return json(fileData, {
         status: 201

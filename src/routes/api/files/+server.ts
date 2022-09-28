@@ -10,7 +10,7 @@ export const GET: RequestHandler = async ({ locals }) => {
     let files = await getFiles(locals.userId)
     const pendingFiles = files.filter((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')
     if (pendingFiles.length > 0) {
-        const promises = pendingFiles.map(file => checkCompletion(file.id, file.externalId, file.path, SECRET_UPLOAD_DIR))
+        const promises = pendingFiles.map(file => checkCompletion(file.id, file.externalId, file.path, file.language, SECRET_UPLOAD_DIR))
         const resultRetrieved = (await Promise.all(promises)).reduce((acc, x) => acc || x, false);
         if (resultRetrieved) {
             files = await getFiles(locals.userId)

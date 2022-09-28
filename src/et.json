@@ -80,7 +80,13 @@
         "delete": "Kustuta lõplikult",
         "fileDeletion": "Faili kustutamine",
         "fileDeletionWarning": "Hoiatus! See kustutab nii faili kui ka transkriptsiooni! Kas oled kindel, et soovid selle faili ja sellega seotud transkriptsiooni kustutada?",
-        "uploadError": "Faili ülesse laadimine ebaõnnestus!"
+        "uploadError": "Faili ülesse laadimine ebaõnnestus!",
+        "file": "Fail",
+        "language": "Keel",
+        "languageChoices": {
+            "estonian": "eesti",
+            "finnish": "soome"
+        }
     },
     "me": {
         "title": "Konto andmed | tekstiks.ee",
