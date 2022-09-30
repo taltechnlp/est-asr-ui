@@ -14,7 +14,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
     })
     if (locals.userId && locals.userId === file.uploader) {
         let location = file.path;
-        if (location.charAt[0] !== '/') {
+        if (location[0] !== '/') {
             location = path.join(SECRET_AUDIO_UPLOAD_DIR, location)
         }
         const data = await fs.readFile(location)
