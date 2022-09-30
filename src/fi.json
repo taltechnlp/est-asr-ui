@@ -1,0 +1,122 @@
+{
+    "sign_in": "Kirjaudu sisään",
+    "sign_up": "Luo käyttäjätili",
+    "index": {
+        "title": "Kotisivu | teksiks.ee",
+        "headerTitle": "Kotisivu",
+        "headerFiles": "Tiedostot",
+        "headerDemo": "Demo",
+        "login": "Kirjaudu sisään",
+        "heroHeader": "Puheentunnistus: puheesta tekstiksi",
+        "heroDescription": "Automaattisen puheentunnistuksen palvelu viron ja suomen kielille sekä käyttöliittymä transkription muokkaamiseen.",
+        "ctaButton": "Aloita",
+        "demoButton": "Katso demo",
+        "howItWorks": "Kuinka tämä toimii?",
+        "tekstiksIntro": "on Tallinnan teknillisen yliopiston (TTÜ) Kieliteknologian laboratorion avoin puheentunnistusjärjestelmä. Käyttöliittymään syksyllä 2022 lisätty suomen puheentunnistuksen tuki on kehitetty yhdessä Helsingin yliopiston Kielipankin ja Aalto yliopiston kanssa. Järjestelmä on täysin automatisoitu ja voi käsitellä useita tiedostoja yhtäaikaisesti. Tunnistuksessa voi esiintyä jonoja kiireisinä aikoina, mutta keskimääräinen prosessointiaika on noin puolet nauhoitteen kestosta.",
+        "tekstiksIntroRemark": "Tulossa: tiedoston tunnistuksen etenemisen seuranta ja odotettu valmitumisaika.",
+        "step1": "1. Lataa suomenkielinen nauhoitus.",
+        "step1Desc": "Yleisimmät ääni- ja videoformaatit ovat tuettuja.",
+        "step2": "2. Odota transkription valmistumista.",
+        "step2Desc": "Koneoppimista hyödyntävä järjestelmä etsii äänitiedostosta puhetta ja yrittää tuottaa siitä tekstiä.",
+        "step3": "3. Korjaa puheentunnistuksen virheet",
+        "step3Desc": "Tekstin editointi on interaktiivinen. Äänen toistaminen ja transkriptio on kohdistettu keskenään. Kulloinkin toistettu sana on korostettu korjauksen helpottamiseksi.",
+        "step4": "4. Lataa tiedosto.",
+        "step4Desc": "Tällä hetkellä tuki on docx-tiedostoille.",
+        "recommendations": "Suositukset",
+        "rec1": "Äänitiedostojen tulisi olla mahdollisimman korkealaatuisia, esim. mikrofonilla nauhoitettuja hiljaisessa ympäristössä. Äänitiedoston täytyisi olla bittisyvyydeltään vähintään 16 ja taajuudeltaan 16 KHz, mieluiten WAV-formaatissa.",
+        "rec2": "Koska tiedoston maksimikoko on 500 MB, pidemmät WAV-tiedostot voi tallentaa mp3 tai ogg-formaateissa, mutta vähintään 128 kbitin enkoodaus on suositeltava. Stereoäänen muuttaminen monoksi säästää myös tilaa (tämä muunnos tehdään joka tapauksessa puheentunnistuksen aikana).",
+        "rec3": "Järjestelmä ei tue ongelmitta yli kaksi tuntia kestäviä nauhoitteita. Näin pitkien tiedostojen tunnistus voi epäonnistua. Suosittelemme pitkien tiedostojen pilkkomista ennen palvelun käyttöä.",
+        "rec4": "Rajallisten resurssien johdosta pyydämme lataamaan päivässä korkeintaan kymmenen nauhoitetta. Muutoin kaikkien käyttäjien odotusajat pitenevät paljon. Jos sinulla on tarve tehdä puheentunnistus suureen määrään tiedostoja (esim. koko äänitearkistoon), pyydämme ottamaan yhteyttä ylläpitäjiin.",
+        "citing": "Viittaaminen",
+        "citing1": "Jos käytät tätä järjestelmää tutkimuksessa, pyydämme viittaamaan alla listattuun tutkimukseen julkaisussasi (ladattavissa",
+        "citing2": "täältä",
+        "os": "Avoin lähdekoodi",
+        "osDesc": "pohjautuu avoimen lähdekoodin ratkaisuihin, jotka on helppo ottaa käyttöön myös paikallisesti. Tunnistuksen voi ajaa myös Docker-kontista (suositeltu ratkaisu).",
+        "osASR": "Puheentunnistusjärjestelmä. Tämä toimii vaiheistettuna prosessina, jonka etenemistä voi seurata. Käyttö komentoriviltä.",
+        "osServer": "Serveriratkaisu joka mahdollistaa yksinkertaisen APIn kautta tehdyn puheentunnistuksen. Myös tunnistuksen reaaliaikaisten tietojen palauttaminen on tuettu. ",
+        "contact": "Yhteystiedot",
+        "terms": "Käyttöehdot"
+    },
+    "signin": {
+        "passwordError": "Virhe sisäänkirjautumisessa. Väärä salasana.",
+        "emailError": "Virhe sisäänkirjautumisessa. Käyttäjätiliä ei löydy tällä sähköpostiosoitteella.",
+        "header": "Kirjaudu sisään | tekstiks.ee",
+        "login": "Kirjaudu sisään",
+        "register": "Rekisteröidy",
+        "password": "Salasana",
+        "email": "Sähköpostiosoite",
+        "forgotPassword": "Unohtuiko salasana?"
+    },
+    "signup": {
+        "header": "Rekisteröidy | tekstiks.ee",
+        "register": "Rekisteröidy",
+        "name": "Nimi",
+        "password": "Salasana",
+        "passwordConfirm": "Toista salasana",
+        "email": "Sähköpostiosoite",
+        "passwordsDontMatch": "Salasana ei ole oikein!",
+        "userExists": "Käyttäjätili on jo olemassa tällä sähköpostiosoitteella. Salasanan voi asettaa uudelleen.",
+        "emailIncorrect": "Sähköpostiosoite ei ole oikein!",
+        "success": "Tilin luominen onnistui! Vahvistussähköposti lähetetty."
+    },
+    "files": {
+        "title": "Tiedostot | tekstiks.ee",
+        "uploadButton": "Lähetä tiedosto",
+        "filename": "Tiedoston nimi",
+        "status": "Tila",
+        "uploadedAt": "Tiedosto ladattu",
+        "actions": "Toiminnot",
+        "openButton": "Avaa",
+        "downloadButton": "Lataa",
+        "deleteButton": "Poista",
+        "statusReady": "VALMIS",
+        "statusError": "TRANSKRIPTIO EPÄONNISTUI",
+        "statusProcessing": "KÄSITTELEE",
+        "statusUploaded": "JONOSSA",
+        "uploadHeader": "Lähetä äänitiedosto",
+        "supportedFormats": "Tuetut tiedostomuodot: wav, mp3, ogg, mp2, m4a, mp4, flac, amr, mpg.",
+        "fileSizeLimit": "Tiedoston enimmäiskoko on 100MB",
+        "cancel": "Poista",
+        "delete": "Poista lopullisesti",
+        "fileDeletion": "Poista tiedosto",
+        "fileDeletionWarning": "Varoitus! Tämä poistaa tiedoston ja transkription lopullisesti. Oletko varma, että haluat jatkaa?",
+        "uploadError": "Tiedoston lähettäminen epäonnistui!"
+    },
+    "me": {
+        "title": "Käyttäjätiedot | tekstiks.ee",
+        "header": "Käyttäjätiedot",
+        "email": "Sähköposti",
+        "name": "Nimi",
+        "logoutButton": "Kirjaudu ulos"
+    },
+    "file": {
+        "toolbarUndo": "Kumoa",
+        "toolbarRedo": "Toista",
+        "toolbarDownload": "Lataa"
+    },
+    "speakerSelect": {
+        "addNew": "Lisää uusi puhuja",
+        "save": "Tallenna",
+        "edit": "Muokkaa"
+    },
+    "contact": {
+        "title": "Yhteystiedot | tekstiks.ee"
+    },
+    "terms": {
+        "title": "Käyttösäännöt | tekstiks.ee"
+    },
+    "demo": {
+        "title": "Demo"
+    },
+    "passwordReset": {
+        "title": "Unohtunut salasana | teksiks.ee",
+        "header": "Unohtunut salasana",
+        "submit": "Pyydä salasanan vaihtoa",
+        "success": "Pyyntö onnistui! Tarkista sähköpostistasi linkki salasanan vaihtamiseksi!",
+        "error": "Pyyntö epäonnistui!",
+        "password": "Salasana",
+        "passwordConfirm": "Toista salasana",
+        "passwordsDontMatch": "Salasanat eivät vastaa toisiaan!",
+        "change": "Vaihda salasana"
+    }
+}

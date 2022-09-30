@@ -3,7 +3,7 @@ import { promises as fs } from 'fs';
 import type { RequestHandler } from "./$types";
 import { error } from '@sveltejs/kit';
 import path from 'path';
-import { Result } from "postcss";
+import { SECRET_AUDIO_UPLOAD_DIR } from '$env/static/private';
 
 export const DELETE: RequestHandler = async ({params, locals}) => {
     if (!locals.userId) {
@@ -27,7 +27,11 @@ export const DELETE: RequestHandler = async ({params, locals}) => {
     if (!fileDetails || fileDetails.User.id !== locals.userId) {
         throw error(404, 'fileNotFound');
     }
-    await fs.rm(fileDetails.path).catch(e => {
+    let location = fileDetails.path;
+    if (location.charAt[0] !== '/') {
+        location = path.join(SECRET_AUDIO_UPLOAD_DIR, location)
+    }
+    await fs.rm(location).catch(e => {
         console.log("Failed to remove file from disk!", e)
     })
     await prisma.file.delete({
