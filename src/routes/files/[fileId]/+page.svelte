@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Tiptap from '$lib/components/Tiptap.svelte';
 	import Player from '$lib/components/Player.svelte';
-	import type {EditorContent, SectionType, Speakers, Word, Turn} from '../types';
+	import type {EditorContent, SectionType, Speakers, Word, Turn} from '$lib/helpers/api.d';
 	import Icon from 'svelte-awesome/components/Icon.svelte';
 	import minus from 'svelte-awesome/icons/minus-circle';
 	import plus from 'svelte-awesome/icons/plus-circle';
@@ -15,12 +15,22 @@
 	};
 	let speakerMap = new Set();
 	const mapTurns = (turn: Turn, speakers: Speakers) => {
-		if (speakers[turn.speaker].name) speakerMap.add(speakers[turn.speaker].name);
-		else if (turn.speaker) speakerMap.add(speakers[turn.speaker].name);
-		return `<speaker data-name="${speakers[turn.speaker].name || turn.speaker}">${turn.words.reduce(
+		let name = "S1"
+		if (speakers && turn.speaker) {
+			// Speaker is identified
+			if (speakers[turn.speaker] && speakers[turn.speaker].name) name = speakers[turn.speaker].name;
+			// Speaker not identified with a name
+			else if (speakers[turn.speaker]) name = turn.speaker
+		} else if (turn.speaker) {
+			// Speakers object missin for some reason but speaker exists on the turn.
+			name = turn.speaker;
+		}
+		speakerMap.add(name);
+		return `<speaker data-name="${name}">${turn.words.reduce(
 			combineWords,
 			''
-		)}</speaker>`;
+			)}</speaker>`;
+
 	};
 	const toEditorFormat = (transcription: EditorContent) => {
 		if (transcription && transcription.sections) {
@@ -29,8 +39,7 @@
 					if (section.type === 'speech' && section.turns) {
 						const res = acc.concat(
 							section.turns.map((turn) => {
-								const result = mapTurns(turn, transcription.speakers);
-								return result;
+								return mapTurns(turn, transcription.speakers);
 							})
 						);
 						return res;
@@ -48,19 +57,19 @@
 
 	// Delta format from old Quill library.
 	if (json && json.ops) editorContent = fromDelta(json, speakerMap);
+	// First time transcription from the Estonian JSON format.
 	else if (json && !json.type) {
 		editorContent = toEditorFormat(json);
+	// Already in Editor format
 	} else if (json && json.content) {
 		editorContent = json;
 		if (editorContent && editorContent.content) {
-			editorContent.content.forEach((node) =>
-			node.attrs['data-name'] ? speakerMap.add(node.attrs['data-name']) : null
-			);
+			editorContent.content.forEach((node) => {
+				if (node.attrs['data-name']) speakerMap.add(node.attrs['data-name']);
+			});
 		}
 	}
 	else editorContent = '';
-	// console.log("speakers", speakerMap)
-	// console.log(editorContent)
 	
 	// @ts-ignore
 	let playing = true;

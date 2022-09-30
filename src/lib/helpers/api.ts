@@ -1,27 +1,55 @@
-import axios from 'axios';
 import { unlink } from 'fs/promises';
 import { prisma } from "$lib/db/client";
 import { createWriteStream } from 'fs'
-import type { TranscriberResult, FinAsrResult, FinSegment } from './api.d';
+import type { TranscriberResult, FinAsrResult, FinAsrFinished, EditorContent, SectionType } from './api.d';
 import { FIN_ASR_RESULTS_URL } from '$env/static/private';
 
-const finToEstFormat = (segments: Array<FinSegment>) => {
-    return {
-        speakers: {},
-        sections: segments.map(seg => {return {
-            "start": seg.start,
-            end: seg.stop,
-            speaker: "",
-            type: "speech",
-            turns: seg.responses.map(part => {return {
-                confidence: part.confidence
-            }})
-        }})
+let finToEstFormat: (sucRes: FinAsrFinished) => EditorContent = 
+    function (sucRes: FinAsrFinished) {
+        const result = {
+                speakers: {
+                    S1: {
+                        name: "S1"
+                    }
+                },
+                sections: [{
+                    start: 0,
+                    end: 0,
+                    type: "non-speech" as SectionType,
+                }]
+            };
+        if (sucRes.result.sections.length > 0) {
+            result.sections = sucRes.result.sections.map(
+                seg => {
+                    return {
+                        start: seg.start,
+                        end: seg.end,
+                        type: "speech" as SectionType,
+                        turns: [{
+                            start: seg.start,
+                            end: seg.end,
+                            speaker: "S1",
+                            transcript: seg.transcript,
+                            unnormalized_transcript: seg.transcript,
+                            words: seg.words.map(w => {return {
+                                confidence: 1,
+                                start: w.start + seg.start,
+                                end: w.end + seg.start,
+                                punctuation: "",
+                                word: w.word,
+                                word_with_punctuation: w.word,
+                            }})
+                        }]
+                    }
+                }
+            )
+        }
+
+        return result;
     }
-}
+
 
 export const checkCompletion = async (fileId, externalId, path, language, uploadDir) => {
-    // console.log(fileId, externalId, path)
     if (language == 'est') {
         const result = await fetch("http://bark.phon.ioc.ee/transcribe/v1/result?id=" + externalId);
         const body: TranscriberResult = await result.json();
@@ -67,11 +95,11 @@ export const checkCompletion = async (fileId, externalId, path, language, upload
             body: externalId
         });
         const body: FinAsrResult = await result.json();
-        if (body.status === "pending") {
+        if (!body.done) {
             return false;
         }
-        // Undocumented error case
-        else if (body.status !== "done") {
+        // Error case
+        else if (body.code) {
             await prisma.file.update({
                 data: { state: "PROCESSING_ERROR" },
                 where: {
@@ -79,14 +107,14 @@ export const checkCompletion = async (fileId, externalId, path, language, upload
                 }
             });
             console.log(
-                `Failed to transcribe ${fileId}. Failed with code`
+                `Failed to transcribe ${fileId}. Failed with code ${body.code, body.message}`
             );
             await unlink(path);
             return true;
-        } // Finished successfully
-        else {
+        } else {
+            const formatted = finToEstFormat(body)
             const path = `${uploadDir}/${fileId}.json`;
-            const text = JSON.stringify(body.segments);
+            const text = JSON.stringify(formatted);
             const writeStream = createWriteStream(path);
             writeStream.on("finish", async function () {
                 await prisma.file.update({

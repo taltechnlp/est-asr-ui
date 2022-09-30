@@ -163,7 +163,7 @@
 			
 				loading = true;
 				return async ({ result }) => {
-					console.log(form, data, result)
+					// console.log(form, data, result)
 					if (result.type === 'success') {
 					// re-run all `load` functions, following the successful update
 						loading = false;

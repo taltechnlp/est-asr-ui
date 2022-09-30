@@ -11,6 +11,7 @@ import fs from 'fs'
 import { createWriteStream, statSync, unlinkSync, readFileSync, createReadStream } from 'fs';
 import busboy from 'busboy';
 import { pipeline } from 'stream/promises';
+import type { FinUploadResult } from "$lib/helpers/api.d";
 
 export const load: PageServerLoad = async ({ locals }) => {
     if (!locals.userId) {
@@ -19,7 +20,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     let files = await getFiles(locals.userId)
     const pendingFiles = files.filter((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')
     if (pendingFiles.length > 0) {
-        const promises = pendingFiles.map(file => checkCompletion(file.id, file.externalId, file.path, SECRET_UPLOAD_DIR))
+        const promises = pendingFiles.map(file => checkCompletion(file.id, file.externalId, file.path, file.language, SECRET_UPLOAD_DIR))
         const resultRetrieved = (await Promise.all(promises)).reduce((acc, x) => acc || x, false);
         if (resultRetrieved) {
             files = await getFiles(locals.userId)
@@ -49,10 +50,6 @@ interface TranscriberError {
     message: string;
     log: string;
 }
-interface FinnishAsrResult {
-    file?: string;
-    jobid: string;
-}
 
 type FileSaveResult = boolean | {
     fileData: {
@@ -79,12 +76,11 @@ const uploadToFinnishAsr = async (pathString, filename, mimeType) => {
             body: file
         }
     )
-    console.log(result)
-    if (!result.ok) {
+    const body = await result.json() as FinUploadResult
+    if (!result.ok || body.error) {
         unlinkSync(pathString); // delete the file
-        throw error(result.status, result.statusText)
+        throw error(result.status, body.error)
     }
-    const body = await result.json() as FinnishAsrResult
     return { jobid: body.jobid }
 }
 
@@ -138,12 +134,12 @@ const saveFile = async (contentType, userId, body) => {
 
     bb.on('file', (name, file, info) => {
         let { filename, encoding, mimeType } = info;
-        filename = `${Date.now()}-${Math.round(Math.random() * 1E4)}-${filename}`
+        const newFilename = `${Date.now()}-${Math.round(Math.random() * 1E4)}-${filename}`
         const uploadDir = join(SECRET_UPLOAD_DIR, userId);
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true });
         }
-        const saveTo = join(uploadDir, filename);
+        const saveTo = join(uploadDir, newFilename);
         console.log(
             `File [${name}]: filename: %j, encoding: %j, mimeType: %j, path: %j`,
             filename,

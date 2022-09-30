@@ -31,6 +31,10 @@
 	export let demo;
 	export let speakers;
 
+	console.debug(content)
+	console.debug(speakers)
+
+
 	let element: HTMLDivElement | undefined;
 	let editor: undefined | Editor;
 
@@ -41,6 +45,7 @@
 
 	onMount(() => {
 		if (speakers.length > 0) {
+			console.log("Speakers:", speakers)
 			speakerNames.set(speakers);
 		} else {
 			const names = getSpeakerNames(content);

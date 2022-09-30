@@ -20,10 +20,10 @@ export type Word = {
     confidence: number;
     start: number;
     end: number;
-    punctuation: number;
+    punctuation: string;
     word: string;
     word_with_punctuation: string;
-    unnormalized_words?: [
+    unnormalized_words?: 
         {
             confidence: number;
             end: number;
@@ -31,8 +31,7 @@ export type Word = {
             punctuation: string;
             start: number;
             word: string;
-        }
-    ];
+        }[];
 };
 export type Turn = {
     start: number;
@@ -40,70 +39,103 @@ export type Turn = {
     speaker: string;
     transcript: string;
     unnormalized_transcript: string;
-    words?: [Word];
+    words?: Word[];
 };
 export type EditorContent = {
-    speakers: Speakers;
-    sections: [
+    speakers?: Speakers;
+    sections?: 
         {
             start: number;
             end: number;
             type: SectionType;
-            turns?: [Turn];
-        }
-    ];
+            turns?: Turn[];
+        }[];
 };
 
-export type FinAsrResult = FinAsrPending | FinAsrSuccess;
+export type FinAsrResult = FinAsrPending | FinAsrFinished | FinAsrInProgress;
 
 export type FinAsrPending = {
-    "processing_started?": number;
-    "status": "pending";
+    done: false;
+    id: string;
+    status: "pending";
+    processing_started: number;
+    message: string;
+    metadata: {
+        version: string;
+    }
+    result?: {
+        sections: [FinSection];
+        speakers?: {
+            [index: string]: { name?: string };
+        } 
+    } 
 }
 
-export type FinAsrSuccess = {
-    model: [FinModel];
-    processing_finished: number;
-    processing_started: number;
-    segments?: [FinSegment];   
-    status: "done"
+export type FinAsrInProgress = {
+    done: false;
+    id: string;
+    message : "In progress",
+    metadata: {
+        version: string;
+    }
+    result: {
+        sections: [FinSection];
+        speakers?: {
+            [index: string]: { name?: string };
+        } 
+    }
+    segments: {
+        duration: number;
+        jobid: string;
+    }[];  
 }
 
-export type FinSegment = {
-    duration: number;
-    jobid: string;
+export enum FinErrorCode {
+    transcribing_failed_error = 1,
+    no_job_error = 40,
+    internal_error = 41
+}
+
+export type FinErrorMessage =
+    "decoding failed" |
+    "server error" |
+    "job id not found" |
+    "job has incompatible api request"
+
+
+export type FinAsrFinished = {
+    done: true;
+    message?: FinErrorMessage | string;
+    code?: FinErrorCode;
+    id: string;
+    metadata: {
+        version: string;
+    }
     processing_finished: number;
     processing_started: number;
-    responses?: [FinSegmentPart];
+    result: {
+        sections: FinSection[];
+        speakers?: {
+            [index: string]: { name?: string };
+        } 
+    }  
+}
+
+export type FinSection = {
     start: number;
-    status: FinSegmentStatus;
-    stop: number;
-    time: string;
+    end: number;
+    transcript: string;
+    words: FinWord[];
 }
 
-export type FinAsrStatus = 'done' | '';
-export type FinSegmentStatus = 'done' | '';
-
-export type FinSegmentPart = {
-    confidence: number;
-    transcript?: string;
-    words?: [{
-        start: string;
-        end: string;
-        word: string;
-    }]
+export type FinWord = {
+    start: number;
+    end: number;
+    word: string;
 }
 
-export type FinModel = {
-    "acoustic_scale": number;
-    "beam": number;
-    "frame_subsampling_factor": number;
-    "language_code": string;
-    "lattice_beam": number;
-    "max_active": number;
-    "min_active": number;
-    "n_decoders": number;
-    "name": string;
-    "path": string;
-    "silence_weight": number;
+export type FinUploadResult = {
+    file?: string;
+    jobid?: string;
+    error?: string;
 }
