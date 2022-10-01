@@ -7,11 +7,12 @@ import { join } from 'path';
 import type { PageServerLoad, Actions } from './$types';
 import { invalid, error, redirect } from '@sveltejs/kit';
 import { SECRET_UPLOAD_DIR, FIN_ASR_UPLOAD_URL } from '$env/static/private';
-import fs from 'fs'
-import { createWriteStream, statSync, unlinkSync, readFileSync, createReadStream } from 'fs';
+import { existsSync, mkdirSync, createWriteStream, statSync, unlinkSync, readFileSync, createReadStream } from 'fs';
 import busboy from 'busboy';
 import { pipeline } from 'stream/promises';
 import type { FinUploadResult } from "$lib/helpers/api.d";
+
+const UPLOAD_LIMIT = 1024 * 1024 // * 400  // 400MB
 
 export const load: PageServerLoad = async ({ locals }) => {
     if (!locals.userId) {
@@ -114,76 +115,49 @@ const uploadToTranscriber = async (pathString, filename) => {
 
 };
 
-const saveFile = async (contentType, userId, body) => {
-    const bb = busboy({
-        headers: {
-            'content-type': contentType
-        },
-        /* limits: {
-            fileSize: 1024 * 1024 * 400  // 400MB
-        } */
-    });
-
-    let fileData = {
-        id: "",
-        filename: "",
-        mimetype: '',
-        encoding: '',
-        path: ''
-    }
-
-    bb.on('file', (name, file, info) => {
-        let { filename, encoding, mimeType } = info;
-        const newFilename = `${Date.now()}-${Math.round(Math.random() * 1E4)}-${filename}`
-        const uploadDir = join(SECRET_UPLOAD_DIR, userId);
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
-        }
-        const saveTo = join(uploadDir, newFilename);
-        console.log(
-            `File [${name}]: filename: %j, encoding: %j, mimeType: %j, path: %j`,
-            filename,
-            encoding,
-            mimeType,
-            saveTo
-        );
-        file.pipe(createWriteStream(saveTo));
-
-        let id = uuidv4()
-        id = id.replace(/[-]/gi, '').substr(0, 30)
-
-        fileData = {
-            id: id,
-            filename: filename,
-            mimetype: mimeType,
-            encoding: encoding,
-            path: saveTo
-        }
-    });
-
-    bb.on('limit', (name, val, info) => {
-
-    })
-    bb.on('close', () => {
-        console.log("valmis")
-    });
-    bb.on("error", () => {
-        return { error: true }
-    })
-    await pipeline(body as any, bb);
-    return { fileData, error: false };
-}
 export const actions: Actions = {
     uploadEst: async ({locals, request}) => {
         if (!locals.userId) {
             throw error(401, "notSignedIn")
         }
-        const contentType = request.headers.get('content-type');
-        const saveResult = await saveFile(contentType, locals.userId, request.body) as FileSaveResult;
-        if (typeof saveResult == "boolean") {
+        const data = await request.formData();
+        
+        const file = data.get('file') as File;
+        console.log(file.name, file.size, file.type)
+        if (!file.name || !file.size || !file.type) {
+            return invalid(400, { noFile: true})
+        }
+        if (file.size > UPLOAD_LIMIT) {
+            return invalid(400, { uploadLimit: true });
+        }
+        const newFilename = `${Date.now()}-${Math.round(Math.random() * 1E4)}-${file.name}`
+        const uploadDir = join(SECRET_UPLOAD_DIR, locals.userId);
+        if (!existsSync(uploadDir)) {
+            mkdirSync(uploadDir, { recursive: true });
+        }
+        const saveTo = join(uploadDir, newFilename);
+        console.log(
+            `File [${newFilename}]: filename: %j, mimeType: %j, path: %j`,
+            file.name,
+            file.type,
+            saveTo
+        );
+        try {
+            await writeFile(saveTo, file.stream())
+        } catch (err) {
+            console.error(err);
             throw error(500, "fileSavingFailed");
         }
-        const fileData = saveResult.fileData;
+        let id = uuidv4()
+        id = id.replace(/[-]/gi, '').substr(0, 30)
+
+        const fileData = {
+            id: id,
+            filename: file.name,
+            mimetype: file.type,
+            encoding: "7bit",
+            path: saveTo
+        }
         const uploadResult = await uploadToTranscriber(fileData.path, fileData.filename)
         if (!uploadResult.externalId) {
             throw error(400, "transcriptionServiceError")
@@ -207,12 +181,44 @@ export const actions: Actions = {
         if (!locals.userId) {
             throw error(401, "notSignedIn")
         }
-        const contentType = request.headers.get('content-type');
-        const saveResult = await saveFile(contentType, locals.userId, request.body) as FileSaveResult;
-        if (typeof saveResult == "boolean") {
+        const data = await request.formData();
+        
+        const file = data.get('file') as File;
+        console.log(file.name, file.size, file.type)
+        if (!file.name || !file.size || !file.type) {
+            return invalid(400, { noFile: true})
+        }
+        if (file.size > UPLOAD_LIMIT) {
+            return invalid(400, { uploadLimit: true });
+        }
+        const newFilename = `${Date.now()}-${Math.round(Math.random() * 1E4)}-${file.name}`
+        const uploadDir = join(SECRET_UPLOAD_DIR, locals.userId);
+        if (!existsSync(uploadDir)) {
+            mkdirSync(uploadDir, { recursive: true });
+        }
+        const saveTo = join(uploadDir, newFilename);
+        console.log(
+            `File [${newFilename}]: filename: %j, mimeType: %j, path: %j`,
+            file.name,
+            file.type,
+            saveTo
+        );
+        try {
+            await writeFile(saveTo, file.stream())
+        } catch (err) {
+            console.error(err);
             throw error(500, "fileSavingFailed");
         }
-        const fileData = saveResult.fileData;
+        let id = uuidv4()
+        id = id.replace(/[-]/gi, '').substr(0, 30)
+
+        const fileData = {
+            id: id,
+            filename: file.name,
+            mimetype: file.type,
+            encoding: "7bit",
+            path: saveTo
+        }
         const uploadResult = await uploadToFinnishAsr(fileData.path, fileData.filename, fileData.mimetype)
         if (!uploadResult.jobid) {
             throw error(400, "transcriptionServiceError")

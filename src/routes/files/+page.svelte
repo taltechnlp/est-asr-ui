@@ -6,7 +6,7 @@
 	import { browser } from '$app/environment';
 	import type { ActionData, PageData } from './$types'
 	import type {ActionResult } from '@sveltejs/kit'
-	 import { applyAction, enhance } from '$app/forms';
+	import { applyAction, enhance } from '$app/forms';
 	
  	export let form: ActionData;
 	let error = '';
@@ -31,6 +31,65 @@
 			filesStore.set($filesStore.filter((x) => x.id != fileId));
 		}
 		return;
+	};
+
+	const printError = (errorText) => {
+		if (errorText === 'fileSizeLimit') {
+			return $_('files.fileSizeLimit')
+		} else
+		{
+			return $_('files.uploadError')
+		}
+	}
+
+	const uploadFile = async (event: Event) => {
+		event.preventDefault();
+		const formData = new FormData();
+		console.log(upload[0])
+		formData.append('file', upload[0], upload[0].name);
+		loading = true;
+		let response;
+		if (selectedLanguage.id === 0) {
+			response = await fetch('files?/uploadEst', {
+				method: 'POST',
+				body: formData
+			});
+		} else {
+			response = await fetch('files?/uploadFin', {
+				method: 'POST',
+				body: formData
+			});
+		}
+		const result: ActionResult = await response.json();
+		if (result.type === 'error') {
+			loading = false;
+			error = result.error;
+			console.log("Upload failed", result.error)
+			return
+		}
+		if (result.type === 'invalid') {
+			loading = false;
+			if (result.data.uploadLimit) {
+				error = 'fileSizeLimit'
+			} else {
+				error = result.data.message;
+			}
+			return
+		}
+		if (result.type === 'redirect') {
+			loading = false;
+			error = ""
+			applyAction(result)
+		}
+		loading = false;
+		uploadModalOpen = false;
+		const files = await fetch('/api/files');
+		if (!files.ok) {
+			goto('/files');
+		}
+		const body = await files.json()
+		filesStore.set(body.files)
+		longPolling()
 	};
 
 	const updateFileStore = async () => {
@@ -156,41 +215,11 @@
 	<input type="checkbox" id="file-upload" class="modal" on:click={uploadModalClick} />
 	<label for="file-upload" class="modal cursor-pointer {uploadModalOpen ? 'modal-open' : ''}">
 		<label class="modal-box relative" for="">
-			<form method="POST" use:enhance={({ form, data, cancel }) => {
-				// `form` is the `<form>` element
-				// `data` is its `FormData` object
-				// `cancel()` will prevent the submission
-			
-				loading = true;
-				return async ({ result }) => {
-					// console.log(form, data, result)
-					if (result.type === 'success') {
-					// re-run all `load` functions, following the successful update
-						loading = false;
-						uploadModalOpen = false;
-						const response = await fetch('/api/files');
-						if (!response.ok) {
-							goto('/files');
-						}
-						const body = await response.json();
-						filesStore.set(body.files);
-						longPolling();
-						// await invalidateAll();
-					} else if (result.type === 'error') {
-						loading = false;
-						error = result.error	
-					}
-				  // `result` is an `ActionResult` object
-					else {
-						loading = false;
-						await applyAction(result);
-					}
-				};
-			  }}>
+			<fieldset disabled={loading} aria-busy={loading}>
+			<form method="POST" >
 					<label for="file-upload" class="btn btn-sm btn-circle absolute right-3 top-2" lang="et"
 					>✕</label
 				>
-			<fieldset disabled={loading} aria-busy={loading}>
 				<label for="file-upload" class="btn btn-sm btn-circle absolute right-2 top-2" lang="et"
 					>✕</label
 				>
@@ -232,25 +261,19 @@
 					<li class="py-4 pt-0">{$_('files.fileSizeLimit')}</li>
 				</ul>
 				{#if error}
-					<p class="mt-3 mb-3 text-red-500 text-center font-semibold">{$_('files.uploadError')}</p>
+					<p class="mt-3 mb-3 text-red-500 text-center font-semibold">{printError(error)}</p>
 				{/if}
 				{#if loading}
 					<button class="btn" type="submit" disabled
 						><span class="btn btn-ghost btn-xs loading" /></button
 					>
 				{:else if upload}
-					{#if selectedLanguage.id === 0}
-						<button formaction="?/uploadEst" class="btn btn-active btn-primary" type="submit">{$_('files.uploadButton')}</button>
-					{:else}
-						<button formaction="?/uploadFin" class="btn btn-active btn-primary" type="submit"
-						>{$_('files.uploadButton')}</button
-						>
-					{/if} 
+						<button class="btn btn-active btn-primary" on:click={uploadFile} >{$_('files.uploadButton')}</button>
 				{:else}
 					<button class="btn" type="submit" disabled>{$_('files.uploadButton')}</button>
 				{/if}
-			</fieldset>
 			</form>
+		</fieldset>
 		</label>
 	</label>
 
