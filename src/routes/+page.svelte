@@ -79,10 +79,11 @@
 		<h1 class="text-2xl mb-10 font-extrabold mt-12">{$_('index.citing')}</h1>
 		<p class="mb-10">
 			{$_('index.citing1')}
-			<a class="link" target="_blank" href="https://ebooks.iospress.nl/volumearticle/50297"
+			<a class="link" target="_blank" href="https://doi.org/10.22364/bjmc.2022.10.3.14"
 				>{$_('index.citing2')}</a
-			>): Alumäe, Tanel; Tilk, Ottokar; Asadullah. "Advanced Rich Transcription System for Estonian
-			Speech" Baltic HLT 2018.
+			>): Olev, Aivo; Alumäe, Tanel. "Estonian Speech Recognition and Transcription
+			Editing Service". Baltic J. Modern Computing, Vol. 10 (2022), No. 3, pp. 409–421
+			https://doi.org/10.22364/bjmc.2022.10.3.14
 		</p>
 	</div>
 </div>

@@ -2,7 +2,7 @@
   "name": "fe-tekstiks",
   "version": "0.0.1",
   "scripts": {
-    "prod": "HOST=127.0.0.1 PORT=5173 node build/index.js",
+    "prod": "ORIGIN=https://uus.tekstiks.ee BODY_SIZE_LIMIT=0 HOST=127.0.0.1 PORT=5173 node build/index.js",
     "dev": "vite dev",
     "build": "vite build",
     "package": "svelte-kit package",

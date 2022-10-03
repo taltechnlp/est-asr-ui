@@ -1,18 +1,15 @@
 import { prisma } from "$lib/db/client";
 import { v4 as uuidv4 } from 'uuid';
 import { checkCompletion, getFiles } from '$lib/helpers/api';
-import path from 'path';
 import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 import type { PageServerLoad, Actions } from './$types';
 import { invalid, error, redirect } from '@sveltejs/kit';
 import { SECRET_UPLOAD_DIR, FIN_ASR_UPLOAD_URL } from '$env/static/private';
-import { existsSync, mkdirSync, createWriteStream, statSync, unlinkSync, readFileSync, createReadStream } from 'fs';
-import busboy from 'busboy';
-import { pipeline } from 'stream/promises';
+import { existsSync, mkdirSync, statSync, unlinkSync} from 'fs';
 import type { FinUploadResult } from "$lib/helpers/api.d";
 
-const UPLOAD_LIMIT = 1024 * 1024 // * 400  // 400MB
+const UPLOAD_LIMIT = 1024 * 1024 * 400  // 400MB
 
 export const load: PageServerLoad = async ({ locals }) => {
     if (!locals.userId) {
@@ -65,22 +62,29 @@ const uploadToFinnishAsr = async (pathString, filename, mimeType) => {
     const stats = statSync(pathString);
     const fileSizeInBytes = stats.size;
     const uploadedAt = stats.ctime;
-    const file = await readFile(pathString);
+    const file = await readFile(pathString)
     const result = await fetch(
         FIN_ASR_UPLOAD_URL,
         {
             method: "POST",
             headers: {
-                "Content-Length": fileSizeInBytes.toString(),
+                // "Content-Length": fileSizeInBytes.toString(),
                 "Content-Type": mimeType
-            },
+            }, 
             body: file
         }
     )
-    const body = await result.json() as FinUploadResult
-    if (!result.ok || body.error) {
+    if (!result.ok) {
+        console.log(result)
         unlinkSync(pathString); // delete the file
-        throw error(result.status, body.error)
+        throw error(result.status, result.statusText)
+
+    }
+    const body = await result.json() as FinUploadResult
+    if (body.error) {
+        console.log(result)
+        unlinkSync(pathString); // delete the file
+        throw error(result.status, result.statusText)
     }
     return { jobid: body.jobid }
 }
@@ -123,7 +127,6 @@ export const actions: Actions = {
         const data = await request.formData();
         
         const file = data.get('file') as File;
-        console.log(file.name, file.size, file.type)
         if (!file.name || !file.size || !file.type) {
             return invalid(400, { noFile: true})
         }
@@ -184,7 +187,6 @@ export const actions: Actions = {
         const data = await request.formData();
         
         const file = data.get('file') as File;
-        console.log(file.name, file.size, file.type)
         if (!file.name || !file.size || !file.type) {
             return invalid(400, { noFile: true})
         }
