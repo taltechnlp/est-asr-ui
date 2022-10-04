@@ -8,6 +8,8 @@ import { invalid, error, redirect } from '@sveltejs/kit';
 import { SECRET_UPLOAD_DIR, FIN_ASR_UPLOAD_URL } from '$env/static/private';
 import { existsSync, mkdirSync, statSync, unlinkSync} from 'fs';
 import type { FinUploadResult } from "$lib/helpers/api.d";
+import axios from 'axios';
+import Form from 'form-data';
 
 const UPLOAD_LIMIT = 1024 * 1024 * 400  // 400MB
 
@@ -60,33 +62,38 @@ type FileSaveResult = boolean | {
 
 const uploadToFinnishAsr = async (pathString, filename, mimeType) => {
     const stats = statSync(pathString);
-    const fileSizeInBytes = stats.size;
-    const uploadedAt = stats.ctime;
-    const file = await readFile(pathString)
-    const result = await fetch(
-        FIN_ASR_UPLOAD_URL,
-        {
-            method: "POST",
-            headers: {
-                // "Content-Length": fileSizeInBytes.toString(),
-                "Content-Type": mimeType
-            }, 
-            body: file
-        }
-    )
-    if (!result.ok) {
-        console.log(result)
-        unlinkSync(pathString); // delete the file
-        throw error(result.status, result.statusText)
-
-    }
-    const body = await result.json() as FinUploadResult
-    if (body.error) {
-        console.log(result)
-        unlinkSync(pathString); // delete the file
-        throw error(result.status, result.statusText)
-    }
-    return { jobid: body.jobid }
+	const fileSizeInBytes = stats.size;
+	const uploadedAt = stats.ctime;
+	const form = new Form();
+	const file = await readFile(pathString);
+	form.append('file', file, filename);
+	console.log(FIN_ASR_UPLOAD_URL);
+	const result = await axios.post(FIN_ASR_UPLOAD_URL, form, {
+		headers: {
+			...form.getHeaders()
+		}
+	});
+	/* const result = await fetch(FIN_ASR_UPLOAD_URL, {
+		method: 'POST',
+		headers: {
+			// "Content-Length": fileSizeInBytes.toString(),
+			'Content-Type': mimeType
+		},
+		body: file
+	}); */
+	console.log(result, result.request);
+	if (result.status !== 200) {
+		console.log(result);
+		unlinkSync(pathString); // delete the file
+		throw error(result.status, result.statusText);
+	}
+	const body = result.data as FinUploadResult;
+	if (body.error) {
+		console.log(result);
+		unlinkSync(pathString); // delete the file
+		throw error(result.status, result.statusText);
+	}
+	return { jobid: body.jobid };
 }
 
 const uploadToTranscriber = async (pathString, filename) => {
