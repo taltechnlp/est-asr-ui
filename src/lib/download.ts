@@ -1,5 +1,16 @@
 import { Document, Packer, Paragraph, TextRun, SectionType } from 'docx';
 
+export const handleSave = async (editor, fileId) => {
+	const result = await fetch(`/api/files/${fileId}`, {
+		method: 'PUT',
+		body: JSON.stringify(editor.getJSON())
+	});
+	if (!result.ok) {
+		return false;
+	}
+	return true;
+};
+
 export const downloadHandler = (content: MyEditorContent, author, title, exportNames) => {
 	const doc = new Document({
 		creator: author,
@@ -61,11 +72,10 @@ type Sentence = {
 		type?: string;
 		marks?: {
 			type: string;
-			attrs?:{
+			attrs?: {
 				start: string;
 				end: string;
-
-			}
+			};
 		}[];
 	}[];
 };
