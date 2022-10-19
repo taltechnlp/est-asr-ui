@@ -112,7 +112,7 @@
         "title": "Unohtunut salasana | teksiks.ee",
         "header": "Unohtunut salasana",
         "submit": "Pyydä salasanan vaihtoa",
-        "success": "Pyyntö onnistui! Tarkista sähköpostiisi toimitettu linkki salasanan vaihtamiseksi!",
+        "success": "Pyyntö onnistui! Sähköpostiisi on lähetetty linkki, josta voit vaihtaa salasanan!",
         "error": "Pyyntö epäonnistui!",
         "password": "Salasana",
         "passwordConfirm": "Toista salasana",
