@@ -1,4 +1,5 @@
 import { Mark, markInputRule, markPasteRule, mergeAttributes } from '@tiptap/core';
+import {v4 as uuidv4} from "uuid";
 
 export interface WordOptions {
 	HTMLAttributes: Record<string, any>;
@@ -41,6 +42,7 @@ export const Word = Mark.create<WordOptions>({
 				}  */
 			},
 			end: {
+				// IIFE to generate a 12 length unique ID 
 				default: '' /* ,
 				parseHTML: (element) => {
 					return element.getAttribute('end');
@@ -48,6 +50,9 @@ export const Word = Mark.create<WordOptions>({
 				renderHTML: (attributes) => {
 					return attributes.end;
 				} */
+			},
+			id: {
+				default: uuidv4().substring(32 - 12)
 			}
 		};
 	},

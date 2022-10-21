@@ -31,7 +31,6 @@ export const POST: RequestHandler= async ({ params, url }) => {
     \n\n
     <a href="https://tekstiks.ee/reset?resetToken=${resetToken}">Klõpsa siia, et lähtestada oma tekst.ee parool.</a>`)
   });
-  console.log(mailRes)
   return new Response("", {status: 201, statusText: "resetTokenCreated"})
 
   

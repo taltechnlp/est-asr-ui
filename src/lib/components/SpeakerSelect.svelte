@@ -1,8 +1,10 @@
 <script lang="ts">
 	import type { NodeViewProps } from '@tiptap/core';
 	import { NodeViewWrapper, editable } from 'svelte-tiptap';
+	import { onMount, onDestroy } from 'svelte';
 	import Icon from './Icon.svelte';
 	import { clickOutside } from './clickOutside';
+	import type { Speaker } from '$lib/helpers/converters/types'
 
 	export let node: NodeViewProps['node'];
 	export let decorations: NodeViewProps['decorations'];
@@ -12,45 +14,23 @@
 	export let editor: NodeViewProps['editor'];
 	export let getPos: NodeViewProps['getPos'];
 	export let selected: NodeViewProps['selected'] = false;
-	import { speakerNames, changeName, addName } from '$lib/stores';
+	import { speakerNames, addSpeakerName, editorMounted } from '$lib/stores';
+
 	import { _ } from 'svelte-i18n';
-
-	/* 
-	Initialize component:
-	 1. Find the id of the speaker name in the speakerNames store. This is required to allow renaming.
-	 2. Show speaker name based on the id. Store id in local state.
-	List closed: show currently selected value from local component state.
-	List open: show all unique speaker names from all components from the editor DOM.
-	Add new item:
-	 1. Add item as currently selected value. Change local state and call updateAttributes to change DOM.
-	 2. Update speakerNames store
-	 3. Close list
-	Edit item:
-	 1. 
-	*/
-
 
 	let isListOpen = false;
 	let initialName = node.attrs['data-name'];
-	$: selectedValue = $speakerNames[selectedId]
-	const getSelectedId = (selectedValue) => {
-		const i = $speakerNames.findIndex((x) => x === selectedValue);
-		if (i >= 0 ) return i
-		else {
-			return -1}
-	};
-	
-	let selectedId = getSelectedId(initialName);
-	let newSpeaker = '';
-	let editSpeakerId = -1;
-	let editingValue = '';
-	$: ids = $speakerNames.map((x, i) => i);
+	let selectedVal = $speakerNames.find( s => s.name === initialName )
 
-	const getSpeakerName = (id) => {
-		const res = $speakerNames[id];
-		if (res) return $speakerNames[id];
-		else return selectedValue;
-	};
+	let newSpeaker = '';
+	let editSpeakerId = '';
+	let editingValue = '';
+	$: names = $speakerNames.reduce((acc, curr) => {
+		if (acc.find(x=>x.id===curr.id)) return acc;
+		else {
+			acc.push(curr)
+			return acc;}
+	}, ([] as Array<Speaker>));
 
 	const findTimeStamps = (startPos) => {
 		let i = 0;
@@ -82,51 +62,57 @@
 		isListOpen ? (isListOpen = false) : (isListOpen = true);
 		if (!isListOpen) {
 			newSpeaker = '';
-			editSpeakerId = -1;
+			editSpeakerId = '';
 			editingValue = '';
 		}
 	};
 
-	const handleNewSpeakerSave = (name) => {
+	const handleNewSpeakerSave = (name, start) => {
 		if (name.length > 0) {
-			addName(name);
-			selectedId = getSelectedId(name);
-			updateAttributes({ 'data-name': name });
+			const selectedId = addSpeakerName(name, start);
+			selectedVal = $speakerNames.find(s => s.id === selectedId);
+			updateAttributes({'data-name': name});
 			newSpeaker = '';
 		}
 		handleClick();
 	};
 
 	const handleKeypress = (e, name) => {
-		if (e.charCode === 13) handleNewSpeakerSave(name);
+		if (e.charCode === 13) handleNewSpeakerSave(name, time);
 	};
 
 	const selectSpeaker = (id) => {
-		selectedId = id;
-		updateAttributes({ 'data-name': getSpeakerName(id) });
+		selectedVal = $speakerNames.find(s => s.id === id);
+		updateAttributes({ 'data-name': selectedVal.name });
 	};
 
-	const handleStartEdit = (speakerId) => {
-		if (typeof speakerId == 'number') {
-			editSpeakerId = speakerId;
-			editingValue = getSpeakerName(speakerId);
-		}
+	const handleStartEdit = (speaker) => {
+		editSpeakerId = speaker.id;
+		editingValue = speaker.name;
 	};
 
-	const handleSave = (speakerId) => {
+	const handleRenameAll = (speaker) => {
 		const speakerNodes = editor.view.state.doc.content;
-		const name = getSpeakerName(speakerId);
+		const name = speaker.name
 		speakerNodes.forEach((node) =>
 			// @ts-ignore
 			node.attrs['data-name'] === name ? (node.attrs['data-name'] = editingValue) : null
 		);
-		changeName(speakerId, editingValue);
-		selectedId = getSelectedId(editingValue);
+		speakerNames.update((speakers) => {
+			speakers = speakers.map(s => {
+				if (s.id===speaker.id) {return {
+					id: s.id,
+					name: editingValue,
+					start: s.start
+				}} else return s;
+			})
+			return speakers; 
+		});
 		// updateAttributes({ 'data-name': getSpeakerName(speakerId) });
 		
 		// updateAttributes({ 'data-name': editingValue });
 		editingValue = '';
-		editSpeakerId = -1;
+		editSpeakerId = '';
 	};
 
 	const numberToTime = (number) => {
@@ -137,20 +123,34 @@
 			return nr < 60 ? time.toISOString().substr(14, 5) : time.toISOString().substr(11, 8);
 		} else return '';
 	};
+
+	onMount(async () => {
+		if ($editorMounted) {
+			const id = addSpeakerName(selectedVal.name, time);
+		}
+	})
+
+	onDestroy(async () => {
+		if ($editorMounted) {
+			speakerNames.update(sps => 
+				sps.filter(s=>!(s.id===selectedVal.id && s.start===time))
+			)
+		}
+	})
 </script>
 
 <NodeViewWrapper class="svelte-component speaker {selected}">
 	<div class="speaker-name flex group cursor-pointer w-auto hover:bg-accent" on:click={handleClick}>
 		<Icon name="user" class="" />
-		<span class="text-primary font-bold font-sans">{selectedValue}</span>
+		<span class="text-primary font-bold font-sans">{selectedVal ? selectedVal.name : ''}</span>
 		<Icon name="dropdown-arrow" class="invisible group-hover:visible" />
 	</div>
 	<div class="speaker-time">{numberToTime(time)}</div>
 	{#if isListOpen}
 		<div
-			class="absolute z-10 rounded-md bg-white flex flex-col filter drop-shadow-lg "
+			class="absolute z-10 rounded-md bg-zinc-100 flex flex-col filter drop-shadow-lg "
 			use:clickOutside
-			on:outclick={() => (isListOpen = false)}
+			on:outclick={() => {isListOpen = false;}}
 		>
 			<div class="p-1">
 				<input
@@ -158,38 +158,38 @@
 					bind:value={newSpeaker}
 					on:keypress={(e) => handleKeypress(e, newSpeaker)}
 				/>
-				<button class="w-min hover:text-primary" on:click={() => handleNewSpeakerSave(newSpeaker)}
+				<button class="w-min hover:text-primary" on:click={() => handleNewSpeakerSave(newSpeaker, time)}
 					>{$_('speakerSelect.save')}</button
 				>
 			</div>
-			{#each ids as speakerId}
+			{#each names as speaker}
 				<div
-					class="hover:bg-accent {speakerId == selectedId
+					class="hover:bg-accent {speaker.id == selectedVal.id
 						? 'flex justify-between p-1 bg-info'
 						: 'flex justify-between max-w-xs p-1'}"
 				>
-					{#if speakerId === editSpeakerId}
+					{#if speaker.id === editSpeakerId}
 						<input class="w-48 border-2" bind:value={editingValue} />
 						<div class="flex">
 							<button
 								class="w-min hover:text-primary"
 								on:click={() => {
-									handleSave(speakerId);
+									handleRenameAll(speaker);
 								}}>{$_('speakerSelect.save')}</button
 							>
 						</div>
 					{:else}
 						<div
 							on:click={() => {
-								selectSpeaker(speakerId);
+								selectSpeaker(speaker.id);
 								isListOpen = false;
 							}}
 							class="cursor-pointer inline w-48"
 						>
-							{getSpeakerName(speakerId)}
+							{speaker.name}
 						</div>
 						<div>
-							<button class="w-min hover:text-primary" on:click={() => handleStartEdit(speakerId)}
+							<button class="w-min hover:text-primary" on:click={() => handleStartEdit(speaker)}
 								>{$_('speakerSelect.edit')}</button
 							>
 						</div>

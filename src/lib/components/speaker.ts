@@ -43,7 +43,7 @@ export const Speaker = Node.create<SpeakerOptions>({
 	addAttributes() {
 		return {
 			'data-name': '',
-			id: {}
+			id: "" 
 		};
 	},
 
