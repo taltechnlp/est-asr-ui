@@ -50,12 +50,12 @@
 <div class="w-full h-auto fixed bottom-0 left-0 pb-1 bg-white">
     <div class="controls flex justify-between pt-0.5">
         <div class="flex justify-center content-center mt-3">
-            <button class="btn btn-square btn-sm control-button ml-5" on:click={zoomIn}>
-                <Icon data={plus} scale={1} />
+            <button class="btn btn-square btn-sm control-button ml-5" on:click={zoomOut}>
+                <Icon data={minus} scale={1} />
             </button>
             <input type="range" min="0" max="200" bind:value={zoom} style="width: 100px" class="ml-2" on:change={zoomSlider}>
-            <button class="btn btn-square btn-sm control-button ml-2" on:click={zoomOut}>
-                <Icon data={minus} scale={1} />
+            <button class="btn btn-square btn-sm control-button ml-2" on:click={zoomIn}>
+                <Icon data={plus} scale={1} />
             </button>
         </div>
         <div class="flex justify-center">

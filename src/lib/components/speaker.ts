@@ -7,7 +7,6 @@ import SpeakerSelect from './SpeakerSelect.svelte';
 export interface SpeakerOptions {
 	HTMLAttributes: Record<string, any>;
 }
-
 declare module '@tiptap/core' {
 	interface Commands<ReturnType> {
 		speaker: {
@@ -15,13 +14,11 @@ declare module '@tiptap/core' {
 		};
 	}
 }
-
 export const Speaker = Node.create<SpeakerOptions>({
 	name: 'speaker',
 	group: 'block',
 	priority: 1100,
 	content: 'inline*',
-
 	parseHTML() {
 		return [
 			{
@@ -29,24 +26,20 @@ export const Speaker = Node.create<SpeakerOptions>({
 			}
 		];
 	},
-
 	addOptions() {
 		return {
 			HTMLAttributes: {}
 		};
 	},
-
 	renderHTML({ HTMLAttributes }) {
 		return ['div', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), 0];
 	},
-
 	addAttributes() {
 		return {
 			'data-name': '',
 			id: "" 
 		};
 	},
-
 	addNodeView() {
 		return SvelteNodeViewRenderer(SpeakerSelect);
 	}

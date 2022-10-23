@@ -10,7 +10,7 @@ export const content = {
             "type": "speaker",
             "attrs": {
                 "data-name": "Reene Leas",
-                "id": null
+                "id": "1"
             },
             "content": [
                 {
@@ -4981,14 +4981,19 @@ export const content = {
         }
     ]
 }
-
+const nameExists = (names: Array<Speaker>, name: string) => names.find(n => n.name === name);
 content.content.forEach((node) => {
-    const id = uuidv4().substring(36 - 12);
+    let id;
+    if (!nameExists(speakers, node.attrs['data-name'])) {
+        id = uuidv4().substring(36 - 12);
+    } else {
+        id = nameExists(speakers, node.attrs['data-name']).id;
+    }
+    node.attrs.id = id;
     const start =
-        node.content && node.content[0].marks && node.content[0].marks[0].attrs.start
+        node.content && node.content[0] && node.content[0].marks && node.content[0].marks[0].attrs.start
             ? node.content[0].marks[0].attrs.start
             : -1;
-    node.attrs.id = id
     speakers.push({ name: node.attrs['data-name'], id: node.attrs.id, start });
     if (node.content) {
         node.content.forEach((inlineNode) => {

@@ -20,14 +20,8 @@ export const playingTime = writable(0)
 export const addSpeakerName = (newName, start) => {
 	let nameId;
 	speakerNames.update((names) => {
-		let nameExists = false;
-		names.forEach((value, key) => {
-			if (value === newName) {
-				nameId = key;
-				nameExists = true;
-			}
-		})
-		if (!nameId) {
+		const exists = names.find(n=>n.name===newName)
+		if (!exists) {
 			nameId = uuidv4().substring(32 - 12);
 			names.push({name: newName, id: nameId, start });
 		}
@@ -35,3 +29,4 @@ export const addSpeakerName = (newName, start) => {
 	})
 	return nameId;
 }
+

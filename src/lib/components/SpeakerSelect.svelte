@@ -4,7 +4,8 @@
 	import { onMount, onDestroy } from 'svelte';
 	import Icon from './Icon.svelte';
 	import { clickOutside } from './clickOutside';
-	import type { Speaker } from '$lib/helpers/converters/types'
+	import type { Speaker } from '$lib/helpers/converters/types';
+	import {v4 as uuidv4} from "uuid";
 
 	export let node: NodeViewProps['node'];
 	export let decorations: NodeViewProps['decorations'];
@@ -15,22 +16,50 @@
 	export let getPos: NodeViewProps['getPos'];
 	export let selected: NodeViewProps['selected'] = false;
 	import { speakerNames, addSpeakerName, editorMounted } from '$lib/stores';
+	import { findParentNodeOfTypeClosestToPos,findBlockNodes } from 'prosemirror-utils';
+	import { Transform } from 'prosemirror-transform';
 
 	import { _ } from 'svelte-i18n';
 
+	type Name = {
+		name: string;
+		id: string;
+	}
+
 	let isListOpen = false;
 	let initialName = node.attrs['data-name'];
-	let selectedVal = $speakerNames.find( s => s.name === initialName )
+	let initialId = node.attrs['id'];
+	let selectedVal: Name = {
+		name: node.attrs['data-name'],
+		id: node.attrs['id']
+	}
 
 	let newSpeaker = '';
 	let editSpeakerId = '';
 	let editingValue = '';
-	$: names = $speakerNames.reduce((acc, curr) => {
-		if (acc.find(x=>x.id===curr.id)) return acc;
-		else {
-			acc.push(curr)
-			return acc;}
-	}, ([] as Array<Speaker>));
+	let names 
+	speakerNames.subscribe(ns => {
+		// Update dropdown list where for each id one name is shown only
+		names = ns.reduce((acc, curr) => {
+			if (acc.find(x=>x.id===curr.id)) return acc;
+			else {
+				acc.push(curr)
+				return acc;}
+		}, ([] as Array<Speaker>));
+		// Update selected name of each component instance
+		// Check id defined b.c. update might happen before transaction has finished
+		if (node.attrs['data-name'] && node.attrs['id']) {
+			selectedVal = {
+				name: node.attrs['data-name'],
+				id: node.attrs['id']
+			}
+		}
+	})
+		
+	speakerNames.subscribe(
+		s=>{
+			console.log(s, names)}
+		)
 
 	const findTimeStamps = (startPos) => {
 		let i = 0;
@@ -66,12 +95,34 @@
 			editingValue = '';
 		}
 	};
-
-	const handleNewSpeakerSave = (name, start) => {
-		if (name.length > 0) {
-			const selectedId = addSpeakerName(name, start);
-			selectedVal = $speakerNames.find(s => s.id === selectedId);
-			updateAttributes({'data-name': name});
+	const getStartTime = (node) => {
+			return node.content.content && node.content.content[0] && node.content.content[0].marks && node.content.content[0].marks[0].attrs.start
+					? node.content.content[0].marks[0].attrs.start : -1
+	}
+	const handleNewSpeakerSave = (newName, start) => {
+		if (newName.length > 0) {
+			let newId;
+			const blockNodesWithPos = findBlockNodes(editor.state.doc, false);
+			const exists = blockNodesWithPos.find(el=>el.node.attrs['data-name']===newName)
+			if (!exists) {
+				newId = uuidv4().substring(32 - 12);
+			}
+			// Change node attribute transaction
+			let tr = editor.state.tr
+			tr.setNodeAttribute(getPos(), 'data-name', newName);
+			tr.setNodeAttribute(getPos(), 'id', newId);
+			let newState = editor.state.apply(tr);
+			const updatedBlockNodesWithPos = findBlockNodes(newState.doc, false);
+			// Update store  
+			const newSpeakers = updatedBlockNodesWithPos.map(el => {
+				return {
+					name: el.node.attrs['data-name'],
+					id: el.node.attrs.id,
+					start: getStartTime(el.node)
+				}
+			})
+			editor.view.updateState(newState); 
+			speakerNames.set(newSpeakers);
 			newSpeaker = '';
 		}
 		handleClick();
@@ -82,7 +133,33 @@
 	};
 
 	const selectSpeaker = (id) => {
-		selectedVal = $speakerNames.find(s => s.id === id);
+		const blockNodesWithPos = findBlockNodes(editor.state.doc, false);
+		const exists = blockNodesWithPos.find(el=>el.node.attrs.id===id)
+		if (!exists) {
+			return;
+		}
+		// Change node attribute transaction
+		let tr = editor.state.tr
+		tr.setNodeAttribute(getPos(), 'data-name', exists.node.attrs['data-name']);
+		tr.setNodeAttribute(getPos(), 'id', id);
+		let newState = editor.state.apply(tr);
+		const updatedBlockNodesWithPos = findBlockNodes(newState.doc, false);
+		// Update store  
+		const newSpeakers = updatedBlockNodesWithPos.map(el => {
+			return {
+				name: el.node.attrs['data-name'],
+				id: el.node.attrs.id,
+				start: getStartTime(el.node)
+			}
+		})
+		editor.view.updateState(newState); 
+		speakerNames.set(newSpeakers);
+		selectedVal = {
+			name: exists.node.attrs['data-name'],
+			id: exists.node.attrs.id
+		}
+		// TODO: reset store from nodes or remove old value.
+		// TODO: change node id attr also
 		updateAttributes({ 'data-name': selectedVal.name });
 	};
 
@@ -94,13 +171,23 @@
 	const handleRenameAll = (speaker) => {
 		const speakerNodes = editor.view.state.doc.content;
 		const name = speaker.name
-		speakerNodes.forEach((node) =>
+		let tr = editor.state.tr
+		const blockNodesWithPos = findBlockNodes(editor.state.doc, false)
+		console.log(blockNodesWithPos);
+		blockNodesWithPos.forEach(el =>
 			// @ts-ignore
-			node.attrs['data-name'] === name ? (node.attrs['data-name'] = editingValue) : null
-		);
+			{
+				if (el.node.attrs['id'] === speaker.id) {
+					tr.setNodeAttribute(el.pos, 'data-name', editingValue);
+					}
+				}
+				);
+		let newState = editor.state.apply(tr);
+		editor.view.updateState(newState);
 		speakerNames.update((speakers) => {
 			speakers = speakers.map(s => {
-				if (s.id===speaker.id) {return {
+				if (s.id===speaker.id) {
+					return {
 					id: s.id,
 					name: editingValue,
 					start: s.start
@@ -108,6 +195,7 @@
 			})
 			return speakers; 
 		});
+		isListOpen = false;
 		// updateAttributes({ 'data-name': getSpeakerName(speakerId) });
 		
 		// updateAttributes({ 'data-name': editingValue });
@@ -127,6 +215,10 @@
 	onMount(async () => {
 		if ($editorMounted) {
 			const id = addSpeakerName(selectedVal.name, time);
+			const get = editor.state.doc.nodeAt(getPos()) // töötab
+			const parentNode = findParentNodeOfTypeClosestToPos(editor.state.doc.resolve(getPos()+1), editor.schema.nodes.speaker);
+			console.log('speaker', parentNode.node, parentNode.pos) // töötab
+			console.log('node pos', getPos())
 		}
 	})
 
@@ -142,7 +234,7 @@
 <NodeViewWrapper class="svelte-component speaker {selected}">
 	<div class="speaker-name flex group cursor-pointer w-auto hover:bg-accent" on:click={handleClick}>
 		<Icon name="user" class="" />
-		<span class="text-primary font-bold font-sans">{selectedVal ? selectedVal.name : ''}</span>
+		<span class="text-primary font-bold font-sans">{selectedVal.name}</span>
 		<Icon name="dropdown-arrow" class="invisible group-hover:visible" />
 	</div>
 	<div class="speaker-time">{numberToTime(time)}</div>

@@ -92,11 +92,11 @@
 				TimelinePlugin.create({
 					container: '#wave-timeline'
 				}),
-				PlayheadPlugin.create({
+				/* PlayheadPlugin.create({
 					returnOnPause: false,
 					moveOnSeek: true,
 					draw: false
-				}),
+				}), */
 				CursorPlugin.create({
 					showTime: true,
 					opacity: 1,
@@ -160,7 +160,7 @@
 			// @ts-ignore
 			wavesurferReady = true;
 			window.myPlayer = wavesurfer;
-			wavesurfer.zoom(zoom)
+			wavesurfer.zoom(zoom);
 			// wavesurfer.play();
 		});
 
