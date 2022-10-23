@@ -55,11 +55,6 @@
 			}
 		}
 	})
-		
-	speakerNames.subscribe(
-		s=>{
-			console.log(s, names)}
-		)
 
 	const findTimeStamps = (startPos) => {
 		let i = 0;
@@ -173,7 +168,6 @@
 		const name = speaker.name
 		let tr = editor.state.tr
 		const blockNodesWithPos = findBlockNodes(editor.state.doc, false)
-		console.log(blockNodesWithPos);
 		blockNodesWithPos.forEach(el =>
 			// @ts-ignore
 			{
@@ -217,8 +211,6 @@
 			const id = addSpeakerName(selectedVal.name, time);
 			const get = editor.state.doc.nodeAt(getPos()) // töötab
 			const parentNode = findParentNodeOfTypeClosestToPos(editor.state.doc.resolve(getPos()+1), editor.schema.nodes.speaker);
-			console.log('speaker', parentNode.node, parentNode.pos) // töötab
-			console.log('node pos', getPos())
 		}
 	})
 
