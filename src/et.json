@@ -108,7 +108,13 @@
         "edit": "Muuda"
     },
     "contact": {
-        "title": "Kontaktid | tekstiks.ee"
+        "title": "Kontaktid | tekstiks.ee",
+        "taltechLab": "TalTech keeletehnoloogia laboratoorium:",
+        "taltechLabContacts": "Labori kontaktid:",
+        "serviceSupport": "Tekstiks.ee teenuse tugi",
+        "serviceSupportDetails": "Haldab ja arendab doktorant Aivo Olev",
+        "finnishService": "Soomekeelse kõnetuvastuse tugi",
+        "finnishServiceDetails": "Soomekeelse kõnetuvastuse teenust haldab Soome Keelepank."
     },
     "terms": {
         "title": "Kasutustingimused | tekstiks.ee",

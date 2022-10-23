@@ -6,29 +6,29 @@
 	<title>{$_('contact.title')}</title>
 </svelte:head>
 
-<h1 class="max-w-xl mx-auto mt-8 text-2xl font-extrabold">Kontaktid</h1>
+<h1 class="max-w-xl mx-auto mt-8 text-2xl font-extrabold">{$_('contact.title')}</h1>
 <div class="max-w-xl mx-auto mt-8">
-	<h2 class="mb-2 text-xl font-extrabold">TalTech keeletehnoloogia laboratoorium:</h2>
+	<h2 class="mb-2 text-xl font-extrabold">{$_('contact.taltechLab')}</h2>
 	<p class="mb-10">
 		<a class="link" href="https://taltech.ee/en/laboratory-language-technology"
 			>https://taltech.ee/en/laboratory-language-technology</a
 		>
 	</p>
-	<h2 class="mb-2 text-xl font-extrabold">Keeletehnoloogia laboratooriumi kontaktid:</h2>
+	<h2 class="mb-2 text-xl font-extrabold">{$_('contact.taltechLabContacts')}</h2>
 	<p class="mb-10">
 		<a class="link" href="https://taltech.ee/kontaktid/keeletehnoloogia-laboratoorium"
 			>https://taltech.ee/kontaktid/keeletehnoloogia-laboratoorium</a
 		>
 	</p>
-	<h2 class="mb-2 text-xl font-extrabold">Tekstiks.ee teenuse tugi</h2>
-	<p class="mb-2">Haldab ja arendab doktorant Aivo Olev</p>
+	<h2 class="mb-2 text-xl font-extrabold">{$_('contact.serviceSupport')}</h2>
+	<p class="mb-2">{$_('contact.serviceSupportDetails')}</p>
 	<p class="mb-10">
-		<span class="link">tugi[ät]tekstiks.ee</span>
+		<span class="link">tugi[@]tekstiks.ee</span>
 	</p>
-	<h2 class="mb-2 text-xl font-extrabold">Soomekeelse kõnetuvastuse tugi</h2>
-	<p class="mb-2">Soomekeelse kõnetuvastuse teenust haldab Soome Keelepank.</p>
+	<h2 class="mb-2 text-xl font-extrabold">{$_('contact.finnishService')}</h2>
+	<p class="mb-2">{$_('contact.finnishServiceDetails')}</p>
 	<p class="mb-10">
-		<span class="link">kielipankki[ät]csc.fi </span>
+		<span class="link">kielipankki[@]csc.fi </span>
 	</p>
 </div>
 

@@ -102,8 +102,14 @@
         "edit": "Muokkaa"
     },
     "contact": {
-        "title": "Yhteystiedot | tekstiks.ee"
-    },
+        "title": "Yhteystiedot | tekstiks.ee",
+        "taltechLab": "TalTechin kielitekniikan laboratorio:",
+        "taltechLabContacts": "Laboratorion yhteystiedot:",
+        "serviceSupport": "Tekstiks.ee palvelutuki",
+        "serviceSupportDetails": "Kehittänyt ja tukenut tohtoriopiskelija Aivo Olev",
+        "finnishService": "Suomalainen puheentunnistuksen tuki",
+        "finnishServiceDetails": "Suomalaista puheentunnistuspalvelua hallinnoi Suomen Kielipankki."
+        },
     "terms": {
         "title": "Käyttösäännöt | tekstiks.ee",
         "h1": "Palvelun käyttöehdot",
