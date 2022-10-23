@@ -34,6 +34,8 @@
     "osDesc": "is based on freeware solutions that are easy to set up yourself. The recognition system can also be run from inside a Docker container (recommended).",
     "osASR": "Speech recognition system. It works as a step-by-step process that can be observed. Executable from the command line.",
     "osServer": "A web server solution that allows you to create a simple API through which to use speech recognition. Also supports returning of real-time processing progress information.",
+    "finnish": "Finnish speech recognition",
+    "finnish1": "Finnish speech recognition has been developed in co-operation with Finnish Language Bank and Aalto University. Speech recordings are processed by a service hosted by Finnish Language Bank.",
     "contact": "Contact",
     "terms": "Terms of use"
   },
@@ -109,7 +111,16 @@
     "title": "Contacts | tekstiks.ee"
   },
   "terms": {
-    "title": "Terms of Use | tekstiks.ee"
+    "title": "Terms of Use | tekstiks.ee",
+    "h1": "Terms of use of the service",
+    "serviceProvider": "Service provider",
+    "terms1": "Tekstiks.ee is a publicly available service where you can use speech recognition software created by the Language Technology Laboratory of the Institute of Software Science, of Tallinn University of Technology. The speech recognition software is open source and can be deployed locally (on-premise).",
+    "terms2": "When using speech recognition in Finnish, the audio recording and its file name are transferred in an unpersonalized form to the speech recognition service of the Language Bank of Finland. Their service is a data processor but does not store data long-term.",
+    "terms3": "To use the service, it is necessary to create an account. The account is only used to allow later access to the audio and video recordings you upload. It also helps to protect the textual transcription produced as a result of speech recognition and the user's privacy.",
+    "terms4": "Data is stored on servers managed by Tallinn University of Technology. These are located in Estonia. The user has the freedom to delete uploaded files, as a result of which these are permanently deleted together with the associated textual transcriptions.",
+    "terms5": "The system does not store more personal data about the user than the e-mail address and name requested during registration. At the moment, there are no other services that monitor user behavior. The service provider is free to use them, in this case by asking for additional consent.",
+    "terms6": "The data uploaded to the system may be used to improve the system during troubleshooting. Call recordings are not used together with user identification data.",
+    "validFrom": "Terms of use are valid from 23.10.2022"
   },
   "demo": {
         "title": "Demo"

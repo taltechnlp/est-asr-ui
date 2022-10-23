@@ -12,7 +12,7 @@
         "ctaButton": "Alusta",
         "demoButton": "Vaata demo",
         "howItWorks": "Kuidas see töötab?",
-        "tekstiksIntro": "on TTÜ kõnetehnoloogia labori avalik kõnetuvastuse teenus. Süsteem kasutab meie laboris väljatöötatud tehnoloogiat ja mudeleid, mis annavad eesti keele tuvastamisel seni oluliselt parimaid tulemusi kui kommertslikud alternatiivid. Süsteem on täisautomaatne ja samaaegselt võimeline töötlema mitut salvestist. Sellegi poolest võib tööpäevadel esineda suuremat koormust ning pikemat ooteaega. Järjekorra puudumisel kulub kõnetuvastusele ligi pool kõnesalvestise kestusest.",
+        "tekstiksIntro": " on TTÜ kõnetehnoloogia labori avalik kõnetuvastuse teenus. Süsteem kasutab meie laboris väljatöötatud tehnoloogiat ja mudeleid, mis annavad eesti keele tuvastamisel seni oluliselt parimaid tulemusi kui kommertslikud alternatiivid. Süsteem on täisautomaatne ja samaaegselt võimeline töötlema mitut salvestist. Sellegi poolest võib tööpäevadel esineda suuremat koormust ning pikemat ooteaega. Järjekorra puudumisel kulub kõnetuvastusele ligi pool kõnesalvestise kestusest.",
         "tekstiksIntroRemark": "Lähiajal lisandub võimalus ka näha töötlemise progressi ning ennustatavat valmimise aega.",
         "step1": "1. Lae kõnesalvestis ülesse",
         "step1Desc": "Toetatud on enamlevinud heli- ja videoformaadid. Maksimaalne suurus on 500MB.",
@@ -34,6 +34,8 @@
         "osDesc": "põhineb vabavaralistel lahendustel, mida on lihtne ise ülesse seada. Tuvastussüsteemi saab kasutada ka Docker konteineri baasil (soovituslik).",
         "osASR": "Kõnetuvastuse süsteem. Toimib samm-sammulise protsessina, mille sammude läbimist on võimalik jälgida. Käivitatav käsurealt.",
         "osServer": "Veebiserveri lahendus, mille abil saab luua lihtsa API, mille kaudu kõnetuvastust kasutada. Toetab ka reaalajas töötlemise progressi tagastamist.",
+        "finnish": "Soomekeelse kõne tuvastamine",
+        "finnish1": "Soome keele kõnetuvastus on välja töötatud koostöös Soome keelepanga ja Aalto ülikooliga. Kõnesalvestisi töötleb Soome Keelepanga teenus.",
         "contact": "Kontakt",
         "terms": "Kasutustingmused"
     },
@@ -109,7 +111,16 @@
         "title": "Kontaktid | tekstiks.ee"
     },
     "terms": {
-        "title": "Kasutustingimused | tekstiks.ee"
+        "title": "Kasutustingimused | tekstiks.ee",
+        "h1": "Teenuse kasutamise tingimused",
+        "serviceProvider": "Teenuse osutaja",
+        "terms1": "Tekstiks.ee on avalikikult kasutatav demonstratsioon ja keskkond, kus saab kasutada Tallinna Tehnikaülikooli Tarkvarateaduse instituudi alla kuuluva Keeletehnoloogia laboratooriumi kõnetuvastuse tarkvara. Kõnetuvastuse tarkvara on vabavaraline ning kõigil on võimalus see iseseisvalt paigaldada ning seda seejärel samaväärselt kasutada.",
+        "terms2": "Soomekeelse kõnetuvastuse kasutamisel edastatakse helisalvestis ning selle failinimi isikustamata kujul Soome Keelepanga kõnetuvastuse teenusele. Nende teenus on andmete töötleja kuid ei talleta andmeid pikaajaliselt.",
+        "terms3": "Teenuse kasutamiseks on vajalik konto loomine. Kontot kasutatakse vaid, et võimaldada hilisemat ligipääsu ülesse laetavatele heli- ja videosalvestistele. Samuti aitab see kaitsta kõnetuvastuse tulemusena valmivat tekstilist transkriptsiooni ning kasutaja privaatsust.",
+        "terms4": "Andmeid hoiustatakse Tallinna Tehnikaülikooli hallatavatel serveritel. Need asuvad Eesti territooriumil. Kasutajal on vabadus ülesse laetud failid kustutada, mille tulmusena kustutatakse need üheskoos seotud tekstiliste transkriptsioonidega lõplikult.",
+        "terms5": "Süsteem ei hoiusta kasutaja kohta rohkem isikuandmeid kui registreerimisel küsitav eposti aadress ning nimi. Hetkel pole kasutusele võetud ka muid kasutaja käitumist jälgivaid teenuseid. Teenuse osutajal on vabadus neid kasutusele võtta, sel juhul täiendavat nõusolukut küsides.",
+        "terms6": "Süsteemis ülesse laetavaid andmeid võidakse kasutada süsteemi vigade lahendamise käigus süsteemi parendamise eesmärgil. Kõnesalvestisi ei kasutata üheskoos kasutajat identifitseerivate andmetega.",
+        "validFrom": "Kasutustingimused kehtivad alates 23.10.2022"
     },
     "demo": {
         "title": "Demo"
