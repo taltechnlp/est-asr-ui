@@ -67,29 +67,18 @@ const uploadToFinnishAsr = async (pathString, filename, mimeType) => {
 	const form = new Form();
 	const file = await readFile(pathString);
 	form.append('file', file, filename);
-	console.log(FIN_ASR_UPLOAD_URL);
 	const result = await axios.post(FIN_ASR_UPLOAD_URL, form, {
 		headers: {
 			...form.getHeaders()
 		}
 	});
-	/* const result = await fetch(FIN_ASR_UPLOAD_URL, {
-		method: 'POST',
-		headers: {
-			// "Content-Length": fileSizeInBytes.toString(),
-			'Content-Type': mimeType
-		},
-		body: file
-	}); */
-	console.log(result, result.request);
+
 	if (result.status !== 200) {
-		console.log(result);
 		unlinkSync(pathString); // delete the file
 		throw error(result.status, result.statusText);
 	}
 	const body = result.data as FinUploadResult;
 	if (body.error) {
-		console.log(result);
 		unlinkSync(pathString); // delete the file
 		throw error(result.status, result.statusText);
 	}

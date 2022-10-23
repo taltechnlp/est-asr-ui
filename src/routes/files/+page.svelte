@@ -8,7 +8,6 @@
 	import type {ActionResult } from '@sveltejs/kit'
 	import { applyAction, enhance } from '$app/forms';
 	
- 	export let form: ActionData;
 	let error = '';
 	export let data: PageData;
 	filesStore.set(data.files);
@@ -45,7 +44,6 @@
 	const uploadFile = async (event: Event) => {
 		event.preventDefault();
 		const formData = new FormData();
-		console.log(upload[0])
 		formData.append('file', upload[0], upload[0].name);
 		loading = true;
 		let response;

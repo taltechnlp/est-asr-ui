@@ -34,6 +34,8 @@
         "osDesc": "pohjautuu avoimen lähdekoodin ratkaisuihin, jotka on helppo ottaa käyttöön myös paikallisesti. Tunnistuksen voi ajaa myös Docker-kontista (suositeltu ratkaisu).",
         "osASR": "Puheentunnistusjärjestelmä. Tämä toimii vaiheistettuna prosessina, jonka etenemistä voi seurata. Käyttö komentoriviltä.",
         "osServer": "Serveriratkaisu mahdollistaa yksinkertaisen APIn kautta tehdyn puheentunnistuksen. Myös tunnistuksen reaaliaikaisten tietojen palauttamista tuetaan. ",
+        "finnish": "Suomalainen puheentunnistus",
+        "finnish1": "Suomen puheentunnistusta on kehitetty yhteistyössä Suomen kielipankin ja Aalto-yliopiston kanssa. Puhetallenteet käsitellään Suomen Kielipankin isännöimässä palvelussa.",
         "contact": "Yhteystiedot",
         "terms": "Käyttöehdot"
     },
@@ -103,7 +105,17 @@
         "title": "Yhteystiedot | tekstiks.ee"
     },
     "terms": {
-        "title": "Käyttösäännöt | tekstiks.ee"
+        "title": "Käyttösäännöt | tekstiks.ee",
+        "h1": "Palvelun käyttöehdot",
+        "serviceProvider": "Palveluntarjoaja",
+        "terms1": "Tekstiks.ee on julkisesti saatavilla oleva palvelu, jossa voit käyttää Tallinnan teknillisen yliopiston Ohjelmistotieteen instituutin kieliteknologian laboratorion luomaa puheentunnistusohjelmistoa. Puheentunnistusohjelmisto on avoimen lähdekoodin, ja se voidaan ottaa käyttöön paikallisesti.",
+        "terms2": "Suomenkielistä puheentunnistusta käytettäessä äänitallenne ja sen tiedostonimi siirretään persoonattomassa muodossa Kielipankin puheentunnistuspalveluun. Heidän palvelunsa on tietojenkäsittelijä, mutta ei tallenna tietoja pitkällä aikavälillä.",
+        "terms3": "Palvelun käyttäminen edellyttää tilin luomista. Tiliä käytetään vain mahdollistamaan myöhemmin lataamiesi ääni- ja videotallenteiden käyttö. Se auttaa myös suojaamaan puheentunnistuksen tuloksena syntyvää tekstitranskriptiota ja käyttäjän yksityisyyttä.",
+        "terms4": "Tiedot tallennetaan Tallinnan teknillisen yliopiston hallinnoimille palvelimille. Nämä sijaitsevat Virossa. Käyttäjällä on vapaus poistaa ladattuja tiedostoja, minkä seurauksena ne poistetaan pysyvästi yhdessä niihin liittyvien tekstitranskriptioiden kanssa.",
+        "terms5": "Järjestelmä ei tallenna käyttäjästä enempää henkilötietoja kuin rekisteröinnin yhteydessä pyydetty sähköpostiosoite ja nimi. Tällä hetkellä ei ole muita palveluita, jotka valvovat käyttäjien käyttäytymistä. Palveluntarjoaja voi vapaasti käyttää niitä, tässä tapauksessa pyytämällä lisäsuostumusta.",
+        "terms6": "Järjestelmään ladattuja tietoja voidaan käyttää järjestelmän parantamiseen vianmäärityksen aikana. Puhelutallenteita ei käytetä yhdessä käyttäjän tunnistetietojen kanssa.",
+        "validFrom": "Käyttöehdot ovat voimassa 23.10.2022 alkaen."
+        
     },
     "demo": {
         "title": "Demo"

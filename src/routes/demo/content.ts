@@ -1,3 +1,8 @@
+import type { Word, Speaker } from '$lib/helpers/converters/types';
+import { v4 as uuidv4 } from 'uuid';
+export let words: Array<Word> = [];
+export let speakers: Array<Speaker> = [];
+
 export const content = {
     "type": "doc",
     "content": [
@@ -5,7 +10,7 @@ export const content = {
             "type": "speaker",
             "attrs": {
                 "data-name": "Reene Leas",
-                "id": null
+                "id": "1"
             },
             "content": [
                 {
@@ -4976,3 +4981,31 @@ export const content = {
         }
     ]
 }
+const nameExists = (names: Array<Speaker>, name: string) => names.find(n => n.name === name);
+content.content.forEach((node) => {
+    let id;
+    if (!nameExists(speakers, node.attrs['data-name'])) {
+        id = uuidv4().substring(36 - 12);
+    } else {
+        id = nameExists(speakers, node.attrs['data-name']).id;
+    }
+    node.attrs.id = id;
+    const start =
+        node.content && node.content[0] && node.content[0].marks && node.content[0].marks[0].attrs.start
+            ? node.content[0].marks[0].attrs.start
+            : -1;
+    speakers.push({ name: node.attrs['data-name'], id: node.attrs.id, start });
+    if (node.content) {
+        node.content.forEach((inlineNode) => {
+            if (inlineNode.type === 'text' && inlineNode.marks.length > 0) {
+                inlineNode.marks.forEach((mark) => {
+                    if (mark.type == 'word') {
+                        const id = uuidv4().substring(36 - 12);
+                        mark.attrs.id = id;
+                        words.push({ start: mark.attrs.start, end: mark.attrs.end, id: mark.attrs.id });
+                    }
+                });
+            }
+        });
+    }
+});

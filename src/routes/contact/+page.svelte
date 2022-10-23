@@ -25,6 +25,11 @@
 	<p class="mb-10">
 		<span class="link">tugi[ät]tekstiks.ee</span>
 	</p>
+	<h2 class="mb-2 text-xl font-extrabold">Soomekeelse kõnetuvastuse tugi</h2>
+	<p class="mb-2">Soomekeelse kõnetuvastuse teenust haldab Soome Keelepank.</p>
+	<p class="mb-10">
+		<span class="link">kielipankki[ät]csc.fi </span>
+	</p>
 </div>
 
 <footer class="footer footer-center p-10 bg-[#13070C] rounded text-white mt-52">

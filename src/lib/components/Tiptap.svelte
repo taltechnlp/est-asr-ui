@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { Editor, getDebugJSON } from '@tiptap/core';
+	import type { Node, Schema } from 'prosemirror-model';
 	import Document from '@tiptap/extension-document';
 	// import { CustomParagraph } from '$lib/customParagraph';
 	// import Paragraph from '@tiptap/extension-paragraph';
@@ -23,17 +24,14 @@
 	import download from 'svelte-awesome/icons/download';
 	import debounce from 'lodash/debounce';
 	import { downloadHandler } from '$lib/download';
-	import { speakerNames } from '$lib/stores';
+	import { speakerNames, editorMounted } from '$lib/stores';
+	import { Change, ChangeSet, Span, simplifyChanges } from 'prosemirror-changeset'
 	import { _ } from 'svelte-i18n';
+	import { transactionsHaveChange } from '$lib/components/editor/api/transaction';
 
 	export let content;
 	export let fileId;
 	export let demo;
-	export let speakers;
-
-	console.debug(content)
-	console.debug(speakers)
-
 
 	let element: HTMLDivElement | undefined;
 	let editor: undefined | Editor;
@@ -44,14 +42,6 @@
 	});
 
 	onMount(() => {
-		if (speakers.length > 0) {
-			console.log("Speakers:", speakers)
-			speakerNames.set(speakers);
-		} else {
-			const names = getSpeakerNames(content);
-			// @ts-ignore
-			speakerNames.set(names);
-		}
 		editor = new Editor({
 			element: element,
 			extensions: [
@@ -86,29 +76,27 @@
 			},
 			content: content,
 
-			onTransaction: () => {
+			onTransaction: ({editor, transaction}) => {
 				// force re-render so `editor.isActive` works as expected
 				// editor = editor;
+
+				const speakerChanged = (node: Node) => node.type === schema.nodes.speaker;
+				const speakerChanges = transactionsHaveChange([transaction], prevEditorDoc, transaction.doc, speakerChanged)
+				prevEditorDoc = transaction.doc 
+				// console.log(speakerChanges)
+				// console.log(transaction, editor.state)
 				if (!demo) debouncedSave();
 				// console.log(editor.schema);
 			}
 		});
-
-		/* const words = new Map();
-		document.querySelectorAll('span[start]').forEach((el) => {
-			const start = Math.round(parseFloat(el.getAttribute('start')) * 100);
-			const end = Math.round(parseFloat(el.getAttribute('end')) * 100);
-			for (let i = start; i <= end; i++) {
-				words.set(i, el);
-			}
-			el.addEventListener('click', handleWordClick);
-		}); */
+		editorMounted.set(true);
+		let prevEditorDoc: Node = editor.state.doc;
+		const schema = editor.schema
 		window.myEditor = editor;
-
-		// window.myEditorWords = words;
 	});
 
 	onDestroy(() => {
+		editorMounted.set(false);
 		if (editor) {
 			editor.destroy();
 		}
@@ -125,7 +113,7 @@
 		return true;
 	}
 
-	const getSpeakerNames = (content) => {
+/* 	const getSpeakerNames = (content) => {
 		let speakerNames = new Set();
 		if (content.content) {
 			content.content.forEach((node) =>
@@ -134,7 +122,7 @@
 		} else {
 		}
 		return Array.from(speakerNames);
-	};
+	}; */
 </script>
 
 <div class="w-full fixed top-2 left-0 right-0 flex justify-center z-20" />

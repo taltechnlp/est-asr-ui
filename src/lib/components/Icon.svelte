@@ -3,8 +3,8 @@
     
     
         export let name;
-        export let width = "1.5rem";
-        export let height = "1.5rem";
+        export let width = "24px";
+        export let height = "24px";
         export let focusable = "false";
         let icons = [
             {
@@ -48,8 +48,8 @@
 <svg
     class={$$props.class}
     {focusable}
-    {width}
-    {height}
+    width={width}
+    height={height}
     fill="none"
     stroke="currentColor"
     viewBox="0 0 {displayIcon.box} {displayIcon.box}">{@html displayIcon.svg}</svg>
