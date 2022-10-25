@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { files as filesStore } from '$lib/stores';
 	import { goto, invalidateAll } from '$app/navigation';
+	import { onMount, onDestroy } from 'svelte';
 	import { _ } from 'svelte-i18n';
 	import { toTime } from './helpers';
 	import { browser } from '$app/environment';
@@ -94,9 +95,10 @@
 		const response = await fetch('/api/files');
 		if (!response.ok) {
 			console.log('Failed to update files. Check internet connection.');
+		} else {
+			const body = await response.json();
+			filesStore.set(body.files);
 		}
-		const body = await response.json();
-		filesStore.set(body.files);
 	};
 
 	function openFile(fileId, fileState) {
@@ -104,22 +106,22 @@
 			goto(`/files/${fileId}`);
 		}
 	}
-	let timeoutID;
+	let donePolling;
+	const awaitTimeout = delay =>
+  		new Promise(resolve => setTimeout(resolve, delay));
 	const longPolling = async () => {
-		if ($filesStore.find((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')) {
-			timeoutID = await setTimeout(async () => {
-				const files = await updateFileStore();
-				if (!$filesStore.find((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')) {
-					clearTimeout(timeoutID);
-					timeoutID = null;
-				} else {
-					longPolling();
-				}
-			}, 20000);
-		} else if (timeoutID) {
-			clearTimeout(timeoutID);
-			timeoutID = null;
+		donePolling = false;
+		await updateFileStore();
+		if (!$filesStore.find((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')) {
+			donePolling = true;
 		}
+		do {
+			await awaitTimeout(20000);
+			await updateFileStore();
+			if (!$filesStore.find((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')) {
+				donePolling = true;
+			}
+		} while (!donePolling)
 	};
 	if (browser) longPolling();
 
@@ -128,6 +130,12 @@
 		e.preventDefault();
 		uploadModalOpen = !uploadModalOpen;
 	};
+
+	onDestroy(() => {
+		if (!donePolling) {
+			donePolling = true;
+		}
+	})
 </script>
 
 <svelte:head>
