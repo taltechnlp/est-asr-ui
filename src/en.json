@@ -120,7 +120,8 @@
   "speakerSelect": {
     "addNew": "Add a new speaker",
     "save": "Save",
-    "edit": "Edit"
+    "edit": "Edit",
+    "topicPlaceholder": "Enter segment topic"
   },
   "contact": {
     "title": "Contacts | tekstiks.ee",

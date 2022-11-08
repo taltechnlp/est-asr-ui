@@ -120,7 +120,8 @@
     "speakerSelect": {
         "addNew": "Lisa uus kõneleja",
         "save": "Salvesta",
-        "edit": "Muuda"
+        "edit": "Muuda",
+        "topicPlaceholder": "Sistesta teema"
     },
     "contact": {
         "title": "Kontaktid | tekstiks.ee",
