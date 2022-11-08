@@ -109,7 +109,7 @@
         "toolbar": {
             "pronTooltip": "Häälduse märgendamine",
             "pron": "Hääldus",
-            "pronPlaceholder": "Sisesta häälduse järgi",
+            "pronPlaceholder": "Sisesta hääldus",
             "internetAddress": "On internetiaadress (URL)",
             "add": "Lisa",
             "cancel": "Tühista",
