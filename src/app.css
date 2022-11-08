@@ -39,7 +39,7 @@
 	font-weight: bold;
 	font-size: small;
 	box-sizing: border-box;
-	content: '  ' attr(annovalue);
+	content: attr(annovalue);
 	color: inherit;
 }
 
