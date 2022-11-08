@@ -38,7 +38,9 @@
 			<span class="text-red-700">{$_('index.tekstiksIntroRemark')}</span>
 		</p>
 		<div class="grid md:grid-cols-2 grid-cols-1 gap-10 mb-10">
-			<img class="screenshot border-2" src="/screenshot_demo.png" alt="Ekraanitõmmis rakendusest" />
+			<div class="mockup-window border border-t border-base-300">
+  				<img class="screenshot border-2" src="/screenshot_demo.png" alt="Ekraanitõmmis rakendusest" />
+			</div>
 			<div class="mw-400px flex flex-col">
 				<h4 class="self-center">{$_('index.step1')}</h4>
 				<p>{$_('index.step1Desc')}</p>

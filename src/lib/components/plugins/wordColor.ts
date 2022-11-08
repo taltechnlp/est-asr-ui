@@ -1,6 +1,12 @@
 import { Extension } from '@tiptap/core'
 import { Plugin, PluginKey } from 'prosemirror-state'
 import { Decoration, DecorationSet } from 'prosemirror-view'
+import { wavesurfer } from '$lib/stores';
+
+let ws
+wavesurfer.subscribe(w => {
+    ws = w;
+})
 
 export const WordColor = Extension.create({
     name: 'wordColor',
@@ -65,9 +71,10 @@ export const WordColor = Extension.create({
                         // console.log("A key was pressed!", view, event)
                         if (view.state.doc.nodeAt(pos) && view.state.doc.nodeAt(pos).marks && view.state.doc.nodeAt(pos).marks[0]) {
                             const attrs = view.state.doc.nodeAt(pos).marks[0].attrs
-                            if (attrs.start)
-                                window.myPlayer.seekTo(attrs.start / window.myPlayer.getDuration())
-                            // console.log(window.myPlayer.seekTo(attrs.start / window.myPlayer.getDuration()) /* window.myPlayer.seekTo(attrs.start / window.myPlayer.getDuration()) */)
+                            if (attrs.start && ws && ws.getDuration() > 0)
+                                ws.seekAndCenter(attrs.start / ws.getDuration())
+                                console.log(attrs.start / ws.getDuration())
+                            // console.log(ws.seekTo(attrs.start / ws.getDuration()) /* ws.seekTo(attrs.start / ws.getDuration()) */)
                         }
                         // console.log(pos, view.state.doc.nodeAt(pos).marks, view.state.doc.resolve(pos).textOffset, view.state.doc.nodeAt(pos).nodeSize)
 

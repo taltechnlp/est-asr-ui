@@ -3,7 +3,6 @@ import { TextSelection } from 'prosemirror-state';
 import { SvelteNodeViewRenderer } from 'svelte-tiptap';
 import { text } from 'svelte/internal';
 import SpeakerSelect from './SpeakerSelect.svelte';
-
 export interface SpeakerOptions {
 	HTMLAttributes: Record<string, any>;
 }
@@ -37,7 +36,8 @@ export const Speaker = Node.create<SpeakerOptions>({
 	addAttributes() {
 		return {
 			'data-name': '',
-			id: "" 
+			id: "",
+			topic: "" 
 		};
 	},
 	addNodeView() {

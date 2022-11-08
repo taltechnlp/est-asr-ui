@@ -142,20 +142,23 @@ export const getFiles = async (userId) => {
       },
       include: {
         files: {
-          select: {
-            id: true,
-            state: true,
-            text: true,
-            filename: true,
-            duration: true,
-            mimetype: true,
-            uploadedAt: true,
-            textTitle: true,
-            initialTranscription: true,
-            externalId: true,
-            path: true,
-            language: true
-          }
+            orderBy: {
+                uploadedAt: 'desc',
+            },
+            select: {
+                id: true,
+                state: true,
+                text: true,
+                filename: true,
+                duration: true,
+                mimetype: true,
+                uploadedAt: true,
+                textTitle: true,
+                initialTranscription: true,
+                externalId: true,
+                path: true,
+                language: true
+            }
         }
       }
     })

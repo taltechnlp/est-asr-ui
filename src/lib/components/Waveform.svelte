@@ -8,11 +8,11 @@
 	import CursorPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.cursor.min.js';
 	import RegionsPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.regions.min.js';
 	import MarkersPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.markers.min.js';
+	import { player, words, speakerNames, playingTime, duration, editor, wavesurfer } from '$lib/stores';
 	export let url;
-	import { player, words, speakerNames } from '$lib/stores';
-	import { playingTime } from '$lib/stores';
+	export let peaks;
 
-	let wavesurfer;
+	let ws: WaveSurfer;
 	let regions;
 	let wavesurferReady = false;
 	const wordFilter = (w) => w && w.id && w.start && w.end;
@@ -40,33 +40,35 @@
 					position: i & 1 ? 'top' : 'bottom'
 				};
 			});
-		if (wavesurfer && wavesurfer.addMarker && wavesurferReady) {
-			wavesurfer.clearMarkers();
+		if ($wavesurfer && $wavesurfer.addMarker && wavesurferReady) {
+			$wavesurfer.clearMarkers();
 			markers.forEach((m) => {
-				wavesurfer.addMarker(m);
+				$wavesurfer.addMarker(m);
 			});
 		}
 	});
 	onMount(() => {
-		wavesurfer = WaveSurfer.create({
+		ws = WaveSurfer.create({
 			container: '#waveform',
 			waveColor: 'violet',
 			progressColor: 'purple',
 			autoCenter: true,
-			backend: 'MediaElementWebAudio',
+			backend: 'WebAudio',
 			// bargap: 1,
 			// barWidth: 3,
-			normalize: true,
+			normalize: false,
 			height: 80,
-			//partialRender: true,
+			partialRender: true,
 			responsive: true,
 			scrollParent: true,
 			closeAudioContext: false,
+			fillParent: true,
+			forceDecode: false,
 			loopSelection: true,
 			hideScrollbar: false,
 			maxCanvasWidth: 4000,
 			pixelRatio: 1,
-			//forceDecode: true,
+			removeMediaElementOnDestroy: true,
 			plugins: [
 				// Media Session Plugin for (mobile) media notifications
 				/* MediasessionPlugin.create({
@@ -80,12 +82,6 @@
 					progressColor: '#222',
 					height: 20
 				}),
-				// Initialize based on prop with words id, start, end.
-				// Update based on store. Corresponds to editor marks with timecodes.
-				// Every mark is in the wordMarks store.
-				// Editor must update mark text in store so it's in sync on waveform.
-				// Editor events must note these marks as deleted when user has deleted. As timecodes exist,
-				// these can later be restored.
 				RegionsPlugin.create({
 					regions
 				}),
@@ -97,7 +93,7 @@
 					moveOnSeek: true,
 					draw: false
 				}), */
-				CursorPlugin.create({
+				/* CursorPlugin.create({
 					showTime: true,
 					opacity: 1,
 					customShowTimeStyle: {
@@ -106,7 +102,7 @@
 						padding: '2px',
 						'font-size': '10px'
 					}
-				}),
+				}), */
 				// Initialize based on speakers
 				// Update based on store. Corresponds to editor blocks.
 				MarkersPlugin.create({
@@ -114,15 +110,21 @@
 				})
 			]
 		});
-		window.myPlayer = wavesurfer;
+		if (peaks) {
+			const peaksObj = JSON.parse(peaks)
+			ws.load(url, peaksObj.data);
+			console.log('peaks exist')
+		} else ws.load(url);
+		ws.play();
+		wavesurfer.set(ws);
 
-		wavesurfer.on('region-in', function (region) {
-			const progress = Math.round(wavesurfer.getCurrentTime() * 100) / 100;
+		$wavesurfer.on('region-in', function (region) {
+			const progress = Math.round($wavesurfer.getCurrentTime() * 100) / 100;
 			playingTime.set(progress);
-			if (window.myEditor) {
+			if ($editor) {
 				// Apply word color decoration change to state without adding this state change to the history stack.
-				let newState = window.myEditor.view.state.apply(
-					window.myEditor.view.state.tr
+				let newState = $editor.view.state.apply(
+					$editor.view.state.tr
 						.setMeta('wordColor', {
 							id: region.id,
 							start: region.start,
@@ -131,16 +133,16 @@
 						})
 						.setMeta('addToHistory', false)
 				);
-				window.myEditor.view.updateState(newState);
+				$editor.view.updateState(newState);
 			}
 		});
-		wavesurfer.on('region-out', function (region) {
-			const progress = Math.round(wavesurfer.getCurrentTime() * 100) / 100;
+		$wavesurfer.on('region-out', function (region) {
+			const progress = Math.round($wavesurfer.getCurrentTime() * 100) / 100;
 			playingTime.set(progress);
-			if (window.myEditor) {
+			if ($editor) {
 				// Apply word color decoration change to state without adding this state change to the history stack.
-				let newState = window.myEditor.view.state.apply(
-					window.myEditor.view.state.tr
+				let newState = $editor.view.state.apply(
+					$editor.view.state.tr
 						// TODO: pass ID instead of progress
 						// TODO: fire at region start, end and player seek events
 						.setMeta('wordColor', {
@@ -151,46 +153,46 @@
 						})
 						.setMeta('addToHistory', false)
 				);
-				window.myEditor.view.updateState(newState);
+				$editor.view.updateState(newState);
 			}
 		});
 
 		// Event subscriptions
-		wavesurfer.on('ready', function () {
-			// @ts-ignore
+		$wavesurfer.on('ready', function () {
+			console.log("ready")
+			ws.zoom(zoom);
 			wavesurferReady = true;
-			window.myPlayer = wavesurfer;
-			wavesurfer.zoom(zoom);
-			// wavesurfer.play();
+			duration.set($wavesurfer.getDuration())
+			$wavesurfer.pause();
 		});
 
-		wavesurfer.on('play', function () {
+		$wavesurfer.on('play', function () {
+			console.log("play")
 			player.update((x) => {
 				return { ...x, playing: true };
 			});
 		});
-		wavesurfer.on('pause', function () {
+		$wavesurfer.on('pause', function () {
+			console.log("pause")
 			player.update((x) => {
 				return { ...x, playing: false };
 			});
 		});
 
-		wavesurfer.on('audioprocess', () => {});
-
-		wavesurfer.on('seek', () => {
-			const progress = Math.round(wavesurfer.getCurrentTime() * 100) / 100;
+		$wavesurfer.on('seek', () => { 
+			console.log("seek")
+			const progress = Math.round($wavesurfer.getCurrentTime() * 100) / 100;
 			if (progress !== $playingTime) {
 				playingTime.set(progress);
 			}
 		});
-		wavesurfer.on('mute', function () {
+		$wavesurfer.on('mute', function () {
 			player.update((x) => {
 				return { ...x, muted: true };
 			});
 		});
-		wavesurfer.load(url);
 
-		wavesurfer.on('destroy', function () {
+		$wavesurfer.on('destroy', function () {
 			wavesurferReady = false;
 		});
 	});
@@ -204,67 +206,71 @@
 	const setPlaybackSpeed = (speed: number) => (speed = playbackSpeed + speed);
 
 	onDestroy(() => {
-		if (wavesurfer) {
-			wavesurfer.destroy();
+		if ($wavesurfer) {
+			$wavesurfer.destroy();
 		}
+		wavesurfer.set(null);
+		words.set([])
+		speakerNames.set([])
+		playingTime.set(0)
 	});
 
 	export const fasterSpeed = () => {
-		if (wavesurfer) {
+		if ($wavesurfer) {
 			if (playbackSpeed <= 1.75) {
-				wavesurfer.setPlaybackRate(playbackSpeed + 0.25);
+				$wavesurfer.setPlaybackRate(playbackSpeed + 0.25);
 				setPlaybackSpeed(0.25);
 			}
 		}
 	};
 	export const slowerSpeed = () => {
-		if (wavesurfer) {
+		if ($wavesurfer) {
 			if (playbackSpeed >= 0.5) {
-				wavesurfer.setPlaybackRate(playbackSpeed - 0.25);
+				$wavesurfer.setPlaybackRate(playbackSpeed - 0.25);
 				setPlaybackSpeed(-0.25);
 			}
 		}
 	};
 	export const normalSpeed = () => {
-		if (wavesurfer) {
+		if ($wavesurfer) {
 			setPlaybackSpeed(1);
-			wavesurfer.setPlaybackRate(1);
+			$wavesurfer.setPlaybackRate(1);
 		}
 	};
 	export const toggleRegions = () => {};
 	export const seekTo = (pos) => {
-		if (wavesurfer && wavesurfer.getDuration() >= pos) {
-			wavesurfer.setCurrentTime(pos);
+		if ($wavesurfer && $wavesurfer.getDuration() >= pos) {
+			$wavesurfer.setCurrentTime(pos);
 		}
 	};
 	export const play = () => {
-		wavesurfer.play();
+		$wavesurfer.play();
 	};
 	export const pause = () => {
-		wavesurfer.pause();
+		$wavesurfer.pause();
 	};
 	export const seekBackward = () => {
-		wavesurfer.skipBackward(5);
+		$wavesurfer.skipBackward(5);
 	};
 	export const seekForward = () => {
-		wavesurfer.skipForward(5);
+		$wavesurfer.skipForward(5);
 	};
 	export const toggleMute = () => {
-		wavesurfer.toggleMute();
+		$wavesurfer.toggleMute();
 		muted = !muted;
 	};
 	export const togglePlay = () => {
-		wavesurfer.playPause();
+		$wavesurfer.playPause();
 		/* if (wavesurfer.isPlaying()) playing = true;
 		else playing = false; */
 	};
 	export const zoomOut = () => {
 		if (zoom > 5) zoom = zoom - 20;
-		wavesurfer.zoom(zoom);
+		$wavesurfer.zoom(zoom);
 	};
 	export const zoomIn = () => {
 		if (zoom < 205) zoom = zoom + 20;
-		wavesurfer.zoom(zoom);
+		$wavesurfer.zoom(zoom);
 	};
 </script>
 

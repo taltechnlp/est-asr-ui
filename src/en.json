@@ -86,9 +86,9 @@
     "file": "File",
     "language": "Language",
     "languageChoices": {
-            "estonian": "Estonian",
-            "finnish": "Finnish"
-        }
+      "estonian": "Estonian",
+      "finnish": "Finnish"
+    }
   },
   "me": {
     "title": "Account details | tekstiks.ee",
@@ -98,9 +98,24 @@
     "logoutButton": "Log out"
   },
   "file": {
+    "editingMode": "Editing mode:",
+    "editingModeRegular": "Regular (correct recogniton mistakes)",
+    "editingModeAnnotation": "Labelling (annotate text and speech)",
+    "duration": "Duration:",
+    "uploaded": "Uploaded:",
     "toolbarUndo": "Undo",
     "toolbarRedo": "Redo",
-    "toolbarDownload": "Download"
+    "toolbarDownload": "Download",
+    "toolbar": {
+            "pronTooltip": "Annotate pronunciation",
+            "pron": "Pronunciation",
+            "pronPlaceholder": "Write as pronounced",
+            "internetAddress": "Is an internet address (URL)",
+            "add": "Add",
+            "cancel": "Cancel",
+            "language": "Language",
+            "languageTooltip": "Annotate language change"
+        }
   },
   "speakerSelect": {
     "addNew": "Add a new speaker",
@@ -129,8 +144,8 @@
     "validFrom": "Terms of use are valid from 23.10.2022"
   },
   "demo": {
-        "title": "Demo"
-    },
+    "title": "Demo"
+  },
   "passwordReset": {
     "title": "Password reset | teksiks.ee",
     "header": "Password reset",
@@ -141,5 +156,24 @@
     "passwordConfirm": "Repeat password",
     "passwordsDontMatch": "Passwords do not match!",
     "change": "Change password"
-  }
+  },
+   "editor": {
+        "languageCode": "Language code",
+        "languageDescription": "Language description",
+        "languageActivate": "Activate",
+        "languageAction": "Action",
+        "languageSelectionHeading": "Choose language change labels",
+        "languageSelectionDescription": "Activate only the languages that are used in the text. New languages can be added if neede.",
+        "save": "Save",
+        "edit": "Edit",
+        "addNew": "Add",
+        "download": {
+            "includeNames": "Include speaker names",
+            "heading": "Download as a file",
+            "description": "Choose the file format and content options.",
+            "format": "File format",
+            "download": "Download",
+            "cancel": "Cancel"
+        }
+    }
 }

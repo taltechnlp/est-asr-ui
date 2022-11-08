@@ -82,7 +82,13 @@
         "delete": "Poista lopullisesti",
         "fileDeletion": "Poista tiedosto",
         "fileDeletionWarning": "Varoitus! Tämä poistaa tiedoston ja transkription lopullisesti. Oletko varma, että haluat jatkaa?",
-        "uploadError": "Tiedoston lähettäminen epäonnistui!"
+        "uploadError": "Tiedoston lähettäminen epäonnistui!",
+        "file": "Tiedosto",
+        "language": "Kieli",
+        "languageChoices": {
+            "estonian": "Virolainen",
+            "finnish": "Suomalainen"
+        }
     },
     "me": {
         "title": "Käyttäjätiedot | tekstiks.ee",

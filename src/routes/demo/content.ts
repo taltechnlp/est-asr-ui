@@ -2,7 +2,6 @@ import type { Word, Speaker } from '$lib/helpers/converters/types';
 import { v4 as uuidv4 } from 'uuid';
 export let words: Array<Word> = [];
 export let speakers: Array<Speaker> = [];
-
 export const content = {
     "type": "doc",
     "content": [

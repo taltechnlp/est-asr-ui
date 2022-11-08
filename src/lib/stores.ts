@@ -1,22 +1,52 @@
 import { writable } from 'svelte/store';
-import type { Writable } from 'svelte/store'
+import type { Writable, Readable } from 'svelte/store'
 import {v4 as uuidv4} from "uuid";
 import type { Speaker, Word } from '$lib/helpers/converters/types'
 
+// User session state
 export const user = writable({ name: '', email: '', id: '' });
 export const files = writable([]);
 export const lang = writable({ language: 'ET' });
 
+// Editor-related state
 export const speakerNames: Writable<Array<Speaker>> = writable([]);
 export const words: Writable<Array<Word>> = writable([])
 export const editor = writable(null);
 export const editorMounted = writable(false)
+export const languageAnnotationOptions = writable([{
+	label: "en",
+	description: "English",
+	active: true
+},{
+	label: "fi",
+	description: "Finnish",
+	active: false
+},{
+	label: "ru",
+	description: "Russian",
+	active: true
+},{
+	label: "de",
+	description: "German",
+	active: true
+}
+])
+enum EditingMode {
+		Regular = 1,
+		Annotation = 2,
+	}
+export const editorMode: Writable<EditingMode> = writable(1);
+// Editor player
+export const wavesurfer = writable(null)
 export const player = writable({
 	playing: false,
 	muted: false
 });
-export const playingTime = writable(0)
+export const playingTime = writable(0);
+export const duration = writable(0);
 
+
+// User inserts a new name
 export const addSpeakerName = (newName, start) => {
 	let nameId;
 	speakerNames.update((names) => {
@@ -29,4 +59,19 @@ export const addSpeakerName = (newName, start) => {
 	})
 	return nameId;
 }
+
+// Used adds a new speaker block
+export const addSpeakerBlock = (name, start) => {
+	let nameId;
+	speakerNames.update((names) => {
+		const exists = names.find(n=>n.name===name)
+		if (!exists) {
+			nameId = uuidv4().substring(32 - 12);
+		} else nameId = exists.id;
+		names.push({name, id: nameId, start });
+		return names;
+	})
+	return nameId;
+}
+
 

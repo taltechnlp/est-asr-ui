@@ -13,6 +13,7 @@
 .svelte-renderer {
 	display: block;
 }
+
 .wavesurfer-region {
 	border-color: #b2b0b6;
 	border-style: solid;
@@ -20,6 +21,48 @@
 	opacity: 0.3;
 	color: "rgba(0, 0, 0, 0.1)"
 }
-.marker-label{
+
+.marker-label {
 	z-index: 5;
+}
+
+.lang-label {
+	position: relative;
+	line-height: 2.5;
+}
+    
+.lang-label::before {
+	position: absolute;
+	text-align: center;
+    top: -20px;
+	font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+	font-weight: bold;
+	font-size: small;
+	box-sizing: border-box;
+	content: '  ' attr(annovalue);
+	color: inherit;
+}
+
+.pron-label {
+	position: relative;
+	line-height: 2.5;
+}
+
+.pron-label::before {
+	position: absolute;
+	display: inline-block;
+	top: -20px;
+	font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+	font-weight: bold;
+	font-size: small;
+	content: attr(annovalue);
+	color: inherit;
+	margin-right: -25px;
+}
+
+.pron-label::after {
+	font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+	font-size: small;
+	content: ' (pron)';
+	color: inherit;
 }

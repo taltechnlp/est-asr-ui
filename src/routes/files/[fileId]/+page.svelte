@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Tiptap from '$lib/components/Tiptap.svelte';
+	import Tiptap from '$lib/components/editor/Tiptap.svelte';
 	import Player from '$lib/components/Player.svelte';
 	import { fromDelta } from '$lib/helpers/converters/deltaFormat';
 	import { fromEstFormat } from '$lib/helpers/converters/estFormat';
@@ -52,7 +52,7 @@
 
 <main class="grid grid-rows-[1fr_auto] content-between">
 	<div class="self-stretch h-full mb-96">
-		<Tiptap content={transcription} fileId={data.file.id} demo={false} />
-		<Player url={`${data.url}/uploaded/${data.file.id}`} />
+		<Tiptap content={transcription} fileId={data.file.id} demo={false} fileName={data.file.name} uploadedAt={data.file.uploadedAt}/>
+		<Player url={`${data.url}/uploaded/${data.file.id}`} peaks={data.peaks} />
 	</div>
 </main>

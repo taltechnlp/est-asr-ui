@@ -2,10 +2,10 @@
 	import type { NodeViewProps } from '@tiptap/core';
 	import { NodeViewWrapper, editable } from 'svelte-tiptap';
 	import { onMount, onDestroy } from 'svelte';
-	import Icon from './Icon.svelte';
-	import { clickOutside } from './clickOutside';
+	import Icon from '../Icon.svelte';
+	import { clickOutside } from '../clickOutside';
 	import type { Speaker } from '$lib/helpers/converters/types';
-	import {v4 as uuidv4} from "uuid";
+	import { v4 as uuidv4 } from 'uuid';
 
 	export let node: NodeViewProps['node'];
 	export let decorations: NodeViewProps['decorations'];
@@ -15,53 +15,60 @@
 	export let editor: NodeViewProps['editor'];
 	export let getPos: NodeViewProps['getPos'];
 	export let selected: NodeViewProps['selected'] = false;
-	import { speakerNames, addSpeakerName, editorMounted } from '$lib/stores';
-	import { findParentNodeOfTypeClosestToPos,findBlockNodes } from 'prosemirror-utils';
-	import { Transform } from 'prosemirror-transform';
+	import {
+		speakerNames,
+		addSpeakerName,
+		addSpeakerBlock,
+		editorMounted,
+		editorMode
+	} from '$lib/stores';
+	import { /* findParentNodeOfTypeClosestToPos, */ findBlockNodes } from 'prosemirror-utils';
+	// import { Transform } from 'prosemirror-transform';
 
 	import { _ } from 'svelte-i18n';
 
 	type Name = {
 		name: string;
 		id: string;
-	}
+	};
 
 	let isListOpen = false;
 	let initialName = node.attrs['data-name'];
 	let initialId = node.attrs['id'];
+	let topic = node.attrs['topic'];
 	let selectedVal: Name = {
 		name: node.attrs['data-name'],
 		id: node.attrs['id']
-	}
-
+	};
 	let newSpeaker = '';
 	let editSpeakerId = '';
 	let editingValue = '';
-	let names 
-	speakerNames.subscribe(ns => {
+	let names;
+	speakerNames.subscribe((ns) => {
 		// Update dropdown list where for each id one name is shown only
 		names = ns.reduce((acc, curr) => {
-			if (acc.find(x=>x.id===curr.id)) return acc;
+			if (acc.find((x) => x.id === curr.id)) return acc;
 			else {
-				acc.push(curr)
-				return acc;}
-		}, ([] as Array<Speaker>));
+				acc.push(curr);
+				return acc;
+			}
+		}, [] as Array<Speaker>);
 		// Update selected name of each component instance
 		// Check id defined b.c. update might happen before transaction has finished
-		if (node.attrs['data-name'] && node.attrs['id']) {
+		if (node && node.attrs['data-name'] && node.attrs['id']) {
 			selectedVal = {
 				name: node.attrs['data-name'],
 				id: node.attrs['id']
-			}
+			};
 		}
-	})
+	});
 
-	const findTimeStamps = (startPos) => {
+	const findTimeStamps = (startPos, state) => {
 		let i = 0;
 		let done = false;
 		let startTime = null;
 		do {
-			node = editor.state.doc.nodeAt(startPos + i);
+			node = state.doc.nodeAt(startPos + i);
 			if (node && node.marks.length > 0) {
 				for (let j = 0; j < node.marks.length; j++) {
 					// @ts-ignore
@@ -76,11 +83,11 @@
 			if (done) break;
 			i++;
 		} while (!done && node);
-		
+
 		return startTime;
 	};
 
-	$: time = findTimeStamps(getPos() + 1);
+	$: time = findTimeStamps(getPos() + 1, editor.state);
 
 	const handleClick = () => {
 		isListOpen ? (isListOpen = false) : (isListOpen = true);
@@ -91,32 +98,36 @@
 		}
 	};
 	const getStartTime = (node) => {
-			return node.content.content && node.content.content[0] && node.content.content[0].marks && node.content.content[0].marks[0].attrs.start
-					? node.content.content[0].marks[0].attrs.start : -1
-	}
+		return node.content.content &&
+			node.content.content[0] &&
+			node.content.content[0].marks &&
+			node.content.content[0].marks[0].attrs.start
+			? node.content.content[0].marks[0].attrs.start
+			: -1;
+	};
 	const handleNewSpeakerSave = (newName, start) => {
 		if (newName.length > 0) {
 			let newId;
 			const blockNodesWithPos = findBlockNodes(editor.state.doc, false);
-			const exists = blockNodesWithPos.find(el=>el.node.attrs['data-name']===newName)
+			const exists = blockNodesWithPos.find((el) => el.node.attrs['data-name'] === newName);
 			if (!exists) {
 				newId = uuidv4().substring(32 - 12);
 			}
 			// Change node attribute transaction
-			let tr = editor.state.tr
+			let tr = editor.state.tr;
 			tr.setNodeAttribute(getPos(), 'data-name', newName);
 			tr.setNodeAttribute(getPos(), 'id', newId);
 			let newState = editor.state.apply(tr);
 			const updatedBlockNodesWithPos = findBlockNodes(newState.doc, false);
-			// Update store  
-			const newSpeakers = updatedBlockNodesWithPos.map(el => {
+			// Update store
+			const newSpeakers = updatedBlockNodesWithPos.map((el) => {
 				return {
 					name: el.node.attrs['data-name'],
 					id: el.node.attrs.id,
 					start: getStartTime(el.node)
-				}
-			})
-			editor.view.updateState(newState); 
+				};
+			});
+			editor.view.updateState(newState);
 			speakerNames.set(newSpeakers);
 			newSpeaker = '';
 		}
@@ -129,30 +140,30 @@
 
 	const selectSpeaker = (id) => {
 		const blockNodesWithPos = findBlockNodes(editor.state.doc, false);
-		const exists = blockNodesWithPos.find(el=>el.node.attrs.id===id)
+		const exists = blockNodesWithPos.find((el) => el.node.attrs.id === id);
 		if (!exists) {
 			return;
 		}
 		// Change node attribute transaction
-		let tr = editor.state.tr
+		let tr = editor.state.tr;
 		tr.setNodeAttribute(getPos(), 'data-name', exists.node.attrs['data-name']);
 		tr.setNodeAttribute(getPos(), 'id', id);
 		let newState = editor.state.apply(tr);
 		const updatedBlockNodesWithPos = findBlockNodes(newState.doc, false);
-		// Update store  
-		const newSpeakers = updatedBlockNodesWithPos.map(el => {
+		// Update store
+		const newSpeakers = updatedBlockNodesWithPos.map((el) => {
 			return {
 				name: el.node.attrs['data-name'],
 				id: el.node.attrs.id,
 				start: getStartTime(el.node)
-			}
-		})
-		editor.view.updateState(newState); 
+			};
+		});
+		editor.view.updateState(newState);
 		speakerNames.set(newSpeakers);
 		selectedVal = {
 			name: exists.node.attrs['data-name'],
 			id: exists.node.attrs.id
-		}
+		};
 		// TODO: reset store from nodes or remove old value.
 		// TODO: change node id attr also
 		updateAttributes({ 'data-name': selectedVal.name });
@@ -165,33 +176,34 @@
 
 	const handleRenameAll = (speaker) => {
 		const speakerNodes = editor.view.state.doc.content;
-		const name = speaker.name
-		let tr = editor.state.tr
-		const blockNodesWithPos = findBlockNodes(editor.state.doc, false)
-		blockNodesWithPos.forEach(el =>
+		const name = speaker.name;
+		let tr = editor.state.tr;
+		const blockNodesWithPos = findBlockNodes(editor.state.doc, false);
+		blockNodesWithPos.forEach((el) =>
 			// @ts-ignore
 			{
 				if (el.node.attrs['id'] === speaker.id) {
 					tr.setNodeAttribute(el.pos, 'data-name', editingValue);
-					}
 				}
-				);
+			}
+		);
 		let newState = editor.state.apply(tr);
 		editor.view.updateState(newState);
 		speakerNames.update((speakers) => {
-			speakers = speakers.map(s => {
-				if (s.id===speaker.id) {
+			speakers = speakers.map((s) => {
+				if (s.id === speaker.id) {
 					return {
-					id: s.id,
-					name: editingValue,
-					start: s.start
-				}} else return s;
-			})
-			return speakers; 
+						id: s.id,
+						name: editingValue,
+						start: s.start
+					};
+				} else return s;
+			});
+			return speakers;
 		});
 		isListOpen = false;
 		// updateAttributes({ 'data-name': getSpeakerName(speakerId) });
-		
+
 		// updateAttributes({ 'data-name': editingValue });
 		editingValue = '';
 		editSpeakerId = '';
@@ -206,21 +218,26 @@
 		} else return '';
 	};
 
+	const saveTopic = (e) => updateAttributes({ topic });
+
 	onMount(async () => {
+		// Update speakers store when after initial editor load speaker is added
 		if ($editorMounted) {
-			const id = addSpeakerName(selectedVal.name, time);
-			const get = editor.state.doc.nodeAt(getPos()) // töötab
-			const parentNode = findParentNodeOfTypeClosestToPos(editor.state.doc.resolve(getPos()+1), editor.schema.nodes.speaker);
+			// Cannot use the node passed into this component here (bug or timing issue). Getting by pos works.
+			// This also works const parentNode = findParentNodeOfTypeClosestToPos(editor.state.doc.resolve(getPos()+1), editor.schema.nodes.speaker);
+			const actualNode = editor.state.doc.nodeAt(getPos());
+			console.log(getStartTime(actualNode), findTimeStamps(getPos(), editor.state));
+			const id = addSpeakerBlock(selectedVal.name, getStartTime(actualNode));
 		}
-	})
+	});
 
 	onDestroy(async () => {
 		if ($editorMounted) {
-			speakerNames.update(sps => 
-				sps.filter(s=>!(s.id===selectedVal.id && s.start===time))
-			)
+			speakerNames.update((sps) =>
+				sps.filter((s) => !(s.id === selectedVal.id && s.start === time))
+			);
 		}
-	})
+	});
 </script>
 
 <NodeViewWrapper class="svelte-component speaker {selected}">
@@ -229,12 +246,27 @@
 		<span class="text-primary font-bold font-sans">{selectedVal.name}</span>
 		<Icon name="dropdown-arrow" class="invisible group-hover:visible" />
 	</div>
-	<div class="speaker-time">{numberToTime(time)}</div>
+	<div class="flex items-center speaker-top">
+		<p class="speaker-time">{numberToTime(time)}</p>
+		{#if $editorMode === 2}
+			<input
+				type="text"
+				name="topic"
+				id=""
+				placeholder={$_('speakerSelect.topicPlaceholder')}
+				class="input input-bordered input-accent input-xs w-full max-w-xs ml-5"
+				bind:value={topic}
+				on:blur={saveTopic}
+			/>
+		{/if}
+	</div>
 	{#if isListOpen}
 		<div
 			class="absolute z-10 rounded-md bg-zinc-100 flex flex-col filter drop-shadow-lg "
 			use:clickOutside
-			on:outclick={() => {isListOpen = false;}}
+			on:outclick={() => {
+				isListOpen = false;
+			}}
 		>
 			<div class="p-1">
 				<input
@@ -242,8 +274,9 @@
 					bind:value={newSpeaker}
 					on:keypress={(e) => handleKeypress(e, newSpeaker)}
 				/>
-				<button class="w-min hover:text-primary" on:click={() => handleNewSpeakerSave(newSpeaker, time)}
-					>{$_('speakerSelect.save')}</button
+				<button
+					class="w-min hover:text-primary"
+					on:click={() => handleNewSpeakerSave(newSpeaker, time)}>{$_('speakerSelect.save')}</button
 				>
 			</div>
 			{#each names as speaker}
@@ -308,9 +341,11 @@
 		height: max-content;
 	}
 
-	.speaker-time {
+	.speaker-top {
 		grid-row-start: 1;
 		grid-column-start: 2;
+	}
+	.speaker-time {
 		font-size: small;
 		color: rgba(156, 163, 175);
 	}

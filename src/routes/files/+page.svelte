@@ -5,18 +5,18 @@
 	import { _ } from 'svelte-i18n';
 	import { toTime } from './helpers';
 	import { browser } from '$app/environment';
-	import type { ActionData, PageData } from './$types'
-	import type {ActionResult } from '@sveltejs/kit'
+	import type { ActionData, PageData } from './$types';
+	import type { ActionResult } from '@sveltejs/kit';
 	import { applyAction, enhance } from '$app/forms';
-	
+
 	let error = '';
 	export let data: PageData;
 	filesStore.set(data.files);
 	let loading = false;
 	let upload;
 	let languageChoices = [
-		{ id: 0, text: $_('files.languageChoices.estonian') },
-		{ id: 1, text: $_('files.languageChoices.finnish') }
+		{ id: 0, text: 'estonian'},
+		{ id: 1, text: 'finnish' }
 	];
 	let selectedLanguage = languageChoices[0];
 
@@ -35,12 +35,11 @@
 
 	const printError = (errorText) => {
 		if (errorText === 'fileSizeLimit') {
-			return $_('files.fileSizeLimit')
-		} else
-		{
-			return $_('files.uploadError')
+			return $_('files.fileSizeLimit');
+		} else {
+			return $_('files.uploadError');
 		}
-	}
+	};
 
 	const uploadFile = async (event: Event) => {
 		event.preventDefault();
@@ -63,22 +62,22 @@
 		if (result.type === 'error') {
 			loading = false;
 			error = result.error;
-			console.log("Upload failed", result.error)
-			return
+			console.log('Upload failed', result.error);
+			return;
 		}
 		if (result.type === 'invalid') {
 			loading = false;
 			if (result.data.uploadLimit) {
-				error = 'fileSizeLimit'
+				error = 'fileSizeLimit';
 			} else {
 				error = result.data.message;
 			}
-			return
+			return;
 		}
 		if (result.type === 'redirect') {
 			loading = false;
-			error = ""
-			applyAction(result)
+			error = '';
+			applyAction(result);
 		}
 		loading = false;
 		uploadModalOpen = false;
@@ -86,9 +85,9 @@
 		if (!files.ok) {
 			goto('/files');
 		}
-		const body = await files.json()
-		filesStore.set(body.files)
-		longPolling()
+		const body = await files.json();
+		filesStore.set(body.files);
+		longPolling();
 	};
 
 	const updateFileStore = async () => {
@@ -107,11 +106,9 @@
 		}
 	}
 	let donePolling;
-	const awaitTimeout = delay =>
-  		new Promise(resolve => setTimeout(resolve, delay));
+	const awaitTimeout = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
 	const longPolling = async () => {
 		donePolling = false;
-		await updateFileStore();
 		if (!$filesStore.find((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')) {
 			donePolling = true;
 		}
@@ -121,7 +118,7 @@
 			if (!$filesStore.find((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')) {
 				donePolling = true;
 			}
-		} while (!donePolling)
+		} while (!donePolling);
 	};
 	if (browser) longPolling();
 
@@ -135,7 +132,7 @@
 		if (!donePolling) {
 			donePolling = true;
 		}
-	})
+	});
 </script>
 
 <svelte:head>
@@ -222,64 +219,66 @@
 	<label for="file-upload" class="modal cursor-pointer {uploadModalOpen ? 'modal-open' : ''}">
 		<label class="modal-box relative" for="">
 			<fieldset disabled={loading} aria-busy={loading}>
-			<form method="POST" >
+				<form method="POST">
 					<label for="file-upload" class="btn btn-sm btn-circle absolute right-3 top-2" lang="et"
-					>✕</label
-				>
-				<label for="file-upload" class="btn btn-sm btn-circle absolute right-2 top-2" lang="et"
-					>✕</label
-				>
-				<h3 class="text-lg font-bold mb-4">{$_('files.uploadHeader')}</h3>
-				<div class="form-control w-full max-w-xs">
-					<label class="label" for="langSelect">
-						<span class="label-text">{$_('files.language')}</span>
-					</label>
-					<select
-					id="langSelect"
-						required
-						bind:value={selectedLanguage}
-						class="select select-bordered"
+						>✕</label
 					>
-						{#each languageChoices as language}
-							<option value={language}>
-								{language.text}
-							</option>
-						{/each}
-					</select>
-				</div>
-				<div class="form-control w-full max-w-xs">
-					<label class="label" for="file">
-						<span class="label-text">{$_('files.file')}</span>
-					</label>
-					<input
-					class="input input-bordered pt-1"
-					type="file"
-					bind:files={upload}
-					accept="audio/*,video/*,audio/wav,audio/x-wav,audio/mp3,audio/mpeg,audio/ogg,video/ogg,video/x-mpeg2,video/mpeg2,audio/x-m4a,audio/flac,audio/x-flac,audio/x-amr,audio/amr"
-					id="file"
-					name="file"
-					placeholder="Lae helisalvestis ülesse (kuni 100 MB)"
-					required
-					/>
-				</div>
-				<ul class="list-disc list-inside">
-					<li class="py-4">{$_('files.supportedFormats')}</li>
-					<li class="py-4 pt-0">{$_('files.fileSizeLimit')}</li>
-				</ul>
-				{#if error}
-					<p class="mt-3 mb-3 text-red-500 text-center font-semibold">{printError(error)}</p>
-				{/if}
-				{#if loading}
-					<button class="btn" type="submit" disabled
-						><span class="btn btn-ghost btn-xs loading" /></button
+					<label for="file-upload" class="btn btn-sm btn-circle absolute right-2 top-2" lang="et"
+						>✕</label
 					>
-				{:else if upload}
-						<button class="btn btn-active btn-primary" on:click={uploadFile} >{$_('files.uploadButton')}</button>
-				{:else}
-					<button class="btn" type="submit" disabled>{$_('files.uploadButton')}</button>
-				{/if}
-			</form>
-		</fieldset>
+					<h3 class="text-lg font-bold mb-4">{$_('files.uploadHeader')}</h3>
+					<div class="form-control w-full max-w-xs">
+						<label class="label" for="langSelect">
+							<span class="label-text">{$_('files.language')}</span>
+						</label>
+						<select
+							id="langSelect"
+							required
+							bind:value={selectedLanguage}
+							class="select select-bordered"
+						>
+							{#each languageChoices as language}
+								<option value={language}>
+									{$_(`files.languageChoices.${language.text}`)}
+								</option>
+							{/each}
+						</select>
+					</div>
+					<div class="form-control w-full max-w-xs">
+						<label class="label" for="file">
+							<span class="label-text">{$_('files.file')}</span>
+						</label>
+						<input
+							class="input input-bordered pt-1"
+							type="file"
+							bind:files={upload}
+							accept="audio/*,video/*,audio/wav,audio/x-wav,audio/mp3,audio/mpeg,audio/ogg,video/ogg,video/x-mpeg2,video/mpeg2,audio/x-m4a,audio/flac,audio/x-flac,audio/x-amr,audio/amr"
+							id="file"
+							name="file"
+							placeholder="Lae helisalvestis ülesse (kuni 100 MB)"
+							required
+						/>
+					</div>
+					<ul class="list-disc list-inside">
+						<li class="py-4">{$_('files.supportedFormats')}</li>
+						<li class="py-4 pt-0">{$_('files.fileSizeLimit')}</li>
+					</ul>
+					{#if error}
+						<p class="mt-3 mb-3 text-red-500 text-center font-semibold">{printError(error)}</p>
+					{/if}
+					{#if loading}
+						<button class="btn" type="submit" disabled
+							><span class="btn btn-ghost btn-xs loading" /></button
+						>
+					{:else if upload}
+						<button class="btn btn-active btn-primary" on:click={uploadFile}
+							>{$_('files.uploadButton')}</button
+						>
+					{:else}
+						<button class="btn" type="submit" disabled>{$_('files.uploadButton')}</button>
+					{/if}
+				</form>
+			</fieldset>
 		</label>
 	</label>
 
