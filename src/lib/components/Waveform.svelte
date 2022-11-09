@@ -8,7 +8,15 @@
 	import CursorPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.cursor.min.js';
 	import RegionsPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.regions.min.js';
 	import MarkersPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.markers.min.js';
-	import { player, words, speakerNames, playingTime, duration, editor, wavesurfer } from '$lib/stores';
+	import {
+		player,
+		words,
+		speakerNames,
+		playingTime,
+		duration,
+		editor,
+		wavesurfer
+	} from '$lib/stores';
 	export let url;
 	export let peaks;
 
@@ -111,9 +119,9 @@
 			]
 		});
 		if (peaks) {
-			const peaksObj = JSON.parse(peaks)
+			const peaksObj = JSON.parse(peaks);
 			ws.load(url, peaksObj.data);
-			console.log('peaks exist')
+			console.log('peaks exist');
 		} else ws.load(url);
 		ws.play();
 		wavesurfer.set(ws);
@@ -159,28 +167,31 @@
 
 		// Event subscriptions
 		$wavesurfer.on('ready', function () {
-			console.log("ready")
+			console.log('ready');
 			ws.zoom(zoom);
 			wavesurferReady = true;
-			duration.set($wavesurfer.getDuration())
+			duration.set($wavesurfer.getDuration());
 			$wavesurfer.pause();
+			player.update((x) => {
+				return { ...x, ready: true };
+			});
 		});
 
 		$wavesurfer.on('play', function () {
-			console.log("play")
+			console.log('play');
 			player.update((x) => {
 				return { ...x, playing: true };
 			});
 		});
 		$wavesurfer.on('pause', function () {
-			console.log("pause")
+			console.log('pause');
 			player.update((x) => {
 				return { ...x, playing: false };
 			});
 		});
 
-		$wavesurfer.on('seek', () => { 
-			console.log("seek")
+		$wavesurfer.on('seek', () => {
+			console.log('seek');
 			const progress = Math.round($wavesurfer.getCurrentTime() * 100) / 100;
 			if (progress !== $playingTime) {
 				playingTime.set(progress);
@@ -194,6 +205,7 @@
 
 		$wavesurfer.on('destroy', function () {
 			wavesurferReady = false;
+			player.set({ playing: false, muted: false, ready: false });
 		});
 	});
 
@@ -210,9 +222,9 @@
 			$wavesurfer.destroy();
 		}
 		wavesurfer.set(null);
-		words.set([])
-		speakerNames.set([])
-		playingTime.set(0)
+		words.set([]);
+		speakerNames.set([]);
+		playingTime.set(0);
 	});
 
 	export const fasterSpeed = () => {

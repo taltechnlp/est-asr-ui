@@ -31,19 +31,29 @@
 	import fileCodeO from 'svelte-awesome/icons/file-code-o';
 	import stickyNoteO from 'svelte-awesome/icons/sticky-note-o';
 	import ellipsisH from 'svelte-awesome/icons/ellipsis-h';
+	import keyboard from 'svelte-awesome/icons/keyboard-o';
 
 	import LanguageLabel from './toolbar/LanguageLabel.svelte';
 
 	import language from 'svelte-awesome/icons/language';
 
 	import debounce from 'lodash/debounce';
-	import { speakerNames, editorMounted, duration, editor as editorStore, editorMode } from '$lib/stores';
+	import {
+		speakerNames,
+		editorMounted,
+		duration,
+		editor as editorStore,
+		editorMode,
+		wavesurfer
+	} from '$lib/stores';
 	import { Change, ChangeSet, Span, simplifyChanges } from 'prosemirror-changeset';
 	import { _, locale } from 'svelte-i18n';
 	import { transactionsHaveChange } from '$lib/components/editor/api/transaction';
 	import LanguageSelection from './toolbar/LanguageSelection.svelte';
 	import PronounceLabel from './toolbar/PronLabel.svelte';
 	import Download from './toolbar/Download.svelte';
+	import Hotkeys from './toolbar/Hotkeys.svelte';
+	import hotkeys from 'hotkeys-js';
 
 	export let content;
 	export let fileName;
@@ -131,15 +141,36 @@
 				// console.log(editor.schema);
 			}
 		});
-		editorStore.set($editor)
+		editorStore.set($editor);
 		editorMounted.set(true);
 		let prevEditorDoc: Node = $editor.state.doc;
 		const schema = $editor.schema;
+		
+
+		hotkeys('tab', function(event, handler){
+			event.preventDefault()
+			if ($wavesurfer) {
+				$wavesurfer.playPause();
+			}
+		});
+		hotkeys('shift+tab', function(event, handler){
+			event.preventDefault()
+			if ($wavesurfer) {
+				$wavesurfer.skipBackward(5);
+			}
+		});
+		hotkeys('alt+tab', function(event, handler){
+			event.preventDefault()
+			if ($wavesurfer) {
+				$wavesurfer.skipForward(5);
+			}
+		});
 	});
 
 	onDestroy(() => {
+		hotkeys.unbind();
 		editorMounted.set(false);
-		editorStore.set(null)
+		editorStore.set(null);
 		if ($editor) {
 			$editor.destroy();
 		}
@@ -189,6 +220,12 @@
 	<div class="editor max-w-5xl">
 		{#if $editor}
 			<div class="toolbar sticky top-0 z-10 pt-1 pb-1">
+				<div class="flex items-center tooltip tooltip-bottom" data-tip={$_('editor.hotkeys.tooltip')}>
+					<label for="hotkeys-modal" class="btn btn-ghost flex  ">
+						<Icon data={keyboard} scale={1.5} />
+					</label>
+				</div>
+				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2" />
 				<div class="flex items-center">
 					<span
 						on:click={() => $editor.chain().focus().undo().run()}
@@ -217,13 +254,12 @@
 				{/if}
 				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2" />
 				<div class="flex items-center">
-					<label for="download-modal"
-							class="btn btn-link btn-sm flex"
-						>
-							<Icon data={download} scale={1} />
-							<span class="ml-1 leading-3 hidden sm:block"> {$_('file.toolbarDownload')} </span>
+					<label for="download-modal" class="btn btn-link btn-sm flex">
+						<Icon data={download} scale={1} />
+						<span class="ml-1 leading-3 hidden sm:block"> {$_('file.toolbarDownload')} </span>
 					</label>
 				</div>
+				
 			</div>
 		{/if}
 		<EditorContent editor={$editor} />
@@ -231,14 +267,15 @@
 	{#if editor && $editorMode === 2}
 		<BubbleMenu editor={$editor}>
 			<div class="flex items-center my-bubble-menu bg-base-200 shadow-md">
-				<LanguageLabel editor={editor} />
+				<LanguageLabel {editor} />
 				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2" />
-				<PronounceLabel editor={editor} />
+				<PronounceLabel {editor} />
 			</div>
 		</BubbleMenu>
 	{/if}
 	<LanguageSelection />
-	<Download></Download>
+	<Hotkeys />
+	<Download />
 </div>
 
 <style>

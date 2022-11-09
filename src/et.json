@@ -175,6 +175,14 @@
             "format": "Vali failivorming",
             "download": "Laadi alla",
             "cancel": "Tühista"
+        },
+        "hotkeys": {
+            "tooltip": "Kiirklahvid",
+            "heading": "Kiirklahvid",
+            "playPause": "Mängi / pausile",
+            "rewind": "Tagasi kerimine",
+            "skipForward": "Edasi kerimine",
+            "splitParagraph": "Tekstilõigu poolitamine"
         }
     }
 }

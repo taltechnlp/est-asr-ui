@@ -175,6 +175,14 @@
             "format": "File format",
             "download": "Download",
             "cancel": "Cancel"
+        },
+        "hotkeys": {
+            "tooltip": "Keyboard shortcuts",
+            "heading": "Keyboard shortcuts",
+            "playPause": "Play / pause",
+            "rewind": "Rewind audio",
+            "skipForward": "Skip audio forward",
+            "splitParagraph": "Split text paragraph / block"
         }
     }
 }

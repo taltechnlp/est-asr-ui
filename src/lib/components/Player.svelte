@@ -86,49 +86,55 @@
             </select>
         </div>
         <div class="flex justify-around items-center w-48 min-w-max">
-            <button class="btn btn-square control-button" on:click={seekBackward}>
-                <svg
-                    viewBox="0 0 24 24"
-                    class="h-6 w-6 border-0"
-                    fill="rgba(0, 0, 0, 0.54)"
-                    stroke="currentColor"
-                    ><path
-                        d="M15,6.485V.137L1.285,9.23l-.029.02a3,3,0,0,0,0,4.883L15,23.943V17.515l9,6.428V.057Z"
-                    /></svg
-                >
-            </button>
-            <button class="btn btn-square control-button" on:click={togglePlay}>
-                {#if !$player.playing}
+            <div class="tooltip" data-tip="Shift + Tab">
+                <button class="btn btn-square control-button" on:click={seekBackward}>
                     <svg
                         viewBox="0 0 24 24"
-                        class="h-6 w-6"
+                        class="h-6 w-6 border-0"
                         fill="rgba(0, 0, 0, 0.54)"
                         stroke="currentColor"
                         ><path
-                            d="M20.492,7.969,10.954.975A5,5,0,0,0,3,5.005V19a4.994,4.994,0,0,0,7.954,4.03l9.538-6.994a5,5,0,0,0,0-8.062Z"
+                            d="M15,6.485V.137L1.285,9.23l-.029.02a3,3,0,0,0,0,4.883L15,23.943V17.515l9,6.428V.057Z"
                         /></svg
                     >
-                {:else}
-                    <svg
-                        viewBox="0 0 24 24"
-                        class="h-6 w-6"
-                        fill="rgba(0, 0, 0, 0.54)"
-                        stroke="currentColor"
-                        ><path
-                            d="M6.5,0A3.5,3.5,0,0,0,3,3.5v17a3.5,3.5,0,0,0,7,0V3.5A3.5,3.5,0,0,0,6.5,0Z"
-                        /><path
-                            d="M17.5,0A3.5,3.5,0,0,0,14,3.5v17a3.5,3.5,0,0,0,7,0V3.5A3.5,3.5,0,0,0,17.5,0Z"
-                        /></svg
-                    >
-                {/if}
-            </button>
-            <button class="btn btn-square control-button" on:click={seekForward}>
-                <svg viewBox="0 0 24 24" class="h-6 w-6" fill="rgba(0, 0, 0, 0.54)" stroke="currentColor"
+                </button>
+            </div>
+            <div class="tooltip" data-tip="Tab">
+                <button class="btn btn-square control-button" on:click={togglePlay} class:loading="{!$player.ready}">
+                    {#if $player.ready && !$player.playing}
+                        <svg
+                            viewBox="0 0 24 24"
+                            class="h-6 w-6"
+                            fill="rgba(0, 0, 0, 0.54)"
+                            stroke="currentColor"
+                            ><path
+                                d="M20.492,7.969,10.954.975A5,5,0,0,0,3,5.005V19a4.994,4.994,0,0,0,7.954,4.03l9.538-6.994a5,5,0,0,0,0-8.062Z"
+                            /></svg
+                        >
+                    {:else if $player.ready}
+                        <svg
+                            viewBox="0 0 24 24"
+                            class="h-6 w-6"
+                            fill="rgba(0, 0, 0, 0.54)"
+                            stroke="currentColor"
+                            ><path
+                                d="M6.5,0A3.5,3.5,0,0,0,3,3.5v17a3.5,3.5,0,0,0,7,0V3.5A3.5,3.5,0,0,0,6.5,0Z"
+                            /><path
+                                d="M17.5,0A3.5,3.5,0,0,0,14,3.5v17a3.5,3.5,0,0,0,7,0V3.5A3.5,3.5,0,0,0,17.5,0Z"
+                            /></svg
+                        >
+                    {/if}
+                </button>
+            </div>
+             <div class="tooltip" data-tip="Alt + Tab">
+                 <button class="btn btn-square control-button" on:click={seekForward}>
+                    <svg viewBox="0 0 24 24" class="h-6 w-6" fill="rgba(0, 0, 0, 0.54)" stroke="currentColor"
                     ><path
-                        d="M22.74,9.25,9,.137V6.485L0,.057V23.943l9-6.428v6.428l13.741-9.811a3,3,0,0,0,0-4.882Z"
+                    d="M22.74,9.25,9,.137V6.485L0,.057V23.943l9-6.428v6.428l13.741-9.811a3,3,0,0,0,0-4.882Z"
                     /></svg
-                >
-            </button>
+                    >
+                </button>
+            </div>
         </div>
         <div class="flex justify-center items-center">
             <button class="btn btn-square btn-sm control-button mr-5" on:click={toggleMute}>

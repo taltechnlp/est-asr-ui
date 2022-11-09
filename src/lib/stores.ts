@@ -40,7 +40,8 @@ export const editorMode: Writable<EditingMode> = writable(1);
 export const wavesurfer = writable(null)
 export const player = writable({
 	playing: false,
-	muted: false
+	muted: false,
+	ready: false
 });
 export const playingTime = writable(0);
 export const duration = writable(0);
