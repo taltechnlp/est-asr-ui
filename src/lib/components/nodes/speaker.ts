@@ -3,6 +3,13 @@ import { TextSelection } from 'prosemirror-state';
 import { SvelteNodeViewRenderer } from 'svelte-tiptap';
 import { text } from 'svelte/internal';
 import SpeakerSelect from './SpeakerSelect.svelte';
+import { wavesurfer } from '$lib/stores';
+
+let ws;
+wavesurfer.subscribe(w => {
+    ws = w;
+})
+
 export interface SpeakerOptions {
 	HTMLAttributes: Record<string, any>;
 }
@@ -42,5 +49,27 @@ export const Speaker = Node.create<SpeakerOptions>({
 	},
 	addNodeView() {
 		return SvelteNodeViewRenderer(SpeakerSelect);
-	}
+	},
+	addKeyboardShortcuts() {
+		return {
+			'Tab': () => {
+				if (ws) {
+					ws.playPause();
+				}
+				return true;
+			},
+			'Shift-Tab': () => {
+				if (ws) {
+					ws.skipBackward(5);
+				}
+				return true;
+			},
+			'Alt-Tab': () => {
+				if (ws) {
+					ws.skipForward(5);
+				}
+				return true;
+			},
+		}
+	},
 });
