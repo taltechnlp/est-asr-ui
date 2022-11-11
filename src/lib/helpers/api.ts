@@ -3,6 +3,7 @@ import { prisma } from "$lib/db/client";
 import { createWriteStream } from 'fs'
 import type { TranscriberResult, FinAsrResult, FinAsrFinished, EditorContent, SectionType } from './api.d';
 import { FIN_ASR_RESULTS_URL } from '$env/static/private';
+import { spawn } from "child_process";
 
 let finToEstFormat: (sucRes: FinAsrFinished) => EditorContent = 
     function (sucRes: FinAsrFinished) {
@@ -47,7 +48,38 @@ let finToEstFormat: (sucRes: FinAsrFinished) => EditorContent =
 
         return result;
     }
-
+export const generatePeaks = async (fileId) => { 
+    const file = await prisma.file.findUnique({
+        where: {
+            id: fileId
+        }
+    })
+    let processFailed = false;
+    let peaksPath = file.path + '.json';
+    const peaksDone = new Promise((resolve, reject) => {
+        const generatePeaks = spawn('audiowaveform', ['-i', file.path, '-o', peaksPath, '--pixels-per-second', '20', '--bits', '8']);
+        generatePeaks.on('exit', function (code) {
+            console.log('generate peaks exited with code ' + code);
+            if (code === 1 || code == 2) {
+                processFailed = true;
+            }
+            resolve(true);
+        })
+    })
+    await peaksDone.catch(e => processFailed = true);
+    if (processFailed) {
+        return false;
+    }
+    const normalizeDone = new Promise((resolve, reject) => {
+        const normalize = spawn('python', ['./scripts/normalize_peaks.py', peaksPath]);
+        normalize.on('exit', function (code) {
+            console.log('normalize exited with code ' + code);
+            resolve(true);
+        })
+    })
+    await normalizeDone.catch(e => console.log(e))
+    return true;  
+}
 
 export const checkCompletion = async (fileId, externalId, path, language, uploadDir) => {
     if (language == 'est') {
@@ -87,6 +119,8 @@ export const checkCompletion = async (fileId, externalId, path, language, upload
             });
             writeStream.write(text);
             writeStream.end();
+            // Pre-generate waveform peaks 
+            await generatePeaks(fileId);
         }
         return true;
     } else {
@@ -129,8 +163,9 @@ export const checkCompletion = async (fileId, externalId, path, language, upload
             });
             writeStream.write(text);
             writeStream.end();
+            // Pre-generate waveform peaks 
+            await generatePeaks(fileId);
         }
-
         return true;
     }
 }

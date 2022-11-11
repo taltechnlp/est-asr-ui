@@ -64,7 +64,7 @@
 			backend: 'WebAudio',
 			// bargap: 1,
 			// barWidth: 3,
-			normalize: false,
+			normalize: peaks ? false : true,
 			height: 80,
 			partialRender: true,
 			responsive: true,

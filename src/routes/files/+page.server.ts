@@ -70,7 +70,9 @@ const uploadToFinnishAsr = async (pathString, filename, mimeType) => {
 	const result = await axios.post(FIN_ASR_UPLOAD_URL, form, {
 		headers: {
 			...form.getHeaders()
-		}
+		},
+        maxBodyLength: UPLOAD_LIMIT,
+        maxContentLength: UPLOAD_LIMIT 
 	});
 
 	if (result.status !== 200) {
