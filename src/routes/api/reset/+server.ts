@@ -1,30 +1,35 @@
 import type { RequestHandler } from './$types';
 import { prisma } from '$lib/db/client';
 import { error } from "@sveltejs/kit";
+import { hash } from 'bcrypt'
 
 export const POST: RequestHandler = async ({ request }) => {
-    const { password } = await request.json()
-
+    const { password, resetToken } = await request.json()
+    const hashedPassword = await hash(password, 10);
     const valid = password.length > 0;
     if (!valid) {
         throw error(401, 'password')
     }
-    const secretKey = SECRET_KEY;
-    const token = jwt.sign({ userId: user.id }, secretKey);
-    return new Response(JSON.stringify({
-        name: user.name,
-        email: user.email,
-        id: user.id
-    }), {
-        status: 201,
-        headers: {
-            'Set-Cookie': serialize('token', token, {
-                path: '/',
-                httpOnly: true,
-                sameSite: 'strict',
-                /* secure: process.env.NODE_ENV === 'production', */
-                maxAge: 1000 * 60 * 60 * 24 * 365, // one year
-            }),
-        },
+    // Find user ID
+    const user = await prisma.user.findFirst({
+        where: {
+            resetToken: {
+                equals: resetToken
+            }
+        }
     })
+    if (!user) {
+        throw error(401, 'userNotFound')
+    }
+    const result = await prisma.user.update({
+        where: {
+            id: user.id
+        },
+        data: {
+            password: hashedPassword,
+            resetToken: null,
+            resetTokenExpiry: Date.UTC(1970, 1, 1)
+        }
+    })
+    return new Response("ok")
 }
