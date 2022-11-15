@@ -33,6 +33,6 @@ model User {
   name             String
   password         String
   resetToken       String?
-  resetTokenExpiry Decimal?
-  files             File[]
+  resetTokenExpiry BigInt?
+  files            File[]
 }

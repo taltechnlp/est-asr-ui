@@ -4,11 +4,11 @@
 	export let data;
 	let error;
 
-    // console.log("token", resetToken)
 	async function handleSubmit({ detail: { password } }) {
 		const res = await fetch ("/api/reset", password, data.resetToken);
 		if (res.status === 200) {
 			const data = await res.body;
+			console.log(data)
 			window.location.href = '/signin';
 			return { props: { data } };
 		} else {
