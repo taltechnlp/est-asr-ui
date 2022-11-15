@@ -8,7 +8,6 @@
     export let form: ActionData;
     let email = '';
 	const printError = (error) => {
-
 		return $_('passwordReset.error');
 	};
 </script>

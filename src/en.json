@@ -107,15 +107,15 @@
     "toolbarRedo": "Redo",
     "toolbarDownload": "Download",
     "toolbar": {
-            "pronTooltip": "Annotate pronunciation",
-            "pron": "Pronunciation",
-            "pronPlaceholder": "Write as pronounced",
-            "internetAddress": "Is an internet address (URL)",
-            "add": "Add",
-            "cancel": "Cancel",
-            "language": "Language",
-            "languageTooltip": "Annotate language change"
-        }
+      "pronTooltip": "Annotate pronunciation",
+      "pron": "Pronunciation",
+      "pronPlaceholder": "Write as pronounced",
+      "internetAddress": "Is an internet address (URL)",
+      "add": "Add",
+      "cancel": "Cancel",
+      "language": "Language",
+      "languageTooltip": "Annotate language change"
+    }
   },
   "speakerSelect": {
     "addNew": "Add a new speaker",
@@ -156,33 +156,35 @@
     "password": "Password",
     "passwordConfirm": "Repeat password",
     "passwordsDontMatch": "Passwords do not match!",
-    "change": "Change password"
+    "change": "Change password",
+    "expired": "Password reset code has expired! Request a new one.",
+    "requestNewToken": "Return to password reset page"
   },
-   "editor": {
-        "languageCode": "Language code",
-        "languageDescription": "Language description",
-        "languageActivate": "Activate",
-        "languageAction": "Action",
-        "languageSelectionHeading": "Choose language change labels",
-        "languageSelectionDescription": "Activate only the languages that are used in the text. New languages can be added if neede.",
-        "save": "Save",
-        "edit": "Edit",
-        "addNew": "Add",
-        "download": {
-            "includeNames": "Include speaker names",
-            "heading": "Download as a file",
-            "description": "Choose the file format and content options.",
-            "format": "File format",
-            "download": "Download",
-            "cancel": "Cancel"
-        },
-        "hotkeys": {
-            "tooltip": "Keyboard shortcuts",
-            "heading": "Keyboard shortcuts",
-            "playPause": "Play / pause",
-            "rewind": "Rewind audio",
-            "skipForward": "Skip audio forward",
-            "splitParagraph": "Split text paragraph / block"
-        }
+  "editor": {
+    "languageCode": "Language code",
+    "languageDescription": "Language description",
+    "languageActivate": "Activate",
+    "languageAction": "Action",
+    "languageSelectionHeading": "Choose language change labels",
+    "languageSelectionDescription": "Activate only the languages that are used in the text. New languages can be added if neede.",
+    "save": "Save",
+    "edit": "Edit",
+    "addNew": "Add",
+    "download": {
+      "includeNames": "Include speaker names",
+      "heading": "Download as a file",
+      "description": "Choose the file format and content options.",
+      "format": "File format",
+      "download": "Download",
+      "cancel": "Cancel"
+    },
+    "hotkeys": {
+      "tooltip": "Keyboard shortcuts",
+      "heading": "Keyboard shortcuts",
+      "playPause": "Play / pause",
+      "rewind": "Rewind audio",
+      "skipForward": "Skip audio forward",
+      "splitParagraph": "Split text paragraph / block"
     }
+  }
 }
