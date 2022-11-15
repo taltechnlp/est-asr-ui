@@ -34,5 +34,5 @@ model User {
   password         String
   resetToken       String?
   resetTokenExpiry BigInt?
-  files            File[]
+  files             File[]
 }
