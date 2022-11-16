@@ -8,6 +8,7 @@ import { invalid, error, redirect } from '@sveltejs/kit';
 import { SECRET_UPLOAD_DIR, FIN_ASR_UPLOAD_URL } from '$env/static/private';
 import { existsSync, mkdirSync, statSync, unlinkSync} from 'fs';
 import type { FinUploadResult } from "$lib/helpers/api.d";
+import { promises as fs } from 'fs';
 import axios from 'axios';
 import Form from 'form-data';
 
@@ -75,13 +76,13 @@ const uploadToFinnishAsr = async (pathString, filename, mimeType) => {
         maxContentLength: UPLOAD_LIMIT 
 	});
 
-	if (result.status !== 200) {
-		unlinkSync(pathString); // delete the file
+    if (result.status !== 200) {
+        await fs.unlink(pathString);
 		throw error(result.status, result.statusText);
 	}
 	const body = result.data as FinUploadResult;
 	if (body.error) {
-		unlinkSync(pathString); // delete the file
+		await fs.unlink(pathString);
 		throw error(result.status, result.statusText);
 	}
 	return { jobid: body.jobid };
@@ -109,7 +110,7 @@ const uploadToTranscriber = async (pathString, filename) => {
     if (!result.ok) {
         const body = (await result.json()) as { error: TranscriberError };
         console.log(body.error.code, body.error.message, body.error.log)
-        unlinkSync(pathString); // delete the file
+        await fs.unlink(pathString);
         throw error(result.status, body.error.message)
     }
 

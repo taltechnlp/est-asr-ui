@@ -22,8 +22,24 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
             console.log('file', fileExists)
             if (fileExists) {
                 let failed = false;
+                const wavPath = file.path + '.wav';
+                // ffmpeg - i!{ audio_file } -f sox - | sox - t sox - -c 1 - b 16 - t wav audio.wav rate - v 16k
+                const toWav = new Promise((resolve, reject) => {
+                    const ffmpeg = spawn('ffmpeg', ['-i', file.path,  wavPath] );
+                    ffmpeg.on('exit', function (code) {
+                        console.log('ffmpeg finished with ' + code);
+                        if (code === 1 || code == 2) {
+                            failed = true;
+                        }
+                        resolve(true);
+                    })
+                })
+                await toWav.catch(e => failed = true);
+                if (failed) {
+                    return false;
+                }
                 const peaksDone = new Promise((resolve, reject) => {
-                    const generatePeaks = spawn('audiowaveform', ['-i', file.path, '-o', peaksPath, '--pixels-per-second', '20', '--bits', '8']);
+                    const generatePeaks = spawn('audiowaveform', ['-i', wavPath, '-o', peaksPath, '--pixels-per-second', '20', '--bits', '8']);
                     generatePeaks.on('exit', function (code) {
                         console.log('generate peaks exited with code ' + code);
                         if (code === 1 || code == 2) {
@@ -36,6 +52,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
                     peaksExist = false;
                     console.log(e);
                 })
+                await fs.unlink(wavPath);
                 if (failed) {
                     return {
                         file: {
