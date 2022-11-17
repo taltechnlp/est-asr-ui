@@ -61,7 +61,7 @@
 			waveColor: 'violet',
 			progressColor: 'purple',
 			autoCenter: true,
-			backend: 'WebAudio',
+			backend: 'MediaElementWebAudio',
 			// bargap: 1,
 			// barWidth: 3,
 			normalize: peaks ? false : true,
