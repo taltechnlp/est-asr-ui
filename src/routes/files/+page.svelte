@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { files as filesStore } from '$lib/stores';
-	import { goto, invalidateAll } from '$app/navigation';
-	import { onMount, onDestroy } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { onDestroy } from 'svelte';
 	import { _ } from 'svelte-i18n';
 	import { toTime } from './helpers';
 	import { browser } from '$app/environment';
-	import type { ActionData, PageData } from './$types';
+	import type { PageData } from './$types';
 	import type { ActionResult } from '@sveltejs/kit';
-	import { applyAction, enhance } from '$app/forms';
+	import { applyAction } from '$app/forms';
 
 	let error = '';
 	export let data: PageData;
@@ -15,7 +15,7 @@
 	let loading = false;
 	let upload;
 	let languageChoices = [
-		{ id: 0, text: 'estonian'},
+		{ id: 0, text: 'estonian' },
 		{ id: 1, text: 'finnish' }
 	];
 	let selectedLanguage = languageChoices[0];

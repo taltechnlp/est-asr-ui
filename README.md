@@ -12,7 +12,7 @@ For speech recognition the [https://tekstiks.ee](https://tekstiks.ee) service ma
 
 Npm packages can be downloaded using the command `npm install`. It will install all the dependencies defined in the file `package.json`.
 
-In order to configure the system, a `.env` file must be created, an example is provided. AMong other parameters it contains a database connection string.
+In order to configure the system, a `.env` file must be created, an example is provided. Among other parameters it contains a database connection string.
 
 The database should be installed locally or via a Docker container. A docker-compose file is provided and should then be put into daemon mode with the command:
 `docker-compose up -d`
@@ -23,7 +23,7 @@ Prisma is able to generate an API to interact with the database. After the initi
 
 `npx prisma generate`
 
-The audio player consumes much less memory if the soundwave is generated server-side. For this `python` and `audiowaveform` have to be available in path as both are executed. Instructions for installing Audiowaveform: https://github.com/bbc/audiowaveform . 
+The audio player consumes much less memory if the soundwave is generated server-side. For this `python`, `ffmpeg` and `audiowaveform` have to be available in path as both are executed. Instructions for installing Audiowaveform: https://github.com/bbc/audiowaveform . 
 
 Node LTS versions can be used only. 16.x and 18.x have been tested. 
 
