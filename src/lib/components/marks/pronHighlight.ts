@@ -16,11 +16,11 @@ import {
         /**
          * Set a highlight mark
          */
-        setPronHighlight: (attributes?: { color: string, annolabel: string, annovalue: string, }) => ReturnType,
+        setPronHighlight: (attributes?: { id: string, color: string, annolabel: string, annovalue: string, class: string}) => ReturnType,
         /**
          * Toggle a highlight mark
          */
-        togglePronHighlight: (attributes?: { color: string, annolabel: string, annovalue: string, }) => ReturnType,
+        togglePronHighlight: (attributes?: { id: string, color: string, annolabel: string, annovalue: string, class: string}) => ReturnType,
         /**
          * Unset a highlight mark
          */
@@ -44,6 +44,8 @@ import {
         },
       }
     },
+
+    priority: 900, 
   
     addAttributes() {
       if (!this.options.multicolor) {
@@ -51,6 +53,7 @@ import {
       }
   
       return {
+        id: {},
         color: {
           default: null,
           parseHTML: element => element.getAttribute('data-color') || element.style.backgroundColor,
@@ -61,7 +64,7 @@ import {
   
             return {
               'data-color': attributes.color,
-              style: `background-color: ${attributes.color}; color: inherit`,
+              style: `border-color: ${attributes.color};`,
             }
           },
         },
@@ -72,7 +75,8 @@ import {
             return {annolabel: attributes.annolabel}
           }
         },
-        annovalue: {}
+        annovalue: {},
+        class: {}
       }
     },
   

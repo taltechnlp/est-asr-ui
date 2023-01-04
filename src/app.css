@@ -44,25 +44,29 @@
 }
 
 .pron-label {
+	display: inline-flex;
+	align-items: center;
 	position: relative;
-	line-height: 2.5;
-}
-
-.pron-label::before {
-	position: absolute;
-	display: inline-block;
-	top: -20px;
-	font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
-	font-weight: bold;
-	font-size: small;
-	content: attr(annovalue);
-	color: inherit;
-	margin-right: -25px;
+	border-width: 2px;
+	border-color: blue;
+	border-style: dotted;
+	background-color: white;
 }
 
 .pron-label::after {
 	font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
 	font-size: small;
-	content: ' (pron)';
+	content: attr(annovalue);
 	color: inherit;
+	margin-left: 2px;
+	margin-right: 2px;
+}
+
+mark > .lang-label {
+	line-height: normal;
+	margin-top: 10px;
+	margin-bottom: 10px;
+}
+mark > .lang-label::before {
+	top: -11px;
 }

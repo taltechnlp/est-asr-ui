@@ -5,6 +5,7 @@
     "title": "Home | teksiks.ee",
     "headerTitle": "Home",
     "headerFiles": "Files",
+    "headerDictate": "Dictate",
     "headerDemo": "Demo",
     "login": "Log in",
     "heroHeader": "Speech recognition: speech to text",

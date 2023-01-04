@@ -5,41 +5,33 @@
 	import Document from '@tiptap/extension-document';
 	import { LabelHighlight } from '../marks/labelHighlight';
 	import { PronHighlight } from '../marks/pronHighlight';
-	// import Paragraph from '@tiptap/extension-paragraph';
-	// import Heading from '@tiptap/extension-heading';
-	import { Editor, EditorContent, FloatingMenu, BubbleMenu, createEditor } from 'svelte-tiptap';
+	import { Editor, EditorContent, /* FloatingMenu,  */BubbleMenu, createEditor } from 'svelte-tiptap';
 	import type { Readable } from 'svelte/store';
 	import Text from '@tiptap/extension-text';
 	import DropCursor from '@tiptap/extension-dropcursor';
 	import GapCursor from '@tiptap/extension-gapcursor';
 	import TextStyle from '@tiptap/extension-text-style';
-
-	/* import StarterKit from '@tiptap/starter-kit'; */
-	// import type {Readable} from 'svelte/store'
 	import History from '@tiptap/extension-history';
 	import { Speaker } from '../nodes/speaker';
 	import { Word } from '../marks/word';
 	import { WordColor } from '../plugins/wordColor';
+	import { Annotation } from '../plugins/annotation';
 	import Icon from 'svelte-awesome/components/Icon.svelte';
 	import rotateLeft from 'svelte-awesome/icons/rotate-left';
 	import rotateRigth from 'svelte-awesome/icons/rotate-right';
 	import download from 'svelte-awesome/icons/download';
-	import thumbTack from 'svelte-awesome/icons/thumb-tack';
+	/* import thumbTack from 'svelte-awesome/icons/thumb-tack';
 	import bookmarkO from 'svelte-awesome/icons/bookmark-o';
 	import info from 'svelte-awesome/icons/info';
 	import fileWordO from 'svelte-awesome/icons/file-word-o';
 	import fileCodeO from 'svelte-awesome/icons/file-code-o';
 	import stickyNoteO from 'svelte-awesome/icons/sticky-note-o';
-	import ellipsisH from 'svelte-awesome/icons/ellipsis-h';
-	import keyboard from 'svelte-awesome/icons/keyboard-o';
-
-	import LanguageLabel from './toolbar/LanguageLabel.svelte';
-
 	import language from 'svelte-awesome/icons/language';
-
+	import ellipsisH from 'svelte-awesome/icons/ellipsis-h'; */
+	import keyboard from 'svelte-awesome/icons/keyboard-o';
+	import LanguageLabel from './toolbar/LanguageLabel.svelte';
 	import debounce from 'lodash/debounce';
 	import {
-		speakerNames,
 		editorMounted,
 		duration,
 		editor as editorStore,
@@ -54,6 +46,8 @@
 	import Download from './toolbar/Download.svelte';
 	import Hotkeys from './toolbar/Hotkeys.svelte';
 	import hotkeys from 'hotkeys-js';
+	// import { Dictate, Transcription } from '$lib/helpers/dictate.js/dictate';
+	import { getMedia } from '$lib/helpers/est_dictate/dictate';
 
 	export let content;
 	export let fileName;
@@ -93,6 +87,7 @@
 				History,
 				Word,
 				WordColor,
+			/* 	Annotation, */
 				Speaker,
 				LabelHighlight.configure({
 					HTMLAttributes: {
@@ -102,7 +97,7 @@
 				}),
 				PronHighlight.configure({
 					HTMLAttributes: {
-						class: 'pron-label',
+						/* class: 'pron-label', */
 						multicolor: true
 					}
 				})
@@ -121,6 +116,7 @@
                       }
                     }, */
 			},
+
 			content: content,
 
 			onTransaction: ({ editor, transaction }) => {
@@ -186,8 +182,159 @@
 		}
 		return true;
 	}
-
 	$: isActive = (name, attrs = {}) => $editor.isActive(name, attrs);
+	let recognition;
+	try {
+		let SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+		recognition = new SpeechRecognition();
+		let recordingText = `Press the Play button to Start recording.`; // use this in HTML
+		//recognition.continuous - If false, the recording will stop after a few seconds of silence.
+		// When true, the silence period is longer (about 15 seconds)
+		recognition.continuous = true;
+
+		// onresult called every time the Speech API captures Voice.
+		recognition.onresult = function(event) {
+			console.log('siin')
+			let current = event.resultIndex;
+
+		// Get a transcript of what was said.
+			console.log(event.results[current])
+			let transcript = event.results[current][0].transcript;
+			console.log(transcript);
+		};
+
+		// Trigger on start
+		recognition.onstart = function() {
+		// setting the text to inform user about the action
+			recordingText =
+			"Voice recognition Started. Try speaking into the microphone.";
+		};
+		// Trigger on end
+		recognition.onspeechend = function() {
+		// setting the text to inform user about the action
+			recordingText = "Voice recognition turned off.";
+		};
+		// Trigger on error
+		recognition.onerror = function(event) {
+			if (event.error == "no-speech") {
+		// setting the text to inform user about the action
+			recordingText = "No Voice was detected. Try again.";
+			}
+		};
+	} catch (e) {
+		console.error(e);
+	}
+	getMedia().then(()=>console.log("done"));
+	/* var tt = new Transcription({});
+
+	let disabled = false;
+	let status = "";
+	let serverStatus = "";
+	let transcript = "";
+
+	var dictate = new Dictate({
+		server : "wss://bark.phon.ioc.ee:8443/dev/duplex-speech-api/ws/speech",
+		serverStatus : "wss://bark.phon.ioc.ee:8443/dev/duplex-speech-api/ws/status",
+		recorderWorkerPath : '../lib/recorderWorker.js',
+		onReadyForSpeech : function() {
+			__message("READY FOR SPEECH", {});
+			__status("Kuulan ja transkribeerin...");
+		},
+		onEndOfSpeech : function() {
+			__message("END OF SPEECH", {});
+			__status("Transkribeerin...");
+		},
+		onEndOfSession : function() {
+			__message("END OF SESSION", {});
+			__status("");
+		},
+		onServerStatus : function(json) {
+			__serverStatus(json.num_workers_available + ':' + json.num_requests_processed);
+			if (json.num_workers_available == 0) {
+				disabled = true;
+			} else {
+				disabled = false;
+			}
+		},
+		onPartialResults : function(hypos) {
+			// TODO: demo the case where there are more hypos
+			tt.add(hypos[0].transcript, false);
+			__updateTranscript(tt.toString());
+		},
+		onResults : function(hypos) {
+			// TODO: demo the case where there are more results
+			tt.add(hypos[0].transcript, true);
+			__updateTranscript(tt.toString());
+		},
+		onError : function(code, data) {
+			__error(code, data);
+			__status("Viga: " + code);
+			dictate.cancel();
+		},
+		onEvent : function(code, data) {
+			__message(code, data);
+		}
+	});
+
+	// Private methods (called from the callbacks)
+	function __message(code, data) {
+		console.log("msg: " + code + ": " + (data || '') + "\n");
+	}
+
+	function __error(code, data) {
+		console.log("ERR: " + code + ": " + (data || '') + "\n");
+	}
+
+	function __status(msg) {
+		status = msg;
+	}
+
+	function __serverStatus(msg) {
+		serverStatus = msg;
+	}
+
+	function __updateTranscript(text) {
+		transcript = text;
+	}
+
+	// Public methods (called from the GUI)
+	function toggleLog() {
+
+	}
+	function clearLog() {
+
+	}
+
+	function clearTranscription() {
+		tt = new Transcription({});
+		transcript = "";
+	}
+
+	function startListening() {
+		dictate.startListening();
+	}
+
+	function stopListening() {
+		dictate.stopListening();
+	}
+
+	function cancel() {
+		dictate.cancel();
+	}
+
+	function init() {
+		dictate.init();
+	}
+
+	function showConfig() {
+		var pp = JSON.stringify(dictate.getConfig(), undefined, 2);
+		console.log(pp + "\n");
+	}
+
+	window.onload = function() {
+		init();
+	}; */
+	
 </script>
 
 <div class="w-full fixed top-2 left-0 right-0 flex justify-center z-20" />
@@ -227,6 +374,40 @@
 				</div>
 				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2" />
 				<div class="flex items-center">
+					{#if recognition}
+					<span
+						on:click={() => recognition.start()}
+						class:disabled={!$editor.can().undo()}
+						style="color: rgb(48, 49, 51);"
+						class="ml-6 tooltip tooltip-bottom cursor-pointer"
+						data-tip={$_('file.toolbarUndo')}
+					>
+						start
+					</span>
+					<span
+						on:click={() => recognition.stop()}
+						class:disabled={!$editor.can().undo()}
+						style="color: rgb(48, 49, 51);"
+						class="ml-6 tooltip tooltip-bottom cursor-pointer"
+						data-tip={$_('file.toolbarUndo')}
+					>
+						stop
+					</span>
+					{/if}
+					<div class="controls">
+						<button
+							id="buttonStart"
+							on:click={()=>startListening()}
+							title="Starts listening for speech, i.e. starts recording and transcribing.">Start</button>
+						<button
+							id="buttonStop"
+							on:click={()=>stopListening()}
+							title="Stops listening for speech. Speech captured so far will be recognized as if the user had stopped speaking at this point. Note that in the default case, this does not need to be called, as the speech endpointer will automatically stop the recognizer listening when it determines speech has completed.">Stopp</button>
+						<button
+							id="buttonCancel"
+							on:click={()=>cancel()}
+							title="Cancels the speech recognition.">Katkesta</button>
+					</div>
 					<span
 						on:click={() => $editor.chain().focus().undo().run()}
 						class:disabled={!$editor.can().undo()}
@@ -285,10 +466,7 @@
 	.editor {
 		box-shadow: rgb(0 0 0 / 9%) 0px 4px 4px 4px;
 	}
-	button.active {
-		background: black;
-		color: white;
-	}
+
 	.toolbar {
 		display: flex;
 		justify-content: space-around;
@@ -304,12 +482,4 @@
 		border-radius: var(--rounded-box, 0.5rem);
 	}
 
-	.toolbar > button {
-		background-color: -internal-light-dark(rgb(239, 239, 239), rgb(59, 59, 59));
-		margin: 0 0.5rem;
-		padding: 1px 6px;
-		border-width: 2px;
-		border-style: outset;
-		border-color: -internal-light-dark(rgb(118, 118, 118), rgb(133, 133, 133));
-	}
 </style>

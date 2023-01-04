@@ -5,6 +5,7 @@
         "title": "Kotisivu | teksiks.ee",
         "headerTitle": "Kotisivu",
         "headerFiles": "Tiedostot",
+        "headerDictate": "Sanele",
         "headerDemo": "Demo",
         "login": "Kirjaudu sisään",
         "heroHeader": "Puheentunnistus: puheesta tekstiksi",

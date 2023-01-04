@@ -37,6 +37,8 @@ export const LabelHighlight = Mark.create<LabelHighlightOptions>({
 
   marks: '_',
 
+  priority: 100,
+
   addOptions() {
     return {
       multicolor: true,

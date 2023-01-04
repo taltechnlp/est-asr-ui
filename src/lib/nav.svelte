@@ -71,6 +71,12 @@
 					>
 						{$_('index.headerFiles')}
 					</a>
+					<a
+						href="/dictate"
+						class="btn btn-ghost btn-md rounded-btn {path == '/dictate' ? 'text-orange-600' : ''}"
+					>
+						{$_('index.headerDictate')}
+					</a>
 				{/if}
 				<a
 					href="/demo"

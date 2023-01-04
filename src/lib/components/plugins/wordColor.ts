@@ -36,7 +36,7 @@ export const WordColor = Extension.create({
                                 return {
                                     set: DecorationSet.create(tr.doc, [
                                         Decoration.inline(0, node.startPos - 1, { style: "color: #9b9b9b" }),
-                                        Decoration.inline(node.startPos, node.endPos, { style: "color: #70acc7" })
+                                        Decoration.inline(node.startPos, node.endPos, { style: "color: #70acc7" }),
                                     ]),
                                     lastPos: node.startPos,
                                     posMap: state.posMap
