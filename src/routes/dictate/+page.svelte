@@ -3,6 +3,7 @@
 	import { _ } from 'svelte-i18n';
 	import { onMount, onDestroy } from 'svelte';
 	import microphone from 'svelte-awesome/icons/microphone';
+	import stop from 'svelte-awesome/icons/stop';
 	import microphoneSlash from 'svelte-awesome/icons/microphone-slash';
 	import Icon from 'svelte-awesome/components/Icon.svelte';
 	import { message } from './testMessage';
@@ -37,33 +38,38 @@
 	let stopButton;
 	let startButton;
 	let mediaRecorder;
-	type RecorderStates = "recording" | "stopped" | "error";
+	type RecorderStates = 'recording' | 'stopped' | 'error';
 	let recorderState: RecorderStates;
-	const Permissions = ["granted", "prompt", "denied", "unsupported"] as const;
+	const Permissions = ['granted', 'prompt', 'denied', 'unsupported'] as const;
 	type Permission = typeof Permissions[number];
 	let microphonePermission: Permission = 'unsupported';
 	let ws;
 	let workerAvaiable = true;
+	let numWorkersAvailable: number;
 	let log,
 		statusBar,
-		transcription, serverStatusBar = '';
-	
+		transcription,
+		serverStatusBar = '';
+
 	let tt;
 	let dictate;
 
+	let iconHover = false;
+	const handleHover = () => (iconHover = true);
+
 	const MESSAGE_CODES = {
-		11: "Stopped recording"
-	}
+		11: 'Stopped recording'
+	};
 
 	// Private methods (called from the callbacks)
 	function __message(code, data) {
 		log = 'msg: ' + code + ': ' + (data || '') + '\n' + log;
-		if (code == 2) recorderState = "stopped";
+		if (code == 2) recorderState = 'stopped';
 	}
 
 	function __error(code, data) {
 		log = 'ERR: ' + code + ': ' + (data || '') + '\n' + log;
-		recorderState = "error"
+		recorderState = 'error';
 	}
 
 	function __status(msg) {
@@ -122,7 +128,7 @@
 			onReadyForSpeech: function () {
 				__message('READY FOR SPEECH');
 				__status('Kuulan ja transkribeerin...');
-				recorderState = "recording";
+				recorderState = 'recording';
 			},
 			onEndOfSpeech: function () {
 				__message('END OF SPEECH');
@@ -131,14 +137,12 @@
 			onEndOfSession: function () {
 				__message('END OF SESSION');
 				__status('');
+				recorderState = 'stopped';
 			},
 			onServerStatus: function (json) {
+				console.log('json', json);
 				__serverStatus(json.num_workers_available + ':' + json.num_requests_processed);
-				if (json.num_workers_available == 0) {
-					workerAvaiable = false;
-				} else {
-					workerAvaiable = true;
-				}
+				numWorkersAvailable = json.num_workers_available;
 			},
 			onPartialResults: function (hypos) {
 				// TODO: demo the case where there are more hypos
@@ -157,11 +161,16 @@
 			},
 			onEvent: function (code, data) {
 				__message(code, data);
+				console.log('onEvent', code);
+				if (code == 11) recorderState = 'stopped';
+				else if (code == 3) {
+					dictate.startListening();
+				}
 			}
 		});
 		dictate.init();
 	}
-	
+
 	const checkMicPermission = () => {
 		navigator.permissions
 			.query({ name: 'microphone' })
@@ -179,30 +188,23 @@
 				};
 			})
 			.catch((e) => (microphonePermission = 'unsupported'));
-	}
-	checkMicPermission()
+	};
+	checkMicPermission();
 	$: console.log(microphonePermission);
-	const startRecorder = async () => { 
+	const startRecorder = async () => {
 		if (!dictate) initializeStream();
+		else {
+			dictate.startListening();
+		}
 	};
 	const stopRecorder = () => {
 		dictate.stopListening();
-		recorderState = "stopped";
+		recorderState = 'stopped';
 	};
-	const pauseRecorder = () => {
-		mediaRecorder.pause();
-		recorderState = mediaRecorder.state;
-		console.log(recorderState);
-	};
-	const resumeRecorder = () => {
-		mediaRecorder.resume();
-		recorderState = mediaRecorder.state;
-		console.log(recorderState);
-	};
-
-	onMount(async () => {
-		
-	});
+	$: if (recorderState === 'stopped') {
+		const recorder = dictate.getRecorder();
+		console.log(recorder, dictate);
+	}
 </script>
 
 <svelte:head>
@@ -211,65 +213,55 @@
 
 <div class="grid w-full justify-center grid-cols-[minmax(320px,_640px)] m-1">
 	<h2 class="text-xl mb-10 font-extrabold mt-6">Dikteeri</h2>
-	<div class="controls">
-		<button
-			id="buttonStart"
-			on:click={startListening}
-			title="Starts listening for speech, i.e. starts recording and transcribing.">Start</button
-		>
-		<button
-			id="buttonStop"
-			on:click={stopListening}
-			title="Stops listening for speech. Speech captured so far will be recognized as if the user had stopped speaking at this point. Note that in the default case, this does not need to be called, as the speech endpointer will automatically stop the recognizer listening when it determines speech has completed."
-			>Stopp</button
-		>
-		<button id="buttonCancel" on:click={cancel} title="Cancels the speech recognition."
-			>Katkesta</button
-		>
-	</div>
-	<a bind:this={downloadLink} id="download">Download</a>
-	<div class="mt-10">
+	<div class="flex justify-center">
 		{#if recorderState === 'recording'}
-			<button on:click={stopRecorder} class="btn btn-outline pulsate" id="stop"
-				><Icon style="color:red;" data={microphone} scale={1} />recording</button
+			<button class="pulsate" on:click={stopRecorder} id="stop"
+				><Icon style="color:red;" data={microphone} scale={7} /></button
 			>
 		{:else if microphonePermission === 'denied'}
-			<label for="denied-modal" class="btn btn-outline"
-				><Icon data={microphoneSlash} scale={1} />denied</label
-			>
+			<label for="denied-modal" class=""><Icon data={microphoneSlash} scale={7} /></label>
 		{:else if microphonePermission === 'granted' || 'unsupported'}
-			<button on:click={startRecorder} class="btn btn-outline" id="start"
-				><Icon data={microphone} scale={1} />granted</button
+			<button on:click={startRecorder} class="hover:scale-110" id="start"
+				><Icon data={microphone} scale={7} /></button
 			>
 		{:else}
-			<label for="permission-modal" class="btn btn-outline"
-				><Icon data={microphone} scale={1} />bla</label
+			<label for="permission-modal" class="hover:scale-110"
+				><Icon data={microphone} scale={7} />bla</label
 			>
 		{/if}
 	</div>
-	<div class="controls">
-		<button on:click={init} title="Request access to the microphone">Init</button>
-
-		<button on:click={showConfig} title="Show the configuration of the Dictate object">Config</button
-		>
-
-		<button on:click={clearLog} title="Clear the log">Clear log</button>
+	<div class="flex justify-center">
+		{#if numWorkersAvailable > 0}
+			<div class="badge badge-accent mt-2">
+				{numWorkersAvailable} vaba ühendust
+			</div>
+		{:else if numWorkersAvailable == 0 && recorderState !== 'recording'}
+			<div class="badge badge-warning mt-2">Ühtegi ühendust pole saadaval!</div>
+		{/if}
 	</div>
-
-	<hr />
 	<textarea
 		contenteditable="true"
 		bind:textContent={transcription}
 		name="transcription"
 		rows="8"
 		cols="80"
+		class="mt-2"
 	/>
-	<hr />
+	<div class="mt-4 flex justify-center">
+		<button on:click={init} class="btn mr-1" title="Request access to the microphone"
+			>Laadi heli alla</button
+		>
+
+		<button
+			on:click={showConfig}
+			class="btn btn-ghost"
+			title="Show the configuration of the Dictate object">Salvesta kontole</button
+		>
+
+		<button on:click={clearLog} title="Clear the log">Clear log</button>
+	</div>
 	<pre contenteditable="true" bind:textContent={log} />
 	<div contenteditable="true" bind:textContent={statusBar} />
-
-
-
 </div>
 <input type="checkbox" id="permission-modal" class="modal-toggle" />
 <div class="modal modal-bottom sm:modal-middle">
