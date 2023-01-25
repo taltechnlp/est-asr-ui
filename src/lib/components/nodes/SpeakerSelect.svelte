@@ -69,7 +69,7 @@
 		let startTime = null;
 		do {
 			node = state.doc.nodeAt(startPos + i);
-			if (node && node.marks.length > 0) {
+			if (node && node.marks && node.marks && node.marks.length > 0) {
 				for (let j = 0; j < node.marks.length; j++) {
 					// @ts-ignore
 					if (node.marks[0].attrs.start) {
@@ -101,6 +101,8 @@
 		return node.content.content &&
 			node.content.content[0] &&
 			node.content.content[0].marks &&
+			node.content.content[0].marks[0] &&
+			node.content.content[0].marks[0].attrs &&
 			node.content.content[0].marks[0].attrs.start
 			? node.content.content[0].marks[0].attrs.start
 			: -1;

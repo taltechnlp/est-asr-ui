@@ -3,7 +3,11 @@
 	import Player from '$lib/components/Player.svelte';
 	import { fromDelta } from '$lib/helpers/converters/deltaFormat';
 	import { fromEstFormat } from '$lib/helpers/converters/estFormat';
-	import { speakerNames as speakerNamesStore, words as wordsStore, editorMounted } from '$lib/stores';
+	import {
+		speakerNames as speakerNamesStore,
+		words as wordsStore,
+		editorMounted
+	} from '$lib/stores';
 	import type { Word, Speaker } from '$lib/helpers/converters/types';
 	export let data;
 	let words: Array<Word> = [];
@@ -22,18 +26,23 @@
 	else if (json && !json.type) {
 		content = fromEstFormat(json);
 		({ transcription, words, speakers } = content);
-	} 
+	}
 	// Already in Editor format
 	else if (json && json.content) {
 		json.content.forEach((node) => {
 			const start =
-				node.content && node.content[0].marks && node.content[0].marks[0].attrs.start
+				node.content &&
+				node.content[0] &&
+				node.content[0].marks &&
+				node.content[0].marks[0] &&
+				node.content[0].marks[0].attrs &&
+				node.content[0].marks[0].attrs.start
 					? node.content[0].marks[0].attrs.start
 					: -1;
 			speakers.push({ name: node.attrs['data-name'], id: node.attrs.id, start });
 			if (node.content) {
 				node.content.forEach((inlineNode) => {
-					if (inlineNode.type === 'text' && inlineNode.marks.length > 0) {
+					if (inlineNode.type === 'text' && inlineNode.marks && inlineNode.marks.length > 0) {
 						inlineNode.marks.forEach((mark) => {
 							if (mark.type == 'word') {
 								words.push({ start: mark.attrs.start, end: mark.attrs.end, id: mark.attrs.id });
@@ -47,12 +56,18 @@
 	} else transcription = json; // empty editor;
 	editorMounted.set(false);
 	speakerNamesStore.set(speakers);
-	wordsStore.set(words)
+	wordsStore.set(words);
 </script>
 
 <main class="grid grid-rows-[1fr_auto] content-between">
 	<div class="self-stretch h-full mb-96">
-		<Tiptap content={transcription} fileId={data.file.id} demo={false} fileName={data.file.name} uploadedAt={data.file.uploadedAt}/>
+		<Tiptap
+			content={transcription}
+			fileId={data.file.id}
+			demo={false}
+			fileName={data.file.name}
+			uploadedAt={data.file.uploadedAt}
+		/>
 		<Player url={`${data.url}/uploaded/${data.file.id}`} peaks={data.peaks} />
 	</div>
 </main>
