@@ -139,3 +139,30 @@ export type FinUploadResult = {
     jobid?: string;
     error?: string;
 }
+
+export type EstUploadResult = {
+    success: boolean;
+    requestId?: string;
+    msg?: string;
+}
+
+export type EstProgress = {
+    done: boolean;
+    requestId: string;
+    progressPercentage?: number;
+    jobStatus?: string;
+    currentTaskNumber?: string;
+    currentTaskName?: string;
+    currentTaskStatus?: string;
+    totalJobsQueued?: number;
+    totalJobsStarted?: number;
+    success?: boolean;
+    errorCode?: number;
+}
+
+export type EstResult = {
+    requestId: string;
+    done: boolean;
+    success?: boolean;
+    errorCode?: number;
+} | EditorContent;
