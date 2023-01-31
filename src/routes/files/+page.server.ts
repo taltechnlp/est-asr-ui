@@ -268,7 +268,7 @@ export const actions: Actions = {
         })
         console.log("Upload saved to DB", uploadedFile)
         return { success: true , file: fileData };
-    }
+    },
     uploadEst2: async ({locals, request}) => {
         if (!locals.userId) {
             throw error(401, "notSignedIn")
