@@ -5,7 +5,7 @@
 	import { _ } from 'svelte-i18n';
 	import { toTime } from './helpers';
 	import { browser } from '$app/environment';
-	import type { PageData } from './$types';
+	import type { PageData } from '../../files/$types';
 	import type { ActionResult } from '@sveltejs/kit';
 	import { applyAction } from '$app/forms';
 
@@ -100,9 +100,9 @@
 		}
 	};
 
-	function openFile(fileId, fileState) {
+	function openFile(fileId, fileState, userId) {
 		if (fileState == 'READY') {
-			goto(`/files/${fileId}`);
+			goto(`/admin/files/${fileId}?user=${userId}`);
 		}
 	}
 	let donePolling;
@@ -133,13 +133,28 @@
 			donePolling = true;
 		}
 	});
+	let users = data.users;
+	let selectedUser;
+
+	$: console.log(selectedUser);
+	const handleUserChange = (u) => {};
 </script>
 
 <svelte:head>
 	<title>{$_('files.title')}</title>
 </svelte:head>
 <div class="grid w-full justify-center grid-cols-[minmax(320px,_1280px)] overflow-x-auto">
-	<div class="flex justify-end max-w-screen-2xl">
+	<div class="flex justify-end  max-w-screen-2xl items-end gap-2 mt-5 mb-2 ">
+		<form method="POST" action="?/switchUser" class="">
+			<select bind:value={selectedUser} name="user" class="select w-full">
+				{#each users as user}
+					<option value={user.id}>
+						{user.email}
+					</option>
+				{/each}
+			</select>
+			<button formaction="?/switchUser" disabled={!selectedUser} class="btn"> View </button>
+		</form>
 		<label for="file-upload" class="btn btn-primary gap-2 mt-5 mb-2 modal-button right">
 			{$_('files.uploadButton')}
 			<svg
@@ -171,7 +186,7 @@
 				{#each $filesStore as file, index}
 					<tr
 						class="{file.state == 'READY' ? 'cursor-pointer' : ''} hover"
-						on:click={() => openFile(file.id, file.state)}
+						on:click={() => openFile(file.id, file.state, selectedUser)}
 					>
 						<th>{index + 1}</th>
 						<td class="">
@@ -197,7 +212,6 @@
 							{#if file.state == 'READY'}
 								<button class="btn btn-outline btn-xs">{$_('files.openButton')}</button>
 							{/if}
-
 							<label
 								for="del-file-modal"
 								class="btn btn-outline btn-xs"
