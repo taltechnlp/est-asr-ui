@@ -12,6 +12,10 @@
 	let error = '';
 	export let data: PageData;
 	filesStore.set(data.files);
+	let users = data.users;
+	let selectedUser;
+	let currentUser = data.currentUser;
+
 	let loading = false;
 	let upload;
 	let languageChoices = [
@@ -81,9 +85,9 @@
 		}
 		loading = false;
 		uploadModalOpen = false;
-		const files = await fetch('/api/files');
+		const files = await fetch(`/api/admin/files/${currentUser}`);
 		if (!files.ok) {
-			goto('/files');
+			goto('/admin/files');
 		}
 		const body = await files.json();
 		filesStore.set(body.files);
@@ -91,7 +95,7 @@
 	};
 
 	const updateFileStore = async () => {
-		const response = await fetch('/api/files');
+		const response = await fetch(`/api/admin/files/${currentUser}`);
 		if (!response.ok) {
 			console.log('Failed to update files. Check internet connection.');
 		} else {
@@ -133,20 +137,17 @@
 			donePolling = true;
 		}
 	});
-	let users = data.users;
-	let selectedUser;
 
-	$: console.log(selectedUser);
-	const handleUserChange = (u) => {};
 </script>
 
 <svelte:head>
 	<title>{$_('files.title')}</title>
 </svelte:head>
 <div class="grid w-full justify-center grid-cols-[minmax(320px,_1280px)] overflow-x-auto">
+	<form method="POST" action="?/switchUser" class="">
 	<div class="flex justify-end  max-w-screen-2xl items-end gap-2 mt-5 mb-2 ">
-		<form method="POST" action="?/switchUser" class="">
-			<select bind:value={selectedUser} name="user" class="select w-full">
+		<p>Current user: {users.find(u => u.id === currentUser)?.email}</p>
+			<select bind:value={selectedUser} name="user" class="select w-full max-w-xs">
 				{#each users as user}
 					<option value={user.id}>
 						{user.email}
@@ -154,23 +155,23 @@
 				{/each}
 			</select>
 			<button formaction="?/switchUser" disabled={!selectedUser} class="btn"> View </button>
-		</form>
-		<label for="file-upload" class="btn btn-primary gap-2 mt-5 mb-2 modal-button right">
-			{$_('files.uploadButton')}
-			<svg
+			<label for="file-upload" class="btn btn-primary gap-2 mt-5 mb-2 modal-button right">
+				{$_('files.uploadButton')}
+				<svg
 				xmlns="http://www.w3.org/2000/svg"
 				id="Outline"
 				viewBox="0 0 24 24"
 				fill="#fff"
 				class="h-4 w-4"
 				><path
-					d="M11.007,2.578,11,18.016a1,1,0,0,0,1,1h0a1,1,0,0,0,1-1l.007-15.421,2.912,2.913a1,1,0,0,0,1.414,0h0a1,1,0,0,0,0-1.414L14.122.879a3,3,0,0,0-4.244,0L6.667,4.091a1,1,0,0,0,0,1.414h0a1,1,0,0,0,1.414,0Z"
+				d="M11.007,2.578,11,18.016a1,1,0,0,0,1,1h0a1,1,0,0,0,1-1l.007-15.421,2.912,2.913a1,1,0,0,0,1.414,0h0a1,1,0,0,0,0-1.414L14.122.879a3,3,0,0,0-4.244,0L6.667,4.091a1,1,0,0,0,0,1.414h0a1,1,0,0,0,1.414,0Z"
 				/><path
-					d="M22,17v4a1,1,0,0,1-1,1H3a1,1,0,0,1-1-1V17a1,1,0,0,0-1-1H1a1,1,0,0,0-1,1v4a3,3,0,0,0,3,3H21a3,3,0,0,0,3-3V17a1,1,0,0,0-1-1h0A1,1,0,0,0,22,17Z"
+				d="M22,17v4a1,1,0,0,1-1,1H3a1,1,0,0,1-1-1V17a1,1,0,0,0-1-1H1a1,1,0,0,0-1,1v4a3,3,0,0,0,3,3H21a3,3,0,0,0,3-3V17a1,1,0,0,0-1-1h0A1,1,0,0,0,22,17Z"
 				/></svg
-			>
-		</label>
-	</div>
+				>
+			</label>
+		</div>
+	</form>
 	<table class="table max-w-screen-2xl">
 		<thead>
 			<tr>
@@ -186,7 +187,7 @@
 				{#each $filesStore as file, index}
 					<tr
 						class="{file.state == 'READY' ? 'cursor-pointer' : ''} hover"
-						on:click={() => openFile(file.id, file.state, selectedUser)}
+						on:click={() => openFile(file.id, file.state, currentUser)}
 					>
 						<th>{index + 1}</th>
 						<td class="">

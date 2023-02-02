@@ -49,7 +49,10 @@ export const GET: RequestHandler = async ({ params, locals, request }) => {
             id: params.fileId
         }
     })
-    if (locals.userId && locals.userId === file.uploader) {
+    const isAdmin =
+      await (await prisma.user.findUnique({ where: { id: locals.userId } }))
+        .role === "ADMIN";
+    if (locals.userId && (locals.userId === file.uploader || isAdmin)) {
         let location = file.path;
         if (location[0] !== '/') {
             location = path.join(SECRET_AUDIO_UPLOAD_DIR, location)

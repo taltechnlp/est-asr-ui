@@ -123,7 +123,7 @@
 			ws.load(url, peaksObj.data);
 			console.log('peaks exist');
 		} else ws.load(url);
-		ws.play();
+		// ws.play(); // seems to cause errors
 		wavesurfer.set(ws);
 
 		$wavesurfer.on('region-in', function (region) {

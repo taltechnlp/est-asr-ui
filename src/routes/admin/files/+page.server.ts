@@ -49,7 +49,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 
         }
     )
-    return { files: result, users };
+    return { files: result, users, currentUser };
 }
 
 interface TranscriberError {
@@ -338,6 +338,7 @@ export const actions: Actions = {
     switchUser: async ({ request }) => {
 		const data = await request.formData();
         const userId = data.get('user');
+        console.log(userId)
         throw redirect(303, `/admin/files?user=${userId}`);
 	}
 } 
