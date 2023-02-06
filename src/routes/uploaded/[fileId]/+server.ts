@@ -1,67 +1,95 @@
 import { prisma } from "$lib/db/client";
-import { error } from '@sveltejs/kit'; 
-import type {RequestHandler} from './$types';
-import { promises as fs, createReadStream, statSync } from 'fs';
-import { SECRET_AUDIO_UPLOAD_DIR } from '$env/static/private';
-import path from 'path'
-
-function readRangeHeader(range, totalLength) {
-    /*
-     * Example of the method 'split' with regular expression.
-     * 
-     * Input: bytes=100-200
-     * Output: [null, 100, 200, null]
-     * 
-     * Input: bytes=-200
-     * Output: [null, null, 200, null]
-     */
-
-    if (range == null || range.length == 0)
-        return null;
-
-    var array = range.split(/bytes=([0-9]*)-([0-9]*)/);
-    var start = parseInt(array[1]);
-    var end = parseInt(array[2]);
-    var result = {
-        start: isNaN(start) ? 0 : start,
-        end: isNaN(end) ? (totalLength - 1) : end
-    };
-
-    if (!isNaN(start) && isNaN(end)) {
-        result.start = start;
-        result.end = totalLength - 1;
-    }
-
-    if (isNaN(start) && !isNaN(end)) {
-        result.start = totalLength - end;
-        result.end = totalLength - 1;
-    }
-
-    return result;
-}
-
+import { error } from "@sveltejs/kit";
+import type { RequestHandler } from "./$types";
+import {
+  createReadStream,
+  promises as fs,
+  readFile,
+  ReadStream,
+  stat,
+  statSync,
+} from "fs";
+import { promisify } from "util";
+import { SECRET_AUDIO_UPLOAD_DIR } from "$env/static/private";
+import path from "path";
 
 // Return the audio or video file for playback. Authorization requried.
 export const GET: RequestHandler = async ({ params, locals, request }) => {
-    const range = request.headers.get('Range');
-    const file = await prisma.file.findUnique({
-        where: {
-            id: params.fileId
-        }
-    })
-    const isAdmin =
-      await (await prisma.user.findUnique({ where: { id: locals.userId } }))
-        .role === "ADMIN";
-    if (locals.userId && (locals.userId === file.uploader || isAdmin)) {
-        let location = file.path;
-        if (location[0] !== '/') {
-            location = path.join(SECRET_AUDIO_UPLOAD_DIR, location)
-        }
-        const stat = statSync(location);
-        const ranges = readRangeHeader(range, stat.size);
-        const stream = createReadStream(location, { start: ranges.start, end: ranges.end })
-        // @ts-ignore
-        return new Response(stream);
+  if (!locals.userId) throw error(401);
+  const file = await prisma.file.findUnique({
+    where: {
+      id: params.fileId,
+    },
+  });
+  if (!file) throw error(404);
+  const isAdmin =
+    await (await prisma.user.findUnique({ where: { id: locals.userId } }))
+      .role === "ADMIN";
+  if ((locals.userId === file.uploader || isAdmin)) {
+    let location = file.path;
+    if (location[0] !== "/") {
+      location = path.join(SECRET_AUDIO_UPLOAD_DIR, location);
     }
-    throw error(401, 'unauthorized'); 
-}
+    const fileInfo = promisify(stat);
+
+    /** Calculate Size of file */
+    const { size } = await fileInfo(location);
+    const range = request.headers.get("Range");
+
+    /** Check for Range header */
+    if (range) {
+      /** Extracting Start and End value from Range Header */
+      let [startStr, endStr] = range.replace(/bytes=/, "").split("-");
+      let start = parseInt(startStr, 10);
+      let end = endStr ? parseInt(endStr, 10) : size - 1;
+
+      if (!isNaN(start) && isNaN(end)) {
+        start = start;
+        end = size - 1;
+      }
+      if (isNaN(start) && !isNaN(end)) {
+        start = size - end;
+        end = size - 1;
+      }
+
+      // Handle unavailable range request
+      if (start >= size || end >= size) {
+        // Return the 416 Range Not Satisfiable.
+        return new Response("", {
+          headers: {
+            "Content-Range": `bytes */${size}`,
+          },
+          status: 416,
+        });
+      }
+
+      /** Sending Partial Content With HTTP Code 206 */
+      let readable = createReadStream(location, { start: start, end: end });
+      // @ts-ignoreurl
+      return new Response(readable, {
+        headers: {
+          "Content-Range": `bytes ${start}-${end}/${size}`,
+          "Accept-Ranges": "bytes",
+          "Content-Length": (end - start + 1).toString(),
+          "Content-Type": "audio/mpeg",
+        },
+        status: 206,
+      });
+    } else {
+      let readable = createReadStream(location);
+      /* let res: ReadStream;
+          pipeline(readable, res, (err) => {
+            console.log(err);
+          }); */
+      // @ts-ignore
+      return new Response(readable, {
+        headers: {
+          "Content-Length": size.toString(),
+          "Content-Type": "audio/mpeg",
+        },
+        status: 200,
+      });
+    }
+  }
+  throw error(401, "unauthorized");
+};

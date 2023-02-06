@@ -74,7 +74,7 @@ export const generatePeaks = async (fileId) => {
         return false;
     }
     const peaksDone = new Promise((resolve, reject) => {
-        const generatePeaks = spawn('audiowaveform', ['-i', wavPath, '-o', peaksPath, '--pixels-per-second', '20', '--bits', '8']);
+        const generatePeaks = spawn('audiowaveform', ['-i', wavPath, '-o', peaksPath, '--pixels-per-second', '1', '--bits', '8']);
         generatePeaks.on('exit', function (code) {
             console.log('generate peaks exited with code ' + code);
             if (code === 1 || code == 2) {
