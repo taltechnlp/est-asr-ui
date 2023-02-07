@@ -20,7 +20,7 @@ let finToEstFormat: (sucRes: FinAsrFinished) => EditorContent =
                     type: "non-speech" as SectionType,
                 }]
             };
-        if (sucRes.result.sections.length > 0) {
+        if (sucRes.result && sucRes.result.sections && sucRes.result.sections.length > 0) {
             result.sections = sucRes.result.sections.map(
                 seg => {
                     return {
