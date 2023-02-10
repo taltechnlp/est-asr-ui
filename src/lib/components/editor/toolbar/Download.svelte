@@ -2,12 +2,14 @@
 	import { _ } from 'svelte-i18n';
     import { editor } from '$lib/stores';
     import { downloadHandler } from '$lib/download';
+    export let fileName;
 	let downloadOptions = [
 		{ id: 1, text: `Word (.docx)` },
 		{ id: 2, text: `JSON` }
 	];
 	let format;
     let includeNames = true;
+    let includeTimeCodes = false;
 </script>
 
 <input type="checkbox" id="download-modal" class="modal-toggle" />
@@ -37,11 +39,17 @@
                     <input type="checkbox" class="" bind:checked={includeNames} />
                 </label>
             </div>
+            <div class="form-control mt-3">
+                <label class="label cursor-pointer flex">
+                    <span class="label-text">{$_('editor.download.includeTimeCodes')}</span>
+                    <input type="checkbox" class="" bind:checked={includeTimeCodes} />
+                </label>
+            </div>
             {/if}
             <div class="mt-5 flex justify-between">
                 <label for="download-modal" class="btn btn-primary"
                 on:click={() => {
-                    if (format.id === 1) downloadHandler($editor.getJSON(), '', '', includeNames);
+                    if (format.id === 1) downloadHandler($editor.getJSON(), '', fileName, includeNames, includeTimeCodes);
                     else {
                         const blob = new Blob([JSON.stringify($editor.getJSON())], {type: "application/json"});
                         const url = window.URL.createObjectURL(blob);

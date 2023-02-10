@@ -275,7 +275,7 @@
 	{/if}
 	<LanguageSelection />
 	<Hotkeys />
-	<Download />
+	<Download fileName={fileName} />
 </div>
 
 <style>

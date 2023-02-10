@@ -172,6 +172,7 @@
     "addNew": "Add",
     "download": {
       "includeNames": "Include speaker names",
+      "includeTimeCodes": "Include paragraph timecodes",
       "heading": "Download as a file",
       "description": "Choose the file format and content options.",
       "format": "File format",

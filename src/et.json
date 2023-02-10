@@ -172,6 +172,7 @@
         "addNew": "Lisa",
         "download": {
             "includeNames": "Koos kõnelejate nimedega",
+            "includeTimeCodes": "Koos teksiplokkide algusaegadega",
             "heading": "Failina alla laadimine",
             "description": "Vali failivorming ning täpsusta faili sisu eelistused.",
             "format": "Vali failivorming",

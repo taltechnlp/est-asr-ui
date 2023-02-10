@@ -172,6 +172,7 @@
         "addNew": "Lisätä",
         "download": {
             "includeNames": "Sisällytä puhujien nimet",
+            "includeTimeCodes": "Sisällytä kappaleiden aikakoodit",
             "heading": "Lataa tiedostona",
             "description": "Valitse tiedostomuoto ja sisältöasetukset.",
             "format": "Tiedosto muoto",
