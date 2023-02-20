@@ -157,7 +157,9 @@
     "password": "Password",
     "passwordConfirm": "Repeat password",
     "passwordsDontMatch": "Passwords do not match!",
-    "change": "Change password"
+    "change": "Change password",
+    "expired": "Password reset code has expired! Request a new one.",
+    "requestNewToken": "Return to password reset page"
   },
   "editor": {
     "languageCode": "Language code",
@@ -171,6 +173,7 @@
     "addNew": "Add",
     "download": {
       "includeNames": "Include speaker names",
+      "includeTimeCodes": "Include paragraph timecodes",
       "heading": "Download as a file",
       "description": "Choose the file format and content options.",
       "format": "File format",

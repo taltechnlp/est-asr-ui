@@ -157,7 +157,9 @@
         "password": "Salasana",
         "passwordConfirm": "Toista salasana",
         "passwordsDontMatch": "Salasanat eivät vastaa toisiaan!",
-        "change": "Vaihda salasana"
+        "change": "Vaihda salasana",
+        "expired": "Salasanan palautuskoodi on vanhentunut! Pyydä uusi.",
+        "requestNewToken": "Palaa salasanan palautussivulle"
     },
     "editor": {
         "languageCode": "Kielikoodi",
@@ -171,6 +173,7 @@
         "addNew": "Lisätä",
         "download": {
             "includeNames": "Sisällytä puhujien nimet",
+            "includeTimeCodes": "Sisällytä kappaleiden aikakoodit",
             "heading": "Lataa tiedostona",
             "description": "Valitse tiedostomuoto ja sisältöasetukset.",
             "format": "Tiedosto muoto",

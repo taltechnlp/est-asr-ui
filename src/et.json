@@ -157,7 +157,9 @@
         "password": "Parool",
         "passwordConfirm": "Korda parooli",
         "passwordsDontMatch": "Paroolid ei kattu!",
-        "change": "Muuda parool"
+        "change": "Muuda parool",
+        "expired": "Parooli lähtestamise kood on aegunud! Telli uus.",
+        "requestNewToken": "Tagasi lähtestamise lehele"
     },
     "editor": {
         "languageCode": "Keele kood",
@@ -171,6 +173,7 @@
         "addNew": "Lisa",
         "download": {
             "includeNames": "Koos kõnelejate nimedega",
+            "includeTimeCodes": "Koos teksiplokkide algusaegadega",
             "heading": "Failina alla laadimine",
             "description": "Vali failivorming ning täpsusta faili sisu eelistused.",
             "format": "Vali failivorming",

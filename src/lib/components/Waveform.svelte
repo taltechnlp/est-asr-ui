@@ -61,7 +61,7 @@
 			waveColor: 'violet',
 			progressColor: 'purple',
 			autoCenter: true,
-			backend: 'WebAudio',
+			backend: 'MediaElement',
 			// bargap: 1,
 			// barWidth: 3,
 			normalize: peaks ? false : true,
@@ -69,7 +69,7 @@
 			partialRender: true,
 			responsive: true,
 			scrollParent: true,
-			closeAudioContext: false,
+			closeAudioContext: true,
 			fillParent: true,
 			forceDecode: false,
 			loopSelection: true,
@@ -121,9 +121,8 @@
 		if (peaks) {
 			const peaksObj = JSON.parse(peaks);
 			ws.load(url, peaksObj.data);
-			console.log('peaks exist');
 		} else ws.load(url);
-		ws.play();
+		// ws.play(); // seems to cause errors
 		wavesurfer.set(ws);
 
 		$wavesurfer.on('region-in', function (region) {

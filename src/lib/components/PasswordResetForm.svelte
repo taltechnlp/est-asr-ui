@@ -25,7 +25,7 @@
 	}
 </script>
 
-<form on:submit|preventDefault={submit} class="space-y-5 {$$props.class}">
+<form method="POST" on:submit|preventDefault={submit} class="space-y-5 {$$props.class}">
 	<Input
 		label={$_('passwordReset.password')}
 		id="password"

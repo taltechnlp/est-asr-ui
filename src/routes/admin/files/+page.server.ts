@@ -1,4 +1,4 @@
-import { prisma } from "$lib/db/client";
+import { prisma } from "$lib/db/client"; 
 import { v4 as uuidv4 } from 'uuid';
 import { checkCompletion, getFiles } from '$lib/helpers/api';
 import { readFile, writeFile } from 'fs/promises';
@@ -14,17 +14,23 @@ import Form from 'form-data';
 
 const UPLOAD_LIMIT = 1024 * 1024 * 400  // 400MB
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, params, url }) => {
     if (!locals.userId) {
         throw redirect(307, "/signin");
     }
-    let files = await getFiles(locals.userId)
+    let currentUser = locals.userId;
+    const isAdmin = await (await prisma.user.findUnique({where: {id: locals.userId}})).role === "ADMIN";
+    if (!isAdmin) throw error(403);
+
+    let users = await prisma.user.findMany({select: {email: true, id: true}});
+    if (url.searchParams.get("user") && users.find(u => u.id === url.searchParams.get("user"))) currentUser = url.searchParams.get("user");
+    let files = await getFiles(currentUser);
     const pendingFiles = files.filter((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')
     if (pendingFiles.length > 0) {
         const promises = pendingFiles.map(file => checkCompletion(file.id, file.externalId, file.path, file.language, SECRET_UPLOAD_DIR))
         const resultRetrieved = (await Promise.all(promises)).reduce((acc, x) => acc || x, false);
         if (resultRetrieved) {
-            files = await getFiles(locals.userId)
+            files = await getFiles(currentUser);
         }
     }
     const result = files.map(
@@ -43,7 +49,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
         }
     )
-    return { files: result };
+    return { files: result, users, currentUser };
 }
 
 interface TranscriberError {
@@ -329,4 +335,10 @@ export const actions: Actions = {
         console.log("Upload saved to DB", uploadedFile)
         return { success: true , file: fileData };
     },
-};
+    switchUser: async ({ request }) => {
+		const data = await request.formData();
+        const userId = data.get('user');
+        console.log(userId)
+        throw redirect(303, `/admin/files?user=${userId}`);
+	}
+} 

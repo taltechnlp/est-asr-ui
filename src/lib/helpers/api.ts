@@ -4,6 +4,7 @@ import { createWriteStream } from 'fs'
 import type { TranscriberResult, FinAsrResult, FinAsrFinished, EditorContent, SectionType } from './api.d';
 import { FIN_ASR_RESULTS_URL } from '$env/static/private';
 import { spawn } from "child_process";
+import { promises as fs } from 'fs';
 
 let finToEstFormat: (sucRes: FinAsrFinished) => EditorContent = 
     function (sucRes: FinAsrFinished) {
@@ -19,7 +20,7 @@ let finToEstFormat: (sucRes: FinAsrFinished) => EditorContent =
                     type: "non-speech" as SectionType,
                 }]
             };
-        if (sucRes.result.sections.length > 0) {
+        if (sucRes.result && sucRes.result.sections && sucRes.result.sections.length > 0) {
             result.sections = sucRes.result.sections.map(
                 seg => {
                     return {
@@ -55,9 +56,25 @@ export const generatePeaks = async (fileId) => {
         }
     })
     let processFailed = false;
+    const wavPath = file.path + '.wav';
     let peaksPath = file.path + '.json';
+    // ffmpeg - i!{ audio_file } -f sox - | sox - t sox - -c 1 - b 16 - t wav audio.wav rate - v 16k
+    const toWav = new Promise((resolve, reject) => {
+        const ffmpeg = spawn('ffmpeg', ['-i', file.path,  wavPath] );
+        ffmpeg.on('exit', function (code) {
+            console.log('ffmpeg finished with ' + code);
+            if (code === 1 || code == 2) {
+                processFailed = true;
+            }
+            resolve(true);
+        })
+    })
+    await toWav.catch(e => processFailed = true);
+    if (processFailed) {
+        return false;
+    }
     const peaksDone = new Promise((resolve, reject) => {
-        const generatePeaks = spawn('audiowaveform', ['-i', file.path, '-o', peaksPath, '--pixels-per-second', '20', '--bits', '8']);
+        const generatePeaks = spawn('audiowaveform', ['-i', wavPath, '-o', peaksPath, '--pixels-per-second', '1', '--bits', '8']);
         generatePeaks.on('exit', function (code) {
             console.log('generate peaks exited with code ' + code);
             if (code === 1 || code == 2) {
@@ -67,6 +84,7 @@ export const generatePeaks = async (fileId) => {
         })
     })
     await peaksDone.catch(e => processFailed = true);
+    await fs.unlink(wavPath);
     if (processFailed) {
         return false;
     }

@@ -25,7 +25,7 @@ CREATE TABLE "User" (
     "name" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "resetToken" TEXT,
-    "resetTokenExpiry" DECIMAL(65,30),
+    "resetTokenExpiry" BIGINT,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
