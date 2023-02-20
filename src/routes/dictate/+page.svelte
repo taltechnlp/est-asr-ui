@@ -249,8 +249,8 @@
 				let current = event.resultIndex;
 				// Get a transcript of what was said.
 				console.log(event.results);
-				transcription = event.results[current][0].transcript;
-				console.log(transcription);
+				if (transcription) transcription += " ";
+				transcription += event.results[current][0].transcript;
 				console.log('Confidence: ' + event.results[0][0].confidence);
 			};
 
@@ -295,28 +295,19 @@
 </script>
 
 <svelte:head>
-	<title>Dikteeri</title>
+	<title>{$_('dictate.title')}</title>
 </svelte:head>
 
 <div class="grid w-full justify-center grid-cols-[minmax(320px,_680px)] m-1">
-	<h2 class="text-xl mb-6 font-extrabold mt-6">Dikteeri</h2>
+	<h2 class="text-xl mb-6 font-extrabold mt-6">{$_('dictate.title')}</h2>
 	<p class="mb-2">
-		Sellel lehel saab kõnetuvastuse abil reaalajaliselt eestikeelset teksti dikteerida. Veebibrauser
-		saadab reaalajaliselt kõne TalTechi Kõnetehnoloogia labori serverisse, kus see muudetakse
-		tekstiks ning saadetakse veebilehtisejasse tagasi.
+		{$_('dictate.intro1')}
 	</p>
 	<p class="mb-2">
-		Safari ning Chrome, Edge, Brave jt Chromiumi baasil ehitatud veebilehitsejatega saab ka kasutada
-		veebilehitseja enese kõnetuvastuse võimekust. See küll saavutatakse alati heli kuhugi serverisse
-		saatmisega (nt Google'i või Apple'i serverid). Tekstiks.ee ei saa sellisel juhul teada, mis
-		selle heliga tehakse.
+		{$_('dictate.intro2')}
 	</p>
 	<p class="mb-2">
-		<span class="badge badge-info">Tähelepanu!</span> Rahuldava tuvastuskvaliteedi saamiseks tuleks kasutada
-		suu lähedal olevat nn headset-tüüpi mikrofoni. Kindlasti ei tasu dikteerida näiteks sülearvuti sisseehitatud
-		mikrofoniga. Parima tulemuse saamiseks tuleks dikteerida selge häälega ja mõõdukas tempos (umbes
-		nagu raadiodiktor). Sõnade vahel pause ei pea tegema. Dikteerida saab ka kirjavahemärke (",.!?:;")
-		ja reavahetusi (ütle "uus rida").
+		<span class="badge badge-info">{$_('dictate.attention')}</span>{$_('dictate.intro3')} 
 	</p>
 	<div class="flex border-2 rounded-md p-4 mt-6">
 		<div class="form-control w-full max-w-xs mr-5">
@@ -343,7 +334,7 @@
 		</div>
 		<div class="form-control w-full max-w-xs">
 			<label class="label" for="recoSelect">
-				<span class="label-text">{$_('files.recognizer')}</span>
+				<span class="label-text">{$_('dictate.recognizers')}</span>
 			</label>
 			<select
 				id="recoSelect"
@@ -353,7 +344,7 @@
 			>
 				{#each recognizerChoices as rId}
 					<option value={rId}>
-						{$_(`files.recognizer.${recognizers[rId].text}`)}
+						{$_(`dictate.recognizer.${recognizers[rId].text}`)}
 					</option>
 				{/each}
 			</select>
@@ -380,46 +371,42 @@
 		{#if selectedRecognizer == 1}
 			{#if numWorkersAvailable > 0}
 				<div class="badge badge-accent mt-2">
-					{numWorkersAvailable} vaba ühendust
+					{numWorkersAvailable} {$_('dictate.freeConnections')}
 				</div>
 			{:else if numWorkersAvailable == 0 && recorderState !== 'recording'}
-				<div class="badge badge-warning mt-2">Ühtegi ühendust pole saadaval!</div>
+				<div class="badge badge-warning mt-2">{$_('dictate.noConnections')}</div>
 			{/if}
 		{/if}
 	</div>
 	<textarea
 		contenteditable="true"
 		bind:textContent={transcription}
-		placeholder="Siia ilmub kõnetuvastuse tulemus."
+		placeholder={$_('dictate.resultsPlaceholder')}
 		name="transcription"
 		rows="8"
 		cols="80"
 		class="mt-2"
 	/>
-	<div class="mt-4 flex justify-left">
-		<button on:click={init} class="btn mr-1" title="Request access to the microphone"
-			>Laadi tekst alla</button
-		>
-	</div>
+
 </div>
 <input type="checkbox" id="permission-modal" class="modal-toggle" />
 <div class="modal modal-bottom sm:modal-middle">
 	<div class="modal-box">
-		<h3 class="font-bold text-lg">Please provide permission to your microphone</h3>
-		<p class="py-4">The browser will prompt to give a permission to access your microphone.</p>
+		<h3 class="font-bold text-lg">{$_('dictate.providePermission')}</h3>
+		<p class="py-4">{$_('dictate.permissionWarning')}</p>
 		<div class="modal-action">
-			<label for="permission-modal" class="btn btn-outline">Cancel</label>
-			<label for="permission-modal" class="btn" on:click={startRecorder}>Ok</label>
+			<label for="permission-modal" class="btn btn-outline">{$_('dictate.cancel')}</label>
+			<label for="permission-modal" class="btn" on:click={startRecorder}>{$_('dictate.ok')}</label>
 		</div>
 	</div>
 </div>
 <input type="checkbox" id="denied-modal" class="modal-toggle" />
 <div class="modal modal-bottom sm:modal-middle">
 	<div class="modal-box">
-		<h3 class="font-bold text-lg">Access to microphone is disabled</h3>
-		<p class="py-4">Access to the microphone is disable for this website.</p>
+		<h3 class="font-bold text-lg">{$_('dictate.accessDisabledHeading')}</h3>
+		<p class="py-4">{$_('dictate.accessDisabledContent')}</p>
 		<div class="modal-action">
-			<label for="denied-modal" class="btn btn-outline">Close</label>
+			<label for="denied-modal" class="btn btn-outline">{$_('dictate.close')}</label>
 		</div>
 	</div>
 </div>

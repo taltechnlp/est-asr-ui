@@ -116,7 +116,7 @@
             "cancel": "Peruuttaa",
             "language": "Kieli",
             "languageTooltip": "Merkitse kielen muutos"
-          }
+        }
     },
     "speakerSelect": {
         "addNew": "Lisää uusi puhuja",
@@ -132,7 +132,7 @@
         "serviceSupportDetails": "Kehittänyt ja tukenut tohtoriopiskelija Aivo Olev",
         "finnishService": "Suomalainen puheentunnistuksen tuki",
         "finnishServiceDetails": "Suomalaista puheentunnistuspalvelua hallinnoi Suomen Kielipankki."
-        },
+    },
     "terms": {
         "title": "Käyttösäännöt | tekstiks.ee",
         "h1": "Palvelun käyttöehdot",
@@ -144,7 +144,6 @@
         "terms5": "Järjestelmä ei tallenna käyttäjästä enempää henkilötietoja kuin rekisteröinnin yhteydessä pyydetty sähköpostiosoite ja nimi. Tällä hetkellä ei ole muita palveluita, jotka valvovat käyttäjien käyttäytymistä. Palveluntarjoaja voi vapaasti käyttää niitä, tässä tapauksessa pyytämällä lisäsuostumusta.",
         "terms6": "Järjestelmään ladattuja tietoja voidaan käyttää järjestelmän parantamiseen vianmäärityksen aikana. Puhelutallenteita ei käytetä yhdessä käyttäjän tunnistetietojen kanssa.",
         "validFrom": "Käyttöehdot ovat voimassa 23.10.2022 alkaen."
-        
     },
     "demo": {
         "title": "Demo"
@@ -159,7 +158,7 @@
         "passwordConfirm": "Toista salasana",
         "passwordsDontMatch": "Salasanat eivät vastaa toisiaan!",
         "change": "Vaihda salasana"
-    }, 
+    },
     "editor": {
         "languageCode": "Kielikoodi",
         "languageDescription": "Kielen kuvaus",
@@ -171,20 +170,43 @@
         "edit": "Muokata",
         "addNew": "Lisätä",
         "download": {
-          "includeNames": "Sisällytä puhujien nimet",
-          "heading": "Lataa tiedostona",
-          "description": "Valitse tiedostomuoto ja sisältöasetukset.",
-          "format": "Tiedosto muoto",
-          "download": "ladata",
-          "cancel": "Peruuttaa"
+            "includeNames": "Sisällytä puhujien nimet",
+            "heading": "Lataa tiedostona",
+            "description": "Valitse tiedostomuoto ja sisältöasetukset.",
+            "format": "Tiedosto muoto",
+            "download": "ladata",
+            "cancel": "Peruuttaa"
         },
         "hotkeys": {
-          "tooltip": "Pikanäppäimet",
-          "heading": "Pikanäppäimet",
-          "playPause": "Toista/tauko",
-          "rewind": "Kelaa ääntä taaksepäin",
-          "skipForward": "Ohita ääni eteenpäin",
-          "splitParagraph": "Jaa tekstin kappale/lohko"
+            "tooltip": "Pikanäppäimet",
+            "heading": "Pikanäppäimet",
+            "playPause": "Toista/tauko",
+            "rewind": "Kelaa ääntä taaksepäin",
+            "skipForward": "Ohita ääni eteenpäin",
+            "splitParagraph": "Jaa tekstin kappale/lohko"
         }
-      }
+    },
+    "dictate": {
+        "title": "Diktoi",
+        "intro1": "Tällä sivulla voit dikteerata viroksi TalTechin reaaliaikaisen puheentunnistuksen avulla. Verkkoselain lähettää puheen osat TalTechin kieli- ja puheentunnistuslaboratorion palvelimelle, jossa se muunnetaan tekstiksi ja lähetetään takaisin selaimelle.",
+        "intro2": "Safarissa ja Chromessa voidaan käyttää selaimen tarjoamaa puheentunnistusta. Tämä tarkoittaa, että puhe lähetetään jonkin kolmannen osapuolen palvelimelle (esim. Google- tai Apple-palvelimelle).",
+        "intro3": "Tyydyttävän tunnistuslaadun saavuttamiseksi olisi käytettävä suun lähellä olevaa niin sanottua headset-tyyppistä mikrofonia. Kannattaa välttää diktoimista esimerkiksi kannettavan tietokoneen sisäänrakennetulla mikrofonilla. Parhaan tuloksen saavuttamiseksi kannattaa puhua selkeästi ja kohtuullisella tempolla (noin kuin radiotoimittaja). Sanojen väliin ei tarvitse tehdä taukoa. TalTechin puheentunnistuksella voit myös diktoida välimerkkejä (\",.!?:;\") ja rivinvaihtoja (sano \"uusi rivi\").",
+        "attention": "Huomio!",
+        "freeConnections": "vapaat yhteydet",
+        "noConnections": "Tällä hetkellä ei ole vapaita yhteyksiä!",
+        "providePermission": "Ota mikrofoni käyttöön",
+        "permissionWarning": "Selain pyytää lupaa käyttää mikrofonia.",
+        "cancel":"Peruuta",
+        "ok": "Ok",
+        "accessDisabledHeading": "Mikrofonin käyttö on estetty",
+        "accessDisabledContent": "Tämän verkkosivuston käyttöoikeutta mikrofoniin ei ole sallittu.",
+        "close": "Sulje",
+        "download":"Lataa",
+        "resultsPlaceholder": "Puheentunnistuksen tulokset tulevat tähän.",
+        "recognizer": {
+        "taltech": "TalTechin puheentunnistus",
+        "browser": "Selaimen puheentunnistus (vain Chrome, Safari!)"
+        },
+        "recognizers": "Puheentunnistuspalvelut"
+    }
 }

@@ -108,15 +108,15 @@
     "toolbarRedo": "Redo",
     "toolbarDownload": "Download",
     "toolbar": {
-            "pronTooltip": "Annotate pronunciation",
-            "pron": "Pronunciation",
-            "pronPlaceholder": "Write as pronounced",
-            "internetAddress": "Is an internet address (URL)",
-            "add": "Add",
-            "cancel": "Cancel",
-            "language": "Language",
-            "languageTooltip": "Annotate language change"
-        }
+      "pronTooltip": "Annotate pronunciation",
+      "pron": "Pronunciation",
+      "pronPlaceholder": "Write as pronounced",
+      "internetAddress": "Is an internet address (URL)",
+      "add": "Add",
+      "cancel": "Cancel",
+      "language": "Language",
+      "languageTooltip": "Annotate language change"
+    }
   },
   "speakerSelect": {
     "addNew": "Add a new speaker",
@@ -159,31 +159,54 @@
     "passwordsDontMatch": "Passwords do not match!",
     "change": "Change password"
   },
-   "editor": {
-        "languageCode": "Language code",
-        "languageDescription": "Language description",
-        "languageActivate": "Activate",
-        "languageAction": "Action",
-        "languageSelectionHeading": "Choose language change labels",
-        "languageSelectionDescription": "Activate only the languages that are used in the text. New languages can be added if neede.",
-        "save": "Save",
-        "edit": "Edit",
-        "addNew": "Add",
-        "download": {
-            "includeNames": "Include speaker names",
-            "heading": "Download as a file",
-            "description": "Choose the file format and content options.",
-            "format": "File format",
-            "download": "Download",
-            "cancel": "Cancel"
-        },
-        "hotkeys": {
-            "tooltip": "Keyboard shortcuts",
-            "heading": "Keyboard shortcuts",
-            "playPause": "Play / pause",
-            "rewind": "Rewind audio",
-            "skipForward": "Skip audio forward",
-            "splitParagraph": "Split text paragraph / block"
-        }
+  "editor": {
+    "languageCode": "Language code",
+    "languageDescription": "Language description",
+    "languageActivate": "Activate",
+    "languageAction": "Action",
+    "languageSelectionHeading": "Choose language change labels",
+    "languageSelectionDescription": "Activate only the languages that are used in the text. New languages can be added if neede.",
+    "save": "Save",
+    "edit": "Edit",
+    "addNew": "Add",
+    "download": {
+      "includeNames": "Include speaker names",
+      "heading": "Download as a file",
+      "description": "Choose the file format and content options.",
+      "format": "File format",
+      "download": "Download",
+      "cancel": "Cancel"
+    },
+    "hotkeys": {
+      "tooltip": "Keyboard shortcuts",
+      "heading": "Keyboard shortcuts",
+      "playPause": "Play / pause",
+      "rewind": "Rewind audio",
+      "skipForward": "Skip audio forward",
+      "splitParagraph": "Split text paragraph / block"
     }
+  },
+  "dictate": {
+    "title": "Dictate",
+    "intro1": "This page allows you to dictate Estonian speech using TalTech realtime speech recognition. The web browser sends speech segments to the server of TalTech Laboratory of Language Technology, where it is transformed into text and returned back to the browser.",
+    "intro2": "On Safari and Chrome the speech recognition provided by the browser can be used. It means that the speech is sent to some 3rd party server (e.g. Google or Apple server).",
+    "intro3": "Rahuldava tuvastuskvaliteedi saamiseks tuleks kasutada suu lähedal olevat nn headset-tüüpi mikrofoni. Kindlasti ei tasu dikteerida näiteks sülearvuti sisseehitatud mikrofoniga. Parima tulemuse saamiseks tuleks dikteerida selge häälega ja mõõdukas tempos (umbes nagu raadiodiktor). Sõnade vahel pause ei pea tegema. TalTech kõnetuvastusega saab dikteerida ka kirjavahemärke (\",.!?:;\") ja reavahetusi (ütle \"uus rida\").",
+    "attention": "Attention!",
+    "freeConnections": "free connections",
+    "noConnections": "No connections are available at this moment!",
+    "providePermission": "Please provide permission to your microphone",
+    "permissionWarning": "The browser will prompt to give a permission to access your microphone.",
+    "cancel":"Cancel",
+    "ok": "Ok",
+    "accessDisabledHeading": "Access to microphone is disabled",
+    "accessDisabledContent": "Access to the microphone is disable for this website.",
+    "close": "Close",
+    "download":"Download",
+    "resultsPlaceholder": "Speech recognition results will appear here.",
+    "recognizer": {
+      "taltech": "TalTech speech recognition",
+      "browser": "Web browser speech recognition (only Chrome, Safari!)"
+    },
+    "recognizers": "Speech recognition service"
+  }
 }
