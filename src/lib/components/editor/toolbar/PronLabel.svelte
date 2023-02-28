@@ -64,7 +64,7 @@
 			</button>
 			<div
 				tabindex="0"
-				class="dropdown-content card card-compact w-64 p-2 shadow-lg bg-slate-50 text-primary-focus"
+				class="dropdown-content card card-compact w-80 p-2 shadow-lg bg-slate-50 text-primary-focus"
 				bind:this={dropdown}
 			>
 				<div class="card-body">
@@ -97,3 +97,8 @@
 		</div>
 	{/if}
 </div>
+<style>
+	.card-body {
+		width: 320px;
+	}
+</style>

@@ -34,7 +34,7 @@
 
 <input type="checkbox" id="languages-modal" class="modal-toggle" />
 <div class="modal">
-	<div class="modal-box" style="max-width: 44rem">
+	<div class="modal-box" style="max-width: 50rem">
 		<h3 class="font-bold text-lg">{$_('editor.languageSelectionHeading')}</h3>
 		<p class="py-4">
 			{$_('editor.languageSelectionDescription')}

@@ -31,9 +31,9 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
     throw error(404, "fileNotFound");
   }
   let location = fileDetails.path;
-  if (location.charAt[0] !== "/") {
+ /*  if (location.charAt[0] !== "/") {
     location = path.join(SECRET_AUDIO_UPLOAD_DIR, location);
-  }
+  } */
   await fs.rm(location).catch((e) => {
     console.log("Failed to remove file from disk!", e);
   });
