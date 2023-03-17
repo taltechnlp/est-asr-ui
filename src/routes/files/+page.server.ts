@@ -1,4 +1,5 @@
-import { prisma } from "$lib/db/client";
+import { prisma, } from "$lib/db/client";
+import type { Prisma } from "@prisma/client";
 import { v4 as uuidv4 } from 'uuid';
 import { checkCompletion, getFiles } from '$lib/helpers/api';
 import { readFile, writeFile } from 'fs/promises';
@@ -13,16 +14,42 @@ import axios from 'axios';
 import Form from 'form-data';
 
 const UPLOAD_LIMIT = 1024 * 1024 * 400  // 400MB
+type FileWithProgress = {
+    uploadedAt: Date;
+    id: string;
+    state: string;
+    text: string | null;
+    path: string;
+    filename: string;
+    language: string;
+    duration: Prisma.Decimal | null;
+    mimetype: string;
+    externalId: string;
+    textTitle: string | null;
+    initialTranscription: string | null;
+    progressPrc?: number;
+    totalJobsQueued?: number;
+    totalJobsStarted?: number;
+}
 
 export const load: PageServerLoad = async ({ locals }) => {
     if (!locals.userId) {
         throw redirect(307, "/signin");
     }
-    let files = await getFiles(locals.userId)
+    let files: FileWithProgress[] = await getFiles(locals.userId);
     const pendingFiles = files.filter((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')
     if (pendingFiles.length > 0) {
         const promises = pendingFiles.map(file => checkCompletion(file.id, file.externalId, file.path, file.language, SECRET_UPLOAD_DIR))
-        const resultRetrieved = (await Promise.all(promises)).reduce((acc, x) => acc || x, false);
+        const resultRetrieved = (await Promise.all(promises)).reduce((acc, x) => {
+            if (!x.done && x.fileId && x.progressPrc) {
+                const index = files.findIndex(file => file.id === x.fileId);
+                files[index].progressPrc = x.progressPrc;
+                files[index].state = x.status;
+                files[index].totalJobsQueued = x.totalJobsQueued;
+                files[index].totalJobsStarted = x.totalJobsStarted;
+            }
+            return acc || x.done
+        }, false);
         if (resultRetrieved) {
             files = await getFiles(locals.userId)
         }
@@ -38,7 +65,10 @@ export const load: PageServerLoad = async ({ locals }) => {
                 mimetype: file.mimetype,
                 uploadedAt: file.uploadedAt?.toString(),
                 textTitle: file.textTitle,
-                initialTranscription: file.initialTranscription
+                initialTranscription: file.initialTranscription,
+                progressPrc: file.progressPrc,
+                totalJobsQueued: file.totalJobsQueued,
+                totalJobsStarted: file.totalJobsStarted
             }
 
         }
@@ -136,14 +166,13 @@ const uploadToEstAsr = async (pathString, filename) => {
         maxBodyLength: UPLOAD_LIMIT,
         maxContentLength: UPLOAD_LIMIT 
 	});
-    if (result.status !== 200) {
+    const body = result.data as EstUploadResult;
+    if (body.success == false) {
         await fs.unlink(pathString);
-		throw error(result.status, result.statusText);
-	}
-	const body = result.data as EstUploadResult;
-	if (body.success == false) {
-		await fs.unlink(pathString);
-		throw error(result.status, result.statusText);
+        return {
+            error: true,
+            reason: body.msg
+        }
 	}
 	return { externalId: body.requestId, uploadedAt };
 };
@@ -175,6 +204,7 @@ export const actions: Actions = {
             saveTo
         );
         try {
+            // @ts-ignore
             await writeFile(saveTo, file.stream())
         } catch (err) {
             console.error(err);
@@ -235,6 +265,7 @@ export const actions: Actions = {
             saveTo
         );
         try {
+             // @ts-ignore
             await writeFile(saveTo, file.stream())
         } catch (err) {
             console.error(err);
@@ -295,9 +326,10 @@ export const actions: Actions = {
             saveTo
         );
         try {
+             // @ts-ignore
             await writeFile(saveTo, file.stream())
         } catch (err) {
-            console.error(err);
+            console.error("File saving failed", err);
             throw error(500, "fileSavingFailed");
         }
         let id = uuidv4()
@@ -312,6 +344,7 @@ export const actions: Actions = {
         }
         const uploadResult = await uploadToEstAsr(fileData.path, fileData.filename)
         if (!uploadResult.externalId) {
+            console.log("Upload failed", uploadResult.reason)
             throw error(400, "transcriptionServiceError")
         }
         console.log(fileData, statSync(fileData.path).ctime, uploadResult.externalId)

@@ -48,7 +48,7 @@
 		loading = true;
 		let response;
 		if (selectedLanguage.id === 0) {
-			response = await fetch('files?/uploadEst', {
+			response = await fetch('files?/uploadEst2', {
 				method: 'POST',
 				body: formData
 			});
@@ -183,10 +183,10 @@
 							{:else if file.state == 'PROCESSING_ERROR'}
 								<div class="badge badge-error">{$_('files.statusError')}</div>
 							{:else if file.state == 'PROCESSING'}
-								<div class="badge badge-accent loading">{$_('files.statusProcessing')}</div>
+								<div class="badge badge-accent loading">{$_('files.statusProcessing')} {` ${file.progressPrc}%`}</div>
 								<span class="btn btn-ghost btn-xs loading" />
 							{:else if file.state == 'UPLOADED'}
-								<div class="badge badge-info loading">{$_('files.statusUploaded')}</div>
+								<div class="badge badge-info loading">{$_('files.statusUploaded')} {` ${file.totalJobsStarted}/${file.totalJobsQueued}`}</div>
 								<span class="btn btn-ghost btn-xs loading" />
 							{/if}
 						</td>

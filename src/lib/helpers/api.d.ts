@@ -165,4 +165,5 @@ export type EstResult = {
     done: boolean;
     success?: boolean;
     errorCode?: number;
-} | EditorContent;
+    result?: EditorContent;
+} 

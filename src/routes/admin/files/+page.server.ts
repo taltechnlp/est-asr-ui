@@ -28,7 +28,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
     const pendingFiles = files.filter((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')
     if (pendingFiles.length > 0) {
         const promises = pendingFiles.map(file => checkCompletion(file.id, file.externalId, file.path, file.language, SECRET_UPLOAD_DIR))
-        const resultRetrieved = (await Promise.all(promises)).reduce((acc, x) => acc || x, false);
+        const resultRetrieved = (await Promise.all(promises)).reduce((acc, x) => acc || x.done, false);
         if (resultRetrieved) {
             files = await getFiles(currentUser);
         }
@@ -181,6 +181,7 @@ export const actions: Actions = {
             saveTo
         );
         try {
+            // @ts-ignore
             await writeFile(saveTo, file.stream())
         } catch (err) {
             console.error(err);
@@ -241,6 +242,7 @@ export const actions: Actions = {
             saveTo
         );
         try {
+             // @ts-ignore
             await writeFile(saveTo, file.stream())
         } catch (err) {
             console.error(err);
@@ -283,9 +285,11 @@ export const actions: Actions = {
         
         const file = data.get('file') as File;
         if (!file.name || !file.size || !file.type) {
+            console.log("Invalid file.")
             return invalid(400, { noFile: true})
         }
         if (file.size > UPLOAD_LIMIT) {
+            console.log("Upload limit exceeded.")
             return invalid(400, { uploadLimit: true });
         }
         const newFilename = `${Date.now()}-${Math.round(Math.random() * 1E4)}-${file.name}`
@@ -301,9 +305,10 @@ export const actions: Actions = {
             saveTo
         );
         try {
+             // @ts-ignore
             await writeFile(saveTo, file.stream())
         } catch (err) {
-            console.error(err);
+            console.error(err, "Saving file failed");
             throw error(500, "fileSavingFailed");
         }
         let id = uuidv4()
@@ -318,6 +323,7 @@ export const actions: Actions = {
         }
         const uploadResult = await uploadToEstAsr(fileData.path, fileData.filename)
         if (!uploadResult.externalId) {
+            console.log("No external ID")
             throw error(400, "transcriptionServiceError")
         }
         console.log(fileData, statSync(fileData.path).ctime, uploadResult.externalId)

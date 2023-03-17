@@ -29,7 +29,7 @@ export const GET: RequestHandler = async ({ locals, params }) => {
       )
     );
     const resultRetrieved = (await Promise.all(promises)).reduce(
-      (acc, x) => acc || x,
+      (acc, x) => acc || x.done,
       false,
     );
     if (resultRetrieved) {
