@@ -1,5 +1,4 @@
 <script lang="ts">
-	export const ssr = false;
 	import Tiptap from '$lib/components/editor/Tiptap.svelte';
 	import Player from '$lib/components/Player.svelte';
 	import { content, words, speakers } from './content';

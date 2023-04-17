@@ -16,7 +16,7 @@
 				headers: {
 					'Content-Type': 'application/json'
 				}
-			});
+			})
 			userStore.set({ name: '', email: '', id: '' });
 			await goto('/');
 		} catch (error) {

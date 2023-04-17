@@ -15,13 +15,11 @@
   },
   "devDependencies": {
     "@sveltejs/adapter-auto": "next",
-    "@sveltejs/kit": "next",
+    "@sveltejs/kit": "1.15.2",
     "@tailwindcss/typography": "^0.5.2",
-    "@types/prosemirror-changeset": "^2.1.1",
     "@types/wavesurfer.js": "^6.0.3",
     "@typescript-eslint/eslint-plugin": "^5.10.1",
     "@typescript-eslint/parser": "^5.10.1",
-    "@vite-pwa/sveltekit": "^0.0.1",
     "autoprefixer": "^10.4.11",
     "daisyui": "^2.6.4",
     "eslint": "^7.32.0",
@@ -33,13 +31,12 @@
     "prettier": "^2.5.1",
     "prettier-plugin-svelte": "^2.5.0",
     "prisma": "^4.9.0",
-    "svelte": "^3.44.0",
+    "svelte": "next",
     "svelte-check": "^2.2.6",
-    "svelte-preprocess": "^4.10.7",
+    "svelte-preprocess": "next",
     "tailwindcss": "^3.1.8",
     "tslib": "^2.3.1",
-    "typescript": "~4.6.2",
-    "vite": "^3.0.9"
+    "typescript": "~4.6.2"
   },
   "type": "module",
   "dependencies": {
@@ -79,6 +76,7 @@
     "svelte-i18n": "^3.3.13",
     "svelte-tiptap": "^0.6.0",
     "uuid": "^8.3.2",
+    "vite": "^4.0.0",
     "wavesurfer.js": "^6.3.0"
   }
 }

@@ -1,10 +1,9 @@
-<script>
+<script lang="ts">
 	import { user as userStore, lang as langStore } from '$lib/stores';
 	import { afterNavigate } from '$app/navigation';
 	import Logo from '$lib/components/Logo.svelte';
 	import { createEventDispatcher } from 'svelte';
 	import { _, locale } from 'svelte-i18n';
-
 	let loggedIn;
 	let initials;
 	userStore.subscribe((value) => {
@@ -47,6 +46,7 @@
 			x.style.display = 'none';
 		}
 	}
+
 </script>
 
 <div class="max-w-screen-2xl w-full">

@@ -13,8 +13,11 @@
 			headers: {
 				'Content-Type': 'application/json'
 			}
-		});
-
+		}).catch(e => console.error("Signin failed"));
+		if (!response) {
+			error = "Signin request failed!";
+			return;
+		}
 		if (!response.ok) {
 			error = (await response.json()).message;
 			return;

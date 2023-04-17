@@ -112,12 +112,16 @@ const uploadToTranscriber = async (pathString, filename) => {
             },
             body: file
         }
-    )
+    ).catch(e => console.log("Upload failed", "http://bark.phon.ioc.ee/transcribe/v1/upload?extension=" + extension, e))
+    if (!result) {
+        await fs.unlink(pathString);
+        return { uploadedAt }
+    }
     if (!result.ok) {
         const body = (await result.json()) as { error: TranscriberError };
         console.log(body.error.code, body.error.message, body.error.log)
         await fs.unlink(pathString);
-        throw error(result.status, body.error.message)
+        return { uploadedAt }
     }
 
     return { externalId: result.headers.get("x-request-id"), uploadedAt };

@@ -12,7 +12,11 @@
 			headers: {
 				'Content-Type': 'application/json'
 			}
-		});
+		}).catch(e => console.error("Password reset request failed."));
+		if (!res) {
+			error = "Password reset request failed."
+			return;
+		}
 		if (res.status === 200) {
 			const data = await res.body;
 			console.log(data)

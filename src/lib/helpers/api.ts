@@ -130,50 +130,59 @@ export const checkCompletion = async (
   language,
   uploadDir,
 ) => {
-  if (language == "est" && !EST_ASR_USE_NEW) {
-    const result = await fetch(
-      "http://bark.phon.ioc.ee/transcribe/v1/result?id=" + externalId,
-    );
-    const body: TranscriberResult = await result.json();
-    if (!body.done) {
-      return { done: false };
-    } else if (body.error) {
-      await prisma.file.update({
-        data: { state: "PROCESSING_ERROR" },
-        where: {
-          id: fileId,
-        },
-      });
-      console.log(
-        `Failed to transcribe ${fileId}. Failed with code`,
-        body.error.code,
-        body.error.message,
-      );
-      await unlink(path);
-      return { done: true };
-    } else if (body) {
-      const path = `${uploadDir}/${fileId}.json`;
-      const text = JSON.stringify(body.result);
-      const writeStream = createWriteStream(path);
-      writeStream.on("finish", async function () {
+  if (language == "est" && EST_ASR_USE_NEW!=="true") {
+    try {
+      const result = await fetch(
+        "http://bark.phon.ioc.ee/transcribe/v1/result?id=" + externalId
+      ).catch(e => {
+        console.log("Error fetching", "http://bark.phon.ioc.ee/transcribe/v1/result?id=" + externalId, e);
+      })
+      if (!result) return {done: false};
+      const body: TranscriberResult = await result.json();
+      if (!body.done) {
+        return { done: false };
+      } else if (body.error) {
+        console.log(body)
         await prisma.file.update({
-          data: {
-            initialTranscriptionPath: path,
-            state: "READY",
-          },
+          data: { state: "PROCESSING_ERROR" },
           where: {
             id: fileId,
           },
         });
-      });
-      writeStream.write(text);
-      writeStream.end();
-      // Pre-generate waveform peaks
-      await generatePeaks(fileId);
-      return { done: true };
+        console.log(
+          `Failed to transcribe ${fileId}. Failed with code`,
+          body.error.code,
+          body.error.message,
+        );
+        await unlink(path);
+        return { done: true };
+      } else if (body) {
+        const path = `${uploadDir}/${fileId}.json`;
+        const text = JSON.stringify(body.result);
+        const writeStream = createWriteStream(path);
+        writeStream.on("finish", async function () {
+          await prisma.file.update({
+            data: {
+              initialTranscriptionPath: path,
+              state: "READY",
+            },
+            where: {
+              id: fileId,
+            },
+          });
+        });
+        writeStream.write(text);
+        writeStream.end();
+        // Pre-generate waveform peaks
+        await generatePeaks(fileId);
+        return { done: true };
+      }
+      return { done: false };
     }
-    return { done: false };
-  } else if (language == "est" && EST_ASR_USE_NEW) {
+    catch (e) {
+
+    }
+  } else if (language == "est" && EST_ASR_USE_NEW==="true") {
     const progressRequest = await fetch(
       `${EST_ASR_URL}/progress/` + externalId,
     ).catch(e => {
@@ -197,8 +206,8 @@ export const checkCompletion = async (
       else if (progress.done && progress.success) {
         const resultRequest = await fetch(
           `${EST_ASR_URL}/result/` + externalId,
-        );
-        if (resultRequest.status === 200) {
+        ).catch(e => console.log("Progress request failed", `${EST_ASR_URL}/progress/` + externalId))
+        if (resultRequest && resultRequest.status === 200) {
           const result = await resultRequest.json();
           const path = `${uploadDir}/${fileId}.json`;
           const text = JSON.stringify(result.result);
@@ -265,8 +274,9 @@ export const checkCompletion = async (
     const result = await fetch(FIN_ASR_RESULTS_URL, {
       method: "POST",
       body: externalId,
-    });
+    }).catch(e => console.error("Post failed to", FIN_ASR_RESULTS_URL, externalId))
     const body: FinAsrResult = await result.json();
+    if (!body) return { done: false };
     if (!body.done) {
       return { done: false };
     } // Error case
@@ -304,7 +314,7 @@ export const checkCompletion = async (
       // Pre-generate waveform peaks
       await generatePeaks(fileId);
       return { done: true };
-    } else return { done: false };
+    } 
   }
 };
 

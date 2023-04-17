@@ -176,8 +176,8 @@
 		const result = await fetch(`/api/files/${fileId}`, {
 			method: 'PUT',
 			body: JSON.stringify($editor.getJSON())
-		});
-		if (!result.ok) {
+		}).catch(e=> console.error("Saving file failes", fileId))
+		if (!result || !result.ok) {
 			return false;
 		}
 		return true;

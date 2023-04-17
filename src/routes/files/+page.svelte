@@ -24,7 +24,10 @@
 	const delFile = async (fileId) => {
 		const response = await fetch('/api/files/' + fileId, {
 			method: 'DELETE'
-		});
+		}).catch(e => console.error("Failed to delete file", fileId))
+		if (!response) {
+			return;
+		}
 		if (!response.ok) {
 			console.log('Server error');
 		} else {
@@ -48,16 +51,18 @@
 		loading = true;
 		let response;
 		if (selectedLanguage.id === 0) {
-			response = await fetch('files?/uploadEst2', {
+			response = await fetch('files?/uploadEst', {
 				method: 'POST',
 				body: formData
-			});
-		} else {
+			}).catch(e => console.log("Upload failed."))
+		}
+		else {
 			response = await fetch('files?/uploadFin', {
 				method: 'POST',
 				body: formData
-			});
-		}
+			}).catch(e => console.log("Upload failed."))
+		} 
+		if (!response) console.log("No connection")
 		const result: ActionResult = await response.json();
 		if (result.type === 'error') {
 			loading = false;
@@ -65,7 +70,7 @@
 			console.log('Upload failed', result.error);
 			return;
 		}
-		if (result.type === 'invalid') {
+		if (result.type === 'failure') {
 			loading = false;
 			if (result.data.uploadLimit) {
 				error = 'fileSizeLimit';
@@ -156,7 +161,7 @@
 			>
 		</label>
 	</div>
-	<table class="table max-w-screen-2xl">
+	<table class="table table-compact max-w-screen-2xl">
 		<thead>
 			<tr>
 				<th />
@@ -175,7 +180,9 @@
 					>
 						<th>{index + 1}</th>
 						<td class="">
-							{file.filename}
+							<p class="break-words whitespace-normal">
+								{file.filename}
+							</p>
 						</td>
 						<td>
 							{#if file.state == 'READY'}
@@ -185,8 +192,11 @@
 							{:else if file.state == 'PROCESSING'}
 								<div class="badge badge-accent loading">{$_('files.statusProcessing')} {` ${file.progressPrc}%`}</div>
 								<span class="btn btn-ghost btn-xs loading" />
-							{:else if file.state == 'UPLOADED'}
+							{:else if file.state == 'UPLOADED' && file.totalJobsStarted && file.totalJobsQueued}
 								<div class="badge badge-info loading">{$_('files.statusUploaded')} {` ${file.totalJobsStarted}/${file.totalJobsQueued}`}</div>
+								<span class="btn btn-ghost btn-xs loading" />
+							{:else if file.state == 'UPLOADED'}
+								<div class="badge badge-info loading">{$_('files.statusUploaded')}</div>
 								<span class="btn btn-ghost btn-xs loading" />
 							{/if}
 						</td>
