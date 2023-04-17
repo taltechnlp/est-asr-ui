@@ -11,12 +11,6 @@ const config = {
                 fs: {
                         allow: ['..']
                 }
-        },
-        build: {
-                rollupOptions: {
-                        // overwrite default .html entry
-                        input: '/build/index.js',
-                      },
         }
 };
 
