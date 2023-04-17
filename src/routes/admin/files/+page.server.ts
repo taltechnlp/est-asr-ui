@@ -4,7 +4,7 @@ import { checkCompletion, getFiles } from '$lib/helpers/api';
 import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 import type { PageServerLoad, Actions } from './$types';
-import { invalid, error, redirect } from '@sveltejs/kit';
+import { fail, error, redirect } from '@sveltejs/kit';
 import { SECRET_UPLOAD_DIR, FIN_ASR_UPLOAD_URL, EST_ASR_URL } from '$env/static/private';
 import { existsSync, mkdirSync, statSync, unlinkSync} from 'fs';
 import type { FinUploadResult, EstProgress, EstResult, EstUploadResult } from "$lib/helpers/api.d";
@@ -167,10 +167,10 @@ export const actions: Actions = {
         
         const file = data.get('file') as File;
         if (!file.name || !file.size || !file.type) {
-            return invalid(400, { noFile: true})
+            return fail(400, { noFile: true})
         }
         if (file.size > UPLOAD_LIMIT) {
-            return invalid(400, { uploadLimit: true });
+            return fail(400, { uploadLimit: true });
         }
         const newFilename = `${Date.now()}-${Math.round(Math.random() * 1E4)}-${file.name}`
         const uploadDir = join(SECRET_UPLOAD_DIR, locals.userId);
@@ -228,10 +228,10 @@ export const actions: Actions = {
         
         const file = data.get('file') as File;
         if (!file.name || !file.size || !file.type) {
-            return invalid(400, { noFile: true})
+            return fail(400, { noFile: true})
         }
         if (file.size > UPLOAD_LIMIT) {
-            return invalid(400, { uploadLimit: true });
+            return fail(400, { uploadLimit: true });
         }
         const newFilename = `${Date.now()}-${Math.round(Math.random() * 1E4)}-${file.name}`
         const uploadDir = join(SECRET_UPLOAD_DIR, locals.userId);
@@ -290,11 +290,11 @@ export const actions: Actions = {
         const file = data.get('file') as File;
         if (!file.name || !file.size || !file.type) {
             console.log("Invalid file.")
-            return invalid(400, { noFile: true})
+            return fail(400, { noFile: true})
         }
         if (file.size > UPLOAD_LIMIT) {
             console.log("Upload limit exceeded.")
-            return invalid(400, { uploadLimit: true });
+            return fail(400, { uploadLimit: true });
         }
         const newFilename = `${Date.now()}-${Math.round(Math.random() * 1E4)}-${file.name}`
         const uploadDir = join(SECRET_UPLOAD_DIR, locals.userId);

@@ -4,7 +4,7 @@ import { hash } from 'bcrypt'
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken'
 import { sendMail, createEmail } from '$lib/email';
-import { invalid } from '@sveltejs/kit';
+import { fail } from '@sveltejs/kit';
 import { SECRET_KEY } from '$env/static/private';
 
 const validateEmail = (email) => {
@@ -24,7 +24,7 @@ export const actions: Actions = {
         const random = data.get('random')
 
         if (!validateEmail(email)) {
-            return invalid(400, { email, incorrect: true });
+            return fail(400, { email, incorrect: true });
         }
         const userCount = await prisma.user.count({
             where: {
@@ -32,7 +32,7 @@ export const actions: Actions = {
             }
         })
         if (userCount > 0) {
-            return invalid(400, { email, exists: true });
+            return fail(400, { email, exists: true });
         }
         const hashedPassword = await hash(password, 10);
         let id = uuidv4()

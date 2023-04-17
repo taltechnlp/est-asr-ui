@@ -1,7 +1,7 @@
 import type { Actions } from './$types'
 import { prisma } from "$lib/db/client";
 import { sendMail, createEmail } from '$lib/email';
-import { invalid } from '@sveltejs/kit';
+import { fail } from '@sveltejs/kit';
 import { promisify } from "util";
 import { randomBytes } from "crypto";
 
@@ -16,7 +16,7 @@ export const actions: Actions = {
             }
         });
         if (!user) {
-            return invalid(400, { email, doesNotExist: true });
+            return fail(400, { email, doesNotExist: true });
         }
         // 2. Set a reset token and expiry on that user
         const randomBytesPromiseified = promisify(randomBytes);
