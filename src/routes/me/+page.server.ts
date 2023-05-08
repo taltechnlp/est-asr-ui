@@ -19,7 +19,7 @@ export const load = (async ({locals}) => {
             return acc;
         },{})};
     }
-}) satisfies PageServerLoad;
+});
 
 export const actions: Actions = {
     remove: async ({ request, locals }) => {

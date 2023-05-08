@@ -60,6 +60,7 @@ export const handle: Handle =
 					signOut: (x) => console.log(x),
 				},
 		callbacks: {
+			// @ts-ignore
 			signIn: async ({ user, account, credentials, email, profile})=>{
 				console.log("signin")
 				const existingAccount = await prisma.account.findFirst({
