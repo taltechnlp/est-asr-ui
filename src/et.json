@@ -1,6 +1,14 @@
 {
     "sign_in": "Logi sisse",
     "sign_up": "Logi välja",
+    "newAccount": {
+        "notConnectedHeading": "Konto pole ühendatud",
+        "notConnected": "Seda kontot pole veel ühendatud tekstiks.ee kontoga. Valige, kuidas jätkata:",
+        "registerOption": "Registreeri uus tekstiks.ee konto.",
+        "loginOption": "Logige sisse olemasoleva tekstiks.ee kontoga.",
+        "register": "Registreeri uus konto",
+        "or": "VÕI"
+    },
     "index": {
         "title": "Esileht | teksiks.ee",
         "headerTitle": "Esileht",
@@ -96,7 +104,12 @@
         "header": "Konto andmed",
         "email": "E-posti aadress",
         "name": "Nimi",
-        "logoutButton": "Logi välja"
+        "logoutButton": "Logi välja",
+        "password": "Parool",
+        "resetPassword": "Lähtesta parool",
+        "connectedAccounts": "Ühendatud kontod",
+        "connectAccount": "Ühenda konto",
+        "removeAccount": "Eemalda konto"
     },
     "file": {
         "editingMode": "Muutmise režiim:",
@@ -189,27 +202,27 @@
             "splitParagraph": "Tekstilõigu poolitamine"
         }
     },
-  "dictate": {
-    "title": "Dikteeri",
-    "intro1": "Sellel lehel saab TalTech kõnetuvastuse abil dikteerida eestikeelset teksti. Veebilehitseja saadab reaalajaliselt kõne TalTechi Kõnetehnoloogia labori serverisse, kus see muudetakse tekstiks ning saadetakse veebilehtisejasse tagasi.",
-    "intro2": "Safari ning Chrome veebilehitsejatega saab ka kasutada veebilehitseja enese kõnetuvastuse võimekust. See küll saavutatakse alati heli kuhugi serverisse saatmisega (nt Google'i või Apple'i serverisse).",
-    "intro3": "Rahuldava tuvastuskvaliteedi saamiseks tuleks kasutada suu lähedal olevat nn headset-tüüpi mikrofoni. Kindlasti ei tasu dikteerida näiteks sülearvuti sisseehitatud mikrofoniga. Parima tulemuse saamiseks tuleks dikteerida selge häälega ja mõõdukas tempos (umbes nagu raadiodiktor). Sõnade vahel pause ei pea tegema. TalTech kõnetuvastusega saab dikteerida ka kirjavahemärke (\",.!?:;\") ja reavahetusi (ütle \"uus rida\").",
-    "attention": "Tähelepanu!",
-    "freeConnections": "vaba ühendust",
-    "noConnections": "Ühtegi ühendust pole hetkel saadaval!",
-    "providePermission": "Palun anna mikrofoni kasutamise õigus",
-    "permissionWarning": "Veebilehtiseja küsib peatselt nõusolekut mikrofoni kasutada.",
-    "cancel":"Tühista",
-    "ok": "Sobib",
-    "accessDisabledHeading": "Ligipääs mikrofonile on keelatud",
-    "accessDisabledContent": "Ligipääs mikrofonile on selle veebilehe jaoks keelatud.",
-    "close": "Sulge",
-    "download":"Laadi alla",
-    "resultsPlaceholder": "Siia ilmuvad kõnetuvastuse tulemused",
+    "dictate": {
+        "title": "Dikteeri",
+        "intro1": "Sellel lehel saab TalTech kõnetuvastuse abil dikteerida eestikeelset teksti. Veebilehitseja saadab reaalajaliselt kõne TalTechi Kõnetehnoloogia labori serverisse, kus see muudetakse tekstiks ning saadetakse veebilehtisejasse tagasi.",
+        "intro2": "Safari ning Chrome veebilehitsejatega saab ka kasutada veebilehitseja enese kõnetuvastuse võimekust. See küll saavutatakse alati heli kuhugi serverisse saatmisega (nt Google'i või Apple'i serverisse).",
+        "intro3": "Rahuldava tuvastuskvaliteedi saamiseks tuleks kasutada suu lähedal olevat nn headset-tüüpi mikrofoni. Kindlasti ei tasu dikteerida näiteks sülearvuti sisseehitatud mikrofoniga. Parima tulemuse saamiseks tuleks dikteerida selge häälega ja mõõdukas tempos (umbes nagu raadiodiktor). Sõnade vahel pause ei pea tegema. TalTech kõnetuvastusega saab dikteerida ka kirjavahemärke (\",.!?:;\") ja reavahetusi (ütle \"uus rida\").",
+        "attention": "Tähelepanu!",
+        "freeConnections": "vaba ühendust",
+        "noConnections": "Ühtegi ühendust pole hetkel saadaval!",
+        "providePermission": "Palun anna mikrofoni kasutamise õigus",
+        "permissionWarning": "Veebilehtiseja küsib peatselt nõusolekut mikrofoni kasutada.",
+        "cancel": "Tühista",
+        "ok": "Sobib",
+        "accessDisabledHeading": "Ligipääs mikrofonile on keelatud",
+        "accessDisabledContent": "Ligipääs mikrofonile on selle veebilehe jaoks keelatud.",
+        "close": "Sulge",
+        "download": "Laadi alla",
+        "resultsPlaceholder": "Siia ilmuvad kõnetuvastuse tulemused",
         "recognizer": {
             "taltech": "TalTech kõnetuvastus",
             "browser": "Veebilehitseja kõnetuvastus (ainult Chrome, Safari!)"
         },
         "recognizers": "Kõnetuvastuse teenus"
-  }
+    }
 }

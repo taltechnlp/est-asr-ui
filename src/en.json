@@ -1,6 +1,14 @@
 {
   "sign_in": "Sign in",
   "sign_up": "Sign up",
+  "newAccount": {
+    "notConnectedHeading": "Account not connected",
+    "notConnected": "This account has not yet been connected to a tekstiks.ee account. Choose how to proceed:",
+    "registerOption": "Register a new tekstiks.ee account.",
+    "loginOption": "Log into an existing tekstiks.ee account.",
+    "register": "Register a new account",
+    "or": "OR"
+  },
   "index": {
     "title": "Home | teksiks.ee",
     "headerTitle": "Home",
@@ -96,7 +104,13 @@
     "header": "Account details",
     "email": "Email address",
     "name": "Name",
-    "logoutButton": "Log out"
+    "logoutButton": "Log out",
+    "password": "Password",
+    "resetPassword": "Reset password",
+    "connectedAccounts": "Connected accounts",
+    "connectAccount": "Connect account",
+    "removeAccount": "Remove account"
+
   },
   "file": {
     "editingMode": "Editing mode:",

@@ -6,7 +6,7 @@ import { prisma } from "$lib/db/client";
 
 export const GET: RequestHandler = async ({ locals, params }) => {
   if (!locals.userId) {
-    throw error(301, "Not authenticated user");
+    throw error(401, "Not authenticated user");
   }
   const isAdmin =
     await (await prisma.user.findUnique({ where: { id: locals.userId } }))

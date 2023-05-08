@@ -5,16 +5,16 @@
 	import { enhance } from '$app/forms';
 	import type {PageData, ActionData} from './$types';
 	import { user as userStore } from '$lib/stores';
-
-	let email = '';
+	
+	export let data: PageData;
+	let email = data.email;
+	let fullName = data.name;
 	let password = '';
-	let fullName = '';
 	let confirmPassword = '';
 	let error;
 	let confirmPasswordInputRef;
 	let success = false;
 
-	export let data: PageData;
 	export let form: ActionData;
 	type Success = {
 		user: {

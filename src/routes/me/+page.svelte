@@ -2,23 +2,33 @@
 	import { goto } from '$app/navigation';
 	import { user as userStore } from '$lib/stores';
 	import { _ } from 'svelte-i18n';
+	import { signOut } from '@auth/sveltekit/client';
+	import github from 'svelte-awesome/icons/github';
+	import facebook from 'svelte-awesome/icons/facebook';
+	import google from 'svelte-awesome/icons/google';
+	import Icon from 'svelte-awesome/components/Icon.svelte';
+	import { signIn } from '@auth/sveltekit/client';
+	import { page } from '$app/stores';
+
 	let userData;
 
 	userStore.subscribe((value) => {
 		userData = value;
 	});
-
+	console.log($page.data.accounts);
 	const handleSignOut = async () => {
 		try {
 			const response = await fetch('/api/signout', {
 				method: 'POST',
-				body: "",
+				body: '',
 				headers: {
 					'Content-Type': 'application/json'
 				}
-			})
+			});
 			userStore.set({ name: '', email: '', id: '' });
+			// Log out of OAuth sessions
 			await goto('/');
+			await signOut();
 		} catch (error) {
 			return {
 				status: 500,
@@ -40,9 +50,57 @@
 
 		<p>{$_('me.name')}:</p>
 		<p>{userData ? userData.name : ''}</p>
+
+		<p>{$_('me.password')}:</p>
+		<a href="/password-reset">
+			<button class="btn btn-outline btn-sm">{$_('me.resetPassword')}</button>
+		</a>
 	</div>
+	<h3 class="text-lg mb-10 font-extrabold mt-6">{$_('me.connectedAccounts')}</h3>
+	<div class="grid grid-cols-2 gap-5 place-content-between">
+		<p><Icon data={facebook} scale={1.5} /> Facebook</p>
+		{#if $page.data.accounts.facebook}
+			<form method="POST" action="?/remove" class="justify-self-end">
+				<input type="text" value="facebook" class="hidden" name="provider" />
+				<button class="btn btn-outline btn-sm btn-error">{$_('me.removeAccount')}</button>
+			</form>
+		{:else}
+			<div class="justify-self-end">
+				<button class="btn btn-outline btn-sm" on:click={() => signIn('facebook')}
+					>{$_('me.connectAccount')}</button
+				>
+			</div>
+		{/if}
+		<p><Icon data={google} scale={1.5} /> Google</p>
+		{#if $page.data.accounts.google}
+			<form method="POST" action="?/remove" class="justify-self-end">
+				<input type="text" value="google" class="hidden" name="provider" />
+				<button class="btn btn-outline btn-sm btn-error">{$_('me.removeAccount')}</button>
+			</form>
+		{:else}
+			<div class="justify-self-end">
+				<button class="btn btn-outline btn-sm" on:click={() => signIn('google')}
+					>{$_('me.connectAccount')}</button
+				>
+			</div>
+		{/if}
+		<p><Icon data={github} scale={1.5} /> GitHub</p>
+		{#if $page.data.accounts.github}
+			<form method="POST" action="?/remove" class="justify-self-end">
+				<input type="text" value="github" class="hidden" name="provider" />
+				<button class="btn btn-outline btn-sm btn-error">{$_('me.removeAccount')}</button>
+			</form>
+		{:else}
+			<div class="justify-self-end">
+				<button class="btn btn-outline btn-sm" on:click={() => signIn('github')}
+					>{$_('me.connectAccount')}</button
+				>
+			</div>
+		{/if}
+	</div>
+
 	<div class="mt-10">
-		<button class="btn btn-outline" on:click={async () => await handleSignOut()}
+		<button class="btn btn-info" on:click={async () => await handleSignOut()}
 			>{$_('me.logoutButton')}</button
 		>
 	</div>

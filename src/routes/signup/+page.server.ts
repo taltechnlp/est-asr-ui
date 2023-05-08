@@ -15,6 +15,13 @@ const validateEmail = (email) => {
         );
 };
 
+export async function load({ params, url }) {
+    return { 
+        name: url.searchParams.get("name"),
+        email: url.searchParams.get("email")
+    }
+}
+
 export const actions: Actions = {
     register: async ({ cookies, request }) => {
         const data = await request.formData();

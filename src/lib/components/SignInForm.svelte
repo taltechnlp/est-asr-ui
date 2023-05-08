@@ -34,7 +34,7 @@
 		bind:value={password}
 		required
 	/>
-	<div class="flex place-content-between">
+	<div class="flex place-content-between w-96">
 		<Button type="submit">{$_('signin.login')}</Button>
 		<a href="password-reset">{$_('signin.forgotPassword')}</a>
 	</div>

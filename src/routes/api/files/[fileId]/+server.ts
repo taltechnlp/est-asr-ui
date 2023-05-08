@@ -7,7 +7,7 @@ import { SECRET_AUDIO_UPLOAD_DIR } from "$env/static/private";
 
 export const DELETE: RequestHandler = async ({ params, locals }) => {
   if (!locals.userId) {
-    throw error(301, "Not authenticated user");
+    throw error(401, "Not authenticated user");
   }
   // Validate that the user owns the file
   const fileDetails = await prisma.file.findUnique({
@@ -52,7 +52,7 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 // Save edited transcription to disk
 export const PUT: RequestHandler = async ({ params, request, locals }) => {
     if (!locals.userId) {
-        throw error(301, "Not authenticated user");
+        throw error(401, "Not authenticated user");
       }
       const editorContent = await request.json();
       const file = await prisma.file.findUnique({

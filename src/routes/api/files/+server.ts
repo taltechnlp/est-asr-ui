@@ -24,7 +24,7 @@ type FileWithProgress = {
 
 export const GET: RequestHandler = async ({ locals }) => {
     if (!locals.userId) {
-        throw error(301, "Not authenticated user");
+        throw error(401, "Not authenticated user");
     }
     let files: FileWithProgress[] = await getFiles(locals.userId)
     const pendingFiles = files.filter((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')

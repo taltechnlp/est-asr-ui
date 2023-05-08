@@ -78,12 +78,6 @@
 				>
 					{$_('index.headerDemo')}
 				</a>
-				<a
-					href="/dictate"
-					class="btn btn-ghost btn-md rounded-btn {path == '/dictate' ? 'text-orange-600' : ''}"
-				>
-					{$_('index.headerDictate')}
-				</a>
 				<select class="select select-ghost max-w-xs" bind:value={selected} on:change={switchLocale}>
 					{#each languages as language}
 						<option value={language}>

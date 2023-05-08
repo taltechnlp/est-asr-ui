@@ -1,8 +1,15 @@
 <script lang="ts">
 	import SignInForm from '$lib/components/SignInForm.svelte';
-	import { goto } from '$app/navigation';
 	import { _ } from 'svelte-i18n';
 	import { user as userStore } from '$lib/stores';
+	import { signIn, signOut } from "@auth/sveltekit/client"
+	import github from 'svelte-awesome/icons/github';
+	import facebook from 'svelte-awesome/icons/facebook';
+	import google from 'svelte-awesome/icons/google';
+	import Icon from 'svelte-awesome/components/Icon.svelte';
+    import { page } from "$app/stores"
+    import { onMount } from "svelte";
+    import { goto, invalidateAll } from '$app/navigation';
 
 	let error = null;
 
@@ -36,6 +43,25 @@
 		}
 		else return error;
 	};
+
+	async function logIn() {
+        if ($page.data.session) {
+          const response = await fetch('/signin', {
+            method: 'POST',
+            body: JSON.stringify($page.data.session),
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          }).catch(e => console.error("Signin failed"));
+          if (response && response.ok) {
+            await invalidateAll()
+            await goto('/files')
+          } else {
+			  await goto("signup/complete");
+		  }
+        }
+    }
+    onMount(async ()=> await logIn())
 </script>
 
 <svelte:head>
@@ -47,7 +73,16 @@
 	<a href="signup" class="tab tab-bordered tab-lg">{$_('signin.register')}</a>
 </div>
 {#if error}
-	<p class="mt-3 text-red-500 text-center font-semibold">{printError(error)}</p>
+<p class="mt-3 text-red-500 text-center font-semibold">{printError(error)}</p>
 {/if}
 <SignInForm class="max-w-xl mx-auto mt-8" on:submit={handleSubmit} />
-
+<div class="flex justify-center">
+	<div class="max-w-xl mt-7 gap-2">
+		<p class="mb-1">Või kasuta sisenemiseks:</p>		
+			<button class="btn btn-outline gap-2" on:click={() => signIn("facebook")}><Icon data={facebook} scale={1.5}/>Facebook</button>
+			<button class="btn btn-outline gap-2" on:click={() => signIn("google")}><Icon data={google} scale={1.5}/>
+				Google</button>
+			<button class="btn btn-outline gap-2" on:click={() => signIn("github")}><Icon data={github} scale={1.5}/>GitHub</button>
+	</div>
+	
+</div>

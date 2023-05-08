@@ -6,13 +6,15 @@ import jwt from 'jsonwebtoken';
 import type { LayoutServerLoad } from '../../.svelte-kit/types/src/routes/$types';
 import { SECRET_KEY } from '$env/static/private';
 
-export const load: LayoutServerLoad = async ({ request }) => {
+export const load: LayoutServerLoad = async ({ request, locals }) => {
 	await waitLocale();
 	const cookie = await parse(request.headers.get('cookie') || '');
 	if (cookie.token) {
 		const userDetails = jwt.verify(cookie.token, SECRET_KEY);
 		if (userDetails.userId) {
-			return {userId: userDetails.userId}
+			return {
+				userId: userDetails.userId
+			}
 		} else {
 			return {};
 		}

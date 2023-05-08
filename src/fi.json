@@ -1,6 +1,14 @@
 {
     "sign_in": "Kirjaudu sisään",
     "sign_up": "Luo käyttäjätili",
+    "newAccount": {
+        "notConnectedHeading": "Tiliä ei ole yhdistetty",
+        "notConnected": "Tätä tiliä ei ole vielä liitetty tekstiks.ee-tiliin. Valitse miten haluat jatkaa:",
+        "registerOption": "Rekisteröi uusi tekstiks.ee-tili.",
+        "loginOption": "Kirjaudu sisään olemassa olevalla tekstiks.ee-tilillä.",
+        "register": "Rekisteröi uusi tili",
+        "or": "TAI"
+    },
     "index": {
         "title": "Kotisivu | teksiks.ee",
         "headerTitle": "Kotisivu",
@@ -96,7 +104,12 @@
         "header": "Käyttäjätiedot",
         "email": "Sähköposti",
         "name": "Nimi",
-        "logoutButton": "Kirjaudu ulos"
+        "logoutButton": "Kirjaudu ulos",
+        "password": "Salasana",
+        "resetPassword": "Nollaa salasana",
+        "connectedAccounts": "Liitetyt tilit",
+        "connectAccount": "Liitä tili",
+        "removeAccount": "Poista tili"
     },
     "file": {
         "editingMode": "Muokkaustila:",
@@ -199,16 +212,16 @@
         "noConnections": "Tällä hetkellä ei ole vapaita yhteyksiä!",
         "providePermission": "Ota mikrofoni käyttöön",
         "permissionWarning": "Selain pyytää lupaa käyttää mikrofonia.",
-        "cancel":"Peruuta",
+        "cancel": "Peruuta",
         "ok": "Ok",
         "accessDisabledHeading": "Mikrofonin käyttö on estetty",
         "accessDisabledContent": "Tämän verkkosivuston käyttöoikeutta mikrofoniin ei ole sallittu.",
         "close": "Sulje",
-        "download":"Lataa",
+        "download": "Lataa",
         "resultsPlaceholder": "Puheentunnistuksen tulokset tulevat tähän.",
         "recognizer": {
-        "taltech": "TalTechin puheentunnistus",
-        "browser": "Selaimen puheentunnistus (vain Chrome, Safari!)"
+            "taltech": "TalTechin puheentunnistus",
+            "browser": "Selaimen puheentunnistus (vain Chrome, Safari!)"
         },
         "recognizers": "Puheentunnistuspalvelut"
     }
