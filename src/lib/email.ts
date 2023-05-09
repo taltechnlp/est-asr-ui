@@ -44,7 +44,7 @@ export const sendMail = info =>
         To: [
           {
             Email: info.to,
-            Name: "teksiks.ee"
+            Name: "tekstiks.ee"
           }
         ],
         Subject: info.subject,

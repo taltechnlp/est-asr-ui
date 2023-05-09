@@ -34,7 +34,8 @@ const mapSentences = (sentence: Sentence) => {
 		children: [
 			new TextRun(
 				sentence.content.reduce((sum, word) => {
-					return sum + word.text;
+					if (word.text) return sum + word.text;
+					else return sum;
 				}, '')
 			)
 		]
@@ -48,7 +49,7 @@ const processContent = (content, exportNames, exportTimeCodes) => {
 				type: SectionType.CONTINUOUS
 			},
 			children: content.content.reduce((acc, val) => {
-				if (exportNames && val.attrs['data-name']) {
+				if (exportNames && val.attrs && val.attrs['data-name']) {
 					acc = acc.concat(
 						new Paragraph({
 							children: [new TextRun(val.attrs['data-name'])]
