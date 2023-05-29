@@ -31,8 +31,14 @@
 		}
 		else {
 			const user = await response.json()
+			console.log("setting user store", user)
 			userStore.set(user);
-			goto('/files');
+		}
+		try {
+			await signIn('credentials', {}, {email: "", password: ""});
+		}
+		catch (e) {
+			console.log("Error is", e)
 		}
 	}
 	const printError = (error) => {
@@ -40,26 +46,18 @@
 			return $_('signin.passwordError');
 		} else if (error === 'email') {
 			return $_('signin.emailError')
+		} else if (error === 'noPasswordSet') {
+			return $_('signin.noPasswordSet')
 		}
 		else return error;
 	};
 
 	async function logIn() {
         if ($page.data.session) {
-          const response = await fetch('/signin', {
-            method: 'POST',
-            body: JSON.stringify($page.data.session),
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          }).catch(e => console.error("Signin failed"));
-          if (response && response.ok) {
+			console.log("page data session", $page.data.session)
             await invalidateAll()
             await goto('/files')
-          } else {
-			  await goto("signup/complete");
-		  }
-        }
+        } 
     }
     onMount(async ()=> await logIn())
 </script>

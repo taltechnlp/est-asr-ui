@@ -6,36 +6,41 @@ import { SvelteKitAuth } from "@auth/sveltekit"
 import GitHub from '@auth/core/providers/github';
 import Facebook from '@auth/core/providers/facebook';
 import Google from '@auth/core/providers/google';
-import { GITHUB_ID, GITHUB_SECRET, AUTH_SECRET, FACEBOOK_CLIENT_ID, FACEBOOK_CLIENT_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } from "$env/static/private";
+import CredentialsProvider from "next-auth/providers/credentials";
+import EmailProvider from "next-auth/providers/email"
+import { GITHUB_ID, GITHUB_SECRET, AUTH_SECRET, FACEBOOK_CLIENT_ID, FACEBOOK_CLIENT_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, NEXTAUTH_URL } from "$env/static/private";
+import { SECRET_MAIL_HOST, SECRET_MAIL_PORT, SECRET_MAIL_USER, SECRET_MAIL_PASS, SECRET_MAIL_FROM } from "$env/static/private";
 import { sequence } from "@sveltejs/kit/hooks";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "$lib/db/client";
-import { serialize } from 'cookie';
-
-const checkPath = (event) => {
-	return !event.url.pathname.startsWith('/demo') && !event.url.pathname.startsWith('/files/');
-};
+import { redirect } from "@sveltejs/kit";
+import { error } from '@sveltejs/kit';
 
 let userId;
-async function authorization({ event, resolve }) {
-	const cookie = await parse(event.request.headers.get('cookie') || '');
-	if (cookie.token) {
-		const userDetails = jwt.verify(cookie.token, SECRET_KEY);
+async function pwdAuthorization({ event, resolve }) {
+	const token = event.cookies.get('token');
+	if (token) {
+		const userDetails = jwt.verify(token, SECRET_KEY);
 		if (userDetails.userId) {
 			event.locals.userId = userDetails.userId
 			userId = userDetails.userId;
 		}
 	}
+	return resolve(event);
+}
+async function transformHtml({ event, resolve }) {
 	return resolve(event, {
 		transformPageChunk: ({ html }) => html.replace('old', 'new')
 	});
 }
 export const handle: Handle =
-	sequence(authorization, SvelteKitAuth({
-		// TODO! When the auth library is ready for production, let the PrismaAdapter persist to DB.
-		// Right now it's not possible to create custom pages for merging accounts etc.
+	sequence(pwdAuthorization, SvelteKitAuth({
 		// @ts-ignore
-		// adapter: PrismaAdapter(prisma),
+		adapter: PrismaAdapter(prisma),
+		jwt: {
+			secret: SECRET_KEY,
+			maxAge: 15 * 24 * 30 * 60, // 15 days
+		},
 		providers: [
 			GitHub({ clientId: GITHUB_ID, clientSecret: GITHUB_SECRET }),
 			// @ts-ignore
@@ -46,23 +51,89 @@ export const handle: Handle =
 			Google({
 				clientId: GOOGLE_CLIENT_ID,
 				clientSecret: GOOGLE_CLIENT_SECRET,
-			}),],
+			}),
+			EmailProvider({
+				server: {
+					host: SECRET_MAIL_HOST,
+					port: SECRET_MAIL_PORT,
+					auth: {
+						user: SECRET_MAIL_USER,
+						pass: SECRET_MAIL_PASS
+					}
+				},
+				from: SECRET_MAIL_FROM
+				// maxAge: 24 * 60 * 60, // How long email links are valid for (default 24h)
+			}),
+			CredentialsProvider({
+				// The name to display on the sign in form (e.g. 'Sign in with...')
+				name: 'password',
+				// The credentials is used to generate a suitable form on the sign in page.
+				// You can specify whatever fields you are expecting to be submitted.
+				// e.g. domain, username, password, 2FA token, etc.
+				// You can pass any HTML attribute to the <input> tag through the object.
+				credentials: {
+					/* email: {
+						label: "Email",
+						type: "email",
+						placeholder: "jsmith@gmail.com",
+					},
+					password: { label: "Password", type: "password" }, */
+				},
+				async authorize(credentials, req) {
+					// You need to provide your own logic here that takes the credentials
+					// submitted and returns either a object representing a user or value
+					// that is false/null if the credentials are invalid.
+					// e.g. return { id: 1, name: 'J Smith', email: 'jsmith@example.com' }
+					// You can also use the `req` object to obtain additional parameters
+					// (i.e., the request IP address)
+					if (userId) {
+						const user = await prisma.user.findUnique({
+							where: {
+								id: userId
+							},
+							select: {
+								email: true,
+								id: true,
+								name: true,
+								role: true,
+								image: true,
+							}
+						})
+						return user;
+					}
+					else return null
+				}
+			})
+		],
 		secret: AUTH_SECRET,
 		trustHost: true,
 		pages: {
 			signIn: "/signin",
-			error: '/signup/error', // Error code passed in query string as ?error=
-    		verifyRequest: '/auth/verify-request', // (used for check email message)
-    		newUser: '/signup/new-user' // New users will be directed here on first sign in (leave the property out if not of interest)
-		}, 
-		events: {
-					signIn: (x) => console.log(x),
-					signOut: (x) => console.log(x),
-				},
+			error: '/signin/error', // Error code passed in query string as ?error=
+			verifyRequest: '/auth/verify-request', // (used for check email message)
+			newUser: '/files' // New users will be directed here on first sign in (leave the property out if not of interest)
+		},
+		/* events: {
+			signIn: (x) => console.log(x),
+			signOut: (x) => console.log(x),
+		}, */
 		callbacks: {
-			// @ts-ignore
-			signIn: async ({ user, account, credentials, email, profile})=>{
-				console.log("signin")
+			async jwt({ token, user }) {
+				if (user) {
+					token.id = user.id;
+					token.email = user.email;
+					token.name = user.name;
+					token.picture = user.image;
+				}
+				return token;
+			},
+			async session({ session, token, user }) {
+				if (token) {
+					session.user = token;
+				}
+				return session;
+			},
+			signIn: async ({ user, account, credentials, email, profile }) => {
 				const existingAccount = await prisma.account.findFirst({
 					where: {
 						providerAccountId: account.providerAccountId
@@ -75,79 +146,65 @@ export const handle: Handle =
 							}
 						}
 					}
-				})
-				// Logged in, /me page
-				if (userId) {
-					// No such login method yet
+				});
+				// Allow all password / 2FA requests to pass. 
+				if (account.provider === "credentials") return true;
+				else if (!userId || !existingAccount) {
 					if (!existingAccount) {
-						let failed = false;
-						const res = await prisma.account.create({
-							data: {
-								provider: account.provider, 
-								providerAccountId: account.providerAccountId,
-								type: account.type,
-								access_token: account.access_token,
-								expires_at: account.expires_in,
-								id_token: account.id_token,
-								refresh_token: account.refresh_token,
-								scope: account.scope,
-								token_type: account.token_type,
-								user: {
-									connect: {
-										id: userId
+						const emailUsed = await prisma.user.findUnique({
+							where: {
+								email: user.email
+							},
+							select: {
+								id: true,
+								email: true
+							}
+						})
+						if (emailUsed && userId && emailUsed.id === userId) {
+							// Manually add the login method
+							const addAccount = await prisma.account.create({
+								data: {
+									provider: account.provider,
+									providerAccountId: account.providerAccountId,
+									type: account.type,
+									access_token: account.access_token,
+									expires_in: account.expires_in,
+									id_token: account.id_token,
+									refresh_token: account.refresh_token,
+									scope: account.scope,
+									token_type: account.token_type,
+									user: {
+										connect: {
+											id: userId
+										}
 									}
 								}
-							}
-						}).catch(e => failed = true)
-						if (failed) {
-							console.log("Unexpected account creation error", userId, account.provider, account.providerAccountId)
-							return `/me?error=accountAddingFailed`;}
-						else return true;
-					} 
-					// Logged in user does not have this auth method/account and it belongs to someone else.
-					else if (existingAccount && existingAccount.userId !== userId) {
-						return `/me?error=accountBelongsToAnother`;
+							})
+							if (addAccount) return true;
+							else return false;
+						}
+						// SvelteKit auth handles the case where there is a session already and account can be linked.
 					}
-					else {
-						return true;
-					}
+					// Returns AccountNotLinked if not logged in and belongs to some other user.
+					return true;
 				}
-				// Not currently logged in, log in or registration flow
 				else {
-					if (existingAccount) {
-					// log in
-						return true;
+					// Auth.js does not handle this case that another user has the OAUTH account and they are logged in with password.
+					if (existingAccount.userId !== userId || user.id !== userId) {
+						return false;
 					}
 					else {
-					// registration flow should first create a user and then add this accoun/login method.
-						return '/signin/complete';
+						return true;
 					}
 				}
 			},
-			async redirect({ url, baseUrl }) {
+			/* async redirect({ url, baseUrl }) {
 				console.log("redirect", url, baseUrl)
 				// Allows relative callback URLs
 				if (url.startsWith("/")) return `${baseUrl}${url}`
 				// Allows callback URLs on the same origin
 				else if (new URL(url).origin === baseUrl) return url
 				return baseUrl
-			}
-			/**
-			 * The session callback is called whenever a session is checked. By default, only a subset of the token is
-			 * returned for increased security. We are sending properties required for the client side to work.
-			 * 
-			 * @param session - Session object
-			 * @param token - Decrypted JWT that we returned in the jwt callback
-			 * @returns - Promise with the result of the session
-			 */
-			/*
-			async session(parameters) {
-				const { session, token } = parameters;
-				session.user = token.user
-				session.accessToken = token.accessToken
-				session.error = token.error
-				console.log(parameters)
-				return session;
-			},*/
-		}, 
-	}));
+			} */
+		},
+	}), transformHtml);

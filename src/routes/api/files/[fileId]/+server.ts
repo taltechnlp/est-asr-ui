@@ -6,7 +6,8 @@ import path from "path";
 import { SECRET_AUDIO_UPLOAD_DIR } from "$env/static/private";
 
 export const DELETE: RequestHandler = async ({ params, locals }) => {
-  if (!locals.userId) {
+  const session = await locals.getSession();
+  if (!session || !session.user) {
     throw error(401, "Not authenticated user");
   }
   // Validate that the user owns the file
@@ -20,14 +21,15 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
       User: {
         select: {
           id: true,
+          email: true
         },
       },
     },
   });
   const isAdmin =
-    await (await prisma.user.findUnique({ where: { id: locals.userId } }))
+    await (await prisma.user.findUnique({ where: { email: session.user.email } }))
       .role === "ADMIN";
-  if (!fileDetails || (fileDetails.User.id !== locals.userId && !isAdmin)) {
+  if (!fileDetails || (fileDetails.User.email !== session.user.email && !isAdmin)) {
     throw error(404, "fileNotFound");
   }
   let location = fileDetails.path;
@@ -51,7 +53,8 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 
 // Save edited transcription to disk
 export const PUT: RequestHandler = async ({ params, request, locals }) => {
-    if (!locals.userId) {
+    const session = await locals.getSession();
+    if (!session || !session.user) {
         throw error(401, "Not authenticated user");
       }
       const editorContent = await request.json();
@@ -64,14 +67,15 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
                 User: {
                     select: {
                       id: true,
+                      email: true
                     },
                   },
             },
         });
     const isAdmin =
-      await (await prisma.user.findUnique({ where: { id: locals.userId } }))
+      await (await prisma.user.findUnique({ where: { email: session.user.email } }))
         .role === "ADMIN";
-    if (!file|| (file.User.id !== locals.userId && !isAdmin)) {
+    if (!file|| (file.User.email !== session.user.email && !isAdmin)) {
       throw error(404, "fileNotFound");
     }
   try {

@@ -6,7 +6,7 @@ import { hash } from 'bcrypt'
 export const POST: RequestHandler = async ({ request }) => {
     const { password, resetToken } = await request.json()
     const hashedPassword = await hash(password, 10);
-    const valid = password.length > 0;
+    const valid = password && password.length > 0;
     if (!valid) {
         throw error(401, 'password')
     }

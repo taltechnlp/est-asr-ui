@@ -5,6 +5,13 @@ import { fail } from '@sveltejs/kit';
 import { promisify } from "util";
 import { randomBytes } from "crypto";
 
+export const load = ({url,fetch}) => {
+    const email = url.searchParams.get("email");
+    if (email) return { 
+        email
+    }
+}
+
 export const actions: Actions = {
     default: async ({ request }) => {
         const data = await request.formData();

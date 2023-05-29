@@ -3,32 +3,60 @@ import { prisma } from "$lib/db/client";
 import { fail, redirect } from '@sveltejs/kit';
 
 export const load = (async ({locals}) => {
-    if (!locals.userId) {
+    let session = await locals.getSession();
+    if (!session && locals.userId) {
+        const user = await prisma.user.findUnique({
+        where: {
+            id: locals.userId
+        }
+        })
+        session = {
+        user: {
+            email: user.email,
+            image: user.image,
+            name: user.name 
+        }, 
+        expires: new Date("2099").toISOString()    }
+    }
+    if (!session || !session.user) {
         throw redirect(307, "/signin");
     } else {
-        const accounts = await prisma.account.findMany({
+        const user = await prisma.user.findUnique({
             where: {
-                userId: locals.userId
+                email: session.user.email 
             },
-            select: {
-                provider: true
+            include: {
+                accounts: {
+                    select: {
+                        provider: true,
+                    }
+                },
             }
         })
-        return {accounts: accounts.reduce((acc, x)=> {
-            acc[x.provider] = true;
-            return acc;
-        },{})};
+
+        return {
+            accounts: user.accounts.reduce((acc, x)=> {
+                acc[x.provider] = true;
+                return acc;
+            },{}),
+            user: {
+                passwordSet: user.password ? true : false,
+                emailVerified: user.emailVerified,
+                image: user.image
+            }
+    };
     }
 });
 
 export const actions: Actions = {
     remove: async ({ request, locals }) => {
-        if (!locals.userId) {
+        const session = await locals.getSession();
+        if (!session || !session.user) {
             throw redirect(307, "/signin");
         }
         const accounts = await prisma.user.findUnique({
             where: {
-                id: locals.userId
+                email: session.user.email
             },
             include: {
                 accounts: {

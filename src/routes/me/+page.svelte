@@ -27,8 +27,8 @@
 			});
 			userStore.set({ name: '', email: '', id: '' });
 			// Log out of OAuth sessions
-			await goto('/');
 			await signOut();
+			await goto('/');
 		} catch (error) {
 			return {
 				status: 500,
@@ -52,9 +52,19 @@
 		<p>{userData ? userData.name : ''}</p>
 
 		<p>{$_('me.password')}:</p>
-		<a href="/password-reset">
-			<button class="btn btn-outline btn-sm">{$_('me.resetPassword')}</button>
-		</a>
+		{#if $page.data.user.passwordSet}
+			<a href="/password-reset?email={userData.email}">
+				<button class="btn btn-outline btn-sm">{$_('me.resetPassword')}</button>
+			</a>
+		{:else}
+			<div class="flex flex-col">
+				<p>{$_('me.passwordNotSet')}
+				</p>
+				<a href="/password-reset?email={userData.email}">
+					<button class="btn btn-outline btn-sm">{$_('me.setPassword')}</button>
+				</a>
+			</div>
+		{/if}
 	</div>
 	<h3 class="text-lg mb-10 font-extrabold mt-6">{$_('me.connectedAccounts')}</h3>
 	<div class="grid grid-cols-2 gap-5 place-content-between">

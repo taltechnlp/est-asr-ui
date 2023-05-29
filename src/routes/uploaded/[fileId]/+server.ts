@@ -15,17 +15,26 @@ import path from "path";
 
 // Return the audio or video file for playback. Authorization requried.
 export const GET: RequestHandler = async ({ params, locals, request }) => {
-  if (!locals.userId) throw error(401);
+  const session = await locals.getSession();
+  if (!session || !session.user) throw error(401);
   const file = await prisma.file.findUnique({
     where: {
       id: params.fileId,
     },
+    include: {
+      User: {
+        select: {
+          id: true,
+          email: true
+        }
+      }
+    }
   });
   if (!file) throw error(404);
   const isAdmin =
-    await (await prisma.user.findUnique({ where: { id: locals.userId } }))
+    await (await prisma.user.findUnique({ where: { email: session.user.email } }))
       .role === "ADMIN";
-  if ((locals.userId === file.uploader || isAdmin)) {
+  if ((session.user.email === file.User.email || isAdmin)) {
     let location = file.path;
     if (location[0] !== "/") {
       location = path.join(SECRET_AUDIO_UPLOAD_DIR, location);

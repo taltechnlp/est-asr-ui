@@ -23,10 +23,11 @@ type FileWithProgress = {
 }
 
 export const GET: RequestHandler = async ({ locals }) => {
-    if (!locals.userId) {
+    const session = await locals.getSession();
+    if (!session || !session.user) {
         throw error(401, "Not authenticated user");
     }
-    let files: FileWithProgress[] = await getFiles(locals.userId)
+    let files: FileWithProgress[] = await getFiles(session.user.email)
     const pendingFiles = files.filter((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')
     if (pendingFiles.length > 0) {
         const promises = pendingFiles.map(file => checkCompletion(file.id, file.externalId, file.path, file.language, SECRET_UPLOAD_DIR))
@@ -41,7 +42,7 @@ export const GET: RequestHandler = async ({ locals }) => {
             return acc || x.done
         }, false);
         if (resultRetrieved) {
-            files = await getFiles(locals.userId)
+            files = await getFiles(session.user.email)
         }
     }
     return json({files}, {status: 200})

@@ -56,7 +56,8 @@
     "register": "Register",
     "password": "Password",
     "email": "Email",
-    "forgotPassword": "Forgot password?"
+    "forgotPassword": "Forgot password?",
+    "noPasswordSet": "Password not set"
   },
   "signup": {
     "header": "Register | tekstiks.ee",
@@ -109,8 +110,16 @@
     "resetPassword": "Reset password",
     "connectedAccounts": "Connected accounts",
     "connectAccount": "Connect account",
-    "removeAccount": "Remove account"
-
+    "removeAccount": "Remove account",
+    "passwordNotSet": "Password not set",
+    "setPassword": "Set password"
+  },
+  "auth":{
+    "AccessDenied": "The login method is already connected to another Tekstiks.ee account or the same email is being used by another Tekstiks.ee account.",
+    "AccountNotLinked": "The login method has the same email address as another Tekstiks.ee account. Please use that account instead.",
+    "CallbackRouteError": "The login method has the same email address as another Tekstiks.ee account. Please log into that account first.",
+    "otherError": "Unexpected sign-in error occured. Please try again or contact the support if unable to access your account.",
+    "back": "Back"
   },
   "file": {
     "editingMode": "Editing mode:",

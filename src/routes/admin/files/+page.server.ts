@@ -15,11 +15,11 @@ import Form from 'form-data';
 const UPLOAD_LIMIT = 1024 * 1024 * 400  // 400MB
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
-    if (!locals.userId) {
+    const session = await locals.getSession();
+    if (!session || !session.user) {
         throw redirect(307, "/signin");
     }
-    let currentUser = locals.userId;
-    const isAdmin = await (await prisma.user.findUnique({where: {id: locals.userId}})).role === "ADMIN";
+    const isAdmin = await (await prisma.user.findUnique({where: {email: session.user.email}})).role === "ADMIN";
     if (!isAdmin) throw error(403);
 
     let users = await prisma.user.findMany({select: {email: true, id: true}});

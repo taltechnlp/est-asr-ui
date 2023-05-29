@@ -56,7 +56,8 @@
         "register": "Rekisteröidy",
         "password": "Salasana",
         "email": "Sähköpostiosoite",
-        "forgotPassword": "Unohtuiko salasana?"
+        "forgotPassword": "Unohtuiko salasana?",
+        "noPasswordSet": "Salasanaa ei ole asetettu"
     },
     "signup": {
         "header": "Rekisteröidy | tekstiks.ee",
@@ -109,7 +110,16 @@
         "resetPassword": "Nollaa salasana",
         "connectedAccounts": "Liitetyt tilit",
         "connectAccount": "Liitä tili",
-        "removeAccount": "Poista tili"
+        "removeAccount": "Poista tili",
+        "passwordNotSet": "Salasanaa ei ole asetettu",
+        "setPassword": "Aseta salasana"
+    },
+    "auth":{
+        "AccessDenied": "Kirjautumismenetelmä on jo liitetty toiseen Tekstiks.ee-tiliin tai samaa sähköpostia käytetään jo toisen Tekstiks.ee-tilin kanssa.",
+        "AccountNotLinked": "Kirjautumismenetelmällä on sama sähköpostiosoite kuin toisella Tekstiks.ee-tilillä. Käytäthän sen sijaan kyseistä tiliä.",
+        "CallbackRouteError": "Sisäänkirjautumismenetelmällä on sama sähköpostiosoite kuin toisella Tekstiks.ee-tilillä. Kirjaudu ensin kyseiseen tiliin.",
+        "otherError": "Odottamaton kirjautumisvirhe tapahtui. Yritä uudelleen tai ota yhteyttä tukeen, jos et pääse käyttämään tiliäsi.",
+        "back": "Takaisin"
     },
     "file": {
         "editingMode": "Muokkaustila:",

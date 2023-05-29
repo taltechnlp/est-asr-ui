@@ -56,7 +56,8 @@
         "register": "Registreeru",
         "password": "Parool",
         "email": "E-posti aadress",
-        "forgotPassword": "Unustasid parooli?"
+        "forgotPassword": "Unustasid parooli?",
+        "noPasswordSet": "Parooli pole veel seatud"
     },
     "signup": {
         "header": "Registreeru | tekstiks.ee",
@@ -109,7 +110,16 @@
         "resetPassword": "Lähtesta parool",
         "connectedAccounts": "Ühendatud kontod",
         "connectAccount": "Ühenda konto",
-        "removeAccount": "Eemalda konto"
+        "removeAccount": "Eemalda konto",
+        "passwordNotSet": "Salasõna pole määratud",
+        "setPassword": "Määra salasõna"
+    },
+    "auth":{
+        "AccessDenied": "Sisselogimismeetod on juba seotud teise Tekstiks.ee kontoga või sama e-posti aadressi kasutatakse juba teise Tekstiks.ee konto jaoks.",
+        "AccountNotLinked": "Sisselogimismeetodil on sama e-posti aadress kui teisel Tekstiks.ee kontol. Palun kasuta selle asemel seda kontot.",
+        "CallbackRouteError": "Sisselogimismeetodil on sama e-posti aadress kui teisel Tekstiks.ee kontol. Palun logi esmalt sisse sellesse kontosse.",
+        "otherError": "Ilmnes ootamatu sisselogimisviga. Palun proovi uuesti või võta ühendust kasutajatoega, kui sul ei õnnestu kontole ligi pääseda.",
+        "back": "Tagasi"
     },
     "file": {
         "editingMode": "Muutmise režiim:",

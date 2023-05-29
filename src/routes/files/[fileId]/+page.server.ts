@@ -8,9 +8,32 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
     const file = await prisma.file.findUnique({
         where: {
             id: params.fileId
+        },
+        include: {
+            User: {
+                select: {
+                    id: true,
+                    email: true
+                }
+            }
         }
     })
-    if (locals.userId && locals.userId === file.uploader) {
+    let session = await locals.getSession();
+    if (!session && locals.userId) {
+    const user = await prisma.user.findUnique({
+      where: {
+        id: locals.userId
+      }
+    })
+    session = {
+      user: {
+        email: user.email,
+        image: user.image,
+        name: user.name 
+      }, 
+      expires: new Date("2099").toISOString()    }
+  }
+    if (session.user && session.user.email === file.User.email) {
         const content = await fs.readFile(file.initialTranscriptionPath, 'utf8');
 
         let peaksExist = true;

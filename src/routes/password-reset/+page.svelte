@@ -6,7 +6,7 @@
 
     export let data: PageData;
     export let form: ActionData;
-    let email = '';
+    let email = data.email ? data.email : "";
 	const printError = (error) => {
 		return $_('passwordReset.error');
 	};

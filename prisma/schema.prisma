@@ -41,6 +41,7 @@ model Account {
   refresh_token      String?  @db.Text
   access_token       String?  @db.Text
   expires_at         Int?
+  expires_in         Int?
   token_type         String?
   scope              String?
   id_token           String?  @db.Text
@@ -60,10 +61,10 @@ model Session {
 }
 
 model User {
-  id               String  @id @db.VarChar(30)
+  id               String  @id @db.VarChar(30) @default(cuid())
   email            String  @unique(map: "default$default.User.email._UNIQUE")
   name             String
-  password         String
+  password         String?
   resetToken       String?
   resetTokenExpiry BigInt?
   files            File[]

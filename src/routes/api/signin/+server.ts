@@ -13,6 +13,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             email
         }
     })
+    if (!user.password) {
+        throw error(401, 'noPasswordSet')
+    }
     if (!user) {
         throw error(401, 'email')
     }
@@ -32,7 +35,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
                 path: '/',
                 httpOnly: true,
                 sameSite: 'strict',
-                /* secure: process.env.NODE_ENV === 'production', */
+                secure: process.env.NODE_ENV === 'production',
                 maxAge: 1000 * 60 * 60 * 24 * 365, // one year
             }),
         },

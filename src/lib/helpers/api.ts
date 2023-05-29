@@ -318,10 +318,10 @@ export const checkCompletion = async (
   }
 };
 
-export const getFiles = async (userId) => {
+export const getFiles = async (email) => {
   const { files } = await prisma.user.findUnique({
     where: {
-      id: userId,
+      email: email
     },
     include: {
       files: {

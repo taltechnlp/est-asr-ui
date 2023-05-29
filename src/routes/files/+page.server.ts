@@ -42,10 +42,25 @@ type UploadResult = (typeof uploadResult)[keyof typeof uploadResult]
 
  
 export const load: PageServerLoad = async ({ locals }) => {
-    if (!locals.userId) {
+    let session = await locals.getSession();
+    if (!session && locals.userId) {
+        const user = await prisma.user.findUnique({
+        where: {
+            id: locals.userId
+        }
+        })
+        session = {
+        user: {
+            email: user.email,
+            image: user.image,
+            name: user.name 
+        }, 
+        expires: new Date("2099").toISOString()    }
+    }
+    if (!session || !session.user) {
         throw redirect(307, "/signin");
     }
-    let files: FileWithProgress[] = await getFiles(locals.userId);
+    let files: FileWithProgress[] = await getFiles(session.user.email);
     const pendingFiles = files.filter((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')
     if (pendingFiles.length > 0) {
         const promises = pendingFiles.map(file => checkCompletion(file.id, file.externalId, file.path, file.language, SECRET_UPLOAD_DIR))
@@ -60,7 +75,7 @@ export const load: PageServerLoad = async ({ locals }) => {
             return acc || x.done
         }, false);
         if (resultRetrieved) {
-            files = await getFiles(locals.userId)
+            files = await getFiles(session.user.email)
         }
     }
     const result = files.map(
@@ -152,7 +167,8 @@ export const actions: Actions = {
 
         } */
         // Bark server
-        if (!locals.userId) {
+        const session = await locals.getSession();
+        if (!session || !session.user) {
             throw redirect(307, "/signin")
         }
         console.log("bark upload")
@@ -166,7 +182,15 @@ export const actions: Actions = {
             return fail(400, { uploadLimit: true });
         }
         const newFilename = `${Date.now()}-${Math.round(Math.random() * 1E4)}-${file.name}`
-        const uploadDir = join(SECRET_UPLOAD_DIR, locals.userId);
+        const user = await prisma.user.findUnique({
+            where: {
+                email: session.user.email
+            },
+            select: {
+                id: true
+            }
+        })
+        const uploadDir = join(SECRET_UPLOAD_DIR, user.id);
         if (!existsSync(uploadDir)) {
             mkdirSync(uploadDir, { recursive: true });
         }
@@ -208,7 +232,7 @@ export const actions: Actions = {
                 externalId: result.externalId,
                 language: "est",
                 User: {
-                    connect: { id: locals.userId }
+                    connect: { id: user.id}
                 }
             }
         })
@@ -216,7 +240,8 @@ export const actions: Actions = {
         return { success: true , file: fileData, error: undefined };
     },
     uploadFin: async ({locals, request}) => {
-        if (!locals.userId) {
+        const session = await locals.getSession();
+        if (!session || !session.user) {
             throw redirect(307, "/signin")
         }
         const data = await request.formData();
@@ -229,7 +254,15 @@ export const actions: Actions = {
             return fail(400, { uploadLimit: true });
         }
         const newFilename = `${Date.now()}-${Math.round(Math.random() * 1E4)}-${file.name}`
-        const uploadDir = join(SECRET_UPLOAD_DIR, locals.userId);
+        const user = await prisma.user.findUnique({
+            where: {
+                email: session.user.email
+            },
+            select: {
+                id: true
+            }
+        })
+        const uploadDir = join(SECRET_UPLOAD_DIR, user.id);
         if (!existsSync(uploadDir)) {
             mkdirSync(uploadDir, { recursive: true });
         }
@@ -269,7 +302,7 @@ export const actions: Actions = {
                 externalId: uploadResult.externalId,
                 language: "fin",
                 User: {
-                    connect: { id: locals.userId }
+                    connect: { id: user.id }
                 }
             }
         })
