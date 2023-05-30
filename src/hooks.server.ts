@@ -6,7 +6,7 @@ import { SvelteKitAuth } from "@auth/sveltekit"
 import GitHub from '@auth/core/providers/github';
 import Facebook from '@auth/core/providers/facebook';
 import Google from '@auth/core/providers/google';
-import CredentialsProvider from "next-auth/providers/credentials";
+import Credentials from "@auth/core/providers/credentials";
 import EmailProvider from "next-auth/providers/email"
 import { GITHUB_ID, GITHUB_SECRET, AUTH_SECRET, FACEBOOK_CLIENT_ID, FACEBOOK_CLIENT_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, NEXTAUTH_URL } from "$env/static/private";
 import { SECRET_MAIL_HOST, SECRET_MAIL_PORT, SECRET_MAIL_USER, SECRET_MAIL_PASS, SECRET_MAIL_FROM } from "$env/static/private";
@@ -33,8 +33,10 @@ async function transformHtml({ event, resolve }) {
 		transformPageChunk: ({ html }) => html.replace('old', 'new')
 	});
 }
-export const handle: Handle =
-	sequence(pwdAuthorization, SvelteKitAuth({
+
+// @ts-ignore
+export const auth = SvelteKitAuth(async (event) => {
+	const authOptions = {
 		// @ts-ignore
 		adapter: PrismaAdapter(prisma),
 		jwt: {
@@ -42,31 +44,11 @@ export const handle: Handle =
 			maxAge: 15 * 24 * 30 * 60, // 15 days
 		},
 		providers: [
-			GitHub({ clientId: GITHUB_ID, clientSecret: GITHUB_SECRET }),
-			// @ts-ignore
-			Facebook({
-				clientId: FACEBOOK_CLIENT_ID,
-				clientSecret: FACEBOOK_CLIENT_SECRET,
-			}),
-			Google({
-				clientId: GOOGLE_CLIENT_ID,
-				clientSecret: GOOGLE_CLIENT_SECRET,
-			}),
-			EmailProvider({
-				server: {
-					host: SECRET_MAIL_HOST,
-					port: SECRET_MAIL_PORT,
-					auth: {
-						user: SECRET_MAIL_USER,
-						pass: SECRET_MAIL_PASS
-					}
-				},
-				from: SECRET_MAIL_FROM
-				// maxAge: 24 * 60 * 60, // How long email links are valid for (default 24h)
-			}),
-			CredentialsProvider({
+			Credentials({
 				// The name to display on the sign in form (e.g. 'Sign in with...')
-				name: 'password',
+				name: 'password1',
+				id: 'credentials1',
+				type: 'credentials',
 				// The credentials is used to generate a suitable form on the sign in page.
 				// You can specify whatever fields you are expecting to be submitted.
 				// e.g. domain, username, password, 2FA token, etc.
@@ -79,7 +61,7 @@ export const handle: Handle =
 					},
 					password: { label: "Password", type: "password" }, */
 				},
-				async authorize(credentials, req) {
+				async authorize(credentials, request) {
 					// You need to provide your own logic here that takes the credentials
 					// submitted and returns either a object representing a user or value
 					// that is false/null if the credentials are invalid.
@@ -102,8 +84,31 @@ export const handle: Handle =
 						return user;
 					}
 					else return null
-				}
-			})
+				},
+				
+			}),
+			GitHub({ clientId: GITHUB_ID, clientSecret: GITHUB_SECRET }),
+			// @ts-ignore
+			Facebook({
+				clientId: FACEBOOK_CLIENT_ID,
+				clientSecret: FACEBOOK_CLIENT_SECRET,
+			}),
+			Google({
+				clientId: GOOGLE_CLIENT_ID,
+				clientSecret: GOOGLE_CLIENT_SECRET,
+			}),
+			/* EmailProvider({
+				server: {
+					host: SECRET_MAIL_HOST,
+					port: SECRET_MAIL_PORT,
+					auth: {
+						user: SECRET_MAIL_USER,
+						pass: SECRET_MAIL_PASS
+					}
+				},
+				from: SECRET_MAIL_FROM
+				// maxAge: 24 * 60 * 60, // How long email links are valid for (default 24h)
+			}), */
 		],
 		secret: AUTH_SECRET,
 		trustHost: true,
@@ -207,4 +212,8 @@ export const handle: Handle =
 				return baseUrl
 			} */
 		},
-	}), transformHtml);
+	}
+	return authOptions
+}) satisfies Handle;
+
+export const handle: Handle = sequence(pwdAuthorization, auth)
