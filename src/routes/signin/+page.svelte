@@ -33,13 +33,14 @@
 			const user = await response.json()
 			console.log("setting user store", user)
 			userStore.set(user);
+			await goto('/files')
 		}
-		try {
+		/* try {
 			await signIn('credentials', {}, {email: "", password: ""});
 		}
 		catch (e) {
 			console.log("Error is", e)
-		}
+		} */
 	}
 	const printError = (error) => {
 		if (error === 'password') {

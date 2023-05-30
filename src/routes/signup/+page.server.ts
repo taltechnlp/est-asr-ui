@@ -64,7 +64,9 @@ export const actions: Actions = {
         const token = jwt.sign({ userId: user.id }, SECRET_KEY);
         cookies.set("token", token, {
             httpOnly: true,
-            maxAge: 1000 * 60 * 60 * 24 * 365 // 1 year cookie
+            maxAge: 1000 * 60 * 60 * 24 * 365, // 1 year cookie
+            path: '/',
+            sameSite: 'strict',
           });
 
         return { success: true, user: {

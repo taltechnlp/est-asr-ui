@@ -6,25 +6,32 @@ import { SvelteKitAuth } from "@auth/sveltekit"
 import GitHub from '@auth/core/providers/github';
 import Facebook from '@auth/core/providers/facebook';
 import Google from '@auth/core/providers/google';
-import Credentials from "@auth/core/providers/credentials";
-import EmailProvider from "next-auth/providers/email"
+// THIS PACKAGE IS NOT WORKING AT THE MOMENT
+// import Credentials from "@auth/core/providers/credentials";
+import EmailProvider from "@auth/core/providers/email"
 import { GITHUB_ID, GITHUB_SECRET, AUTH_SECRET, FACEBOOK_CLIENT_ID, FACEBOOK_CLIENT_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, NEXTAUTH_URL } from "$env/static/private";
 import { SECRET_MAIL_HOST, SECRET_MAIL_PORT, SECRET_MAIL_USER, SECRET_MAIL_PASS, SECRET_MAIL_FROM } from "$env/static/private";
 import { sequence } from "@sveltejs/kit/hooks";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "$lib/db/client";
-import { redirect } from "@sveltejs/kit";
-import { error } from '@sveltejs/kit';
+import path from 'path';
 
 let userId;
 async function pwdAuthorization({ event, resolve }) {
 	const token = event.cookies.get('token');
+	const cookie = await parse(event.request.headers.get('cookie') || '');
 	if (token) {
 		const userDetails = jwt.verify(token, SECRET_KEY);
 		if (userDetails.userId) {
 			event.locals.userId = userDetails.userId
 			userId = userDetails.userId;
 		}
+	}
+	else {
+		const cookies = await parse(event.request.headers.get('cookie') || '');
+		const isSignInFlow = cookies.hasOwnProperty('next-auth.pkce.code_verifier')
+		// Exception to enable OAUTH signin
+		if (!isSignInFlow) userId = undefined;
 	}
 	return resolve(event);
 }
@@ -44,7 +51,7 @@ export const auth = SvelteKitAuth(async (event) => {
 			maxAge: 15 * 24 * 30 * 60, // 15 days
 		},
 		providers: [
-			Credentials({
+			/* Credentials({
 				// The name to display on the sign in form (e.g. 'Sign in with...')
 				name: 'password1',
 				id: 'credentials1',
@@ -54,12 +61,12 @@ export const auth = SvelteKitAuth(async (event) => {
 				// e.g. domain, username, password, 2FA token, etc.
 				// You can pass any HTML attribute to the <input> tag through the object.
 				credentials: {
-					/* email: {
+					email: {
 						label: "Email",
 						type: "email",
 						placeholder: "jsmith@gmail.com",
 					},
-					password: { label: "Password", type: "password" }, */
+					password: { label: "Password", type: "password" }, 
 				},
 				async authorize(credentials, request) {
 					// You need to provide your own logic here that takes the credentials
@@ -86,7 +93,7 @@ export const auth = SvelteKitAuth(async (event) => {
 					else return null
 				},
 				
-			}),
+			}), */
 			GitHub({ clientId: GITHUB_ID, clientSecret: GITHUB_SECRET }),
 			// @ts-ignore
 			Facebook({
@@ -153,6 +160,7 @@ export const auth = SvelteKitAuth(async (event) => {
 					}
 				});
 				// Allow all password / 2FA requests to pass. 
+				console.log("signin", userId, existingAccount)
 				if (account.provider === "credentials") return true;
 				else if (!userId || !existingAccount) {
 					if (!existingAccount) {
@@ -216,4 +224,4 @@ export const auth = SvelteKitAuth(async (event) => {
 	return authOptions
 }) satisfies Handle;
 
-export const handle: Handle = sequence(pwdAuthorization, auth)
+export const handle: Handle = sequence(pwdAuthorization, auth, transformHtml)
