@@ -3,6 +3,7 @@ import type { File, Prisma } from "@prisma/client";
 import { error, json } from '@sveltejs/kit';
 import { checkCompletion, getFiles } from "$lib/helpers/api";
 import { SECRET_UPLOAD_DIR } from '$env/static/private';
+import { prisma } from "$lib/db/client";
 
 type FileWithProgress = {
     uploadedAt: Date;
@@ -23,11 +24,15 @@ type FileWithProgress = {
 }
 
 export const GET: RequestHandler = async ({ locals }) => {
-    const session = await locals.getSession();
-    if (!session || !session.user) {
+    let userId = locals.userId;
+    if (!userId) {
+        let session = await locals.getSession();
+        if (session && session.user) userId = session.user.id;
+    }
+    if (!userId ) {
         throw error(401, "Not authenticated user");
     }
-    let files: FileWithProgress[] = await getFiles(session.user.email)
+    let files: FileWithProgress[] = await getFiles(userId)
     const pendingFiles = files.filter((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')
     if (pendingFiles.length > 0) {
         const promises = pendingFiles.map(file => checkCompletion(file.id, file.externalId, file.path, file.language, SECRET_UPLOAD_DIR))
@@ -42,7 +47,7 @@ export const GET: RequestHandler = async ({ locals }) => {
             return acc || x.done
         }, false);
         if (resultRetrieved) {
-            files = await getFiles(session.user.email)
+            files = await getFiles(userId)
         }
     }
     return json({files}, {status: 200})

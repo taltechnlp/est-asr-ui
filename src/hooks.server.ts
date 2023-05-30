@@ -143,6 +143,7 @@ export const auth = SvelteKitAuth(async (event) => {
 				if (token) {
 					session.user = token;
 				}
+				session.user.id = user.id;
 				return session;
 			},
 			signIn: async ({ user, account, credentials, email, profile }) => {

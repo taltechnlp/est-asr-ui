@@ -91,7 +91,7 @@
 			goto('/files');
 		}
 		const body = await files.json();
-		filesStore.set(body.files);
+		if (body) filesStore.set(body.files);
 		longPolling();
 	};
 
@@ -101,7 +101,7 @@
 			console.log('Failed to update files. Check internet connection.');
 		} else {
 			const body = await response.json();
-			filesStore.set(body.files);
+			if (body) filesStore.set(body.files);
 		}
 	};
 

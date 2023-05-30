@@ -18,22 +18,15 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
             }
         }
     })
-    let session = await locals.getSession();
-    if (!session && locals.userId) {
-    const user = await prisma.user.findUnique({
-      where: {
-        id: locals.userId
-      }
-    })
-    session = {
-      user: {
-        email: user.email,
-        image: user.image,
-        name: user.name 
-      }, 
-      expires: new Date("2099").toISOString()    }
-  }
-    if (session.user && session.user.email === file.User.email) {
+    let userId = locals.userId;
+    if (!userId) {
+        let session = await locals.getSession();
+        if (session && session.user) userId = session.user.id;
+    }
+    if (!userId) {
+        throw error(401, 'unauthorized');
+    } 
+    if (userId === file.User.id) {
         const content = await fs.readFile(file.initialTranscriptionPath, 'utf8');
 
         let peaksExist = true;
@@ -115,6 +108,6 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
             url: url.origin,
             peaks
         }
-    };
-    throw error(401, 'unauthorized');
+    }
+    else throw error(401, 'unauthorized');
 }

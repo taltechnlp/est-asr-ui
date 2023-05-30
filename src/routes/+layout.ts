@@ -9,11 +9,11 @@ export const load: LayoutLoad = async({ fetch, parent, data }) => {
 		locale.set(window.navigator.language)
 	}
 	await waitLocale();
-	if (data && data.email) {
-		const response = await fetch('/api/user/' + data.email, {
+	if (data && data.id) {
+		const response = await fetch('/api/user/' + data.id, {
 			method: 'GET',
 		}).catch((e) => {
-			console.log("userNotFound", data.email)
+			console.log("userNotFound", data.id)
 		});
 		if (!response) throw error(404, 'userNotFound');
 		const { body } = await response.json();

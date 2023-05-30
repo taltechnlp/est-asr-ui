@@ -5,7 +5,7 @@ import type { RequestHandler } from './$types';
 export const GET: RequestHandler = async ({ params }) => {
     const user = await prisma.user.findUnique({
         where: {
-           email: params.email 
+           id: params.id
         }
     })
     if (!user) {

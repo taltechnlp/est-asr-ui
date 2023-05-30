@@ -1,5 +1,5 @@
 import { prisma } from "$lib/db/client";
-import { error } from "@sveltejs/kit";
+import { error, redirect } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import {
   createReadStream,
@@ -15,8 +15,14 @@ import path from "path";
 
 // Return the audio or video file for playback. Authorization requried.
 export const GET: RequestHandler = async ({ params, locals, request }) => {
-  const session = await locals.getSession();
-  if (!session || !session.user) throw error(401);
+  let userId = locals.userId;
+    if (!userId) {
+        let session = await locals.getSession();
+        if (session && session.user) userId = session.user.id;
+    }
+    if (!userId) {
+        throw redirect(307, "/signin");
+    }
   const file = await prisma.file.findUnique({
     where: {
       id: params.fileId,
@@ -32,9 +38,9 @@ export const GET: RequestHandler = async ({ params, locals, request }) => {
   });
   if (!file) throw error(404);
   const isAdmin =
-    await (await prisma.user.findUnique({ where: { email: session.user.email } }))
+    await (await prisma.user.findUnique({ where: { id: userId } }))
       .role === "ADMIN";
-  if ((session.user.email === file.User.email || isAdmin)) {
+  if ((userId === file.User.id || isAdmin)) {
     let location = file.path;
     if (location[0] !== "/") {
       location = path.join(SECRET_AUDIO_UPLOAD_DIR, location);

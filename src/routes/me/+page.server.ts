@@ -2,61 +2,54 @@ import type { PageServerLoad, Actions } from './$types';
 import { prisma } from "$lib/db/client";
 import { fail, redirect } from '@sveltejs/kit';
 
-export const load = (async ({locals}) => {
-    let session = await locals.getSession();
-    if (!session && locals.userId) {
-        const user = await prisma.user.findUnique({
-        where: {
-            id: locals.userId
-        }
-        })
-        session = {
-        user: {
-            email: user.email,
-            image: user.image,
-            name: user.name 
-        }, 
-        expires: new Date("2099").toISOString()    }
+export const load = (async ({ locals }) => {
+    let userId = locals.userId;
+    if (!userId) {
+        let session = await locals.getSession();
+        if (session && session.user) userId = session.user.id;
     }
-    if (!session || !session.user) {
+    if (!userId) {
         throw redirect(307, "/signin");
-    } else {
-        const user = await prisma.user.findUnique({
-            where: {
-                email: session.user.email 
-            },
-            include: {
-                accounts: {
-                    select: {
-                        provider: true,
-                    }
-                },
-            }
-        })
-
-        return {
-            accounts: user.accounts.reduce((acc, x)=> {
-                acc[x.provider] = true;
-                return acc;
-            },{}),
-            user: {
-                passwordSet: user.password ? true : false,
-                emailVerified: user.emailVerified,
-                image: user.image
-            }
-    };
     }
+    const user = await prisma.user.findUnique({
+        where: {
+           id: userId 
+        },
+        include: {
+            accounts: {
+                select: {
+                    provider: true,
+                }
+            },
+        }
+    })
+
+    return {
+        accounts: user.accounts.reduce((acc, x) => {
+            acc[x.provider] = true;
+            return acc;
+        }, {}),
+        user: {
+            passwordSet: user.password ? true : false,
+            emailVerified: user.emailVerified,
+            image: user.image
+        }
+    };
 });
 
 export const actions: Actions = {
     remove: async ({ request, locals }) => {
-        const session = await locals.getSession();
-        if (!session || !session.user) {
+        let userId = locals.userId;
+        if (!userId) {
+            let session = await locals.getSession();
+            if (session && session.user) userId = session.user.id;
+        }
+        if (!userId) {
             throw redirect(307, "/signin");
         }
         const accounts = await prisma.user.findUnique({
             where: {
-                email: session.user.email
+                id: userId
             },
             include: {
                 accounts: {
@@ -70,7 +63,7 @@ export const actions: Actions = {
         const data = await request.formData();
         const provider = data.get('provider')
         console.log(provider)
-        const account= accounts.accounts.find(x=>x.provider===provider);
+        const account = accounts.accounts.find(x => x.provider === provider);
         if (account) await prisma.account.delete({
             where: {
                 id: account.id

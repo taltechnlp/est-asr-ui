@@ -6,8 +6,15 @@ import path from "path";
 import { SECRET_AUDIO_UPLOAD_DIR } from "$env/static/private";
 
 export const DELETE: RequestHandler = async ({ params, locals }) => {
-  const session = await locals.getSession();
-  if (!session || !session.user) {
+  let userId = locals.userId;
+    if (!userId) {
+        let session = await locals.getSession();
+        if (session && session.user) userId = session.user.id;
+    }
+    if (!userId ) {
+        throw error(401, "Not authenticated user");
+    }
+  if (!userId) {
     throw error(401, "Not authenticated user");
   }
   // Validate that the user owns the file
@@ -27,9 +34,9 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
     },
   });
   const isAdmin =
-    await (await prisma.user.findUnique({ where: { email: session.user.email } }))
+    await (await prisma.user.findUnique({ where: { id: userId } }))
       .role === "ADMIN";
-  if (!fileDetails || (fileDetails.User.email !== session.user.email && !isAdmin)) {
+  if (!fileDetails || (fileDetails.User.id !== userId && !isAdmin)) {
     throw error(404, "fileNotFound");
   }
   let location = fileDetails.path;
@@ -53,8 +60,15 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 
 // Save edited transcription to disk
 export const PUT: RequestHandler = async ({ params, request, locals }) => {
-    const session = await locals.getSession();
-    if (!session || !session.user) {
+        let userId = locals.userId;
+        if (!userId) {
+            let session = await locals.getSession();
+            if (session && session.user) userId = session.user.id;
+        }
+        if (!userId ) {
+            throw error(401, "Not authenticated user");
+        }
+      if (!userId) {
         throw error(401, "Not authenticated user");
       }
       const editorContent = await request.json();
@@ -73,9 +87,9 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
             },
         });
     const isAdmin =
-      await (await prisma.user.findUnique({ where: { email: session.user.email } }))
+      await (await prisma.user.findUnique({ where: { id: userId } }))
         .role === "ADMIN";
-    if (!file|| (file.User.email !== session.user.email && !isAdmin)) {
+    if (!file|| (file.User.id !== userId && !isAdmin)) {
       throw error(404, "fileNotFound");
     }
   try {

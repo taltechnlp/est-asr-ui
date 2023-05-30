@@ -1,5 +1,4 @@
 import { error } from '@sveltejs/kit';
-import { user as userStore } from '$lib/stores';
 import { waitLocale } from 'svelte-i18n';
 import { parse } from 'cookie';
 import jwt from 'jsonwebtoken';
@@ -10,26 +9,14 @@ import { prisma } from "$lib/db/client";
 export const load: LayoutServerLoad = async ({ request, locals }) => {
     await waitLocale();
     let session = await locals.getSession();
-    if (!session && locals.userId) {
-        const user = await prisma.user.findUnique({
-            where: {
-                id: locals.userId
-            }
-        })
-        if (user) {
-            session = {
-                user: {
-                    email: user.email,
-                    image: user.image,
-                    name: user.name
-                },
-                expires: new Date("2099").toISOString()
-            }
+    if (locals.userId) {
+        return {
+            id: locals.userId
         }
     }
-    if (session && session.user) {
+    else if (session && session.user) {
         return {
-            email: session.user.email
+            id: session.user.id
         }
     } else {
         return {};

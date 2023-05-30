@@ -9,7 +9,7 @@ import type {
   SectionType,
   TranscriberResult,
 } from "./api.d";
-import { EST_ASR_URL, FIN_ASR_RESULTS_URL, EST_ASR_USE_NEW } from "$env/static/private";
+import { EST_ASR_URL, FIN_ASR_RESULTS_URL} from "$env/static/private";
 import { spawn } from "child_process";
 import { promises as fs } from "fs";
 
@@ -130,7 +130,7 @@ export const checkCompletion = async (
   language,
   uploadDir,
 ) => {
-  if (language == "est" && EST_ASR_USE_NEW!=="true") {
+  if (language === "est") {
     try {
       const result = await fetch(
         "http://bark.phon.ioc.ee/transcribe/v1/result?id=" + externalId
@@ -182,7 +182,7 @@ export const checkCompletion = async (
     catch (e) {
 
     }
-  } else if (language == "est" && EST_ASR_USE_NEW==="true") {
+  } else if (language === "est" && false) {
     const progressRequest = await fetch(
       `${EST_ASR_URL}/progress/` + externalId,
     ).catch(e => {
@@ -318,10 +318,10 @@ export const checkCompletion = async (
   }
 };
 
-export const getFiles = async (email) => {
-  const { files } = await prisma.user.findUnique({
+export const getFiles = async (id) => {
+  const user = await prisma.user.findUnique({
     where: {
-      email: email
+      id: id
     },
     include: {
       files: {
@@ -345,5 +345,6 @@ export const getFiles = async (email) => {
       },
     },
   });
-  return files;
+  if (user) return user.files;
+  else return [];
 };
