@@ -36,7 +36,6 @@ export const GET: RequestHandler = async ({ locals }) => {
     const pendingFiles = files.filter((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')
     if (pendingFiles.length > 0) {
         const promises = pendingFiles.map(file => checkCompletion(file.id, file.externalId, file.path, file.language, SECRET_UPLOAD_DIR))
-        console.log(promises)
         const resultRetrieved = (await Promise.all(promises)).reduce((acc, x) => {
             if (!x.done && x.fileId && x.progressPrc) {
                 const index = files.findIndex(file => file.id === x.fileId);

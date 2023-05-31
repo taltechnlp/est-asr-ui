@@ -189,7 +189,6 @@ export const actions: Actions = {
             encoding: "7bit",
             path: saveTo
         }
-        console.log("enne")
         const result = await uploadToBark(fileData.path, fileData.filename)
         if (!result.externalId) {
             return { file: fileData, result: uploadResult[1] };

@@ -100,8 +100,8 @@
 			donePolling = true;
 		}
 		do {
-			await awaitTimeout(20000);
-			invalidate('/files');
+			await awaitTimeout(2000);
+			invalidate('/api/files');
 		} while (!donePolling);
 	};
 	if (browser) {
