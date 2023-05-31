@@ -33,7 +33,7 @@ export const GET: RequestHandler = async ({ locals }) => {
         throw error(401, "Not authenticated user");
     }
     let files = await getFiles(userId)
-    /* const pendingFiles = files.filter((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')
+    const pendingFiles = files.filter((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')
     if (pendingFiles.length > 0) {
         const promises = pendingFiles.map(file => checkCompletion(file.id, file.externalId, file.path, file.language, SECRET_UPLOAD_DIR))
         console.log(promises)
@@ -47,11 +47,9 @@ export const GET: RequestHandler = async ({ locals }) => {
             }
             return acc || x.done
         }, false);
-        console.log("result received", resultRetrieved)
         if (resultRetrieved) {
             files = await getFiles(userId)
         }
     }
-    console.log("/api/files") */
     return json(files, {status: 200})
 }

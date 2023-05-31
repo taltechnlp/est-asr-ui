@@ -41,7 +41,8 @@ const uploadResult = {
 type UploadResult = (typeof uploadResult)[keyof typeof uploadResult]
 
  
-export const load: PageServerLoad = async ({ locals, fetch }) => {
+export const load: PageServerLoad = async ({ locals, fetch, depends }) => {
+    depends('/api/files')
     let userId = locals.userId;
     if (!userId) {
         let session = await locals.getSession();

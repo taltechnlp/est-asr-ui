@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { files as filesStore } from '$lib/stores';
 	import { goto, invalidate } from '$app/navigation';
 	import { onDestroy, onMount } from 'svelte';
 	import { _ } from 'svelte-i18n';
@@ -11,7 +10,6 @@
 
 	export let data: PageData;
 	let error = '';
-	filesStore.set(data.files);
 	let loading = false;
 	let upload;
 	let languageChoices = [
@@ -31,7 +29,7 @@
 		if (!response.ok) {
 			console.log('Server error');
 		} else {
-			filesStore.set($filesStore.filter((x) => x.id != fileId));
+			invalidate('/api/files')
 		}
 		return;
 	};
@@ -86,7 +84,7 @@
 		}
 		loading = false;
 		uploadModalOpen = false;
-		invalidate('/files')
+		invalidate('/api/files')
 	};
 
 	function openFile(fileId, fileState) {
@@ -98,11 +96,12 @@
 	const awaitTimeout = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
 	const longPolling = async () => {
 		donePolling = false;
-		if (! $filesStore.find((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')) {
+		if (! data.files.find((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')) {
 			donePolling = true;
 		}
 		do {
-			await awaitTimeout(20000);
+			await awaitTimeout(2000);
+			console.log("polling");
 			invalidate('/files');
 		} while (!donePolling);
 	};
@@ -155,8 +154,8 @@
 			</tr>
 		</thead>
 		<tbody>
-			{#if $filesStore}
-				{#each $filesStore as file, index}
+			{#if data.files}
+				{#each data.files as file, index}
 					<tr
 						class="{file.state == 'READY' ? 'cursor-pointer' : ''} hover"
 						on:click={() => openFile(file.id, file.state)}
