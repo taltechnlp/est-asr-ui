@@ -41,7 +41,7 @@ const uploadResult = {
 type UploadResult = (typeof uploadResult)[keyof typeof uploadResult]
 
  
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, fetch }) => {
     let userId = locals.userId;
     if (!userId) {
         let session = await locals.getSession();
@@ -50,8 +50,9 @@ export const load: PageServerLoad = async ({ locals }) => {
     if (!userId) {
         throw redirect(307, "/signin");
     }
-    let files: FileWithProgress[] = await getFiles(userId);
-    const result = files.map(
+    const result = await fetch('/api/files');
+    let files = await result.json();
+    files = files.map(
         file => {
             return {
                 id: file.id,
@@ -65,12 +66,12 @@ export const load: PageServerLoad = async ({ locals }) => {
                 initialTranscription: file.initialTranscription,
                 progressPrc: file.progressPrc,
                 totalJobsQueued: file.totalJobsQueued,
-                totalJobsStarted: file.totalJobsStarted
+                totalJobsStarted: file.totalJobsStarted, 
             }
 
         }
     )
-    return { files: result };
+    return { files };
 }
 
 export const actions: Actions = {

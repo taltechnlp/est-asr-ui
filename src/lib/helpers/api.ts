@@ -12,6 +12,7 @@ import type {
 import { EST_ASR_URL, FIN_ASR_RESULTS_URL} from "$env/static/private";
 import { spawn } from "child_process";
 import { promises as fs } from "fs";
+import fetch from 'node-fetch';
 
 let finToEstFormat: (sucRes: FinAsrFinished) => EditorContent = function (
   sucRes: FinAsrFinished,
@@ -136,13 +137,13 @@ export const checkCompletion = async (
         "http://bark.phon.ioc.ee/transcribe/v1/result?id=" + externalId
       ).catch(e => {
         console.log("Error fetching", "http://bark.phon.ioc.ee/transcribe/v1/result?id=" + externalId, e);
+        return {done: false}
       })
       if (!result) return {done: false};
       const body: TranscriberResult = await result.json();
       if (!body.done) {
         return { done: false };
       } else if (body.error) {
-        console.log(body)
         await prisma.file.update({
           data: { state: "PROCESSING_ERROR" },
           where: {
@@ -180,7 +181,7 @@ export const checkCompletion = async (
       return { done: false };
     }
     catch (e) {
-
+      return {done: false}
     }
   } else if (language === "est" && false) {
     const progressRequest = await fetch(
@@ -345,6 +346,24 @@ export const getFiles = async (id) => {
       },
     },
   });
-  if (user) return user.files;
+  if (user) return user.files.map(
+        file => {
+            return {
+                id: file.id,
+                state: file.state,
+                text: file.text,
+                filename: file.filename,
+                duration: file.duration?.toNumber(),
+                mimetype: file.mimetype,
+                uploadedAt: file.uploadedAt?.toString(),
+                textTitle: file.textTitle,
+                initialTranscription: file.initialTranscription,
+                externalId: file.externalId,
+                path: file.path,
+                language: file.language
+            }
+
+        }
+    );
   else return [];
 };

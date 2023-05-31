@@ -32,23 +32,26 @@ export const GET: RequestHandler = async ({ locals }) => {
     if (!userId ) {
         throw error(401, "Not authenticated user");
     }
-    let files: FileWithProgress[] = await getFiles(userId)
-    const pendingFiles = files.filter((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')
+    let files = await getFiles(userId)
+    /* const pendingFiles = files.filter((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')
     if (pendingFiles.length > 0) {
         const promises = pendingFiles.map(file => checkCompletion(file.id, file.externalId, file.path, file.language, SECRET_UPLOAD_DIR))
+        console.log(promises)
         const resultRetrieved = (await Promise.all(promises)).reduce((acc, x) => {
             if (!x.done && x.fileId && x.progressPrc) {
                 const index = files.findIndex(file => file.id === x.fileId);
-                files[index].progressPrc = x.progressPrc;
+                // files[index].progressPrc = x.progressPrc;
                 files[index].state = x.status;
-                files[index].totalJobsQueued = x.totalJobsQueued;
-                files[index].totalJobsStarted = x.totalJobsStarted;
+                // files[index].totalJobsQueued = x.totalJobsQueued;
+                // files[index].totalJobsStarted = x.totalJobsStarted;
             }
             return acc || x.done
         }, false);
+        console.log("result received", resultRetrieved)
         if (resultRetrieved) {
             files = await getFiles(userId)
         }
     }
-    return json({files}, {status: 200})
+    console.log("/api/files") */
+    return json(files, {status: 200})
 }

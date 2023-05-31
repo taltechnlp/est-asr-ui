@@ -9,7 +9,7 @@
 	import Icon from 'svelte-awesome/components/Icon.svelte';
     import { page } from "$app/stores"
     import { onMount } from "svelte";
-    import { goto, invalidateAll } from '$app/navigation';
+    import { goto, invalidate } from '$app/navigation';
 
 	let error = null;
 
@@ -55,8 +55,7 @@
 
 	async function logIn() {
         if ($page.data.session) {
-			console.log("page data session", $page.data.session)
-            await invalidateAll()
+            await invalidate("/")
             await goto('/files')
         } 
     }

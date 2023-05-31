@@ -63,12 +63,12 @@
 				<div class="ml-1 leading-3">{$_('file.toolbar.pron')}</div>
 			</button>
 			<div
-				tabindex="0"
+				tabindex="-1"
 				class="dropdown-content card card-compact w-80 p-2 shadow-lg bg-slate-50 text-primary-focus"
 				bind:this={dropdown}
 			>
 				<div class="card-body">
-					<label>
+					<label for="">
 						<input
 							type="text"
 							name="pron"
@@ -78,7 +78,7 @@
 							use:init
 						/>
 					</label>
-					<label>
+					<label for="">
 						<input type="checkbox" name="url" id="url" bind:checked={url} />
 						{$_('file.toolbar.internetAddress')}
 					</label>

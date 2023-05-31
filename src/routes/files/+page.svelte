@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { files as filesStore } from '$lib/stores';
-	import { goto } from '$app/navigation';
-	import { onDestroy } from 'svelte';
+	import { goto, invalidate } from '$app/navigation';
+	import { onDestroy, onMount } from 'svelte';
 	import { _ } from 'svelte-i18n';
 	import { toTime } from './helpers';
 	import { browser } from '$app/environment';
@@ -9,8 +9,8 @@
 	import type { ActionResult } from '@sveltejs/kit';
 	import { applyAction } from '$app/forms';
 
-	let error = '';
 	export let data: PageData;
+	let error = '';
 	filesStore.set(data.files);
 	let loading = false;
 	let upload;
@@ -86,23 +86,7 @@
 		}
 		loading = false;
 		uploadModalOpen = false;
-		const files = await fetch('/api/files');
-		if (!files.ok) {
-			goto('/files');
-		}
-		const body = await files.json();
-		if (body) filesStore.set(body.files);
-		longPolling();
-	};
-
-	const updateFileStore = async () => {
-		const response = await fetch('/api/files');
-		if (!response.ok) {
-			console.log('Failed to update files. Check internet connection.');
-		} else {
-			const body = await response.json();
-			if (body) filesStore.set(body.files);
-		}
+		invalidate('/files')
 	};
 
 	function openFile(fileId, fileState) {
@@ -114,18 +98,17 @@
 	const awaitTimeout = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
 	const longPolling = async () => {
 		donePolling = false;
-		if (!$filesStore.find((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')) {
+		if (! $filesStore.find((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')) {
 			donePolling = true;
 		}
 		do {
 			await awaitTimeout(20000);
-			await updateFileStore();
-			if (!$filesStore.find((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')) {
-				donePolling = true;
-			}
+			invalidate('/files');
 		} while (!donePolling);
 	};
-	if (browser) longPolling();
+	if (browser) {
+		onMount(longPolling)
+	}
 
 	let uploadModalOpen = false;
 	const uploadModalClick = (e: Event) => {

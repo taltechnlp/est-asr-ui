@@ -202,11 +202,11 @@
 			<fieldset>
 				<legend class="stat-title">{$_('file.editingMode')}</legend>
 				<div class="stat-desc flex flex-col">
-					<label>
+					<label for="">
 						<input type="radio" name="mode" value={1} bind:group={$editorMode} />
 						{$_('file.editingModeRegular')}
 					</label>
-					<label>
+					<label for="">
 						<input type="radio" name="mode" value={2} bind:group={$editorMode} />
 						{$_('file.editingModeAnnotation')}
 					</label>
