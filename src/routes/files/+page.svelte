@@ -100,8 +100,7 @@
 			donePolling = true;
 		}
 		do {
-			await awaitTimeout(2000);
-			console.log("polling");
+			await awaitTimeout(20000);
 			invalidate('/files');
 		} while (!donePolling);
 	};
