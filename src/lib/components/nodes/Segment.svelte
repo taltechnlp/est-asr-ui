@@ -273,7 +273,7 @@
 							: 'flex justify-between flex-row p-1'}"
 					>
 						{#if speaker.id === editSpeakerId}
-							<input class="w-48 flex-grow border-2" bind:value={editingValue} />
+							<input class="w-48 flex-grow border-2 hover:bg-white" bind:value={editingValue} />
 							<div class="flex">
 								<button
 									class="btn btn-xs btn-outline w-min hover:text-primary"

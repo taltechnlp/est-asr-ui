@@ -1,8 +1,7 @@
-import { Node, nodeInputRule, mergeAttributes } from '@tiptap/core';
-import { TextSelection } from 'prosemirror-state';
+import { Node, mergeAttributes } from '@tiptap/core';
+// import { TextSelection } from 'prosemirror-state';
 import { SvelteNodeViewRenderer } from 'svelte-tiptap';
-import { text } from 'svelte/internal';
-import SpeakerSelect from './SpeakerSelect.svelte';
+// import { text } from 'svelte/internal';
 import Segment from './Segment.svelte';
 import { wavesurfer } from '$lib/stores';
 
