@@ -3,6 +3,7 @@ import { TextSelection } from 'prosemirror-state';
 import { SvelteNodeViewRenderer } from 'svelte-tiptap';
 import { text } from 'svelte/internal';
 import SpeakerSelect from './SpeakerSelect.svelte';
+import Segment from './Segment.svelte';
 import { wavesurfer } from '$lib/stores';
 
 let ws;
@@ -48,7 +49,7 @@ export const Speaker = Node.create<SpeakerOptions>({
 		};
 	},
 	addNodeView() {
-		return SvelteNodeViewRenderer(SpeakerSelect);
+		return SvelteNodeViewRenderer(Segment);
 	},
 	addKeyboardShortcuts() {
 		return {

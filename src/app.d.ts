@@ -2,14 +2,22 @@
 
 // See https://kit.svelte.dev/docs/types#the-app-namespace
 // for information about these interfaces
-declare namespace App {
-	interface Locals {
-		userId: string | undefined;
+declare global {
+	namespace App {
+		interface Locals {
+			userId: string | undefined;
+		}
+		// interface Platform {}
+		// interface Session {}
+		// interface Stuff {}
 	}
-	// interface Platform {}
-	// interface Session {}
-	// interface Stuff {}
-}
+	namespace svelteHTML {
+		interface HTMLAttributes<T> {
+			'on:outclick'?: (event: CustomEvent) => void
+		}
+	}
+	
+} 
 
-
+export {}
 
