@@ -20,7 +20,8 @@
 		addSpeakerName,
 		addSpeakerBlock,
 		editorMounted,
-		editorMode
+		editorMode,
+		fontSize as fontSizeStore
 	} from '$lib/stores';
 	import { /* findParentNodeOfTypeClosestToPos, */ findBlockNodes } from 'prosemirror-utils';
 	// import { Transform } from 'prosemirror-transform';
@@ -86,8 +87,12 @@
 
 		return startTime;
 	};
-
+	let cssVarStyles
 	$: time = findTimeStamps(getPos() + 1, editor.state);
+	$: {
+		console.log($fontSizeStore);
+		cssVarStyles = `font-size:${$fontSizeStore}px`;}
+	
 
 	const handleClick = () => {
 		isListOpen ? (isListOpen = false) : (isListOpen = true);
@@ -317,7 +322,7 @@
 			/>
 		{/if}
 	</div>
-	<div use:editable class="content editable" />
+	<div use:editable class="content editable" style="{cssVarStyles}"  />
 </NodeViewWrapper>
 
 <style>

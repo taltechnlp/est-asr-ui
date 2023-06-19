@@ -210,6 +210,11 @@
       "rewind": "Rewind audio",
       "skipForward": "Skip audio forward",
       "splitParagraph": "Split text paragraph / block"
+    },
+    "settings": {
+      "heading": "Settings",
+      "fontSize": "Font size",
+      "tooltip": "Settings"
     }
   },
   "dictate": {

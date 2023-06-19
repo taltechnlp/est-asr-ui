@@ -45,6 +45,7 @@ export const player = writable({
 });
 export const playingTime = writable(0);
 export const duration = writable(0);
+export const fontSize = writable("16");
 
 
 // User inserts a new name

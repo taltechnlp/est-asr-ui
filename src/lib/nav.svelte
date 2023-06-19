@@ -4,6 +4,7 @@
 	import Logo from '$lib/components/Logo.svelte';
 	import { createEventDispatcher } from 'svelte';
 	import { _, locale } from 'svelte-i18n';
+	import { browser } from '$app/environment'
 	let loggedIn;
 	let initials;
 	userStore.subscribe((value) => {
@@ -27,14 +28,16 @@
 	};
 	const languages = ['et', 'en', 'fi'];
 
-	let selected = 'et';
-	locale.set(selected);
+	let currentLanguage: string = "et" 
+	if (browser && localStorage.getItem('language')) currentLanguage = localStorage.getItem("language");
+	locale.set(currentLanguage);
 
 	const dispatch = createEventDispatcher();
 
 	function switchLocale(event) {
 		event.preventDefault();
 		locale.set(event.target.value);
+		localStorage.setItem("language", event.target.value)
 		dispatch('locale-changed', event.target.value);
 	}
 
@@ -78,7 +81,7 @@
 				>
 					{$_('index.headerDemo')}
 				</a>
-				<select class="select select-ghost max-w-xs" bind:value={selected} on:change={switchLocale}>
+				<select class="select select-ghost max-w-xs" bind:value={currentLanguage} on:change={switchLocale}>
 					{#each languages as language}
 						<option value={language}>
 							<span class="">
@@ -171,7 +174,7 @@
 					</a>
 				</li>
 				<li>
-					<select class="select max-w-xs" bind:value={selected} on:change={switchLocale}>
+					<select class="select max-w-xs" bind:value={currentLanguage} on:change={switchLocale}>
 						{#each languages as language}
 							<option value={language}>
 								<span class="">

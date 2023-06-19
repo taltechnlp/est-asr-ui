@@ -29,6 +29,7 @@
 	import language from 'svelte-awesome/icons/language';
 	import ellipsisH from 'svelte-awesome/icons/ellipsis-h'; */
 	import keyboard from 'svelte-awesome/icons/keyboard-o';
+	import settings from 'svelte-awesome/icons/cog';
 	import LanguageLabel from './toolbar/LanguageLabel.svelte';
 	import debounce from 'lodash/debounce';
 	import {
@@ -36,7 +37,8 @@
 		duration,
 		editor as editorStore,
 		editorMode,
-		wavesurfer
+		wavesurfer, 
+		fontSize as fontSizeStore
 	} from '$lib/stores';
 	import { Change, ChangeSet, Span, simplifyChanges } from 'prosemirror-changeset';
 	import { _, locale } from 'svelte-i18n';
@@ -45,6 +47,7 @@
 	import PronounceLabel from './toolbar/PronLabel.svelte';
 	import Download from './toolbar/Download.svelte';
 	import Hotkeys from './toolbar/Hotkeys.svelte';
+	import Settings from './toolbar/Settings.svelte';
 	import hotkeys from 'hotkeys-js';
 	// import { Dictate, Transcription } from '$lib/helpers/dictate.js/dictate';
 	import { getMedia } from '$lib/helpers/est_dictate/dictate';
@@ -183,8 +186,9 @@
 		return true;
 	}
 	$: isActive = (name, attrs = {}) => $editor.isActive(name, attrs);
-	
-	
+	let fontSize: string = localStorage.getItem('fontSize');
+	$: fontSizeStore.set(fontSize)
+	if (!fontSize) fontSize = "16"; // 16px default
 </script>
 
 <div class="w-full fixed top-2 left-0 right-0 flex justify-center z-20" />
@@ -192,7 +196,7 @@
 	<div class="stats stats-horizontal shadow mb-4">
 		<div class="stat">
 			<div class="stat-title">{fileName}</div>
-			<div class="flex justify-between">
+			<div class="flex justify-between text-">
 				<div class="w-1/2 stat-desc mr-3">{$_('file.duration')} {durationSeconds}</div>
 				<div class="w-1/2 stat-desc">{$_('file.uploaded')} {uploadedAtFormatted}</div>
 			</div>
@@ -217,6 +221,12 @@
 	<div class="editor max-w-5xl">
 		{#if $editor}
 			<div class="toolbar sticky top-0 z-10 pt-1 pb-1">
+				<div class="flex items-center tooltip tooltip-bottom" data-tip={$_('editor.settings.tooltip')}>
+					<label for="settings-modal" class="btn btn-ghost flex  ">
+						<Icon data={settings} scale={1.5} />
+					</label>
+				</div>
+				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2" />
 				<div class="flex items-center tooltip tooltip-bottom" data-tip={$_('editor.hotkeys.tooltip')}>
 					<label for="hotkeys-modal" class="btn btn-ghost flex  ">
 						<Icon data={keyboard} scale={1.5} />
@@ -224,8 +234,7 @@
 				</div>
 				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2" />
 				<div class="flex items-center">
-
-					<span
+					<button
 						on:click={() => $editor.chain().focus().undo().run()}
 						class:disabled={!$editor.can().undo()}
 						style="color: rgb(48, 49, 51);"
@@ -233,8 +242,8 @@
 						data-tip={$_('file.toolbarUndo')}
 					>
 						<Icon data={rotateLeft} scale={1.5} />
-					</span>
-					<span
+				</button>
+					<button
 						on:click={() => $editor.chain().focus().redo().run()}
 						class:disabled={!$editor.can().redo()}
 						style="color: rgb(48, 49, 51);"
@@ -242,7 +251,7 @@
 						data-tip={$_('file.toolbarRedo')}
 					>
 						<Icon data={rotateRigth} scale={1.5} />
-					</span>
+			</button>
 				</div>
 				{#if $editorMode === 2}
 					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2" />
@@ -273,6 +282,7 @@
 	{/if}
 	<LanguageSelection />
 	<Hotkeys />
+	<Settings bind:fontSize={fontSize}></Settings>
 	<Download fileName={fileName} />
 </div>
 

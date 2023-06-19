@@ -114,7 +114,7 @@
         "passwordNotSet": "Salasanaa ei ole asetettu",
         "setPassword": "Aseta salasana"
     },
-    "auth":{
+    "auth": {
         "AccessDenied": "Kirjautumismenetelmä on jo liitetty toiseen Tekstiks.ee-tiliin tai samaa sähköpostia käytetään jo toisen Tekstiks.ee-tilin kanssa.",
         "AccountNotLinked": "Kirjautumismenetelmällä on sama sähköpostiosoite kuin toisella Tekstiks.ee-tilillä. Käytäthän sen sijaan kyseistä tiliä.",
         "CallbackRouteError": "Sisäänkirjautumismenetelmällä on sama sähköpostiosoite kuin toisella Tekstiks.ee-tilillä. Kirjaudu ensin kyseiseen tiliin.",
@@ -210,6 +210,11 @@
             "rewind": "Kelaa ääntä taaksepäin",
             "skipForward": "Ohita ääni eteenpäin",
             "splitParagraph": "Jaa tekstin kappale/lohko"
+        },
+        "settings": {
+            "heading": "Asetukset",
+            "fontSize": "Fonttikoko",
+            "tooltip": "Asetukset"
         }
     },
     "dictate": {

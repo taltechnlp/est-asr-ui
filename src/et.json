@@ -114,7 +114,7 @@
         "passwordNotSet": "Salasõna pole määratud",
         "setPassword": "Määra salasõna"
     },
-    "auth":{
+    "auth": {
         "AccessDenied": "Sisselogimismeetod on juba seotud teise Tekstiks.ee kontoga või sama e-posti aadressi kasutatakse juba teise Tekstiks.ee konto jaoks.",
         "AccountNotLinked": "Sisselogimismeetodil on sama e-posti aadress kui teisel Tekstiks.ee kontol. Palun kasuta selle asemel seda kontot.",
         "CallbackRouteError": "Sisselogimismeetodil on sama e-posti aadress kui teisel Tekstiks.ee kontol. Palun logi esmalt sisse sellesse kontosse.",
@@ -210,6 +210,11 @@
             "rewind": "Tagasi kerimine",
             "skipForward": "Edasi kerimine",
             "splitParagraph": "Tekstilõigu poolitamine"
+        },
+        "settings": {
+            "heading": "Seaded",
+            "fontSize": "Fondi suurus",
+            "tooltip": "Seaded"
         }
     },
     "dictate": {
