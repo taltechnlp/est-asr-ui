@@ -14,7 +14,7 @@ import { SECRET_MAIL_HOST, SECRET_MAIL_PORT, SECRET_MAIL_USER, SECRET_MAIL_PASS,
 import { sequence } from "@sveltejs/kit/hooks";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "$lib/db/client";
-import path from 'path';
+
 
 let userId;
 async function pwdAuthorization({ event, resolve }) {

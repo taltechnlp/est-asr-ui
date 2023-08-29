@@ -211,6 +211,10 @@
       "skipForward": "Skip audio forward",
       "splitParagraph": "Split text paragraph / block"
     },
+    "editing": {
+      "save": "Save",
+      "edit": "Edit"
+    },
     "settings": {
       "heading": "Settings",
       "fontSize": "Font size",

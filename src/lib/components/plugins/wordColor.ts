@@ -82,7 +82,7 @@ export const WordColor = Extension.create({
 					) {
 						const attrs = view.state.doc.nodeAt(pos).marks[0].attrs;
 						if (attrs.start && ws && ws.getDuration() > 0)
-							ws.seekAndCenter(attrs.start / ws.getDuration());
+							ws.seekTo(attrs.start / ws.getDuration());
 						console.log(attrs.start / ws.getDuration());
 						// console.log(ws.seekTo(attrs.start / ws.getDuration()) /* ws.seekTo(attrs.start / ws.getDuration()) */)
 					}

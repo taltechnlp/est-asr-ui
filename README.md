@@ -19,7 +19,7 @@ The database should be installed locally or via a Docker container. A docker-com
 
 After that a database should be created and an initial user. Then finally, the `prisma/migrations` folder contains SQL scripts that must be executed in order to generate the necessary DB schema.
 
-Prisma is able to generate an API to interact with the database. After the initial schema creation and after any change to the schema, a new API should be generated. It is recommended to install Prisma locally via npm and execute using the following command then:
+Prisma is able to generate an API to interact with the database. After the initial schema creation and after any change to the schema, a new API should be generated. Prisma is installed locally with other npm packages. To execute it use the following command:
 
 `npx prisma generate`
 

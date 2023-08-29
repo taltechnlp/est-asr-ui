@@ -19,12 +19,13 @@ model File {
   uploadedAt               DateTime?
   mimetype                 String    @db.Text()
   encoding                 String    @db.Text()
-  externalId               String    @db.Text()
+  externalId               String?   @db.Text()
   textTitle                String?   @db.Text()
   initialTranscriptionPath String?   @db.Text()
   initialTranscription     String?   @db.Text()
   uploader                 String?   @db.VarChar(30)
-  User                     User?     @relation(fields: [uploader], references: [id], onUpdate: NoAction)
+  User                     User?     @relation(fields: [uploader], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  workflows                NfWorkflow[]
 }
 
 enum Role {
@@ -81,4 +82,64 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+enum NfStatus {
+  PENDING
+  SUBMITTED
+  RUNNING
+  CACHED
+  COMPLETED
+  ERROR
+  FAILED
+}
+
+enum NfEvent {
+  started
+  process_submitted
+  process_started
+  process_completed
+  error
+  completed
+}
+
+model NfWorkflow {
+  run_id  String @unique
+  event NfEvent
+  run_name String @unique
+  utc_time DateTime
+  file_id String
+  file File  @relation(fields: [file_id], references: [id], onDelete: Cascade)
+  processes NfProcess[]
+  succeededCount Int?
+  runningCount Int?
+  pendingCount Int?
+  failedCount Int?
+  progressLength Int?
+}
+
+
+model NfProcess {
+  id String @id @default(cuid())
+  task_id Int
+  process String
+  tag String?
+  hash String
+  status NfStatus
+  exit DateTime?
+  start DateTime?
+  submit DateTime?
+  complete DateTime?
+  duration Int?
+  realtime Int?
+  cpu Float?
+  mem Float?
+  peak_rss Float?
+  peak_vmem Float?
+  rchar Float?
+  wchar Float?
+  vol_ctxt Int?
+  inv_ctxt Int?
+  workflow_id String
+  workflow NfWorkflow    @relation(fields: [workflow_id], references: [run_id], onDelete: Cascade)
 }

@@ -203,6 +203,10 @@
             "download": "ladata",
             "cancel": "Peruuttaa"
         },
+        "editing": {
+            "save": "Tallentaa",
+            "edit": "Muokata"
+        },
         "hotkeys": {
             "tooltip": "Pikanäppäimet",
             "heading": "Pikanäppäimet",

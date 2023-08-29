@@ -10,7 +10,7 @@
     import { page } from "$app/stores"
     import { onMount } from "svelte";
     import { goto, invalidate } from '$app/navigation';
-
+	
 	let error = null;
 
 	async function handleSubmit({detail: {email, password}}) {
@@ -33,6 +33,9 @@
 			const user = await response.json()
 			console.log("setting user store", user)
 			userStore.set(user);
+			H.identify('jay@highlight.io', {
+				id: user.id
+			});
 			await goto('/files')
 		}
 		/* try {

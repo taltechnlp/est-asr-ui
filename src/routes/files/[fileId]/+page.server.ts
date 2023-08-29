@@ -29,7 +29,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
     if (userId === file.User.id) {
         const content = await fs.readFile(file.initialTranscriptionPath, 'utf8');
 
-        let peaksExist = true;
+        /* let peaksExist = true;
         let peaksPath = file.path + '.json';
         await fs.access(file.path + ".json").catch(e => peaksExist = false);
         if (!peaksExist) {
@@ -95,7 +95,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
             }
         }
         let peaks = null;
-        if (peaksExist) peaks = await fs.readFile(peaksPath, 'utf-8');
+        if (peaksExist) peaks = await fs.readFile(peaksPath, 'utf-8'); */
         return {
             file: {
                 id: file.id,
@@ -106,7 +106,6 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
                 uploadedAt: file.uploadedAt
             },
             url: url.origin,
-            peaks
         }
     }
     else throw error(401, 'unauthorized');
