@@ -1,14 +1,10 @@
-import { error } from '@sveltejs/kit';
 import { user as userStore } from '$lib/stores';
-import { locale, waitLocale } from 'svelte-i18n';
-import { browser } from '$app/environment';
+import { waitLocale } from 'svelte-i18n';
+import '$lib/i18n'; // Import to initialize
 import { redirect } from '@sveltejs/kit';
-import type { LayoutLoad, LayoutData } from './$types';
+import type { LayoutLoad } from './$types';
 
 export const load: LayoutLoad = async ({ fetch, parent, data }) => {
-	if (browser) {
-		locale.set(window.navigator.language);
-	}
 	await waitLocale();
 	if (data && data.id) {
 		const response = await fetch('/api/user/' + data.id, {

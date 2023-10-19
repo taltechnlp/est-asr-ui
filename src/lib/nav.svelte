@@ -1,10 +1,13 @@
 <script lang="ts">
 	import { user as userStore, lang as langStore } from '$lib/stores';
-	import { afterNavigate } from '$app/navigation';
+	import { afterNavigate, goto } from '$app/navigation';
 	import Logo from '$lib/components/Logo.svelte';
 	import { createEventDispatcher } from 'svelte';
 	import { _, locale } from 'svelte-i18n';
-	import { browser } from '$app/environment'
+	import { uiLanguages } from './i18n';
+	export let language;
+	console.log("Received from server language", language)
+
 	let loggedIn;
 	let initials;
 	userStore.subscribe((value) => {
@@ -26,11 +29,14 @@
 		en: { id: 'en', text: 'EN', flag: [0x1f1ec, 0x1f1e7] },
 		fi: { id: 'fi', text: 'FI', flag: [0x1f1eb, 0x1f1ee] }
 	};
-	const languages = ['et', 'en', 'fi'];
+	const languages = uiLanguages;
 
-	let currentLanguage: string = "et" 
-	if (browser && localStorage.getItem('language')) currentLanguage = localStorage.getItem("language");
-	locale.set(currentLanguage);
+	let currentLanguage: string = language || "et";
+	locale.set(currentLanguage); 
+	locale.subscribe(lang => {
+		console.log("changed currentlang to", lang)
+		currentLanguage = lang}
+	)
 
 	const dispatch = createEventDispatcher();
 
@@ -39,6 +45,15 @@
 		locale.set(event.target.value);
 		localStorage.setItem("language", event.target.value)
 		dispatch('locale-changed', event.target.value);
+		let newPath = path;
+		let hasLangInUrl = false;
+		uiLanguages.forEach(l => {
+			if (newPath.startsWith('/' + l + '/')) hasLangInUrl = true;
+			else if (newPath.length == 3 && newPath.startsWith('/' + l)) hasLangInUrl = true;
+		});
+		if (hasLangInUrl) newPath = newPath.substring(3);
+		newPath = '/' + event.target.value + newPath;
+		goto(newPath);
 	}
 
 	function toggleMenu() {
@@ -64,20 +79,20 @@
 		</div>
 		<div class="hidden navbar-end sm:flex">
 			<div class="flex">
-				<a href="/" class="btn btn-ghost btn-md rounded-btn {path == '/' ? 'text-orange-600' : ''}">
+				<a href="/" class="btn btn-ghost btn-md rounded-btn {path == '/' || uiLanguages.includes(path.substring(1)) ? 'text-orange-600' : ''}">
 					{$_('index.headerTitle')}
 				</a>
 				{#if loggedIn}
 					<a
 						href="/files"
-						class="btn btn-ghost btn-md rounded-btn {path == '/files' ? 'text-orange-600' : ''}"
+						class="btn btn-ghost btn-md rounded-btn {path.includes('/files') ? 'text-orange-600' : ''}"
 					>
 						{$_('index.headerFiles')}
 					</a>
 				{/if}
 				<a
 					href="/demo"
-					class="btn btn-ghost btn-md rounded-btn {path == '/demo' ? 'text-orange-600' : ''}"
+					class="btn btn-ghost btn-md rounded-btn {path.includes('/demo') ? 'text-orange-600' : ''}"
 				>
 					{$_('index.headerDemo')}
 				</a>
@@ -99,7 +114,7 @@
 				{#if !loggedIn}
 					<a
 						href="/signin"
-						class="btn btn-ghost btn-md rounded-btn {path == '/signin' ? 'text-orange-600' : ''}"
+						class="btn btn-ghost btn-md rounded-btn {path.includes('/signin') ? 'text-orange-600' : ''}"
 					>
 						{$_('index.login')}
 					</a>
@@ -107,7 +122,7 @@
 				{#if loggedIn}
 					<a
 						href="/me"
-						class="btn btn-ghost btn-md rounded-btn {path == '/me' ? 'text-orange-600' : ''}"
+						class="btn btn-ghost btn-md rounded-btn {path.includes('/me') ? 'text-orange-600' : ''}"
 					>
 						<div class="avatar placeholder">
 							<div class="rounded-bt">
@@ -150,7 +165,7 @@
 				<li>
 					<a
 						href="/"
-						class="btn btn-ghost btn-md rounded-btn {path == '/' ? 'text-orange-600' : ''}"
+						class="btn btn-ghost btn-md rounded-btn {path == '/' || uiLanguages.includes(path.substring(1)) ? 'text-orange-600' : ''}"
 					>
 						{$_('index.headerTitle')}
 					</a>
@@ -159,7 +174,7 @@
 					<li>
 						<a
 							href="/files"
-							class="btn btn-ghost btn-md rounded-btn {path == '/files' ? 'text-orange-600' : ''}"
+							class="btn btn-ghost btn-md rounded-btn {path.includes('/files') ? 'text-orange-600' : ''}"
 						>
 							{$_('index.headerFiles')}
 						</a>
@@ -168,7 +183,7 @@
 				<li>
 					<a
 						href="/demo"
-						class="btn btn-ghost btn-md rounded-btn {path == '/demo' ? 'text-orange-600' : ''}"
+						class="btn btn-ghost btn-md rounded-btn {path.includes('/demo') ? 'text-orange-600' : ''}"
 					>
 						{$_('index.headerDemo')}
 					</a>
@@ -194,7 +209,7 @@
 					<li>
 						<a
 							href="/signin"
-							class="btn btn-ghost btn-md rounded-btn {path == '/signin' ? 'text-orange-600' : ''}"
+							class="btn btn-ghost btn-md rounded-btn {path.includes('/signin') ? 'text-orange-600' : ''}"
 						>
 							{$_('index.login')}
 						</a>
@@ -204,7 +219,7 @@
 					<li>
 						<a
 							href="/me"
-							class="btn btn-ghost btn-md rounded-btn {path == '/me' ? 'text-orange-600' : ''}"
+							class="btn btn-ghost btn-md rounded-btn {path.includes('/me') ? 'text-orange-600' : ''}"
 						>
 							<div class="avatar placeholder">
 								<div class="rounded-bt">

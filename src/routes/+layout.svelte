@@ -1,11 +1,13 @@
-<script>
+<script lang="ts">
 	import Nav from '$lib/nav.svelte';
 	import '../app.css';
-	import '../i18n';
 	import { onMount } from 'svelte'
-	import { pwaInfo } from 'virtual:pwa-info'
+	// import { pwaInfo } from 'virtual:pwa-info'
+	import type { LayoutData } from './$types'
 	
-	onMount(async () => {
+	export let data: LayoutData;
+	
+	/* onMount(async () => {
 		if (pwaInfo) {
 		const { registerSW } = await import('virtual:pwa-register')
 		registerSW({
@@ -15,7 +17,7 @@
 				r && setInterval(() => {
 			   console.log('Checking for sw update')
 			   r.update()
-			}, 20000 /* 20s for testing purposes */)
+			}, 20000 )
 			console.log(`SW Registered: ${r}`)
 			},
 			onRegisterError(error) {
@@ -25,15 +27,15 @@
 		}
 	})
 
-	$: webManifestLink = pwaInfo ? pwaInfo.webManifest.linkTag : '' 
+	$: webManifestLink = pwaInfo ? pwaInfo.webManifest.linkTag : ''  */
 </script>
 
 <svelte:head> 
- 	{@html webManifestLink} 
+ 	<!-- {@html webManifestLink}  -->
 </svelte:head>
 
 <div class="w-full flex justify-center">
-	<Nav />
+	<Nav language={data.language} />
 </div>
 
 <main class="">
