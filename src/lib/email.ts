@@ -1,8 +1,10 @@
 import nodemailer from 'nodemailer';
-import mailjet from "node-mailjet";
+// import mailjet from "node-mailjet";
+import sgMail from "@sendgrid/mail";
 import { SECRET_MAIL_HOST, SECRET_MAIL_PORT, SECRET_MAIL_USER, SECRET_MAIL_PASS } from '$env/static/private';
 
-export const transport = nodemailer.createTransport({
+sgMail.setApiKey(SECRET_MAIL_PASS);
+/* export const transport = nodemailer.createTransport({
   host: SECRET_MAIL_HOST,
   port: SECRET_MAIL_PORT,
   secure: false,
@@ -10,7 +12,7 @@ export const transport = nodemailer.createTransport({
     user: SECRET_MAIL_USER,
     pass: SECRET_MAIL_PASS
   }
-});
+}); */
 
 export const createEmail = text => `
   <div className="email" style="
@@ -29,11 +31,11 @@ export const createEmail = text => `
   </div>
 `;
 
-const mailjetConnection = mailjet.apiConnect(
+/* const mailjetConnection = mailjet.apiConnect(
   SECRET_MAIL_USER,
   SECRET_MAIL_PASS
 );
-export const sendMail = info =>
+export const sendMail2 = info =>
   mailjetConnection.post("send", { version: "v3.1" }).request({
     Messages: [
       {
@@ -53,4 +55,11 @@ export const sendMail = info =>
         CustomID: "AppGettingStartedTest"
       }
     ]
-  });
+  }); */
+export const sendMail = info => 
+  sgMail.send({
+    to: info.to,
+    from: "tugi@tekstiks.ee",
+    subject: info.subject,
+    html: info.html,
+  })

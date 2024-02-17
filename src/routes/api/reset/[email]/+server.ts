@@ -29,7 +29,7 @@ export const POST: RequestHandler= async ({ params, url }) => {
     subject: "Parooli lähtestamise link",
     html: createEmail(`Siin on tellitud parooli lähtestamise link! See aegub 24 tunni jooksul.
     \n\n
-    <a href="https://tekstiks.ee/reset?resetToken=${resetToken}">Klõpsa siia, et lähtestada oma tekst.ee parool.</a>`)
+    <a href="https://tekstiks.ee/reset?resetToken=${resetToken}">Klõpsa siia, et lähtestada oma tekstiks.ee parool.</a>`)
   });
   return new Response("", {status: 201, statusText: "resetTokenCreated"})
 
