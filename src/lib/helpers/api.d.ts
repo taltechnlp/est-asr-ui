@@ -149,13 +149,9 @@ export type EstUploadResult = {
 export type EstProgress = {
     done: boolean;
     requestId: string;
-    progressPercentage?: number;
+    progress?: number;
     jobStatus?: string;
-    currentTaskNumber?: string;
-    currentTaskName?: string;
-    currentTaskStatus?: string;
-    totalJobsQueued?: number;
-    totalJobsStarted?: number;
+    queued?: number;
     success?: boolean;
     errorCode?: number;
 }
@@ -167,3 +163,54 @@ export type EstResult = {
     errorCode?: number;
     result?: EditorContent;
 } 
+
+interface IWeblog {
+    runName: string;
+    runId: string;
+    event:
+        | "started"
+        | "process_submitted"
+        | "process_started"
+        | "process_completed"
+        | "error"
+        | "completed";
+    utcTime: number;
+    // trace is only provided for the following events: process_submitted, process_started, process_completed, error
+    trace?: {
+        task_id: number;
+        process: string;
+        name: string;
+        time: string | null;
+        submit: number | null;
+        start: number | null;
+        complete: number | null;
+        duration: number | null;
+        realtime: number | null;
+        queue: string | null;
+        tag: string | null;
+        hash: string;
+        exit: number | null;
+        status: 
+            | "PENDING"
+            | "SUBMITTED"
+            | "RUNNING"
+            | "CACHED"
+            | "COMPLETED"
+            | "ERROR"
+    };
+    // metadata is only provided for the following events: started, completed
+    metadata?: {
+        parameters: Record<string, unknown>;
+        workflow: {
+            stats: {
+                succeededCount: number;
+                runningCount: number;
+                pendingCount: number;
+                failedCount: number;
+                progressLength: number;
+            };
+        };
+    };
+}
+
+export type { IWeblog };

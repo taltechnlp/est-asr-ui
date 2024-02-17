@@ -68,6 +68,6 @@
 			fileName={data.file.name}
 			uploadedAt={data.file.uploadedAt}
 		/>
-		<Player url={`${data.url}/uploaded/${data.file.id}`} peaks={data.peaks} />
+		<Player url={`${data.url}/uploaded/${data.file.id}`} />
 	</div>
 </main>

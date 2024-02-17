@@ -1,13 +1,9 @@
 <script lang="ts">
 	import WaveSurfer from 'wavesurfer.js';
 	import { onMount, onDestroy } from 'svelte';
-	import MinimapPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.minimap.min.js';
-	import MediasessionPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.mediasession.min.js';
-	import PlayheadPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.playhead.min.js';
-	import TimelinePlugin from 'wavesurfer.js/dist/plugin/wavesurfer.timeline.min.js';
-	import CursorPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.cursor.min.js';
-	import RegionsPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.regions.min.js';
-	import MarkersPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.markers.min.js';
+	import { beforeNavigate } from "$app/navigation";
+	import TimelinePlugin from 'wavesurfer.js/dist/plugins/timeline.min.js';
+	import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.min.js';
 	import {
 		player,
 		words,
@@ -18,10 +14,9 @@
 		wavesurfer
 	} from '$lib/stores';
 	export let url;
-	export let peaks;
 
 	let ws: WaveSurfer;
-	let regions;
+	let wsRegions: RegionsPlugin;
 	let wavesurferReady = false;
 	const wordFilter = (w) => w && w.id && w.start && w.end;
 	$: regions = $words.filter(wordFilter).map((word) => {
@@ -29,29 +24,30 @@
 			id: word.id,
 			start: word.start,
 			end: word.end,
-			color: 'rgba(0, 0, 0, 0.5)',
 			drag: false,
 			resize: false
 		};
 	});
-	let markers;
+	let names;
 	const speakerFilter = (s) => s && s.start && s.start !== -1 && s.name;
-	$: speakerNames.subscribe((speakers) => {
-		markers = speakers
+	const unsubscribeSpeakerNames = speakerNames.subscribe((speakers) => {
+		names = speakers
 			.filter(speakerFilter)
 			.sort((a, b) => (a.start > b.start ? 1 : -1))
 			.map((speaker, i) => {
 				return {
-					time: speaker.start,
-					label: speaker.name,
+					start: speaker.start,
+					content: speaker.name,
 					color: '#FE621D',
-					position: i & 1 ? 'top' : 'bottom'
 				};
 			});
-		if ($wavesurfer && $wavesurfer.addMarker && wavesurferReady) {
-			$wavesurfer.clearMarkers();
-			markers.forEach((m) => {
-				$wavesurfer.addMarker(m);
+		if (wsRegions && wsRegions.addRegion && wavesurferReady) {
+			wsRegions.clearRegions();
+			names.forEach((m) => {
+				wsRegions.addRegion(m);
+			});
+			regions.forEach((r) => {
+				wsRegions.addRegion(r);
 			});
 		}
 	});
@@ -61,71 +57,29 @@
 			waveColor: 'violet',
 			progressColor: 'purple',
 			autoCenter: true,
-			backend: 'MediaElement',
 			// bargap: 1,
 			// barWidth: 3,
-			normalize: peaks ? false : true,
+			normalize: true,
 			height: 80,
-			partialRender: true,
-			responsive: true,
-			scrollParent: true,
-			closeAudioContext: true,
 			fillParent: true,
-			forceDecode: false,
-			loopSelection: true,
-			hideScrollbar: false,
-			maxCanvasWidth: 4000,
-			pixelRatio: 1,
-			removeMediaElementOnDestroy: true,
+			hideScrollbar: false,	
 			plugins: [
-				// Media Session Plugin for (mobile) media notifications
-				/* MediasessionPlugin.create({
-					metadata: {
-						title: 'tekstiks.ee'
-					}
-				}), */
-				MinimapPlugin.create({
-					// container: '#wave-minimap',
-					waveColor: '#777',
-					progressColor: '#222',
-					height: 20
-				}),
-				RegionsPlugin.create({
-					regions
-				}),
 				TimelinePlugin.create({
 					container: '#wave-timeline'
 				}),
-				/* PlayheadPlugin.create({
-					returnOnPause: false,
-					moveOnSeek: true,
-					draw: false
-				}), */
-				/* CursorPlugin.create({
-					showTime: true,
-					opacity: 1,
-					customShowTimeStyle: {
-						'background-color': '#000',
-						color: '#fff',
-						padding: '2px',
-						'font-size': '10px'
-					}
-				}), */
-				// Initialize based on speakers
-				// Update based on store. Corresponds to editor blocks.
-				MarkersPlugin.create({
-					markers
-				})
 			]
 		});
-		if (peaks) {
-			const peaksObj = JSON.parse(peaks);
-			ws.load(url, peaksObj.data);
-		} else ws.load(url);
-		// ws.play(); // seems to cause errors
+		wsRegions = ws.registerPlugin(RegionsPlugin.create());
+		regions.forEach((r) => {
+			wsRegions.addRegion(r);
+		});
+		names.forEach((r) => {
+			wsRegions.addRegion(r);
+		});
+		ws.load(url);
 		wavesurfer.set(ws);
 
-		$wavesurfer.on('region-in', function (region) {
+		wsRegions.on('region-in', function (region) {
 			const progress = Math.round($wavesurfer.getCurrentTime() * 100) / 100;
 			playingTime.set(progress);
 			if ($editor) {
@@ -143,7 +97,7 @@
 				$editor.view.updateState(newState);
 			}
 		});
-		$wavesurfer.on('region-out', function (region) {
+		wsRegions.on('region-out', function (region) {
 			const progress = Math.round($wavesurfer.getCurrentTime() * 100) / 100;
 			playingTime.set(progress);
 			if ($editor) {
@@ -210,19 +164,25 @@
 
 	// Local state
 	let playbackSpeed = 0;
-	let muted = false;
 	let zoom = 50;
 
 	// Local functions
 	const setPlaybackSpeed = (speed: number) => (speed = playbackSpeed + speed);
 
+	beforeNavigate( () => {
+		// Removing this would cause a crash during away navigation
+		unsubscribeSpeakerNames();
+	}) 
+
 	onDestroy(() => {
+		unsubscribeSpeakerNames();
 		if ($wavesurfer) {
+			wsRegions.unAll();
+			wsRegions.destroy();
 			$wavesurfer.destroy();
 		}
 		wavesurfer.set(null);
 		words.set([]);
-		speakerNames.set([]);
 		playingTime.set(0);
 	});
 
@@ -259,16 +219,6 @@
 	};
 	export const pause = () => {
 		$wavesurfer.pause();
-	};
-	export const seekBackward = () => {
-		$wavesurfer.skipBackward(5);
-	};
-	export const seekForward = () => {
-		$wavesurfer.skipForward(5);
-	};
-	export const toggleMute = () => {
-		$wavesurfer.toggleMute();
-		muted = !muted;
 	};
 	export const togglePlay = () => {
 		$wavesurfer.playPause();

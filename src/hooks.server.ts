@@ -14,12 +14,11 @@ import { SECRET_MAIL_HOST, SECRET_MAIL_PORT, SECRET_MAIL_USER, SECRET_MAIL_PASS,
 import { sequence } from "@sveltejs/kit/hooks";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "$lib/db/client";
-import path from 'path';
+import { uiLanguages } from '$lib/i18n';
 
 let userId;
 async function pwdAuthorization({ event, resolve }) {
 	const token = event.cookies.get('token');
-	const cookie = await parse(event.request.headers.get('cookie') || '');
 	if (token) {
 		const userDetails = jwt.verify(token, SECRET_KEY);
 		if (userDetails.userId) {
@@ -36,7 +35,19 @@ async function pwdAuthorization({ event, resolve }) {
 	return resolve(event);
 }
 async function transformHtml({ event, resolve }) {
-	return resolve(event, {
+	/* console.log(event.url.pathname)
+	let hasLangInUrl = false;
+	uiLanguages.forEach(l => {
+		if (event.url.pathname.startsWith('/' + l + '/')) hasLangInUrl = true;
+		else if (event.url.pathname.length == 3 && event.url.pathname.startsWith('/' + l)) hasLangInUrl = true;
+	});
+	if (!hasLangInUrl) {
+		if (event.cookies.get('language')) {
+			event.url.pathname = '/' + event.cookies.get('language') + event.url.pathname;
+		}
+	}
+	console.log(event.url, "lõplik") */
+	return await resolve(event, {
 		transformPageChunk: ({ html }) => html.replace('old', 'new')
 	});
 }

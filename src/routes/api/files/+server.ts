@@ -18,12 +18,11 @@ type FileWithProgress = {
     externalId: string;
     textTitle: string | null;
     initialTranscription: string | null;
-    progressPrc?: number;
-    totalJobsQueued?: number;
-    totalJobsStarted?: number;
+    progress?: number;
+    queued?: number;
 }
 
-export const GET: RequestHandler = async ({ locals }) => {
+export const GET: RequestHandler = async ({ locals, fetch }) => {
     let userId = locals.userId;
     if (!userId) {
         let session = await locals.getSession();
@@ -35,14 +34,13 @@ export const GET: RequestHandler = async ({ locals }) => {
     let files = await getFiles(userId)
     const pendingFiles = files.filter((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')
     if (pendingFiles.length > 0) {
-        const promises = pendingFiles.map(file => checkCompletion(file.id, file.externalId, file.path, file.language, SECRET_UPLOAD_DIR))
+        const promises = pendingFiles.map(file => checkCompletion(file.id, file.state, file.externalId, file.path, file.language, SECRET_UPLOAD_DIR, file.userId, fetch))
         const resultRetrieved = (await Promise.all(promises)).reduce((acc, x) => {
-            if (!x.done && x.fileId && x.progressPrc) {
+            if (!x.done && x.fileId && x.progress) {
                 const index = files.findIndex(file => file.id === x.fileId);
-                // files[index].progressPrc = x.progressPrc;
+                files[index].progress = x.progress;
                 files[index].state = x.status;
-                // files[index].totalJobsQueued = x.totalJobsQueued;
-                // files[index].totalJobsStarted = x.totalJobsStarted;
+                files[index].queued = x.queued;
             }
             return acc || x.done
         }, false);

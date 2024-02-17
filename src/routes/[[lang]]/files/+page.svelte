@@ -84,7 +84,10 @@
 		}
 		loading = false;
 		uploadModalOpen = false;
-		invalidate('/api/files')
+		invalidate('/api/files');
+		await awaitTimeout(10000).then(() =>
+			{if (donePolling) longPolling();}
+		);
 	};
 
 	function openFile(fileId, fileState) {
@@ -96,11 +99,11 @@
 	const awaitTimeout = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
 	const longPolling = async () => {
 		donePolling = false;
-		if (! data.files.find((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')) {
+		if (!data.files.find((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')) {
 			donePolling = true;
 		}
 		do {
-			await awaitTimeout(2000);
+			await awaitTimeout(10000);
 			invalidate('/api/files');
 		} while (!donePolling);
 	};
@@ -171,10 +174,14 @@
 							{:else if file.state == 'PROCESSING_ERROR'}
 								<div class="badge badge-error">{$_('files.statusError')}</div>
 							{:else if file.state == 'PROCESSING'}
-								<div class="badge badge-accent loading">{$_('files.statusProcessing')} {` ${file.progressPrc}%`}</div>
+								<div class="badge badge-accent loading">{$_('files.statusProcessing')} 
+									{#if file.progress}
+										{` ${file.progress}%`}
+									{/if}
+								</div>
 								<span class="btn btn-ghost btn-xs loading" />
-							{:else if file.state == 'UPLOADED' && file.totalJobsStarted && file.totalJobsQueued}
-								<div class="badge badge-info loading">{$_('files.statusUploaded')} {` ${file.totalJobsStarted}/${file.totalJobsQueued}`}</div>
+							{:else if file.state == 'UPLOADED' && file.queued}
+								<div class="badge badge-info loading">{$_('files.statusUploaded')}</div>
 								<span class="btn btn-ghost btn-xs loading" />
 							{:else if file.state == 'UPLOADED'}
 								<div class="badge badge-info loading">{$_('files.statusUploaded')}</div>

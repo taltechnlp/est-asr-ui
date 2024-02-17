@@ -5,7 +5,6 @@
 	import plus from 'svelte-awesome/icons/plus-circle';
     import { player, wavesurfer } from '$lib/stores';
     export let url;
-    export let peaks;
     let rate = '1.0x';
     let muted = false;
 	let zoom = 50;
@@ -16,18 +15,18 @@
 	};
 	const seekBackward = () => {
 		if ($wavesurfer) {
-			$wavesurfer.skipBackward(5);
+			$wavesurfer.setTime($wavesurfer.getCurrentTime() - 1)
 		}
 	};
 	const seekForward = () => {
 		if ($wavesurfer) {
-			$wavesurfer.skipForward(5);
+			$wavesurfer.setTime($wavesurfer.getCurrentTime() + 1)
 		}
 	};
 	const toggleMute = () => {
 		if ($wavesurfer) {
-			$wavesurfer.toggleMute();
-			muted = $wavesurfer.getMute();
+			$wavesurfer.setMuted(!muted);
+			muted = $wavesurfer.getMuted();
 		}
 	};
 	const zoomOut = () => {
@@ -163,7 +162,7 @@
         </div>
     </div>
     <Waveform
-        url={url} peaks={peaks}
+        url={url}
     />
 </div>
 

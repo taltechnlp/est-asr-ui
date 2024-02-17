@@ -70,3 +70,24 @@ mark > .lang-label {
 mark > .lang-label::before {
 	top: -11px;
 }
+
+#waveform ::part(region-handle) {
+	border-left: 0px solid;
+	border-right: 0px solid;
+}
+
+.editing-container {
+	margin: 5rem;
+}
+
+@media only screen and (max-width: 1024px) {
+	.editing-container {
+		margin: 5px;
+	}
+}
+
+@media only screen and (max-width: 460px) {
+	.editing-container {
+		margin: 5px;
+	}
+}

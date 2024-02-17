@@ -30,6 +30,7 @@
 	import ellipsisH from 'svelte-awesome/icons/ellipsis-h'; */
 	import keyboard from 'svelte-awesome/icons/keyboard-o';
 	import settings from 'svelte-awesome/icons/cog';
+	import pencil from 'svelte-awesome/icons/pencil-square-o';
 	import LanguageLabel from './toolbar/LanguageLabel.svelte';
 	import debounce from 'lodash/debounce';
 	import {
@@ -50,7 +51,6 @@
 	import Settings from './toolbar/Settings.svelte';
 	import hotkeys from 'hotkeys-js';
 	// import { Dictate, Transcription } from '$lib/helpers/dictate.js/dictate';
-	import { getMedia } from '$lib/helpers/est_dictate/dictate';
 
 	export let content;
 	export let fileName;
@@ -107,7 +107,7 @@
 			],
 			editorProps: {
 				attributes: {
-					class: 'm-5 focus:outline-none'
+					class: 'editing-container focus:outline-none'
 				}
 				/* handleDOMEvents: { 
                       keydown: (view, event) => {
@@ -164,7 +164,17 @@
 				$wavesurfer.skipForward(5);
 			}
 		});
+		if (windowWidth <= 460) {
+			$editor.setEditable(false, false);
+			editable = $editor.isEditable;
+		}
 	});
+
+	let windowWidth = window.innerWidth;
+	const updateWindowSize = () => windowWidth = window.innerWidth;
+	window.addEventListener("resize", updateWindowSize);
+	let editable = true;
+
 
 	onDestroy(() => {
 		hotkeys.unbind();
@@ -173,6 +183,7 @@
 		if ($editor) {
 			$editor.destroy();
 		}
+		window.removeEventListener("resize", updateWindowSize)
 	});
 
 	async function handleSave() {
@@ -221,45 +232,69 @@
 	<div class="editor max-w-5xl">
 		{#if $editor}
 			<div class="toolbar sticky top-0 z-10 pt-1 pb-1">
+				{#if !editable}
+				<div class="flex items-center tooltip tooltip-bottom" data-tip={$_('editor.editing.edit')}>
+					<button
+							on:click={() => {$editor.setEditable(true, true); editable = true;}}
+							style="color: rgb(48, 49, 51);"
+							class="ml-6 cursor-pointer btn btn-ghost flex"
+						>
+						<Icon data={pencil} scale={1.5} />
+					</button>
+					
+				</div>				
+				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2" />
+				{:else if windowWidth <= 460}
+				<div class="flex items-center tooltip tooltip-bottom" data-tip={$_('editor.editing.save')}>
+					<button on:click={() => {$editor.setEditable(false, true); editable = false;}}
+						style="color: rgb(48, 49, 51);"
+							class="ml-6 cursor-pointer btn btn-ghost flex"
+						>{$_('editor.editing.save')}</button>
+				</div>				
+				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2" />
+				{/if}
 				<div class="flex items-center tooltip tooltip-bottom" data-tip={$_('editor.settings.tooltip')}>
 					<label for="settings-modal" class="btn btn-ghost flex  ">
 						<Icon data={settings} scale={1.5} />
 					</label>
 				</div>
 				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2" />
-				<div class="flex items-center tooltip tooltip-bottom" data-tip={$_('editor.hotkeys.tooltip')}>
-					<label for="hotkeys-modal" class="btn btn-ghost flex  ">
-						<Icon data={keyboard} scale={1.5} />
-					</label>
-				</div>
-				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2" />
-				<div class="flex items-center">
-					<button
-						on:click={() => $editor.chain().focus().undo().run()}
-						class:disabled={!$editor.can().undo()}
-						style="color: rgb(48, 49, 51);"
-						class="ml-6 tooltip tooltip-bottom cursor-pointer"
-						data-tip={$_('file.toolbarUndo')}
-					>
-						<Icon data={rotateLeft} scale={1.5} />
-				</button>
-					<button
-						on:click={() => $editor.chain().focus().redo().run()}
-						class:disabled={!$editor.can().redo()}
-						style="color: rgb(48, 49, 51);"
-						class="ml-3 tooltip tooltip-bottom cursor-pointer"
-						data-tip={$_('file.toolbarRedo')}
-					>
-						<Icon data={rotateRigth} scale={1.5} />
-			</button>
-				</div>
-				{#if $editorMode === 2}
+				{#if windowWidth > 460}
+					<div class="flex items-center tooltip tooltip-bottom" data-tip={$_('editor.hotkeys.tooltip')}>
+						<label for="hotkeys-modal" class="btn btn-ghost flex">
+							<Icon data={keyboard} scale={1.5} />
+						</label>
+					</div>				
 					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2" />
+					<div class="flex items-center">
+						<button
+							on:click={() => $editor.chain().focus().undo().run()}
+							class:disabled={!$editor.can().undo()}
+							style="color: rgb(48, 49, 51);"
+							class="ml-6 tooltip tooltip-bottom cursor-pointer"
+							data-tip={$_('file.toolbarUndo')}
+						>
+							<Icon data={rotateLeft} scale={1.5} />
+					</button>
+					<button
+							on:click={() => $editor.chain().focus().redo().run()}
+							class:disabled={!$editor.can().redo()}
+							style="color: rgb(48, 49, 51);"
+							class="ml-3 tooltip tooltip-bottom cursor-pointer"
+							data-tip={$_('file.toolbarRedo')}
+						>
+							<Icon data={rotateRigth} scale={1.5} />
+					</button>
+					</div>
+					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2" />
+				{/if}
+				
+				{#if $editorMode === 2}
 					<LanguageLabel {editor} />
 					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2" />
 					<PronounceLabel {editor} />
+					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2" />
 				{/if}
-				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2" />
 				<div class="flex items-center">
 					<label for="download-modal" class="btn btn-link btn-sm flex">
 						<Icon data={download} scale={1} />

@@ -46,7 +46,7 @@
 			],
 			editorProps: {
 				attributes: {
-					class: 'm-5 focus:outline-none'
+					class: 'editing-container focus:outline-none'
 				}
 				/* handleDOMEvents: { 
                       keydown: (view, event) => {

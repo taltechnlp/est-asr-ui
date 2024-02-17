@@ -10,3 +10,7 @@ node_modules
 env.ts
 /uploads
 /transcripts
+combined.log
+error.log
+exception.log
+rejections.log

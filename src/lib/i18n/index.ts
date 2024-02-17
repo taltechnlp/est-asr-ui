@@ -12,3 +12,4 @@ init({
     fallbackLocale: 'et',
     initialLocale: getLocaleFromNavigator(),
   });
+export const uiLanguages = ['et', 'en', 'fi'];
