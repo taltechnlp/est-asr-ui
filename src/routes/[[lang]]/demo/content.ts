@@ -4979,7 +4979,7 @@ export const content = {
             ]
         }
     ]
-}
+} 
 const nameExists = (names: Array<Speaker>, name: string) => names.find(n => n.name === name);
 content.content.forEach((node) => {
     let id;

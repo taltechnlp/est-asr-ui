@@ -22,7 +22,7 @@ type FileWithProgress = {
     queued?: number;
 }
 
-export const GET: RequestHandler = async ({ locals, fetch }) => {
+export const GET: RequestHandler = async ({ locals, fetch, url }) => {
     let userId = locals.userId;
     if (!userId) {
         let session = await locals.getSession();
@@ -30,6 +30,17 @@ export const GET: RequestHandler = async ({ locals, fetch }) => {
     }
     if (!userId ) {
         throw error(401, "Not authenticated user");
+    }
+    const isAdmin = await prisma.user.findUnique({
+        where: {
+            id: userId
+        },
+        select: {
+            role: true
+        }
+    })
+    if (isAdmin && url.searchParams.has("userId")) {
+        userId = url.searchParams.get("userId");
     }
     let files = await getFiles(userId)
     const pendingFiles = files.filter((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')

@@ -12,6 +12,10 @@ const config = {
 		adapter: adapter(),
 		serviceWorker: {
 			register: false
+		},
+		alias: {
+			components: "$lib/components",
+			utils: "$lib/utils" 
 		}
 	},
 	files: {

@@ -69,9 +69,9 @@ export const GET: RequestHandler = async ({ locals, params }) => {
                     externalId: externalId
                 }
             }).catch(e => console.log("Failed to update file externalId. FileId:", params.fileId))
-            console.log("resuming workflow", progress.externalId);
+            console.log("resuming workflow", externalId);
             const resultPath = path.join(RESULTS_DIR, userId);
-            const processSpawned = runNextflow(progress.path, progress.externalId, resultPath, true, true, true, PIPELINE_DIR, EST_ASR_URL, NEXTFLOW_PATH, true)
+            const processSpawned = runNextflow(params.fileId, progress.path, externalId, resultPath, true, true, true, PIPELINE_DIR, EST_ASR_URL, NEXTFLOW_PATH, true)
             return json({ done: false }, { status: 200 })
         }
         // return progress and queue size

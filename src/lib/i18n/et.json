@@ -83,7 +83,7 @@
         "deleteButton": "Kustuta",
         "statusReady": "VALMIS",
         "statusError": "TRANSKRIBEERIMINE EBAÕNNESTUS",
-        "statusProcessing": "TÖÖTLEMISES",
+        "statusProcessing": "TÖÖDELDAKSE",
         "statusUploaded": "JÄRJEKORRAS",
         "uploadHeader": "Helisalvestise ülesse laadimine",
         "supportedFormats": "Toetatud formaadid: wav, mp3, ogg, mp2, m4a, mp4, flac, amr, mpg.",

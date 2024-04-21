@@ -38,7 +38,7 @@ const uploadResult = {
 type UploadResult = (typeof uploadResult)[keyof typeof uploadResult]
 
 
-export const load: PageServerLoad = async ({ locals, fetch, depends }) => {
+export const load: PageServerLoad = async ({ locals, fetch, depends, url }) => {
     depends('/api/files')
     let userId = locals.userId;
     let session = await locals.getSession();
@@ -48,7 +48,19 @@ export const load: PageServerLoad = async ({ locals, fetch, depends }) => {
     if (!userId) {
         throw redirect(307, "/signin");
     }
-    const result = await fetch('/api/files');
+    const isAdmin = await prisma.user.findUnique({
+        where: {
+            id: userId
+        },
+        select: {
+            role: true
+        }
+    })
+    let adminSearchParam = "";
+    if (isAdmin && url.searchParams.has("userId")) {
+        adminSearchParam = "?userId=" + url.searchParams.get("userId");
+    }
+    const result = await fetch('/api/files' + adminSearchParam);
     let files = await result.json();
     files = files.map(
         file => {
@@ -130,6 +142,7 @@ export const actions: Actions = {
             return fail(400, { fileSaveFailed: true });
         }
         logger.info({userId, message: `file uploaded to ${saveTo}` })
+        console.log("resultDIR", RESULTS_DIR, userId, fileData.id)
         const resultDir = path.join(RESULTS_DIR, userId, fileData.id)
         const resultPath = path.join(resultDir, "result.json")
         await prisma.file.create({
@@ -149,9 +162,11 @@ export const actions: Actions = {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
+                    fileId: id,
                     filePath: saveTo,
                     resultDir,
-                    workflowName: externalId
+                    workflowName: externalId,
+                    resume: false,
                 })
             }
         ).catch(e => console.error("Could not start Nextflow process", e))

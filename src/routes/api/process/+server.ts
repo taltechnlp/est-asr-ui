@@ -7,6 +7,7 @@ import { logger } from '$lib/logging/client';
 
 export const POST: RequestHandler = async ({ request, fetch }) => {
     const workflow: IWeblog = await request.json();
+    console.log("received workflow", workflow)
     if (!workflow) {
         return error(400, { message: "Nextflow sent an empty POST message." })
     } else {
@@ -16,6 +17,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
             },
             select: { id: true, externalId: true }
         });
+        console.log("fail on:", file)
         // trace is only provided for the following events: process_submitted, process_started, process_completed, error
         if (workflow.trace) {
             await prisma.nfWorkflow.upsert({

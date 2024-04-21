@@ -1,6 +1,7 @@
 import { unlink } from "fs/promises";
 import { prisma } from "$lib/db/client";
-import { createWriteStream } from "fs";
+import { createWriteStream, stat } from "fs";
+import path from "path";
 import type {
     EditorContent,
     EstResult,
@@ -126,7 +127,7 @@ export const checkCompletion = async (
     fileId,
     state,
     externalId,
-    path,
+    filePath,
     language,
     uploadDir,
     userId,
@@ -186,22 +187,26 @@ export const checkCompletion = async (
         }
     } else if (language === "est") {
         // Retry starting transcription process
-        if (state === "UPLOADED") {
+        /* if (state === "UPLOADED") {
+            console.log("Retrying", filePath, RESULTS_DIR, userId, fileId)
             const result = await fetch(
-                `transcribe`, {
+                `/api/transcribe`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
-                        filePath: path,
+                        fileId,
+                        filePath,
                         resultDir: path.join(RESULTS_DIR, userId, fileId, "result.json"),
                         workflowName: externalId,
+                        resume: true,
                     })
                 }
             ).catch(e => console.error("Could not start Nextflow process", e))
             if (result && result.ok) {
                 const body = await result.json();
+                console.log("Result nok", body)
                 if (body.requestId) {
                     await prisma.file.update({
                         where: {
@@ -214,7 +219,7 @@ export const checkCompletion = async (
                 };
             }
             return { done: false };
-        }
+        } */
         // Progress request
         const progressRequest = await fetch(
             `transcribe/progress/` + fileId,
@@ -245,8 +250,6 @@ export const checkCompletion = async (
                         id: fileId,
                     },
                 });
-                // Pre-generate waveform peaks
-                // await generatePeaks(fileId);
                 return { done: true };
             } else if ((progress.done && !progress.success)) {
                 await prisma.file.update({
@@ -260,7 +263,7 @@ export const checkCompletion = async (
                     progress.errorCode,
                     progress.errorMessage,
                 );
-                await unlink(path);
+                await unlink(filePath);
                 return { done: true };
             }
         } else if (
@@ -278,7 +281,7 @@ export const checkCompletion = async (
                 progress.errorCode,
                 progress.errorMessage,
             );
-            await unlink(path);
+            await unlink(filePath);
             return { done: true };
         } // Network error, service down etc.
         else return { done: false };
@@ -303,7 +306,7 @@ export const checkCompletion = async (
                 `Failed to transcribe ${fileId}. Failed with code ${body.code,
                 body.message}`,
             );
-            await unlink(path);
+            await unlink(filePath);
             return { done: true };
         } else if (body) {
             const formatted = finToEstFormat(body);

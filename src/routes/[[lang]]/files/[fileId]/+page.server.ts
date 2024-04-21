@@ -2,7 +2,6 @@ import { prisma } from "$lib/db/client";
 import type { PageServerLoad } from './$types';
 import { promises as fs } from 'fs';
 import { error } from '@sveltejs/kit';
-import { spawn } from "child_process";
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
     const file = await prisma.file.findUnique({
@@ -26,7 +25,15 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
     if (!userId) {
         throw error(401, 'unauthorized');
     } 
-    if (userId === file.User.id) {
+    const isAdmin = await prisma.user.findUnique({
+        where: {
+            id: userId
+        },
+        select: {
+            role: true
+        }
+    });
+    if (userId === file.User.id || isAdmin) {
         const content = await fs.readFile(file.initialTranscriptionPath, 'utf8');
 
         /* let peaksExist = true;

@@ -3,8 +3,10 @@ import { writeFile } from "fs/promises";
 import { existsSync, mkdirSync} from 'fs';
 import { prisma } from "$lib/db/client";
 import { unlink } from "fs/promises";
+import { fileId } from "$lib/components/editor/Tiptap.svelte";
 
 export const runNextflow = (
+    fileId: string,
     filePath: string,
     workflowName: string,
     resultsDir: string,
@@ -33,7 +35,7 @@ export const runNextflow = (
       "--do_speaker_id",
       doSpeakerId ? "true" : "false",
       "--do_language_id",
-      doLanguageId  ? "true" : "false",
+      "false" // doLanguageId  ? "true" : "false",
     ];
     if (resume) parameters.concat("-resume");
     try {
@@ -57,18 +59,10 @@ export const runNextflow = (
             failed = true;
         }
         console.log('Nextflow process', workflowName, 'exited with code ', code, "failed", failed);
-        const file = await prisma.nfWorkflow.findUnique({
-            where: {
-                run_name: workflowName
-            },
-            include: {
-                file: true
-            }
-        }).catch(e => console.log("Failed to update workflow to completed in the DB", workflowName, e))
-        if (file && !failed) {
+        if (fileId && !failed) {
             await prisma.file.update({
             where: {
-                id: file.file_id
+                id: fileId
             },
             data: {
                 state: "READY",
@@ -76,7 +70,7 @@ export const runNextflow = (
             }).then(()=>{
                 console.log("Completed workflow", workflowName)})
             .catch(e => console.log("Failed to update workflow to completed in the DB", workflowName, e))
-        } else if (file && failed) {
+        } else if (fileId && failed) {
             await prisma.file.update({
                 where: {
                     id: file.file_id
