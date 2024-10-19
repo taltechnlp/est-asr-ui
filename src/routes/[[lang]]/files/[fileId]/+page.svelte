@@ -15,15 +15,9 @@
 	let transcription = '';
 
 	let json = JSON.parse(data.file && data.file.content);
-	// json = deltaTest
 	let content;
-	// Delta format from old Quill library.
-	if (json && json.ops) {
-		content = fromDelta(json);
-		({ transcription, words, speakers } = content);
-	}
 	// First time transcription from the Estonian JSON format.
-	else if (json && !json.type) {
+	if (json && !json.type) {
 		content = fromEstFormat(json);
 		({ transcription, words, speakers } = content);
 	}

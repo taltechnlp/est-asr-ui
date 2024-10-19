@@ -1,10 +1,10 @@
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from 'prosemirror-state';
 import { Decoration, DecorationSet } from 'prosemirror-view';
-import { wavesurfer } from '$lib/stores';
+import { waveform } from '$lib/stores';
 
 let ws;
-wavesurfer.subscribe((w) => {
+waveform.subscribe((w) => {
 	ws = w;
 });
 
@@ -81,10 +81,8 @@ export const WordColor = Extension.create({
 						view.state.doc.nodeAt(pos).marks[0]
 					) {
 						const attrs = view.state.doc.nodeAt(pos).marks[0].attrs;
-						if (attrs.start && ws && ws.getDuration() > 0)
-							ws.seekTo(attrs.start / ws.getDuration());
-						console.log(attrs.start / ws.getDuration());
-						// console.log(ws.seekTo(attrs.start / ws.getDuration()) /* ws.seekTo(attrs.start / ws.getDuration()) */)
+						if (attrs.start && ws && ws.player)
+							ws.player.seek(attrs.start);
 					}
 					// console.log(pos, view.state.doc.nodeAt(pos).marks, view.state.doc.resolve(pos).textOffset, view.state.doc.nodeAt(pos).nodeSize)
 

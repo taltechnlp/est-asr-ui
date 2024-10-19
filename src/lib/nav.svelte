@@ -6,7 +6,6 @@
 	import { _, locale } from 'svelte-i18n';
 	import { uiLanguages } from './i18n';
 	export let language;
-	console.log("Received from server language", language)
 
 	let loggedIn;
 	let initials;
@@ -14,7 +13,7 @@
 		if (value && value.name) {
 			loggedIn = true;
 			const rgx = new RegExp(/(\p{L}{1})\p{L}+/, 'gu');
-			let initialsArr = [...value.name.matchAll(rgx)] || [];
+			let initialsArr = [...value.name.matchAll(rgx)];
 			initials = ((initialsArr.shift()?.[1] || '') + (initialsArr.pop()?.[1] || '')).toUpperCase();
 		} else loggedIn = false;
 	});
@@ -34,7 +33,6 @@
 	let currentLanguage: string = language || "et";
 	locale.set(currentLanguage); 
 	locale.subscribe(lang => {
-		console.log("changed currentlang to", lang)
 		currentLanguage = lang}
 	)
 
@@ -97,17 +95,13 @@
 					{$_('index.headerDemo')}
 				</a>
 				<select class="select select-ghost max-w-xs" bind:value={currentLanguage} on:change={switchLocale}>
-					{#each languages as language}
-						<option value={language}>
-							<span class="">
-								{String.fromCodePoint(
-									languageDict[language].flag[0],
-									languageDict[language].flag[1]
-								)}
-							</span>
-							<span class="">
-								{languageDict[language].text}
-							</span>
+					{#each languages as value}
+						<option {value}>
+							{String.fromCodePoint(
+								languageDict[value].flag[0],
+								languageDict[value].flag[1]
+							)}
+							{languageDict[value].text}
 						</option>
 					{/each}
 				</select>
@@ -190,17 +184,13 @@
 				</li>
 				<li>
 					<select class="select max-w-xs" bind:value={currentLanguage} on:change={switchLocale}>
-						{#each languages as language}
-							<option value={language}>
-								<span class="">
-									{String.fromCodePoint(
-										languageDict[language].flag[0],
-										languageDict[language].flag[1]
-									)}
-								</span>
-								<span class="">
-									{languageDict[language].text}
-								</span>
+						{#each languages as value}
+							<option {value}>
+								{String.fromCodePoint(
+									languageDict[value].flag[0],
+									languageDict[value].flag[1]
+								)}
+								{languageDict[value].text}
 							</option>
 						{/each}
 					</select>

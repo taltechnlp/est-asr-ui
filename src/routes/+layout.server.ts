@@ -3,6 +3,7 @@ import type { LayoutServerLoad } from './$types';
 import type { Sess } from '../types';
 import { uiLanguages } from '$lib/i18n';
 import { redirect } from '@sveltejs/kit';
+import { prisma } from '$lib/db/client';
 
 export const load: LayoutServerLoad = async ({ request, locals, params, cookies, url }) => {
 	if (params.lang && uiLanguages.includes(params.lang)) {
@@ -10,7 +11,6 @@ export const load: LayoutServerLoad = async ({ request, locals, params, cookies,
 			cookies.set("language", params.lang, {
 				path: "/"
 			})
-			console.log("Just set langugage to", params.lang)
 		}
 	}
 	if (!params.lang && cookies.get("language")) {
@@ -19,13 +19,23 @@ export const load: LayoutServerLoad = async ({ request, locals, params, cookies,
 	const language = params.lang || cookies.get("language");
 	const session = (await locals.getSession()) as Sess;
 	if (locals.userId) {
+		const user = await prisma.user.findUnique({
+			where: {
+				id: locals.userId
+			},
+			select: {
+				id: true,
+				name: true,
+				email: true,
+			}
+		});
 		return {
-			id: locals.userId,
+			user,
 			language
 		};
 	} else if (session && session.user) {
 		return {
-			id: session.user.id,
+			user: session.user,
 			language
 		};
 	} else {

@@ -90,9 +90,8 @@
 	let cssVarStyles
 	$: time = findTimeStamps(getPos() + 1, editor.state);
 	$: {
-		console.log($fontSizeStore);
-		cssVarStyles = `font-size:${$fontSizeStore}px`;}
-	
+		cssVarStyles = `font-size:${$fontSizeStore}px`;
+	}
 
 	const handleClick = () => {
 		isListOpen ? (isListOpen = false) : (isListOpen = true);
@@ -233,7 +232,6 @@
 			// Cannot use the node passed into this component here (bug or timing issue). Getting by pos works.
 			// This also works const parentNode = findParentNodeOfTypeClosestToPos(editor.state.doc.resolve(getPos()+1), editor.schema.nodes.speaker);
 			const actualNode = editor.state.doc.nodeAt(getPos());
-			console.log(getStartTime(actualNode), findTimeStamps(getPos(), editor.state));
 			const id = addSpeakerBlock(selectedVal.name, getStartTime(actualNode));
 		}
 	});

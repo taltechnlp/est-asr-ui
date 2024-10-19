@@ -38,8 +38,9 @@
 		duration,
 		editor as editorStore,
 		editorMode,
-		wavesurfer, 
-		fontSize as fontSizeStore
+		waveform, 
+		fontSize as fontSizeStore,
+		player
 	} from '$lib/stores';
 	import { Change, ChangeSet, Span, simplifyChanges } from 'prosemirror-changeset';
 	import { _, locale } from 'svelte-i18n';
@@ -148,20 +149,22 @@
 
 		hotkeys('tab', function(event, handler){
 			event.preventDefault()
-			if ($wavesurfer) {
-				$wavesurfer.playPause();
+			if ($waveform) {
+				console.log($waveform)
+				if ($player && $player.playing) $waveform.player.pause();
+            	else if ($player && !$player.playing) $waveform.player.play();
 			}
 		});
 		hotkeys('shift+tab', function(event, handler){
 			event.preventDefault()
-			if ($wavesurfer) {
-				$wavesurfer.skipBackward(5);
+			if ($waveform) {
+				$waveform.player.seek($waveform.player.getCurrentTime() - 1)
 			}
 		});
 		hotkeys('alt+tab', function(event, handler){
 			event.preventDefault()
-			if ($wavesurfer) {
-				$wavesurfer.skipForward(5);
+			if ($waveform) {
+				$waveform.player.seek($waveform.player.getCurrentTime() + 1)
 			}
 		});
 		if (windowWidth <= 460) {

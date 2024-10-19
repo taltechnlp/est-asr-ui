@@ -15,7 +15,6 @@
 	userStore.subscribe((value) => {
 		userData = value;
 	});
-	console.log($page.data.accounts);
 	const handleSignOut = async () => {
 		try {
 			const response = await fetch('/api/signout', {

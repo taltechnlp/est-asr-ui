@@ -6,17 +6,12 @@ import type { LayoutLoad } from './$types';
 
 export const load: LayoutLoad = async ({ fetch, parent, data }) => {
 	await waitLocale();
-	if (data && data.id) {
-		const response = await fetch('/api/user/' + data.id, {
-			method: 'GET'
-		}).catch((e) => {
-			console.log('userNotFound', data.id);
+	if (data && data.user) {
+		userStore.set({
+			id: data.user.id || "", 
+			email: data.user.email || "", 
+			name: data.user.name || ""
 		});
-		if (!response) throw redirect(307, '/signin');
-		const { body } = await response.json();
-		if (body.user) {
-			userStore.set(body.user);
-			return body.user;
-		} else throw redirect(307, '/signin');
-	} else return;
+	} 
+	return { language: data.language };
 };

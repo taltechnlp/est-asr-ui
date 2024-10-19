@@ -31,11 +31,8 @@
 		}
 		else {
 			const user = await response.json()
-			console.log("setting user store", user)
 			userStore.set(user);
-			H.identify('jay@highlight.io', {
-				id: user.id
-			});
+			await invalidate("/")
 			await goto('/files')
 		}
 		/* try {

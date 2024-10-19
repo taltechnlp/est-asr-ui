@@ -2,6 +2,7 @@ import { writable } from 'svelte/store';
 import type { Writable, Readable } from 'svelte/store'
 import {v4 as uuidv4} from "uuid";
 import type { Speaker, Word } from '$lib/helpers/converters/types'
+import type { PeaksInstance } from 'peaks.js';
 
 // User session state
 export const user = writable({ name: '', email: '', id: '' });
@@ -37,11 +38,11 @@ enum EditingMode {
 	}
 export const editorMode: Writable<EditingMode> = writable(1);
 // Editor player
-export const wavesurfer = writable(null)
+export const waveform: Writable<PeaksInstance> = writable()
 export const player = writable({
 	playing: false,
 	muted: false,
-	ready: false
+	ready: false,
 });
 export const playingTime = writable(0);
 export const duration = writable(0);

@@ -3,86 +3,55 @@
     import Icon from 'svelte-awesome/components/Icon.svelte';
 	import minus from 'svelte-awesome/icons/minus-circle';
 	import plus from 'svelte-awesome/icons/plus-circle';
-    import { player, wavesurfer } from '$lib/stores';
+    import { player, waveform } from '$lib/stores';
     export let url;
     let rate = '1.0x';
-    let muted = false;
-	let zoom = 50;
+	let zoom = 1;
 	const togglePlay = () => {
-		if ($wavesurfer) {
-			$wavesurfer.playPause();
+		if ($waveform) {
+            if ($player && $player.playing) $waveform.player.pause();
+            else if ($player && !$player.playing) $waveform.player.play();
 		}
 	};
 	const seekBackward = () => {
-		if ($wavesurfer) {
-			$wavesurfer.setTime($wavesurfer.getCurrentTime() - 1)
+		if ($waveform) {
+			$waveform.player.seek($waveform.player.getCurrentTime() - 1)
 		}
 	};
 	const seekForward = () => {
-		if ($wavesurfer) {
-			$wavesurfer.setTime($wavesurfer.getCurrentTime() + 1)
-		}
-	};
-	const toggleMute = () => {
-		if ($wavesurfer) {
-			$wavesurfer.setMuted(!muted);
-			muted = $wavesurfer.getMuted();
+		if ($waveform) {
+			$waveform.player.seek($waveform.player.getCurrentTime() + 1)
 		}
 	};
 	const zoomOut = () => {
-		if ($wavesurfer) {
-			if (zoom > 5) zoom = zoom - 20;
-			$wavesurfer.zoom(zoom);
+		if ($waveform) {
+            if (zoom < 3) zoom = zoom + 1;
+            $waveform.zoom.setZoom(zoom);
 		}
 	};
 	export const zoomIn = () => {
-		if ($wavesurfer) {
-			if (zoom < 205) zoom = zoom + 20;
-			$wavesurfer.zoom(zoom);
+        if ($waveform) {
+            if (zoom > 0) zoom = zoom - 1;
+			$waveform.zoom.setZoom(zoom);
 		}
 	};
     export const zoomSlider = (el) => {
-		if ($wavesurfer) {
-			$wavesurfer.zoom(el.srcElement.value);
+		if ($waveform) {
+			$waveform.zoom.setZoom(el.srcElement.value);
 		}
 	};
-    const changePlaybackRate = (el) => {
-        const val = (el.srcElement.value.split('x')[0])
-        if ($wavesurfer) {
-			$wavesurfer.setPlaybackRate(val);
-		}
-    }
 </script>
 
 <div class="w-full h-auto fixed bottom-0 left-0 pb-1 bg-white">
     <div class="controls flex justify-between items-center pt-0.5 pb-0.5">
         <div class="flex justify-center items-center">
-            <button class="btn btn-square btn-sm control-button ml-5" on:click={zoomOut}>
-                <Icon data={minus} scale={1} />
-            </button>
-            <input type="range" min="0" max="200" bind:value={zoom} style="width: 100px" class="ml-1 hidden sm:block" on:change={zoomSlider}>
-            <button class="btn btn-square btn-sm control-button ml-1" on:click={zoomIn}>
+            <button class="btn btn-square btn-sm control-button ml-5" on:click={zoomIn}>
                 <Icon data={plus} scale={1} />
             </button>
-            <select class="select select-bordered ml-2"
-            bind:value={rate} on:change={changePlaybackRate}>
-                <option>0.5x</option>
-                <option>0.6x</option>
-                <option>0.7x</option>
-                <option>0.8x</option>
-                <option>0.9x</option>
-                <option>1.0x</option>
-                <option>1.1x</option>
-                <option>1.2x</option>
-                <option>1.3x</option>
-                <option>1.4x</option>
-                <option>1.5x</option>
-                <option>1.6x</option>
-                <option>1,7x</option>
-                <option>1.8x</option>
-                <option>1.9x</option>
-                <option>2.0x</option>
-            </select>
+            <input type="range" min="0" max="3" bind:value={zoom} style="width: 100px" class="ml-1 hidden sm:block" on:change={zoomSlider}>
+            <button class="btn btn-square btn-sm control-button ml-1" on:click={zoomOut}>
+                <Icon data={minus} scale={1} />
+            </button>
         </div>
         <div class="flex justify-around items-center w-48 min-w-max">
             <div class="tooltip" data-tip="Shift + Tab">
@@ -136,29 +105,7 @@
             </div>
         </div>
         <div class="flex justify-center items-center">
-            <button class="btn btn-square btn-sm control-button mr-5" on:click={toggleMute}>
-                {#if muted}
-                    <svg
-                        viewBox="0 0 24 24"
-                        class="h-6 w-6"
-                        fill="rgba(0, 0, 0, 0.54)"
-                        stroke="currentColor"
-                        ><path
-                            d="M3,9H7L12,4V20L7,15H3V9M16.59,12L14,9.41L15.41,8L18,10.59L20.59,8L22,9.41L19.41,12L22,14.59L20.59,16L18,13.41L15.41,16L14,14.59L16.59,12Z"
-                        /></svg
-                    >
-                {:else}
-                    <svg
-                        viewBox="0 0 24 24"
-                        class="h-6 w-6"
-                        fill="rgba(0, 0, 0, 0.54)"
-                        stroke="currentColor"
-                        ><path
-                            d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.84 14,18.7V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z"
-                        /></svg
-                    >
-                {/if}
-            </button>
+            
         </div>
     </div>
     <Waveform
