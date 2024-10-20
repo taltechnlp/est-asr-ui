@@ -17,7 +17,6 @@
 	export let selected: NodeViewProps['selected'] = false;
 	import {
 		speakerNames,
-		addSpeakerName,
 		addSpeakerBlock,
 		editorMounted,
 		editorMode,
@@ -111,6 +110,16 @@
 			? node.content.content[0].marks[0].attrs.start
 			: -1;
 	};
+	const getEndTime = (node) => {
+		return node.content.content &&
+			node.content.content[node.content.content.length-1] &&
+			node.content.content[node.content.content.length-1].marks &&
+			node.content.content[node.content.content.length-1].marks[0] &&
+			node.content.content[node.content.content.length-1].marks[0].attrs &&
+			node.content.content[node.content.content.length-1].marks[0].attrs.end
+			? node.content.content[node.content.content.length-1].marks[0].attrs.end
+			: -1;
+	};
 	const handleNewSpeakerSave = (newName, start) => {
 		if (newName.length > 0) {
 			let newId;
@@ -130,7 +139,8 @@
 				return {
 					name: el.node.attrs['data-name'],
 					id: el.node.attrs.id,
-					start: getStartTime(el.node)
+					start: getStartTime(el.node),
+					end: getEndTime(el.node)
 				};
 			});
 			editor.view.updateState(newState);
@@ -161,7 +171,8 @@
 			return {
 				name: el.node.attrs['data-name'],
 				id: el.node.attrs.id,
-				start: getStartTime(el.node)
+				start: getStartTime(el.node),
+				end: getEndTime(el.node)
 			};
 		});
 		editor.view.updateState(newState);
@@ -201,7 +212,8 @@
 					return {
 						id: s.id,
 						name: editingValue,
-						start: s.start
+						start: s.start,
+						end: s.end
 					};
 				} else return s;
 			});
@@ -232,7 +244,7 @@
 			// Cannot use the node passed into this component here (bug or timing issue). Getting by pos works.
 			// This also works const parentNode = findParentNodeOfTypeClosestToPos(editor.state.doc.resolve(getPos()+1), editor.schema.nodes.speaker);
 			const actualNode = editor.state.doc.nodeAt(getPos());
-			const id = addSpeakerBlock(selectedVal.name, getStartTime(actualNode));
+			const id = addSpeakerBlock(selectedVal.name, getStartTime(actualNode), getEndTime(actualNode));
 		}
 	});
 

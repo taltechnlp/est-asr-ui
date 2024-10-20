@@ -7,5 +7,6 @@ export type Word = {
 export type Speaker = {
     id: string;
     start: number;
+    end: number;
     name: string;
 }

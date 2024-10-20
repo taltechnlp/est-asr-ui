@@ -33,7 +33,11 @@
 				node.content[0].marks[0].attrs.start
 					? node.content[0].marks[0].attrs.start
 					: -1;
-			speakers.push({ name: node.attrs['data-name'], id: node.attrs.id, start });
+			const end =
+				node.content && node.content[node.content.length-1] && node.content[node.content.length-1].marks && node.content[node.content.length-1].marks[0].attrs.end
+				? node.content[node.content.length-1].marks[0].attrs.end
+				: -1;
+			speakers.push({ name: node.attrs['data-name'], id: node.attrs.id, start, end });
 			if (node.content) {
 				node.content.forEach((inlineNode) => {
 					if (inlineNode.type === 'text' && inlineNode.marks && inlineNode.marks.length > 0) {

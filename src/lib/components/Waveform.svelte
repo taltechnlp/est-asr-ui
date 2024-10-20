@@ -16,13 +16,13 @@
 	let peaksInstance: PeaksInstance;
 	let peaksReady = false;
 	const wordFilter = (w) => w && w.id && w.start && w.end;
-	$: segments = $words.filter(wordFilter).map((word) => {
+	/* $: wordSegments = $words.filter(wordFilter).map((word) => {
 		return {
 			id: word.id,
 			startTime: word.start,
 			endTime: word.end,
 		};
-	});
+	}); */
 	let wordLookup = [[]];
 	let lastHighlighedWord = {
 		id: "",
@@ -51,30 +51,30 @@
 		}
 	});
 	let names;
-	const speakerFilter = (s) => s && s.start && s.start !== -1 && s.name;
+	$: if ($waveform && $waveform.segments) {
+			$waveform.segments.removeAll();
+			names.forEach((m) => {
+				$waveform.segments.add(m);
+			});
+		} else console.log("not ready", names)
+	const speakerFilter = (s) => s && s.start && s.start !== -1 && s.end && s.end !== -1 && s.name;
 	const unsubscribeSpeakerNames = speakerNames.subscribe((speakers) => {
 		names = speakers
 			.filter(speakerFilter)
 			.sort((a, b) => (a.start > b.start ? 1 : -1))
 			.map((speaker, i) => {
 				return {
-					start: speaker.start,
-					content: speaker.name,
-					color: '#FE621D',
+					startTime: speaker.start,
+					endTime: speaker.end,
+					labelText: speaker.name,
+					editable: true,
 				};
 			});
-		/* if (wsRegions && wsRegions.addRegion && peaksReady) {
-			wsRegions.clearRegions();
-			names.forEach((m) => {
-				wsRegions.addRegion(m);
-			});
-			regions.forEach((r) => {
-				wsRegions.addRegion(r);
-			});
-		} */
-	});
+		console.log("updated", speakers)
+		});
 	onMount(() => {
 		const audioContext = new AudioContext();
+		console.log(names)
 		const options: PeaksOptions = {
 			segmentOptions: {
 					// Enable segment markers
@@ -168,23 +168,7 @@
 			keyboard: true,
 			nudgeIncrement: 0.01,
 			emitCueEvents: false, // enter segment event for example
-			// TODO! Add names
-			segments: [
-				{
-				startTime: 120,
-				endTime: 140,
-				editable: true,
-				labelText: "My label",
-				},
-				{
-				startTime: 220,
-				endTime: 240,
-				editable: false,
-				labelText: "My Second label"
-				}
-			],
-
-			points: [
+			/* points: [
 				{
 				time: 150,
 				editable: true,
@@ -195,7 +179,7 @@
 				editable: true,
 				labelText: "Another point"
 				}
-			],
+			], */
 			
 		};
 
@@ -250,6 +234,8 @@
 				playingTime.set(time);
 			});
 		});
+		
+
 		// Subscribe to playback events
 		let audio = document.getElementById("audio") as HTMLMediaElement;
 		audio.ontimeupdate = function() {onPlayback()};

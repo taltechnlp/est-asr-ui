@@ -50,13 +50,13 @@ export const fontSize = writable("16");
 
 
 // User inserts a new name
-export const addSpeakerName = (newName, start) => {
+export const addSpeakerName = (newName, start, end) => {
 	let nameId;
 	speakerNames.update((names) => {
 		const exists = names.find(n=>n.name===newName)
 		if (!exists) {
 			nameId = uuidv4().substring(32 - 12);
-			names.push({name: newName, id: nameId, start });
+			names.push({name: newName, id: nameId, start, end });
 		}
 		return names;
 	})
@@ -64,14 +64,14 @@ export const addSpeakerName = (newName, start) => {
 }
 
 // Used adds a new speaker block
-export const addSpeakerBlock = (name, start) => {
+export const addSpeakerBlock = (name, start, end) => {
 	let nameId;
 	speakerNames.update((names) => {
 		const exists = names.find(n=>n.name===name)
 		if (!exists) {
 			nameId = uuidv4().substring(32 - 12);
 		} else nameId = exists.id;
-		names.push({name, id: nameId, start });
+		names.push({name, id: nameId, start, end });
 		return names;
 	})
 	return nameId;
