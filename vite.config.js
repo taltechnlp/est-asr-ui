@@ -4,8 +4,7 @@ import { SvelteKitPWA } from '@vite-pwa/sveltekit'
 /** @type {import('vite').UserConfig} */
 const config = {
         plugins: [
-                sveltekit(),
-                SvelteKitPWA()
+                sveltekit()
         ],
         server: {
                 fs: {

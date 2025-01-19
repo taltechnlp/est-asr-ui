@@ -2,11 +2,11 @@
   "name": "fe-tekstiks",
   "version": "0.0.1",
   "scripts": {
-    "prod": "ORIGIN=https://tekstiks.ee BODY_SIZE_LIMIT=0 HOST=127.0.0.1 PORT=5173 node build/index.js",
+    "prod": "ORIGIN=https://tekstiks.ee BODY_SIZE_LIMIT=0 HOST=127.0.0.1 node server.js",
     "dev": "vite dev --host",
     "build": "vite build",
     "package": "svelte-kit package",
-    "preview": "ORIGIN=http://127.0.0.1:517 BODY_SIZE_LIMIT=0 HOST=127.0.0.1 PORT=5173 vite preview",
+    "preview": "ORIGIN=http://127.0.0.1:5173 BODY_SIZE_LIMIT=0 HOST=127.0.0.1 PORT=5173 vite preview",
     "prepare": "vite sync",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-check --tsconfig ./tsconfig.json --watch",

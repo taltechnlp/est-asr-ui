@@ -114,6 +114,7 @@
 	let uploadModalOpen = false;
 	const uploadModalClick = (e: Event) => {
 		e.preventDefault();
+		error = '';
 		uploadModalOpen = !uploadModalOpen;
 	};
 

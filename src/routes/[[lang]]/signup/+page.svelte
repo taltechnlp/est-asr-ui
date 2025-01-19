@@ -16,36 +16,6 @@
 	let success = false;
 
 	export let form: ActionData;
-	type Success = {
-		user: {
-			id: string;
-			email: string;
-			name: string;
-		}
-	}
-	type Invalid = {
-		email: string;
-		exists: boolean;
-	} | {
-		email: string;
-		incorrect: boolean;
-	}
-	type SignUpResult = {
-			type: 'success';
-			status: number;
-			data?: Success;
-		} | {
-			type: 'invalid';
-			status: number;
-			data?: Invalid;
-		} | {
-			type: 'redirect';
-			status: number;
-			location: string;
-		} | {
-			type: 'error';
-			error: any;
-		}
 	
 </script>
 
@@ -69,15 +39,15 @@
 		return;
 	} 
     return async ({ result }) => {
+		console.log(result)
 		// @ts-ignore
-		data = result.data ? result.data : null;
-		if (result.type === "invalid") {
-			success = false
-			if (data && data.exists) {
-				error = $_('signup.userExists')
+		if (result.type === "failure") {
+			success = false;
+			if (result.data && result.data.email && result.data.exists) {
+				error = $_('signup.userExists');
 			}
-			else if (data && data.incorrect) {
-				error = $_('signup.emailIncorrect')
+			else if (result.data && result.data.email && result.data.invalid) {
+				error = $_('signup.emailIncorrect');
 			}
 		}
 		else if (result.type === 'success') {

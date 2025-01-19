@@ -13,7 +13,6 @@
 	let words: Array<Word> = [];
 	let speakers: Array<Speaker> = [];
 	let transcription = '';
-
 	let json = JSON.parse(data.file && data.file.content);
 	let content;
 	// First time transcription from the Estonian JSON format.

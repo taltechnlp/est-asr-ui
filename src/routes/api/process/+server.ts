@@ -17,7 +17,6 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
             },
             select: { id: true, externalId: true }
         });
-        console.log("fail on:", file)
         // trace is only provided for the following events: process_submitted, process_started, process_completed, error
         if (workflow.trace) {
             await prisma.nfWorkflow.upsert({
@@ -99,7 +98,39 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
                 }
             }).catch(e => console.log("save NF info to db failed", e))
             
-        } // metadata is only provided for the following events: started, completed
+        } 
+        else if (workflow.event === "error") {
+            await prisma.nfWorkflow.upsert({
+                where: {
+                    run_name: file.externalId
+                },
+                create: {
+                    run_id: workflow.runId,
+                    event: workflow.event,
+                    run_name: workflow.runName,
+                    file: {
+                        connect: {
+                            id: file.id
+                        }
+                    },
+                    utc_time: new Date(workflow.utcTime),
+                    failedCount: 1,
+                },
+                update: {
+                    run_id: workflow.runId,
+                    event: workflow.event,
+                    run_name: workflow.runName,
+                    file: {
+                        connect: {
+                            id: file.id
+                        }
+                    },
+                    utc_time: new Date(workflow.utcTime),
+                    failedCount: 1,
+                }
+            }).catch(e => console.log("save NF info to db failed", e))
+        }
+        // metadata is only provided for the following events: started, completed
         else if (workflow.metadata) {
             await prisma.nfWorkflow.upsert({
                 where: {

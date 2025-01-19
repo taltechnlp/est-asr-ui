@@ -24,6 +24,7 @@ export async function load({ params, url }) {
 
 export const actions: Actions = {
     register: async ({ cookies, request }) => {
+        let error = false;
         const data = await request.formData();
         const email = data.get('email') as string;
         const password = data.get('password') as string;
@@ -31,14 +32,21 @@ export const actions: Actions = {
         const random = data.get('random')
 
         if (!validateEmail(email)) {
-            return fail(400, { email, incorrect: true });
+            return fail(400, { email, invalid: true });
         }
         const userCount = await prisma.user.count({
             where: {
                 email
             }
-        })
-        if (userCount > 0) {
+        }).catch(e => {
+            console.log("Error reading database during signup", e);
+            error = true;
+        });
+        if (error) {
+            return fail(400, {retry: true});
+        }
+        if (userCount && userCount > 0) {
+            console.log("User exists with email"), email
             return fail(400, { email, exists: true });
         }
         const hashedPassword = await hash(password, 10);
