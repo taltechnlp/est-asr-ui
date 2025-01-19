@@ -15,9 +15,9 @@ Npm packages can be downloaded using the command `npm install`. It will install 
 In order to configure the system, a `.env` file must be created, an example is provided. Among other parameters it contains a database connection string.
 
 The database should be installed locally or via a Docker container. A docker-compose file is provided and should then be put into daemon mode with the command:
-`docker-compose up -d`
+`docker compose up -d`
 
-After that a database should be created and an initial user. Then finally, the `prisma/migrations` folder contains SQL scripts that must be executed in order to generate the necessary DB schema.
+When using the Docker container, a database is created and a user is created. The connection string in `.env` must match with database IP, port, user and database name. Then finally, the `prisma/migrations` folder contains SQL scripts that must be executed in order to generate the necessary DB schema. This can be done by running `npx prisma migrate deploy`.
 
 Prisma is able to generate an API to interact with the database. After the initial schema creation and after any change to the schema, a new API should be generated. Prisma is installed locally with other npm packages. To execute it use the following command:
 
