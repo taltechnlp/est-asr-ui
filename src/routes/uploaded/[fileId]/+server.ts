@@ -10,8 +10,6 @@ import {
   statSync,
 } from "fs";
 import { promisify } from "util";
-import { SECRET_AUDIO_UPLOAD_DIR } from "$env/static/private";
-import path from "path";
 
 // Return the audio or video file for playback. Authorization requried.
 export const GET: RequestHandler = async ({ params, locals, request }) => {
@@ -42,9 +40,6 @@ export const GET: RequestHandler = async ({ params, locals, request }) => {
       .role === "ADMIN";
   if ((userId === file.User.id || isAdmin)) {
     let location = file.path;
-    if (location[0] !== "/") {
-      location = path.join(SECRET_AUDIO_UPLOAD_DIR, location);
-    }
     const fileInfo = promisify(stat);
 
     /** Calculate Size of file */

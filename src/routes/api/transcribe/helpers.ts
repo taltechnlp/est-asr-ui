@@ -3,7 +3,6 @@ import { writeFile } from "fs/promises";
 import { existsSync, mkdirSync} from 'fs';
 import { prisma } from "$lib/db/client";
 import { unlink } from "fs/promises";
-import { fileId } from "$lib/components/editor/Tiptap.svelte";
 
 export const runNextflow = (
     fileId: string,
@@ -14,18 +13,19 @@ export const runNextflow = (
     doSpeakerId: boolean,
     doLanguageId: boolean,
     PIPELINE_DIR: string,
+    NEXTFLOW_PROFILE: string,
     EST_ASR_URL: string,
     NEXTFLOW_PATH: string,
-    resume: boolean,
   ) => {
     let parameters = [
       "run",
       PIPELINE_DIR + 'transcribe.nf',
+      "-profile",
+      NEXTFLOW_PROFILE,
       "-name",
       workflowName,
       "-with-weblog",
       EST_ASR_URL + '/api/process',
-      resume ? "-resume" : "",
       "--in",
       filePath,
       "--out_dir",
@@ -37,7 +37,6 @@ export const runNextflow = (
       "--do_language_id",
       "false" // doLanguageId  ? "true" : "false",
     ];
-    if (resume) parameters.concat("-resume");
     try {
         if (!existsSync(resultsDir)){
             mkdirSync(resultsDir, { recursive: true });
@@ -47,6 +46,7 @@ export const runNextflow = (
         console.log('Failed to create the results directory!', e)
         return false;
     }
+    console.log("New pipeline", parameters);
     const nextflowProcess = spawn(NEXTFLOW_PATH, parameters, { cwd: resultsDir });
     /* nextflowProcess.stdout.on('data', async (chunk) => {
         await writeFile("nextflow_log.txt", chunk).catch(e => {
@@ -73,7 +73,7 @@ export const runNextflow = (
         } else if (fileId && failed) {
             await prisma.file.update({
                 where: {
-                    id: file.file_id
+                    id: fileId
                 },
                 data: {
                     state: "PROCESSING_ERROR",

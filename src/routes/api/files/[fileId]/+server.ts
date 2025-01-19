@@ -2,8 +2,6 @@ import { prisma } from "$lib/db/client";
 import { promises as fs } from "fs";
 import type { RequestHandler } from "./$types";
 import { error } from "@sveltejs/kit";
-import path from "path";
-import { SECRET_AUDIO_UPLOAD_DIR } from "$env/static/private";
 
 export const DELETE: RequestHandler = async ({ params, locals }) => {
   let userId = locals.userId;
@@ -40,9 +38,6 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
     throw error(404, "fileNotFound");
   }
   let location = fileDetails.path;
- /*  if (location.charAt[0] !== "/") {
-    location = path.join(SECRET_AUDIO_UPLOAD_DIR, location);
-  } */
   await fs.rm(location).catch((e) => {
     console.log("Failed to remove file from disk!", e);
   });
