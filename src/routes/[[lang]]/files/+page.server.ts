@@ -142,14 +142,15 @@ export const actions: Actions = {
             return fail(400, { fileSaveFailed: true });
         }
         logger.info({userId, message: `file uploaded to ${saveTo}` })
-        console.log("resultDIR", RESULTS_DIR, userId, fileData.id)
         const resultDir = path.join(RESULTS_DIR, userId, fileData.id)
+        console.log("resultDIR", resultDir);
         const resultPath = path.join(resultDir, "result.json")
         await prisma.file.create({
             data: {
                 ...fileData,
                 language: "est",
                 initialTranscriptionPath: resultPath,
+                notified: false,
                 User: {
                     connect: { id: userId }
                 }
@@ -165,8 +166,7 @@ export const actions: Actions = {
                     fileId: id,
                     filePath: saveTo,
                     resultDir,
-                    workflowName: externalId,
-                    resume: false,
+                    workflowName: externalId
                 })
             }
         ).catch(e => console.error("Could not start Nextflow process", e))
@@ -244,6 +244,7 @@ export const actions: Actions = {
                 uploadedAt: statSync(fileData.path).ctime,
                 externalId: uploadResult.externalId,
                 language: "fin",
+                notified: false,
                 User: {
                     connect: { id: userId }
                 }
