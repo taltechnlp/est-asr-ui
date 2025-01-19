@@ -57,7 +57,8 @@ export const actions: Actions = {
                 id,
                 email,
                 password: hashedPassword,
-                name
+                name,
+                notifyResults: true
             }
         });
         const signupMailRes = await sendMail({
@@ -66,7 +67,7 @@ export const actions: Actions = {
             html: createEmail(`Konto e-posti aadressiga ${user.email} edukalt loodud! Peaksid olema ka kohe automaatselt sisse logitud.
             \n\n
             `)
-        });
+        }).catch(e => console.log("User creation email sending failed", e));
 
         // Create JWT token for the users
         const token = jwt.sign({ userId: user.id }, SECRET_KEY);
@@ -76,7 +77,7 @@ export const actions: Actions = {
             path: '/',
             sameSite: 'strict',
           });
-
+        console.log("User created", user.id, user.email, user.name);
         return { success: true, user: {
             id: user.id,
             email: user.email,
