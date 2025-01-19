@@ -84,7 +84,7 @@ export const load: PageServerLoad = async ({ locals, fetch, depends, url }) => {
 }
 
 export const actions: Actions = {
-    uploadEst: async ({ locals, request }) => {
+    uploadEst: async ({ locals, request, fetch }) => {
         let userId = locals.userId;
         if (!userId) {
             let session = await locals.getSession();
@@ -104,7 +104,7 @@ export const actions: Actions = {
         }
         let id: string = uuidv4()
         id = id.replace(/[-]/gi, '').substr(0, 30)
-        const newFilename = `${Date.now()}_${id}_${file.name}`
+        const newFilename = `${id}_${file.name}`
         const uploadDir = join(SECRET_UPLOAD_DIR, userId);
         if (!existsSync(uploadDir)) {
             mkdirSync(uploadDir, { recursive: true });
@@ -157,7 +157,7 @@ export const actions: Actions = {
             }
         }).catch(() => {return fail(400, { fileSaveFailed: true })})
         const result = await fetch(
-            `${EST_ASR_URL}/api/transcribe`, {
+            `/api/transcribe`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"

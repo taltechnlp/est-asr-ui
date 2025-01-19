@@ -1,10 +1,6 @@
 import type { RequestHandler } from "./$types";
 import { prisma } from "$lib/db/client";
 import { error, json } from '@sveltejs/kit';;
-import { NEXTFLOW_PATH, PIPELINE_DIR, EST_ASR_URL, RESULTS_DIR } from '$env/static/private';
-import { runNextflow } from "../../helpers";
-import { v4 as uuidv4 } from 'uuid';
-import path from "path";
 
 export const GET: RequestHandler = async ({ locals, params }) => {
     console.log("Progress request")
@@ -46,34 +42,6 @@ export const GET: RequestHandler = async ({ locals, params }) => {
     if ( workflow.status === "error" ) return json({ done: true, success: false, wf_id: workflow.run_id }, { status: 200 });
     if ( workflow.status === "completed" ) return json({ done: true, success: true, wf_id: workflow.run_id }, { status: 200 });
     if (workflow.utc_time) {
-        // retry
-        const hours = (new Date().getTime() - workflow.utc_time.getTime()) / 3600000;
-        if (hours > 4) {
-            // Change run name as it has to be unique.
-            let id: string = uuidv4();
-            id = id.replace(/[-]/gi, '').substr(0, 30)
-            const increaseAscii = (char: string) => {
-                const ascii = char.charCodeAt(0);
-                if (ascii <= 57) {
-                return String.fromCharCode(ascii + 60);
-                } else return char;
-            };
-            const externalId = Array.from(id)
-                .map(increaseAscii)
-                .join("");
-            await prisma.file.update({
-                where: {
-                    id: params.fileId
-                },
-                data: {
-                    externalId: externalId
-                }
-            }).catch(e => console.log("Failed to update file externalId. FileId:", params.fileId))
-            console.log("resuming workflow", externalId);
-            const resultPath = path.join(RESULTS_DIR, userId);
-            const processSpawned = runNextflow(params.fileId, progress.path, externalId, resultPath, true, true, true, PIPELINE_DIR, EST_ASR_URL, NEXTFLOW_PATH, true)
-            return json({ done: false }, { status: 200 })
-        }
         // return progress and queue size
         const latestProgress = await prisma.nfWorkflow.findUnique({
             where: { run_id: workflow.run_id},

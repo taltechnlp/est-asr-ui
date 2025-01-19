@@ -200,7 +200,6 @@ export const checkCompletion = async (
                         filePath,
                         resultDir: path.join(RESULTS_DIR, userId, fileId, "result.json"),
                         workflowName: externalId,
-                        resume: true,
                     })
                 }
             ).catch(e => console.error("Could not start Nextflow process", e))
