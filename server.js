@@ -10,13 +10,9 @@ app.get('/healthcheck', (req, res) => {
 	res.end('ok');
 });
 
-function finishTranscription() {
-  
-}
-
 function start() {
-
-    setTimeout(async function() {
+	setTimeout(async function () {
+		console.log('Backup polling.');
 
       // Again
       start();

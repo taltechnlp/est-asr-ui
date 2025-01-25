@@ -2,7 +2,7 @@
   "name": "fe-tekstiks",
   "version": "0.0.1",
   "scripts": {
-    "prod": "ORIGIN=https://uus.tekstiks.ee BODY_SIZE_LIMIT=0 HOST=127.0.0.1 node -r dotenv/config server.js",
+    "prod": "ORIGIN=https://uus.tekstiks.ee BODY_SIZE_LIMIT=0 HOST=127.0.0.1 node -r dotenv/config build/index.js",
     "dev": "vite dev --host",
     "build": "vite build",
     "package": "svelte-kit package",
