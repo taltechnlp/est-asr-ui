@@ -12,20 +12,20 @@ export const runNextflow = (
     doPunctuation: boolean,
     doSpeakerId: boolean,
     doLanguageId: boolean,
-    PIPELINE_DIR: string,
-    NEXTFLOW_PROFILE: string,
-    EST_ASR_URL: string,
-    NEXTFLOW_PATH: string,
+    pipelineDir: string,
+    nextflowProfile: string,
+    estAsrUrl: string,
+    nextflowPath: string,
   ) => {
     let parameters = [
       "run",
-      PIPELINE_DIR + 'transcribe.nf',
+      pipelineDir + '/transcribe.nf',
       "-profile",
-      NEXTFLOW_PROFILE,
+      nextflowProfile,
       "-name",
       workflowName,
       "-with-weblog",
-      EST_ASR_URL + '/api/process',
+      estAsrUrl + '/api/process',
       "--in",
       filePath,
       "--out_dir",
@@ -47,12 +47,21 @@ export const runNextflow = (
         console.log('Failed to create the results directory!', e)
         return false;
     }
-    const nextflowProcess = spawn(NEXTFLOW_PATH, parameters, { cwd: resultsDir });
+    const java = spawn("java", ["--version"], { cwd: pipelineDir } );
+    java.stdout.on('data', (data) => {
+        console.log(`stdout: ${data}`);
+    });
+
+    const nextflowProcess = spawn(nextflowPath, parameters, { cwd: pipelineDir, shell: true });
     /* nextflowProcess.stdout.on('data', async (chunk) => {
         await writeFile("nextflow_log.txt", chunk).catch(e => {
             console.log("Writing to log file failed!")
         });
     }) */
+    nextflowProcess.stdout.on('data', (data) => {
+        console.log(`stdout: ${data}`);
+    });
+
     nextflowProcess.on('exit', async function (code) {
         let failed = false;
         if (code === 1 || code == 2) {

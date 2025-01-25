@@ -220,7 +220,7 @@ export const checkCompletion = async (
             return { done: false };
         } */
         // Progress request
-        const progressRequest = await fetch(
+/*         const progressRequest = await fetch(
             `transcribe/progress/` + fileId,
         ).catch(e => {
             console.log("Transcription progress fetch error", e);
@@ -283,7 +283,7 @@ export const checkCompletion = async (
             await unlink(filePath);
             return { done: true };
         } // Network error, service down etc.
-        else return { done: false };
+        else return { done: false }; */
     } else {
         const result = await fetch(FIN_ASR_RESULTS_URL, {
             method: "POST",

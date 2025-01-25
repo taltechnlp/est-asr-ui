@@ -1,7 +1,7 @@
 import { handler } from './build/handler.js';
 import express from 'express';
-import { PrismaClient } from '@prisma/client'
-export const prisma = new PrismaClient()
+/* import { PrismaClient } from '@prisma/client'
+export const prisma = new PrismaClient() */
 
 const app = express();
 
@@ -17,18 +17,17 @@ function finishTranscription() {
 function start() {
 
     setTimeout(async function() {
-        console.log('Backup polling.', );
 
       // Again
       start();
-      const files = await prisma.file.findMany({
+/*       const files = await prisma.file.findMany({
         where: {
           state: {
             equals: "READY"
           }
         }
       })
-      console.log(files);
+      console.log(files); */
       // Every 30 sec
     }, 30000);
 }
