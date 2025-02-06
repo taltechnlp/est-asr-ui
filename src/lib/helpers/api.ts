@@ -355,12 +355,23 @@ export const getFiles = async (id) => {
                     externalId: true,
                     path: true,
                     language: true,
+                    workflows: {
+                        take: 1, 
+                        select: {
+                            progressLength: true,
+                            succeededCount: true
+                        }
+                    }
                 },
             },
         },
     });
     if (user) return user.files.map(
         file => {
+            let progress = -1;
+            if (file.workflows && file.workflows.length > 0 && file.workflows[0].progressLength > 0) {
+                progress = Math.floor(file.workflows[0].progressLength / file.workflows[0].succeededCount) * 100; 
+            }
             return {
                 id: file.id,
                 state: file.state,
@@ -374,7 +385,8 @@ export const getFiles = async (id) => {
                 externalId: file.externalId,
                 path: file.path,
                 language: file.language,
-                userId: user.id
+                userId: user.id,
+                progress
             }
 
         }

@@ -12,24 +12,6 @@ import { uploadToFinnishAsr, UPLOAD_LIMIT } from "./upload";
 import path from "path";
 import { logger } from '$lib/logging/client';
 
-type FileWithProgress = {
-    uploadedAt: Date;
-    id: string;
-    state: string;
-    text: string | null;
-    path: string;
-    filename: string;
-    language: string;
-    duration: Prisma.Decimal | null;
-    mimetype: string;
-    externalId: string;
-    textTitle: string | null;
-    initialTranscription: string | null;
-    progressPrc?: number;
-    totalJobsQueued?: number;
-    totalJobsStarted?: number;
-}
-
 const uploadResult = {
     0: "failed",
     1: "network_error",
@@ -60,27 +42,36 @@ export const load: PageServerLoad = async ({ locals, fetch, depends, url }) => {
     if (isAdmin && url.searchParams.has("userId")) {
         adminSearchParam = "?userId=" + url.searchParams.get("userId");
     }
-    const result = await fetch('/api/files' + adminSearchParam);
-    let files = await result.json();
-    files = files.map(
-        file => {
-            return {
-                id: file.id,
-                state: file.state,
-                text: file.text,
-                filename: file.filename,
-                duration: file.duration?.toNumber(),
-                mimetype: file.mimetype,
-                uploadedAt: file.uploadedAt?.toString(),
-                textTitle: file.textTitle,
-                initialTranscription: file.initialTranscription,
-                progress: file.progress,
-                queued: file.queued,
+    try {
+        const result = await fetch('/api/files' + adminSearchParam);
+        
+        let files = await result.json();
+        if (files.length > 0) {
+            files = files.map(
+            file => {
+                return {
+                    id: file.id,
+                    state: file.state,
+                    text: file.text,
+                    filename: file.filename,
+                    duration: file.duration?.toNumber(),
+                    mimetype: file.mimetype,
+                    uploadedAt: file.uploadedAt?.toString(),
+                    textTitle: file.textTitle,
+                    initialTranscription: file.initialTranscription,
+                    progress: file.progress,
+                    // queued: file.queued,
+                }
+                
             }
-
+            )
         }
-    )
-    return { files, session };
+        return { files, session };
+    }
+    catch (error) {
+        console.log("Retrieveing user files from API failed", error);
+        return { files: [], session };
+    }
 }
 
 export const actions: Actions = {

@@ -45,16 +45,6 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
                             complete: workflow.trace.complete ? new Date(workflow.trace.complete) : null,
                             duration: workflow.trace.duration,
                             realtime: workflow.trace.realtime,
-                            // container:
-                            //native_id: 
-                            // cpu
-                            // mem
-                            // peak_rss
-                            // peak_vmem
-                            // rchar
-                            // wchar
-                            // vol_ctxt
-                            // inv_ctxt
                         }
                     }
                 },
@@ -79,19 +69,8 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
                             submit: workflow.trace.submit ? new Date(workflow.trace.submit) : null,
                             start: workflow.trace.start ? new Date(workflow.trace.start) : null,
                             complete: workflow.trace.complete ? new Date(workflow.trace.complete) : null,
-                            // container:
-                            //native_id: 
                             duration: workflow.trace.duration,
                             realtime: workflow.trace.realtime,
-                            // cpu
-                            // mem
-                            // peak_rss
-                            // peak_vmem
-                            // rchar
-                            // wchar
-                            // vol_ctxt
-                            // inv_ctxt
-
                         }
                     }
                 }
@@ -131,44 +110,151 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
         }
         // metadata is only provided for the following events: started, completed
         else if (workflow.metadata) {
-            await prisma.nfWorkflow.upsert({
-                where: {
-                    run_name: file.externalId
-                },
-                create: {
-                    run_id: workflow.runId,
-                    event: workflow.event,
-                    run_name: workflow.runName,
-                    file: {
-                        connect: {
-                            id: file.id
-                        }
+            try {
+                const updatedWf = await prisma.nfWorkflow.upsert({
+                    where: {
+                        run_name: file.externalId
                     },
-                    utc_time: new Date(workflow.utcTime),
-                    succeededCount: workflow.metadata.workflow.stats.succeededCount,
-                    runningCount: workflow.metadata.workflow.stats.runningCount,
-                    pendingCount: workflow.metadata.workflow.stats.pendingCount,
-                    failedCount: workflow.metadata.workflow.stats.failedCount,
-                    progressLength: workflow.metadata.workflow.stats.progressLength,
-                },
-                update: {
-                    run_id: workflow.runId,
-                    event: workflow.event,
-                    run_name: workflow.runName,
-                    file: {
-                        connect: {
-                            id: file.id
-                        }
+                    create: {
+                        run_id: workflow.runId,
+                        event: workflow.event,
+                        run_name: workflow.runName,
+                        file: {
+                            connect: {
+                                id: file.id
+                            }
+                        },
+                        utc_time: new Date(workflow.utcTime),
+                        succeededCount: workflow.metadata.workflow.stats.succeededCount,
+                        runningCount: workflow.metadata.workflow.stats.runningCount,
+                        pendingCount: workflow.metadata.workflow.stats.pendingCount,
+                        failedCount: workflow.metadata.workflow.stats.failedCount,
+                        progressLength: workflow.metadata.workflow.stats.progressLength,
                     },
-                    utc_time: new Date(workflow.utcTime),
-                    succeededCount: workflow.metadata.workflow.stats.succeededCount,
-                    runningCount: workflow.metadata.workflow.stats.runningCount,
-                    pendingCount: workflow.metadata.workflow.stats.pendingCount,
-                    failedCount: workflow.metadata.workflow.stats.failedCount,
-                    progressLength: workflow.metadata.workflow.stats.progressLength,
+                    update: {
+                        run_id: workflow.runId,
+                        event: workflow.event,
+                        run_name: workflow.runName,
+                        file: {
+                            connect: {
+                                id: file.id
+                            }
+                        },
+                        utc_time: new Date(workflow.utcTime),
+                        succeededCount: workflow.metadata.workflow.stats.succeededCount,
+                        runningCount: workflow.metadata.workflow.stats.runningCount,
+                        pendingCount: workflow.metadata.workflow.stats.pendingCount,
+                        failedCount: workflow.metadata.workflow.stats.failedCount,
+                        progressLength: workflow.metadata.workflow.stats.progressLength,
+                    },
+                    select: {
+                        file_id: true,
+                    }
+                })
+                if (workflow.metadata.workflow.stats.failedCount > 0){
+                    await prisma.file.update({
+                        data: { state: "PROCESSING_ERROR" },
+                        where: {
+                            id: updatedWf.file_id,
+                        },
+                    });
                 }
-            }).catch(e => console.log("save NF info to db failed", e))
+                else if (workflow.event === "completed" && workflow.metadata.workflow.stats.succeededCount == workflow.metadata.workflow.stats.progressLength) {
+                    await prisma.file.update({
+                        data: {
+                            state: "READY",
+                        },
+                        where: {
+                            id: updatedWf.file_id,
+                        },
+                    });
+                }
+            }
+            catch(e) {
+                console.log("save NF info to db failed", e);
+            }
         }
-        return new Response("received", { status: 200 })
+        return new Response("received", { status: 200 });
     }
 };
+
+/* // Request successful
+if (progressRequest.status === 200) {
+    const progress = await progressRequest.json();
+    // Transcription is in progress
+    if (!progress.done) {
+        logger.info({userId, message: `progress: ${progress.progress}, queued: ${progress.queued}`})
+        return {
+            done: false,
+            fileId,
+            progress: progress.progress,
+            status: (progress.progress === 0 ? "UPLOADED" : "PROCESSING"),
+            queued: progress.queued
+        };
+    } // Transe.log(
+            `Failed to transcribe ${fileId}. Failed with code`,
+            progress.errorCode,
+            progress.errorMessage,
+        );
+        await unlink(filePath);
+        return { done: true };
+    }
+} else if (
+    progressRequest.status === 400 || progressRequest.status === 404
+) {
+    const progress = await progressRequest.json();
+    await prisma.file.update({
+        data: { state: "PROCESSING_ERROR" },
+        where: {
+            id: fileId,
+        },
+    });
+    console.log(
+        `Failed to transcribe ${fileId}. Failed with code`,
+        progress.errorCode,
+        progress.errorMessage,
+    );
+    await unlink(filePath);
+    return { done: true };cription finished and succesfully
+    else if (progress.done && progress.success) {
+        await prisma.file.update({
+            data: {
+                state: "READY",
+            },
+            where: {
+                id: fileId,
+            },
+        });
+        return { done: true };
+    } else if ((progress.done && !progress.success)) {
+        await prisma.file.update({
+            data: { state: "PROCESSING_ERROR" },
+            where: {
+                id: fileId,
+            },
+        });
+        console.log(
+            `Failed to transcribe ${fileId}. Failed with code`,
+            progress.errorCode,
+            progress.errorMessage,
+        );
+        await unlink(filePath);
+        return { done: true };
+    }
+} else if (
+    progressRequest.status === 400 || progressRequest.status === 404
+) {
+    const progress = await progressRequest.json();
+    await prisma.file.update({
+        data: { state: "PROCESSING_ERROR" },
+        where: {
+            id: fileId,
+        },
+    });
+    console.log(
+        `Failed to transcribe ${fileId}. Failed with code`,
+        progress.errorCode,
+        progress.errorMessage,
+    );
+    await unlink(filePath);
+    return { done: true }; */

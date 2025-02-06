@@ -12,6 +12,7 @@ export const load = (async ({ params, locals, url}) => {
         if (user) {
             session = {
                 user: {
+                    id: user.id,
                     email: user.email,
                     image: user.image,
                     name: user.name

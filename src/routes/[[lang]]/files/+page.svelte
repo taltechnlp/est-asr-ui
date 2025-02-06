@@ -176,7 +176,7 @@
 								<div class="badge badge-error">{$_('files.statusError')}</div>
 							{:else if file.state == 'PROCESSING'}
 								<div class="badge badge-accent loading">{$_('files.statusProcessing')} 
-									{#if file.progress}
+									{#if file.progress >= 0 }
 										{` ${file.progress}%`}
 									{/if}
 								</div>

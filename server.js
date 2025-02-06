@@ -12,7 +12,7 @@ app.get('/healthcheck', (req, res) => {
 
 function start() {
 	setTimeout(async function () {
-		console.log('Backup polling.');
+		// console.log('Backup polling.');
 
       // Again
       start();

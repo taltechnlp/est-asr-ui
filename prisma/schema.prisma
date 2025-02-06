@@ -94,6 +94,7 @@ enum NfStatus {
   COMPLETED
   ERROR
   FAILED
+  ABORTED
 }
 
 enum NfEvent {

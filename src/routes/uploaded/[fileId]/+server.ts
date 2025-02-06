@@ -75,8 +75,9 @@ export const GET: RequestHandler = async ({ params, locals, request }) => {
 
       /** Sending Partial Content With HTTP Code 206 */
       let readable = createReadStream(location, { start: start, end: end });
-      // @ts-ignoreurl
-      return new Response(readable, {
+      let readableStream = createReadableStreamFromReadStream(readable);
+
+      return new Response(readableStream, {
         headers: {
           "Content-Range": `bytes ${start}-${end}/${size}`,
           "Accept-Ranges": "bytes",
@@ -87,12 +88,13 @@ export const GET: RequestHandler = async ({ params, locals, request }) => {
       });
     } else {
       let readable = createReadStream(location);
+      let readableStream = createReadableStreamFromReadStream(readable);
       /* let res: ReadStream;
           pipeline(readable, res, (err) => {
             console.log(err);
           }); */
-      // @ts-ignore
-      return new Response(readable, {
+
+      return new Response(readableStream, {
         headers: {
           "Content-Length": size.toString(),
           "Content-Type": "audio/mpeg",
@@ -103,3 +105,22 @@ export const GET: RequestHandler = async ({ params, locals, request }) => {
   }
   throw error(401, "unauthorized");
 };
+
+function createReadableStreamFromReadStream(readStream) {
+  return new ReadableStream({
+    start(controller) {
+      readStream.on('data', chunk => {
+        controller.enqueue(chunk);
+      });
+      readStream.on('end', () => {
+        controller.close();
+      });
+      readStream.on('error', err => {
+        controller.error(err);
+      });
+    },
+    cancel() {
+      readStream.destroy();
+    }
+  });
+}

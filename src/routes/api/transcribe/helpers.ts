@@ -1,9 +1,12 @@
-import { spawn } from "child_process";
+import { spawn, execFile } from "child_process";
 import { writeFile } from "fs/promises";
 import { existsSync, mkdirSync} from 'fs';
 import { prisma } from "$lib/db/client";
 import { unlink } from "fs/promises";
 
+/* "-bg",
+"run",
+"-disable-jobs-cancellation", */
 export const runNextflow = (
     fileId: string,
     filePath: string,
@@ -18,7 +21,7 @@ export const runNextflow = (
     nextflowPath: string,
   ) => {
     let parameters = [
-      "run",
+        "run",
       pipelineDir + '/transcribe.nf',
       "-profile",
       nextflowProfile,
@@ -47,22 +50,24 @@ export const runNextflow = (
         console.log('Failed to create the results directory!', e)
         return false;
     }
-    const java = spawn("java", ["--version"], { cwd: pipelineDir } );
-    java.stdout.on('data', (data) => {
-        console.log(`stdout: ${data}`);
-    });
+    /* const nextflowProcess = execFile(nextflowPath, parameters, { 
+        cwd: pipelineDir,
+    }); */
 
-    const nextflowProcess = spawn(nextflowPath, parameters, { cwd: pipelineDir, shell: true });
+    const nextflowProcess = spawn(nextflowPath, parameters, { 
+        stdio: 'ignore',
+        cwd: pipelineDir
+    });
     /* nextflowProcess.stdout.on('data', async (chunk) => {
         await writeFile("nextflow_log.txt", chunk).catch(e => {
             console.log("Writing to log file failed!")
         });
     }) */
-    nextflowProcess.stdout.on('data', (data) => {
+    /* nextflowProcess.stdout.on('data', (data) => {
         console.log(`stdout: ${data}`);
-    });
+    }); */
 
-    nextflowProcess.on('exit', async function (code) {
+    /* nextflowProcess.on('exit', async function (code) {
         let failed = false;
         if (code === 1 || code == 2) {
             failed = true;
@@ -92,6 +97,6 @@ export const runNextflow = (
                 .catch(e => console.log("Failed to update workflow to completed in the DB", workflowName, e))
             await unlink(filePath);
         }
-    })
+    }) */
     return true;
   };

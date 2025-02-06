@@ -1,8 +1,7 @@
 import type { RequestHandler } from "./$types";
 import type { File, Prisma } from "@prisma/client";
 import { error, json } from '@sveltejs/kit';
-import { checkCompletion, getFiles } from "$lib/helpers/api";
-import { SECRET_UPLOAD_DIR } from '$env/static/private';
+import { getFiles } from "$lib/helpers/api";
 import { prisma } from "$lib/db/client";
 
 type FileWithProgress = {
@@ -22,7 +21,7 @@ type FileWithProgress = {
     queued?: number;
 }
 
-export const GET: RequestHandler = async ({ locals, fetch, url }) => {
+export const GET: RequestHandler = async ({ locals, url }) => {
     let userId = locals.userId;
     if (!userId) {
         let session = await locals.getSession();
@@ -42,22 +41,12 @@ export const GET: RequestHandler = async ({ locals, fetch, url }) => {
     if (isAdmin && url.searchParams.has("userId")) {
         userId = url.searchParams.get("userId");
     }
-    let files = await getFiles(userId)
-    const pendingFiles = files.filter((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')
-    if (pendingFiles.length > 0) {
-        const promises = pendingFiles.map(file => checkCompletion(file.id, file.state, file.externalId, file.path, file.language, SECRET_UPLOAD_DIR, file.userId, fetch))
-        const resultRetrieved = (await Promise.all(promises)).reduce((acc, x) => {
-            if (!x.done && x.fileId && x.progress) {
-                const index = files.findIndex(file => file.id === x.fileId);
-                files[index].progress = x.progress;
-                files[index].state = x.status;
-                files[index].queued = x.queued;
-            }
-            return acc || x.done
-        }, false);
-        if (resultRetrieved) {
-            files = await getFiles(userId)
-        }
+    try {
+        let files = await getFiles(userId);
+        return json(files, {status: 200})
     }
-    return json(files, {status: 200})
+    catch(error) {
+        console.log("Fetching files failed", error);
+        return json([], {status: 200})
+    }
 }

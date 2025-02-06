@@ -31,7 +31,7 @@ CREATE TABLE "User" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "default$default.User.email._UNIQUE" ON "User"("email");
+CREATE UNIQUE INDEX "User.email._UNIQUE" ON "User"("email");
 
 -- AddForeignKey
 ALTER TABLE "File" ADD CONSTRAINT "File_uploader_fkey" FOREIGN KEY ("uploader") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE NO ACTION;
