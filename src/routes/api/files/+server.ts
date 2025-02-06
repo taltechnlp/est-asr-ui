@@ -4,23 +4,6 @@ import { error, json } from '@sveltejs/kit';
 import { getFiles } from "$lib/helpers/api";
 import { prisma } from "$lib/db/client";
 
-type FileWithProgress = {
-    uploadedAt: Date;
-    id: string;
-    state: string;
-    text: string | null;
-    path: string;
-    filename: string;
-    language: string;
-    duration: Prisma.Decimal | null;
-    mimetype: string;
-    externalId: string;
-    textTitle: string | null;
-    initialTranscription: string | null;
-    progress?: number;
-    queued?: number;
-}
-
 export const GET: RequestHandler = async ({ locals, url }) => {
     let userId = locals.userId;
     if (!userId) {

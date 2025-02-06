@@ -21,6 +21,7 @@ export const runNextflow = (
     nextflowPath: string,
   ) => {
     let parameters = [
+        "-bg",
         "run",
       pipelineDir + '/transcribe.nf',
       "-profile",
@@ -55,6 +56,7 @@ export const runNextflow = (
     }); */
 
     const nextflowProcess = spawn(nextflowPath, parameters, { 
+        detached: true,
         stdio: 'ignore',
         cwd: pipelineDir
     });
