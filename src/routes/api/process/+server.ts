@@ -185,8 +185,10 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
                                 to: file.User.email,
                                 subject: "Transkribeerimine ebaõnnestus - tekstiks.ee",
                                 html: createEmail(`Teenusel tekstiks.ee ei õnnestunud teie faili paraku transkribeerida.
+                                
                                 \n\n
-                                Rikete kohta võib infot saada kasutajatoelt, kirjutades aadressile tugi@tekstiks.ee
+                                Rikete kohta võib infot saada kasutajatoelt, kirjutades tugi@tekstiks.ee aadressile.
+
                                 \n\n
                                 <a href="https://tekstiks.ee/files">Klõpsa siia, et tutvuda oma ülesse laaditud failidega.</a>`)
                             });
@@ -217,6 +219,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
                                 to: file.User.email,
                                 subject: "Transkribeerimine õnnestus - tekstiks.ee",
                                 html: createEmail(`Teie faili nimega ${file.filename} transkribeerimine õnnestus!
+
                                 \n\n
                                 <a href="https://tekstiks.ee/files/${file.id}">Tuvastatud tekst asub siin.</a>`)
                             });
