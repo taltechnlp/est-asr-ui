@@ -20,6 +20,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
                 id: true, 
                 externalId: true, 
                 filename: true,
+                notify: true,
                 User: {
                     select: {
                         email: true,
@@ -173,32 +174,31 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
                 })
                 if (workflow.metadata.workflow.stats.failedCount > 0){
                     try {
-                        const failed = await prisma.file.update({
+                        await prisma.file.update({
                             data: { state: "PROCESSING_ERROR" },
                             where: {
                                 id: updatedWf.file_id,
-                            },
-                            select: {
-                                uploader: true,
                             }
                         });
-                        await sendMail({
-                            to: file.User.email,
-                            subject: "Transkribeerimine ebaõnnestus - tekstiks.ee",
-                            html: createEmail(`Teenusel tekstiks.ee ei õnnestunud teie faili paraku transkribeerida.
-                            \n\n
-                            Rikete kohta võib infot saada kasutajatoelt, kirjutades aadressile tugi@tekstiks.ee
-                            \n\n
-                            <a href="https://tekstiks.ee/files">Klõpsa siia, et tutvuda oma ülesse laaditud failidega.</a>`)
-                        });
-                        await prisma.file.update({
-                            data: {
-                                notified: true,
-                            },
-                            where: {
-                                id: updatedWf.file_id,
-                            }
-                        });
+                        if (file.notify) {
+                            await sendMail({
+                                to: file.User.email,
+                                subject: "Transkribeerimine ebaõnnestus - tekstiks.ee",
+                                html: createEmail(`Teenusel tekstiks.ee ei õnnestunud teie faili paraku transkribeerida.
+                                \n\n
+                                Rikete kohta võib infot saada kasutajatoelt, kirjutades aadressile tugi@tekstiks.ee
+                                \n\n
+                                <a href="https://tekstiks.ee/files">Klõpsa siia, et tutvuda oma ülesse laaditud failidega.</a>`)
+                            });
+                            await prisma.file.update({
+                                data: {
+                                    notified: true,
+                                },
+                                where: {
+                                    id: updatedWf.file_id,
+                                }
+                            });
+                        }
                     }
                     catch(e) {
                         console.log("Saving failed transcription or sending email notification failed", e);
@@ -206,30 +206,29 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
                 }
                 else if (workflow.event === "completed" && workflow.metadata.workflow.stats.succeededCount == workflow.metadata.workflow.stats.progressLength) {
                     try {
-                        const failed = await prisma.file.update({
+                        await prisma.file.update({
                             data: { state: "READY" },
                             where: {
                                 id: updatedWf.file_id,
-                            },
-                            select: {
-                                uploader: true,
                             }
                         });
-                        await sendMail({
-                            to: file.User.email,
-                            subject: "Transkribeerimine õnnestus - tekstiks.ee",
-                            html: createEmail(`Teie faili nimega ${file.filename} transkribeerimine õnnestus!
-                            \n\n
-                            <a href="https://tekstiks.ee/files/${file.id}">Tuvastatud tekst asub siin.</a>`)
-                        });
-                        await prisma.file.update({
-                            data: {
-                                notified: true,
-                            },
-                            where: {
-                                id: updatedWf.file_id,
-                            }
-                        });
+                        if (file.notify) {
+                            await sendMail({
+                                to: file.User.email,
+                                subject: "Transkribeerimine õnnestus - tekstiks.ee",
+                                html: createEmail(`Teie faili nimega ${file.filename} transkribeerimine õnnestus!
+                                \n\n
+                                <a href="https://tekstiks.ee/files/${file.id}">Tuvastatud tekst asub siin.</a>`)
+                            });
+                            await prisma.file.update({
+                                data: {
+                                    notified: true,
+                                },
+                                where: {
+                                    id: updatedWf.file_id,
+                                }
+                            });
+                        }
                     }
                     catch(e) {
                         console.log("Saving successful transcription result or sending email notification failed", e);
