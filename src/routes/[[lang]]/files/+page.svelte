@@ -17,6 +17,7 @@
 		{ id: 1, text: 'finnish' }
 	];
 	let selectedLanguage = languageChoices[0];
+	let notify = true;
 
 	let delFileId;
 	const delFile = async (fileId) => {
@@ -257,6 +258,10 @@
 							placeholder="Lae helisalvestis ülesse (kuni 100 MB)"
 							required
 						/>
+					</div>
+					<div class="form-control w-full flex">
+						<input type="checkbox" id="notify" bind:checked={notify} class="checkbox" />
+						<span class="label-text">{$_('files.uploadNotify')}</span>
 					</div>
 					<ul class="list-disc list-inside">
 						<li class="py-4">{$_('files.supportedFormats')}</li>

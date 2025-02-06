@@ -57,8 +57,7 @@ export const actions: Actions = {
                 id,
                 email,
                 password: hashedPassword,
-                name,
-                notifyResults: true
+                name
             }
         });
         const signupMailRes = await sendMail({

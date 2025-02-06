@@ -85,7 +85,8 @@ export const actions: Actions = {
             throw redirect(307, "/signin");
         }
         const data = await request.formData();
-
+        const notify = data.get('notify') ? true : false;
+        console.log(notify)
         const file = data.get('file') as File;
         if (!file.name || !file.size || !file.type) {
             return fail(400, { noFile: true })
@@ -142,6 +143,7 @@ export const actions: Actions = {
                 language: "est",
                 initialTranscriptionPath: resultPath,
                 notified: false,
+                notify: notify,
                 User: {
                     connect: { id: userId }
                 }

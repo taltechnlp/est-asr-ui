@@ -98,7 +98,8 @@
         "languageChoices": {
             "estonian": "eesti",
             "finnish": "soome"
-        }
+        },
+        "uploadNotify": "Teavita valmimisest e-postile"
     },
     "me": {
         "title": "Konto andmed | tekstiks.ee",

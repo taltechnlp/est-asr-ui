@@ -26,6 +26,7 @@ model File {
   uploader                 String?   @db.VarChar(30)
   User                     User?     @relation(fields: [uploader], references: [id], onUpdate: NoAction, onDelete: Cascade)
   workflows                NfWorkflow[]
+  notify                   Boolean?
   notified                 Boolean?
 }
 
@@ -75,7 +76,6 @@ model User {
   image         String?
   accounts      Account[]
   sessions      Session[]
-  notifyResults   Boolean?
 }
 
 model VerificationToken {

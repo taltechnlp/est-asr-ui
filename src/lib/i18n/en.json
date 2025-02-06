@@ -98,7 +98,8 @@
     "languageChoices": {
       "estonian": "Estonian",
       "finnish": "Finnish"
-    }
+    },
+    "uploadNotify": "Notify about the completion via email"
   },
   "me": {
     "title": "Account details | tekstiks.ee",

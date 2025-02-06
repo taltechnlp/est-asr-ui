@@ -98,7 +98,8 @@
         "languageChoices": {
             "estonian": "Virolainen",
             "finnish": "Suomalainen"
-        }
+        },
+        "uploadNotify": "Ilmoita valmistumisesta sähköpostilla"
     },
     "me": {
         "title": "Käyttäjätiedot | tekstiks.ee",
