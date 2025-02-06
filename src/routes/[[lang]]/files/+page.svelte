@@ -47,6 +47,8 @@
 		event.preventDefault();
 		const formData = new FormData();
 		formData.append('file', upload[0], upload[0].name);
+		formData.append('notify', notify ? "yes" : "no");
+		loading = true;
 		loading = true;
 		let response;
 		if (selectedLanguage.id === 0) {
@@ -259,9 +261,11 @@
 							required
 						/>
 					</div>
-					<div class="form-control w-full flex">
-						<input type="checkbox" id="notify" bind:checked={notify} class="checkbox" />
-						<span class="label-text">{$_('files.uploadNotify')}</span>
+					<div class="form-control flex-row">
+						<label class="label cursor-pointer">
+							<input type="checkbox" id="notify" bind:checked={notify} class="checkbox mr-4" />
+							<span class="label-text">{$_('files.uploadNotify')}</span>
+						</label>
 					</div>
 					<ul class="list-disc list-inside">
 						<li class="py-4">{$_('files.supportedFormats')}</li>

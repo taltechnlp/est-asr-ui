@@ -41,7 +41,6 @@ export const runNextflow = (
       "--do_language_id",
       "false" // doLanguageId  ? "true" : "false",
     ];
-    console.log("New pipeline", parameters);
     try {
         if (!existsSync(resultsDir)){
             mkdirSync(resultsDir, { recursive: true });

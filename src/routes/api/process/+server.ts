@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { error } from '@sveltejs/kit';
 import type { IWeblog } from '$lib/helpers/api.d'
 import { logger } from '$lib/logging/client';
+import { sendMail, createEmail } from "$lib/email";
 
 export const POST: RequestHandler = async ({ request, fetch }) => {
     const workflow: IWeblog = await request.json();
@@ -14,7 +15,16 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
             where: {
                 externalId: workflow.runName
             },
-            select: { id: true, externalId: true }
+            select: { 
+                id: true, 
+                externalId: true, 
+                filename: true,
+                User: {
+                    select: {
+                        email: true,
+                    }
+                }
+            },
         });
         // trace is only provided for the following events: process_submitted, process_started, process_completed, error
         if (workflow.trace) {
@@ -148,26 +158,72 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
                         progressLength: workflow.metadata.workflow.stats.progressLength,
                     },
                     select: {
-                        file_id: true,
+                        file_id: true,                        
                     }
                 })
                 if (workflow.metadata.workflow.stats.failedCount > 0){
-                    await prisma.file.update({
-                        data: { state: "PROCESSING_ERROR" },
-                        where: {
-                            id: updatedWf.file_id,
-                        },
-                    });
+                    try {
+                        const failed = await prisma.file.update({
+                            data: { state: "PROCESSING_ERROR" },
+                            where: {
+                                id: updatedWf.file_id,
+                            },
+                            select: {
+                                uploader: true,
+                            }
+                        });
+                        await sendMail({
+                            to: file.User.email,
+                            subject: "Transkribeerimine ebaõnnestus - tekstiks.ee",
+                            html: createEmail(`Teenusel tekstiks.ee ei õnnestunud teie faili paraku transkribeerida.
+                            \n\n
+                            Rikete kohta võib infot saada kasutajatoelt, kirjutades aadressile tugi@tekstiks.ee
+                            \n\n
+                            <a href="https://tekstiks.ee/files">Klõpsa siia, et tutvuda oma ülesse laaditud failidega.</a>`)
+                        });
+                        await prisma.file.update({
+                            data: {
+                                notified: true,
+                            },
+                            where: {
+                                id: updatedWf.file_id,
+                            }
+                        });
+                    }
+                    catch(e) {
+                        console.log("Saving failed transcription or sending email notification failed", e);
+                    }
                 }
                 else if (workflow.event === "completed" && workflow.metadata.workflow.stats.succeededCount == workflow.metadata.workflow.stats.progressLength) {
-                    await prisma.file.update({
-                        data: {
-                            state: "READY",
-                        },
-                        where: {
-                            id: updatedWf.file_id,
-                        },
-                    });
+                    try {
+                        const failed = await prisma.file.update({
+                            data: { state: "READY" },
+                            where: {
+                                id: updatedWf.file_id,
+                            },
+                            select: {
+                                uploader: true,
+                            }
+                        });
+                        await sendMail({
+                            to: file.User.email,
+                            subject: "Transkribeerimine õnnestus - tekstiks.ee",
+                            html: createEmail(`Teie faili nimega ${file.filename} transkribeerimine õnnestus!
+                            \n\n
+                            <a href="https://tekstiks.ee/files/${file.id}">Tuvastatud tekst asub siin.</a>`)
+                        });
+                        await prisma.file.update({
+                            data: {
+                                notified: true,
+                            },
+                            where: {
+                                id: updatedWf.file_id,
+                            }
+                        });
+                    }
+                    catch(e) {
+                        console.log("Saving successful transcription result or sending email notification failed", e);
+                    }
                 }
             }
             catch(e) {
@@ -177,84 +233,3 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
         return new Response("received", { status: 200 });
     }
 };
-
-/* // Request successful
-if (progressRequest.status === 200) {
-    const progress = await progressRequest.json();
-    // Transcription is in progress
-    if (!progress.done) {
-        logger.info({userId, message: `progress: ${progress.progress}, queued: ${progress.queued}`})
-        return {
-            done: false,
-            fileId,
-            progress: progress.progress,
-            status: (progress.progress === 0 ? "UPLOADED" : "PROCESSING"),
-            queued: progress.queued
-        };
-    } // Transe.log(
-            `Failed to transcribe ${fileId}. Failed with code`,
-            progress.errorCode,
-            progress.errorMessage,
-        );
-        await unlink(filePath);
-        return { done: true };
-    }
-} else if (
-    progressRequest.status === 400 || progressRequest.status === 404
-) {
-    const progress = await progressRequest.json();
-    await prisma.file.update({
-        data: { state: "PROCESSING_ERROR" },
-        where: {
-            id: fileId,
-        },
-    });
-    console.log(
-        `Failed to transcribe ${fileId}. Failed with code`,
-        progress.errorCode,
-        progress.errorMessage,
-    );
-    await unlink(filePath);
-    return { done: true };cription finished and succesfully
-    else if (progress.done && progress.success) {
-        await prisma.file.update({
-            data: {
-                state: "READY",
-            },
-            where: {
-                id: fileId,
-            },
-        });
-        return { done: true };
-    } else if ((progress.done && !progress.success)) {
-        await prisma.file.update({
-            data: { state: "PROCESSING_ERROR" },
-            where: {
-                id: fileId,
-            },
-        });
-        console.log(
-            `Failed to transcribe ${fileId}. Failed with code`,
-            progress.errorCode,
-            progress.errorMessage,
-        );
-        await unlink(filePath);
-        return { done: true };
-    }
-} else if (
-    progressRequest.status === 400 || progressRequest.status === 404
-) {
-    const progress = await progressRequest.json();
-    await prisma.file.update({
-        data: { state: "PROCESSING_ERROR" },
-        where: {
-            id: fileId,
-        },
-    });
-    console.log(
-        `Failed to transcribe ${fileId}. Failed with code`,
-        progress.errorCode,
-        progress.errorMessage,
-    );
-    await unlink(filePath);
-    return { done: true }; */
