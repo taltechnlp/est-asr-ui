@@ -1,5 +1,5 @@
 import sgMail from "@sendgrid/mail";
-import { SECRET_MAIL_HOST, SECRET_MAIL_PORT, SECRET_MAIL_USER, SECRET_MAIL_PASS } from '$env/static/private';
+import { SECRET_MAIL_HOST, SECRET_MAIL_PORT, SECRET_MAIL_USER, SECRET_MAIL_PASS, ORIGIN } from '$env/static/private';
 
 sgMail.setApiKey(SECRET_MAIL_PASS);
 
@@ -14,7 +14,7 @@ export const createEmail = text => `
     <h2>Tere!</h2>
     <p>${text}</p>
 
-    <p><a href="https://tekstiks.ee">Tekstiks.ee</a>,</p>
+    <p><a href="${ORIGIN}">Tekstiks.ee</a>,</p>
     <p>Aivo Olev</p>
     <p><a href = "mailto:tugi@tekstiks.ee?subject= Kontoga seotud küsimus">tugi@tekstiks.ee</a></p>
   </div>

@@ -81,6 +81,8 @@
         "openButton": "Avaa",
         "downloadButton": "Lataa",
         "deleteButton": "Poista",
+        "statusOld": "Vanha järjestelmä",
+        "toOldSystem": "Vanhaan järjestelmään",
         "statusReady": "VALMIS",
         "statusError": "TRANSKRIPTIO EPÄONNISTUI",
         "statusProcessing": "KÄSITELLÄÄN",

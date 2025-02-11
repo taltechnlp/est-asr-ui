@@ -10,11 +10,10 @@ import Google from '@auth/core/providers/google';
 // import Credentials from "@auth/core/providers/credentials";
 import EmailProvider from "@auth/core/providers/email"
 import { GITHUB_ID, GITHUB_SECRET, AUTH_SECRET, FACEBOOK_CLIENT_ID, FACEBOOK_CLIENT_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, NEXTAUTH_URL } from "$env/static/private";
-import { SECRET_MAIL_HOST, SECRET_MAIL_PORT, SECRET_MAIL_USER, SECRET_MAIL_PASS, SECRET_MAIL_FROM } from "$env/static/private";
 import { sequence } from "@sveltejs/kit/hooks";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "$lib/db/client";
-import { uiLanguages } from '$lib/i18n';
+import { signIn } from '@auth/sveltekit/client';
 
 let userId;
 async function pwdAuthorization({ event, resolve }) {
@@ -28,25 +27,13 @@ async function pwdAuthorization({ event, resolve }) {
 	}
 	else {
 		const cookies = await parse(event.request.headers.get('cookie') || '');
-		const isSignInFlow = cookies.hasOwnProperty('next-auth.pkce.code_verifier')
+		const isSignInFlow = cookies.hasOwnProperty('authjs.pkce.code_verifier') || cookies.hasOwnProperty('__Secure-next-auth.pkce.code_verifier');
 		// Exception to enable OAUTH signin
 		if (!isSignInFlow) userId = undefined;
 	}
 	return resolve(event);
 }
 async function transformHtml({ event, resolve }) {
-	/* console.log(event.url.pathname)
-	let hasLangInUrl = false;
-	uiLanguages.forEach(l => {
-		if (event.url.pathname.startsWith('/' + l + '/')) hasLangInUrl = true;
-		else if (event.url.pathname.length == 3 && event.url.pathname.startsWith('/' + l)) hasLangInUrl = true;
-	});
-	if (!hasLangInUrl) {
-		if (event.cookies.get('language')) {
-			event.url.pathname = '/' + event.cookies.get('language') + event.url.pathname;
-		}
-	}
-	console.log(event.url, "lõplik") */
 	return await resolve(event, {
 		transformPageChunk: ({ html }) => html.replace('old', 'new')
 	});
@@ -62,51 +49,8 @@ export const auth = SvelteKitAuth(async (event) => {
 			maxAge: 15 * 24 * 30 * 60, // 15 days
 		},
 		providers: [
-			/* Credentials({
-				// The name to display on the sign in form (e.g. 'Sign in with...')
-				name: 'password1',
-				id: 'credentials1',
-				type: 'credentials',
-				// The credentials is used to generate a suitable form on the sign in page.
-				// You can specify whatever fields you are expecting to be submitted.
-				// e.g. domain, username, password, 2FA token, etc.
-				// You can pass any HTML attribute to the <input> tag through the object.
-				credentials: {
-					email: {
-						label: "Email",
-						type: "email",
-						placeholder: "jsmith@gmail.com",
-					},
-					password: { label: "Password", type: "password" }, 
-				},
-				async authorize(credentials, request) {
-					// You need to provide your own logic here that takes the credentials
-					// submitted and returns either a object representing a user or value
-					// that is false/null if the credentials are invalid.
-					// e.g. return { id: 1, name: 'J Smith', email: 'jsmith@example.com' }
-					// You can also use the `req` object to obtain additional parameters
-					// (i.e., the request IP address)
-					if (userId) {
-						const user = await prisma.user.findUnique({
-							where: {
-								id: userId
-							},
-							select: {
-								email: true,
-								id: true,
-								name: true,
-								role: true,
-								image: true,
-							}
-						})
-						return user;
-					}
-					else return null
-				},
-				
-			}), */
-			GitHub({ clientId: GITHUB_ID, clientSecret: GITHUB_SECRET }),
-			// @ts-ignore
+			/* GitHub({ clientId: GITHUB_ID, clientSecret: GITHUB_SECRET }),
+			// @ts-ignore */
 			Facebook({
 				clientId: FACEBOOK_CLIENT_ID,
 				clientSecret: FACEBOOK_CLIENT_SECRET,
@@ -136,10 +80,10 @@ export const auth = SvelteKitAuth(async (event) => {
 			verifyRequest: '/auth/verify-request', // (used for check email message)
 			newUser: '/files' // New users will be directed here on first sign in (leave the property out if not of interest)
 		},
-		/* events: {
-			signIn: (x) => console.log(x),
-			signOut: (x) => console.log(x),
-		}, */
+		events: {
+			signIn: (x) => console.log("signin", x),
+			/* signOut: (x) => console.log("signout", x), */
+		}, 
 		callbacks: {
 			async jwt({ token, user }) {
 				if (user) {
@@ -172,9 +116,10 @@ export const auth = SvelteKitAuth(async (event) => {
 					}
 				});
 				// Allow all password / 2FA requests to pass. 
-				console.log("signin", userId, existingAccount)
 				if (account.provider === "credentials") return true;
 				else if (!userId || !existingAccount) {
+					const token = event.cookies.get('token');
+					/* console.log("merge case", userId, existingAccount, token); */
 					if (!existingAccount) {
 						const emailUsed = await prisma.user.findUnique({
 							where: {
@@ -223,14 +168,6 @@ export const auth = SvelteKitAuth(async (event) => {
 					}
 				}
 			},
-			/* async redirect({ url, baseUrl }) {
-				console.log("redirect", url, baseUrl)
-				// Allows relative callback URLs
-				if (url.startsWith("/")) return `${baseUrl}${url}`
-				// Allows callback URLs on the same origin
-				else if (new URL(url).origin === baseUrl) return url
-				return baseUrl
-			} */
 		},
 	}
 	return authOptions

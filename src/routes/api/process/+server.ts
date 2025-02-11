@@ -5,6 +5,7 @@ import { error } from '@sveltejs/kit';
 import type { IWeblog } from '$lib/helpers/api.d'
 import { logger } from '$lib/logging/client';
 import { sendMail, createEmail } from "$lib/email";
+import { ORIGIN } from '$env/static/private';
 
 export const POST: RequestHandler = async ({ request, fetch }) => {
     const workflow: IWeblog = await request.json();
@@ -190,7 +191,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
                                 Rikete kohta võib infot saada kasutajatoelt, kirjutades tugi@tekstiks.ee aadressile.
 
                                 \n\n
-                                <a href="https://tekstiks.ee/files">Klõpsa siia, et tutvuda oma ülesse laaditud failidega.</a>`)
+                                <a href="${ORIGIN}/files">Klõpsa siia, et tutvuda oma ülesse laaditud failidega.</a>`)
                             });
                             await prisma.file.update({
                                 data: {
@@ -221,7 +222,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
                                 html: createEmail(`Teie faili nimega ${file.filename} transkribeerimine õnnestus!
 
                                 \n\n
-                                <a href="https://tekstiks.ee/files/${file.id}">Tuvastatud tekst asub siin.</a>`)
+                                <a href="${ORIGIN}/files/${file.id}">Tuvastatud tekst asub siin.</a>`)
                             });
                             await prisma.file.update({
                                 data: {

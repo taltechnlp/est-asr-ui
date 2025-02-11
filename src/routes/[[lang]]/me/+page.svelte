@@ -93,7 +93,7 @@
 				>
 			</div>
 		{/if}
-		<p><Icon data={github} scale={1.5} /> GitHub</p>
+<!-- 		<p><Icon data={github} scale={1.5} /> GitHub</p>
 		{#if $page.data.accounts.github}
 			<form method="POST" action="?/remove" class="justify-self-end">
 				<input type="text" value="github" class="hidden" name="provider" />
@@ -105,7 +105,7 @@
 					>{$_('me.connectAccount')}</button
 				>
 			</div>
-		{/if}
+		{/if} -->
 	</div>
 
 	<div class="mt-10">

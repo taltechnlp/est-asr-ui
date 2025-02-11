@@ -48,24 +48,25 @@ export const load: PageServerLoad = async ({ locals, fetch, depends, url }) => {
         let files = await result.json();
         if (files.length > 0) {
             files = files.map(
-            file => {
-                return {
-                    id: file.id,
-                    state: file.state,
-                    text: file.text,
-                    filename: file.filename,
-                    duration: file.duration?.toNumber(),
-                    mimetype: file.mimetype,
-                    uploadedAt: file.uploadedAt?.toString(),
-                    textTitle: file.textTitle,
-                    initialTranscription: file.initialTranscription,
-                    progress: file.progress,
-                    // queued: file.queued,
+                file => {
+                    return {
+                        id: file.id,
+                        state: file.state,
+                        text: file.text,
+                        filename: file.filename,
+                        duration: file.duration?.toNumber(),
+                        mimetype: file.mimetype,
+                        uploadedAt: file.uploadedAt?.toString(),
+                        textTitle: file.textTitle,
+                        initialTranscription: file.initialTranscription,
+                        progress: file.progress,
+                        oldSystem: file.path.includes('/mnt/volume1/')
+                    }
+                    
                 }
-                
-            }
             )
         }
+        console.log(files)
         return { files, session };
     }
     catch (error) {

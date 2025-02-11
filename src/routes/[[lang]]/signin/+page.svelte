@@ -80,7 +80,7 @@
 			<button class="btn btn-outline gap-2" on:click={() => signIn("facebook")}><Icon data={facebook} scale={1.5}/>Facebook</button>
 			<button class="btn btn-outline gap-2" on:click={() => signIn("google")}><Icon data={google} scale={1.5}/>
 				Google</button>
-			<button class="btn btn-outline gap-2" on:click={() => signIn("github")}><Icon data={github} scale={1.5}/>GitHub</button>
+			<!-- <button class="btn btn-outline gap-2" on:click={() => signIn("github")}><Icon data={github} scale={1.5}/>GitHub</button> -->
 	</div>
 	
 </div>

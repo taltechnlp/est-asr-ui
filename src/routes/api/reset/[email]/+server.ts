@@ -4,6 +4,7 @@ import { error } from "@sveltejs/kit";
 import { promisify } from "util";
 import { randomBytes } from "crypto";
 import { sendMail, createEmail } from "$lib/email";
+import { ORIGIN } from '$env/static/private';
 
 export const POST: RequestHandler= async ({ params, url }) => {
   // Check whether user exists  
@@ -29,7 +30,7 @@ export const POST: RequestHandler= async ({ params, url }) => {
     subject: "Parooli lähtestamise link",
     html: createEmail(`Siin on tellitud parooli lähtestamise link! See aegub 24 tunni jooksul.
     \n\n
-    <a href="https://tekstiks.ee/reset?resetToken=${resetToken}">Klõpsa siia, et lähtestada oma tekstiks.ee parool.</a>`)
+    <a href="${ORIGIN}/reset?resetToken=${resetToken}">Klõpsa siia, et lähtestada oma tekstiks.ee parool.</a>`)
   });
   return new Response("", {status: 201, statusText: "resetTokenCreated"})
 

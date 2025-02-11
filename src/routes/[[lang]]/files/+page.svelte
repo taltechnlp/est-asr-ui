@@ -93,8 +93,11 @@
 		);
 	};
 
-	function openFile(fileId, fileState) {
-		if (fileState == 'READY') {
+	function openFile(fileId, fileState, isOld) {
+		if (isOld) {
+			goto(`https://tekstiks.ee/files/`);
+		}
+		else if (fileState == 'READY') {
 			goto(`/files/${fileId}`);
 		}
 	}
@@ -164,7 +167,7 @@
 				{#each data.files as file, index}
 					<tr
 						class="{file.state == 'READY' ? 'cursor-pointer' : ''} hover"
-						on:click={() => openFile(file.id, file.state)}
+						on:click={() => openFile(file.id, file.state, file.oldSystem)}
 					>
 						<th>{index + 1}</th>
 						<td class="">
@@ -173,7 +176,9 @@
 							</p>
 						</td>
 						<td>
-							{#if file.state == 'READY'}
+							{#if file.oldSystem}
+							<div class="badge badge-info">{$_('files.statusOld')}</div>
+							{:else if file.state == 'READY'}
 								<div class="badge badge-success">{$_('files.statusReady')}</div>
 							{:else if file.state == 'PROCESSING_ERROR'}
 								<div class="badge badge-error">{$_('files.statusError')}</div>
@@ -196,10 +201,15 @@
 							{toTime(file.uploadedAt)}
 						</td>
 						<td class="">
-							{#if file.state == 'READY'}
+							{#if file.oldSystem}
+							    <a href="https://tekstiks.ee/files">
+									<button class="btn btn-outline btn-xs">{$_('files.toOldSystem')}</button>
+								</a>
+							{:else if file.state == 'READY'}
 								<button class="btn btn-outline btn-xs">{$_('files.openButton')}</button>
 							{/if}
-
+							
+							{#if !file.oldSystem}
 							<label
 								for="del-file-modal"
 								class="btn btn-outline btn-xs"
@@ -208,6 +218,7 @@
 									e.stopPropagation();
 								}}>{$_('files.deleteButton')}</label
 							>
+							{/if}
 						</td>
 					</tr>
 				{/each}

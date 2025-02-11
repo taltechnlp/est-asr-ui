@@ -81,6 +81,8 @@
         "openButton": "Ava",
         "downloadButton": "Lae alla",
         "deleteButton": "Kustuta",
+        "statusOld": "Vanas süsteemis",
+        "toOldSystem": "Vanasse süsteemi",
         "statusReady": "VALMIS",
         "statusError": "TRANSKRIBEERIMINE EBAÕNNESTUS",
         "statusProcessing": "TÖÖDELDAKSE",
