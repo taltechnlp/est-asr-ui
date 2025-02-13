@@ -10,7 +10,7 @@
 	import { signIn } from '@auth/sveltekit/client';
 	import { page } from '$app/state';
 
-	let userData;
+	let userData = $state();
 
 	userStore.subscribe((value) => {
 		userData = value;
@@ -75,7 +75,7 @@
 			</form>
 		{:else}
 			<div class="justify-self-end">
-				<button class="btn btn-outline btn-sm" on:click={() => signIn('facebook')}
+				<button class="btn btn-outline btn-sm" onclick={() => signIn('facebook')}
 					>{$_('me.connectAccount')}</button
 				>
 			</div>
@@ -88,7 +88,7 @@
 			</form>
 		{:else}
 			<div class="justify-self-end">
-				<button class="btn btn-outline btn-sm" on:click={() => signIn('google')}
+				<button class="btn btn-outline btn-sm" onclick={() => signIn('google')}
 					>{$_('me.connectAccount')}</button
 				>
 			</div>
@@ -109,7 +109,7 @@
 	</div>
 
 	<div class="mt-10">
-		<button class="btn btn-info" on:click={async () => await handleSignOut()}
+		<button class="btn btn-info" onclick={async () => await handleSignOut()}
 			>{$_('me.logoutButton')}</button
 		>
 	</div>

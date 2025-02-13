@@ -11,7 +11,7 @@
     import { onMount } from "svelte";
     import { goto, invalidate } from '$app/navigation';
 	
-	let error = null;
+	let error = $state(null);
 
 	async function handleSubmit({detail: {email, password}}) {
 		const response = await fetch('/api/signin', {
@@ -77,8 +77,8 @@
 <div class="flex justify-center">
 	<div class="max-w-xl mt-7 gap-2">
 		<p class="mb-1">Või kasuta sisenemiseks:</p>		
-			<button class="btn btn-outline gap-2" on:click={() => signIn("facebook")}><Icon data={facebook} scale={1.5}/>Facebook</button>
-			<button class="btn btn-outline gap-2" on:click={() => signIn("google")}><Icon data={google} scale={1.5}/>
+			<button class="btn btn-outline gap-2" onclick={() => signIn("facebook")}><Icon data={facebook} scale={1.5}/>Facebook</button>
+			<button class="btn btn-outline gap-2" onclick={() => signIn("google")}><Icon data={google} scale={1.5}/>
 				Google</button>
 			<!-- <button class="btn btn-outline gap-2" on:click={() => signIn("github")}><Icon data={github} scale={1.5}/>GitHub</button> -->
 	</div>

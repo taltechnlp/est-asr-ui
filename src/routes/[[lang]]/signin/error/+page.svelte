@@ -4,8 +4,12 @@
 	// import { invalidateAll } from '$app/navigation';
 	import { onMount } from 'svelte';
 
-	export let data: PageData;
-	// onMount(async () => await invalidateAll())
+	interface Props {
+		data: PageData; // onMount(async () => await invalidateAll())
+	}
+
+	let { data }: Props = $props();
+	
 </script>
 
 <svelte:head>
@@ -39,5 +43,5 @@
 				</a>
 			</div>
 		{/if}
-	<div class="mt-10" />
+	<div class="mt-10"></div>
 </div>

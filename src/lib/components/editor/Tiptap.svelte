@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { run } from 'svelte/legacy';
+
 	import { onMount, onDestroy } from 'svelte';
 	import { getDebugJSON } from '@tiptap/core';
 	import type { Node, Schema } from 'prosemirror-model';
@@ -51,24 +53,35 @@
 	import Hotkeys from './toolbar/Hotkeys.svelte';
 	import Settings from './toolbar/Settings.svelte';
 	import hotkeys from 'hotkeys-js';
-	// import { Dictate, Transcription } from '$lib/helpers/dictate.js/dictate';
+	
 
-	export let content;
-	export let fileName;
-	export let fileId;
-	export let uploadedAt;
-	export let demo;
+	interface Props {
+		// import { Dictate, Transcription } from '$lib/helpers/dictate.js/dictate';
+		content: any;
+		fileName: any;
+		fileId: any;
+		uploadedAt: any;
+		demo: any;
+	}
+
+	let {
+		content,
+		fileName,
+		fileId,
+		uploadedAt,
+		demo
+	}: Props = $props();
 
 	let element: HTMLDivElement | undefined;
-	let editor: Readable<Editor>;
+	let editor: Readable<Editor> = $state();
 
 	const options: Intl.DateTimeFormatOptions = {
 		/* weekday: "long", */ year: '2-digit',
 		month: 'long',
 		day: 'numeric'
 	};
-	$: uploadedAtFormatted = new Date(uploadedAt).toLocaleDateString($locale, options);
-	$: durationSeconds = new Date(1000 * $duration).toISOString().substr(11, 8);
+	let uploadedAtFormatted = $derived(new Date(uploadedAt).toLocaleDateString($locale, options));
+	let durationSeconds = $derived(new Date(1000 * $duration).toISOString().substr(11, 8));
 
 	const debouncedSave = debounce(handleSave, 5000, {
 		leading: false,
@@ -173,10 +186,10 @@
 		}
 	});
 
-	let windowWidth = window.innerWidth;
+	let windowWidth = $state(window.innerWidth);
 	const updateWindowSize = () => windowWidth = window.innerWidth;
 	window.addEventListener("resize", updateWindowSize);
-	let editable = true;
+	let editable = $state(true);
 
 
 	onDestroy(() => {
@@ -199,13 +212,15 @@
 		}
 		return true;
 	}
-	$: isActive = (name, attrs = {}) => $editor.isActive(name, attrs);
-	let fontSize: string = localStorage.getItem('fontSize');
-	$: fontSizeStore.set(fontSize)
+	let isActive = $derived((name, attrs = {}) => $editor.isActive(name, attrs));
+	let fontSize: string = $state(localStorage.getItem('fontSize'));
+	run(() => {
+		fontSizeStore.set(fontSize)
+	});
 	if (!fontSize) fontSize = "16"; // 16px default
 </script>
 
-<div class="w-full fixed top-2 left-0 right-0 flex justify-center z-20" />
+<div class="w-full fixed top-2 left-0 right-0 flex justify-center z-20"></div>
 <div class="grid w-full mb-12 justify-center">
 	<div class="stats stats-horizontal shadow mb-4">
 		<div class="stat">
@@ -238,7 +253,7 @@
 				{#if !editable}
 				<div class="flex items-center tooltip tooltip-bottom" data-tip={$_('editor.editing.edit')}>
 					<button
-							on:click={() => {$editor.setEditable(true, true); editable = true;}}
+							onclick={() => {$editor.setEditable(true, true); editable = true;}}
 							style="color: rgb(48, 49, 51);"
 							class="ml-6 cursor-pointer btn btn-ghost flex"
 						>
@@ -246,32 +261,32 @@
 					</button>
 					
 				</div>				
-				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2" />
+				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
 				{:else if windowWidth <= 460}
 				<div class="flex items-center tooltip tooltip-bottom" data-tip={$_('editor.editing.save')}>
-					<button on:click={() => {$editor.setEditable(false, true); editable = false;}}
+					<button onclick={() => {$editor.setEditable(false, true); editable = false;}}
 						style="color: rgb(48, 49, 51);"
 							class="ml-6 cursor-pointer btn btn-ghost flex"
 						>{$_('editor.editing.save')}</button>
 				</div>				
-				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2" />
+				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
 				{/if}
 				<div class="flex items-center tooltip tooltip-bottom" data-tip={$_('editor.settings.tooltip')}>
 					<label for="settings-modal" class="btn btn-ghost flex  ">
 						<Icon data={settings} scale={1.5} />
 					</label>
 				</div>
-				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2" />
+				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
 				{#if windowWidth > 460}
 					<div class="flex items-center tooltip tooltip-bottom" data-tip={$_('editor.hotkeys.tooltip')}>
 						<label for="hotkeys-modal" class="btn btn-ghost flex">
 							<Icon data={keyboard} scale={1.5} />
 						</label>
 					</div>				
-					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2" />
+					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
 					<div class="flex items-center">
 						<button
-							on:click={() => $editor.chain().focus().undo().run()}
+							onclick={() => $editor.chain().focus().undo().run()}
 							class:disabled={!$editor.can().undo()}
 							style="color: rgb(48, 49, 51);"
 							class="ml-6 tooltip tooltip-bottom cursor-pointer"
@@ -280,7 +295,7 @@
 							<Icon data={rotateLeft} scale={1.5} />
 					</button>
 					<button
-							on:click={() => $editor.chain().focus().redo().run()}
+							onclick={() => $editor.chain().focus().redo().run()}
 							class:disabled={!$editor.can().redo()}
 							style="color: rgb(48, 49, 51);"
 							class="ml-3 tooltip tooltip-bottom cursor-pointer"
@@ -289,14 +304,14 @@
 							<Icon data={rotateRigth} scale={1.5} />
 					</button>
 					</div>
-					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2" />
+					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
 				{/if}
 				
 				{#if $editorMode === 2}
 					<LanguageLabel {editor} />
-					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2" />
+					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
 					<PronounceLabel {editor} />
-					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2" />
+					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
 				{/if}
 				<div class="flex items-center">
 					<label for="download-modal" class="btn btn-link btn-sm flex">
@@ -313,7 +328,7 @@
 		<BubbleMenu editor={$editor}>
 			<div class="flex items-center my-bubble-menu bg-base-200 shadow-md">
 				<LanguageLabel {editor} />
-				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2" />
+				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
 				<PronounceLabel {editor} />
 			</div>
 		</BubbleMenu>

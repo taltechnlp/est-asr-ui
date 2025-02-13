@@ -1,11 +1,18 @@
-<script>
+<script lang="ts">
+	import { preventDefault } from 'svelte/legacy';
+
 	import Input from '$lib/components/Input.svelte';
 	import Button from '$lib/components/Button.svelte';
 	import { _ } from 'svelte-i18n';
 	import { createEventDispatcher } from 'svelte';
+	interface Props {
+		[key: string]: any
+	}
 
-	let email = '';
-	let password = '';
+	let { ...props }: Props = $props();
+
+	let email = $state('');
+	let password = $state('');
 
 	const dispatch = createEventDispatcher();
 
@@ -17,7 +24,7 @@
 	}
 </script>
 
-<form on:submit|preventDefault={submit} class="space-y-5 {$$props.class}">
+<form onsubmit={preventDefault(submit)} class="space-y-5 {props.class}">
 	<Input
 		label={$_('signin.email')}
 		id="email"

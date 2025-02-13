@@ -1,22 +1,21 @@
-<script>
+<script lang="ts">
 	import Input from '$lib/components/Input.svelte';
 	import Button from '$lib/components/Button.svelte';
 	import { _ } from 'svelte-i18n';
 	import { enhance } from '$app/forms';
 
-	let email = '';
-	let password = '';
-	let fullName = '';
-	let confirmPassword = '';
-	let error;
-	let confirmPasswordInputRef;
+	let email = $state('');
+	let password = $state('');
+	let fullName = $state('');
+	let confirmPassword = $state('');
+	let error = $state();
+	let confirmPasswordInputRef = $state();
 
-	export let data;
-	export let form;
+	let { ...props } = $props();
 
 </script>
 
-<form  method="POST" action="?/login" class="space-y-5 {$$props.class}" use:enhance={({ form, data, cancel }) => {
+<form  method="POST" action="?/login" class="space-y-5 {props.class}" use:enhance={({ props.props.form, props.props.data, cancel }) => {
     return async ({ result }) => {
 		error = null;
 		if (password !== confirmPassword) {
@@ -28,7 +27,7 @@
 
     };
   }}>
-  	<p>Data: {data} Form: {form} </p>
+  	<p>Data: {props.data} Form: {props.form} </p>
 	<Input label={$_('signup.email')} id="email" name="email" type="email" bind:value={email} />
 	<Input
 		label={$_('signup.name')}

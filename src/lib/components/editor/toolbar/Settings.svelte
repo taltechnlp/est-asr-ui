@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { _ } from 'svelte-i18n';
-	export let fontSize;
+	let { fontSize = $bindable() } = $props();
 	const handleFontSizeChange = (e) => {
 		if (e.target.value) {
 			localStorage.setItem("fontSize", e.target.value)
@@ -22,7 +22,7 @@
 								{$_('editor.settings.fontSize')}
 							</td>
 							<td>
-								<input type="range" min="10" max="22" class="range pl-2" step="2" on:change={handleFontSizeChange} bind:value={fontSize} />
+								<input type="range" min="10" max="22" class="range pl-2" step="2" onchange={handleFontSizeChange} bind:value={fontSize} />
 								<div class="w-full flex justify-between text-xs px-4">
 									<span class="w-1 tex">XXS</span>
 									<span class="w-1">XS</span>

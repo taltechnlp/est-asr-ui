@@ -1,15 +1,19 @@
 <script lang="ts">
+	import { run } from 'svelte/legacy';
+
 	import Icon from 'svelte-awesome/components/Icon.svelte';
 	import comment from 'svelte-awesome/icons/comment';
 	import close from 'svelte-awesome/icons/close';
 	import { _ } from 'svelte-i18n';
 	import { v4 as uuidv4 } from 'uuid';
-	export let editor;
-	let label: string = '';
-	let url;
-	let dropdown;
+	let { editor } = $props();
+	let label: string = $state('');
+	let url = $state();
+	let dropdown = $state();
 	let test;
-	$: console.log(test)
+	run(() => {
+		console.log(test)
+	});
 
 	const setLabel = () => {
 		if (label.length > 0) {
@@ -49,7 +53,7 @@
 	</p>
 	{#if $editor}
 		{#if $editor.isActive('pronHighlight')}
-			<button on:click={() => $editor.chain().focus().togglePronHighlight().run()}>
+			<button onclick={() => $editor.chain().focus().togglePronHighlight().run()}>
 				<Icon data={close} scale={1} class="mb-1 mr-1" />
 			</button>
 		{/if}
@@ -86,9 +90,9 @@
 						<button
 							class="btn btn-primary"
 							class:btn-disabled={label.length === 0}
-							on:click={setLabel}>{$_('file.toolbar.add')}</button
+							onclick={setLabel}>{$_('file.toolbar.add')}</button
 						>
-						<button class="btn btn-ghost" on:click={() => $editor.chain().focus().run()}
+						<button class="btn btn-ghost" onclick={() => $editor.chain().focus().run()}
 							>{$_('file.toolbar.cancel')}</button
 						>
 					</div>

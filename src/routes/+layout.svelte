@@ -3,7 +3,12 @@
 	import '../app.css';
 	import type { LayoutData } from './$types'
 	
-	export let data: LayoutData;
+	interface Props {
+		data: LayoutData;
+		children?: import('svelte').Snippet;
+	}
+
+	let { data, children }: Props = $props();
 	
 </script>
 
@@ -15,5 +20,5 @@
 </div>
 
 <main class="">
-	<slot />
+	{@render children?.()}
 </main>

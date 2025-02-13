@@ -6,16 +6,20 @@
 	import type {PageData, ActionData} from './$types';
 	import { user as userStore } from '$lib/stores';
 	
-	export let data: PageData;
-	let email = data.email;
-	let fullName = data.name;
-	let password = '';
-	let confirmPassword = '';
-	let error;
-	let confirmPasswordInputRef;
-	let success = false;
+	let email = $state(data.email);
+	let fullName = $state(data.name);
+	let password = $state('');
+	let confirmPassword = $state('');
+	let error = $state();
+	let confirmPasswordInputRef = $state();
+	let success = $state(false);
 
-	export let form: ActionData;
+	interface Props {
+		data: PageData;
+		form: ActionData;
+	}
+
+	let { data, form }: Props = $props();
 	
 </script>
 

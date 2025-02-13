@@ -9,10 +9,10 @@
 		editorMounted
 	} from '$lib/stores';
 	import type { Word, Speaker } from '$lib/helpers/converters/types';
-	export let data;
+	let { data } = $props();
 	let words: Array<Word> = [];
 	let speakers: Array<Speaker> = [];
-	let transcription = '';
+	let transcription = $state('');
 	let json = JSON.parse(data.file && data.file.content);
 	let content;
 	// First time transcription from the Estonian JSON format.

@@ -166,7 +166,7 @@
 	<table class="table table-compact max-w-screen-2xl">
 		<thead>
 			<tr>
-				<th />
+				<th></th>
 				<th>{$_('files.filename')}</th>
 				<th>{$_('files.status')}</th>
 				<th>{$_('files.uploadedAt')}</th>
@@ -178,7 +178,7 @@
 				{#each data.files as file, index}
 					<tr
 						class="{file.state == 'READY' ? 'cursor-pointer' : ''} hover"
-						on:click={() => openFile(file.id, file.state, file.oldSystem)}
+						onclick={() => openFile(file.id, file.state, file.oldSystem)}
 					>
 						<th>{index + 1}</th>
 						<td class="">
@@ -195,17 +195,17 @@
 								<div class="badge badge-error">{$_('files.statusError')}</div>
 							{:else if file.state == 'PROCESSING'}
 								<div class="badge badge-accent loading">{$_('files.statusProcessing')} 
-									{#if file.progress >= 0 }
+									{#if file.progress >= 0}
 										{` ${file.progress}%`}
 									{/if}
 								</div>
-								<span class="btn btn-ghost btn-xs loading" />
+								<span class="btn btn-ghost btn-xs loading"></span>
 							{:else if file.state == 'UPLOADED' && file.queued}
 								<div class="badge badge-info loading">{$_('files.statusUploaded')}</div>
-								<span class="btn btn-ghost btn-xs loading" />
+								<span class="btn btn-ghost btn-xs loading"></span>
 							{:else if file.state == 'UPLOADED'}
 								<div class="badge badge-info loading">{$_('files.statusUploaded')}</div>
-								<span class="btn btn-ghost btn-xs loading" />
+								<span class="btn btn-ghost btn-xs loading"></span>
 							{/if}
 						</td>
 						<td class="">
@@ -224,7 +224,7 @@
 							<label
 								for="del-file-modal"
 								class="btn btn-outline btn-xs"
-								on:click={(e) => {
+								onclick={(e) => {
 									delFileId = file.id;
 									e.stopPropagation();
 								}}>{$_('files.deleteButton')}</label
@@ -239,7 +239,7 @@
 		</tbody>
 	</table>
 
-	<input type="checkbox" id="file-upload" class="modal" on:click={uploadModalClick} />
+	<input type="checkbox" id="file-upload" class="modal" onclick={uploadModalClick} />
 	<label for="file-upload" class="modal cursor-pointer {uploadModalOpen ? 'modal-open' : ''}">
 		<label class="modal-box relative" for="">
 			<fieldset disabled={loading} aria-busy={loading}>
@@ -301,7 +301,7 @@
 					{/if}
 					{#if loading}
 						<button class="btn" type="submit" disabled
-							><span class="btn btn-ghost btn-xs loading" /></button
+							><span class="btn btn-ghost btn-xs loading"></span></button
 						>
 					{:else if upload}
 						<button formaction="?/uploadEst" class="btn btn-active btn-primary" 
@@ -324,7 +324,7 @@
 			</p>
 			<div class="modal-action">
 				<label for="del-file-modal" class="btn btn-outline">{$_('files.cancel')}</label>
-				<label for="del-file-modal" class="btn" on:click={() => delFile(delFileId)}
+				<label for="del-file-modal" class="btn" onclick={() => delFile(delFileId)}
 					>{$_('files.delete')}</label
 				>
 			</div>

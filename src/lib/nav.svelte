@@ -5,10 +5,10 @@
 	import { createEventDispatcher } from 'svelte';
 	import { _, locale } from 'svelte-i18n';
 	import { uiLanguages } from './i18n';
-	export let language;
+	let { language } = $props();
 
-	let loggedIn;
-	let initials;
+	let loggedIn = $state();
+	let initials = $state();
 	userStore.subscribe((value) => {
 		if (value && value.name) {
 			loggedIn = true;
@@ -17,7 +17,7 @@
 			initials = ((initialsArr.shift()?.[1] || '') + (initialsArr.pop()?.[1] || '')).toUpperCase();
 		} else loggedIn = false;
 	});
-	let path = '';
+	let path = $state('');
 	afterNavigate((nav) => {
 		path = nav.to.url.pathname;
 		return;
@@ -30,7 +30,7 @@
 	};
 	const languages = uiLanguages;
 
-	let currentLanguage: string = language || "et";
+	let currentLanguage: string = $state(language || "et");
 	locale.set(currentLanguage); 
 	locale.subscribe(lang => {
 		currentLanguage = lang}
@@ -94,7 +94,7 @@
 				>
 					{$_('index.headerDemo')}
 				</a>
-				<select class="select select-ghost max-w-xs" bind:value={currentLanguage} on:change={switchLocale}>
+				<select class="select select-ghost max-w-xs" bind:value={currentLanguage} onchange={switchLocale}>
 					{#each languages as value}
 						<option {value}>
 							{String.fromCodePoint(
@@ -137,7 +137,7 @@
 			</div>
 		</div>
 		<div class="grid sm:hidden">
-			<button class="btn btn-square btn-ghost justify-self-end" on:click={toggleMenu}>
+			<button class="btn btn-square btn-ghost justify-self-end" onclick={toggleMenu}>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					fill="none"
@@ -183,7 +183,7 @@
 					</a>
 				</li>
 				<li>
-					<select class="select max-w-xs" bind:value={currentLanguage} on:change={switchLocale}>
+					<select class="select max-w-xs" bind:value={currentLanguage} onchange={switchLocale}>
 						{#each languages as value}
 							<option {value}>
 								{String.fromCodePoint(

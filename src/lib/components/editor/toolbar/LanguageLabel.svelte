@@ -4,7 +4,7 @@
 	import close from 'svelte-awesome/icons/close';
 	import { lang, languageAnnotationOptions } from '$lib/stores';
 	import { _ } from 'svelte-i18n';
-	export let editor;
+	let { editor } = $props();
 	const colors = [
 		{ class: 'warning', code: '#FBBD23' },
 		{ class: 'neutral', code: '#70ACC7' },
@@ -23,14 +23,14 @@
 	<div class="btn-group">
 		{#if $editor}
 			{#if $editor.isActive('labelHighlight')}
-				<button on:click={() => $editor.chain().focus().toggleHighlight().run()}>
+				<button onclick={() => $editor.chain().focus().toggleHighlight().run()}>
 					<Icon data={close} scale={1} class="mb-1 mr-1" />
 				</button>
 			{/if}
 			{#each $languageAnnotationOptions as lang, index}
 				{#if lang.active}
 					<button
-						on:click={() =>
+						onclick={() =>
 							$editor
 								.chain()
 								.focus()

@@ -7,14 +7,6 @@
 	import type { Speaker } from '$lib/helpers/converters/types';
 	import { v4 as uuidv4 } from 'uuid';
 
-	export let node: NodeViewProps['node'];
-	export let decorations: NodeViewProps['decorations'];
-	export let extension: NodeViewProps['extension'];
-	export let updateAttributes: NodeViewProps['updateAttributes'];
-	export let deleteNode: NodeViewProps['deleteNode'];
-	export let editor: NodeViewProps['editor'];
-	export let getPos: NodeViewProps['getPos'];
-	export let selected: NodeViewProps['selected'] = false;
 	import {
 		speakerNames,
 		addSpeakerBlock,
@@ -26,24 +18,45 @@
 	// import { Transform } from 'prosemirror-transform';
 
 	import { _ } from 'svelte-i18n';
+	interface Props {
+		node: NodeViewProps['node'];
+		decorations: NodeViewProps['decorations'];
+		extension: NodeViewProps['extension'];
+		updateAttributes: NodeViewProps['updateAttributes'];
+		deleteNode: NodeViewProps['deleteNode'];
+		editor: NodeViewProps['editor'];
+		getPos: NodeViewProps['getPos'];
+		selected?: NodeViewProps['selected'];
+	}
+
+	let {
+		node = $bindable(),
+		decorations,
+		extension,
+		updateAttributes,
+		deleteNode,
+		editor,
+		getPos,
+		selected = false
+	}: Props = $props();
 
 	type Name = {
 		name: string;
 		id: string;
 	};
 
-	let isListOpen = false;
+	let isListOpen = $state(false);
 	let initialName = node.attrs['data-name'];
 	let initialId = node.attrs['id'];
-	let topic = node.attrs['topic'];
-	let selectedVal: Name = {
+	let topic = $state(node.attrs['topic']);
+	let selectedVal: Name = $state({
 		name: node.attrs['data-name'],
 		id: node.attrs['id']
-	};
-	let newSpeaker = '';
-	let editSpeakerId = '';
-	let editingValue = '';
-	let names;
+	});
+	let newSpeaker = $state('');
+	let editSpeakerId = $state('');
+	let editingValue = $state('');
+	let names = $state();
 	speakerNames.subscribe((ns) => {
 		// Update dropdown list where for each id one name is shown only
 		names = ns.reduce((acc, curr) => {
@@ -86,11 +99,9 @@
 
 		return startTime;
 	};
-	let cssVarStyles
-	$: time = findTimeStamps(getPos() + 1, editor.state);
-	$: {
-		cssVarStyles = `font-size:${$fontSizeStore}px`;
-	}
+	let cssVarStyles = $derived(`font-size:${$fontSizeStore}px`)
+	let time = $derived(findTimeStamps(getPos() + 1, editor.state));
+	
 
 	const handleClick = () => {
 		isListOpen ? (isListOpen = false) : (isListOpen = true);
@@ -265,18 +276,18 @@
 			<Icon name="dropdown-arrow" class="invisible group-hover:visible" />
 		</summary>
 		<div class="absolute z-10 m-2 shadow drop-shadow-lg menu bg-base-100" use:clickOutside
-		on:outclick={() => {
+		onoutclick={() => {
 			isListOpen = false;
 		}}>
 			<div class="p-1 flex">
 				<input
 					placeholder={$_('speakerSelect.addNew')}
 					bind:value={newSpeaker}
-					on:keypress={(e) => handleKeypress(e, newSpeaker)}
+					onkeypress={(e) => handleKeypress(e, newSpeaker)}
 				/>
 				<button
 					class="btn btn-outline btn-xs w-min ml-1 hover:text-primary"
-					on:click={() => handleNewSpeakerSave(newSpeaker, time)}
+					onclick={() => handleNewSpeakerSave(newSpeaker, time)}
 					>{$_('speakerSelect.save')}</button
 				>
 			</div>
@@ -292,14 +303,14 @@
 							<div class="flex">
 								<button
 									class="btn btn-xs btn-outline w-min hover:text-primary"
-									on:click={() => {
+									onclick={() => {
 										handleRenameAll(speaker);
 									}}>{$_('speakerSelect.save')}</button
 								>
 							</div>
 						{:else}
 							<button
-								on:click={() => {
+								onclick={() => {
 									selectSpeaker(speaker.id);
 									isListOpen = false;
 								}}
@@ -308,7 +319,7 @@
 								{speaker.name}
 							</button>
 							<div>
-								<button class="btn btn-xs btn-outline w-min hover:text-primary" on:click={() => handleStartEdit(speaker)}
+								<button class="btn btn-xs btn-outline w-min hover:text-primary" onclick={() => handleStartEdit(speaker)}
 									>{$_('speakerSelect.edit')}</button
 								>
 							</div>
@@ -328,11 +339,11 @@
 				placeholder={$_('speakerSelect.topicPlaceholder')}
 				class="input input-bordered input-accent input-xs w-full max-w-xs ml-5"
 				bind:value={topic}
-				on:blur={saveTopic}
+				onblur={saveTopic}
 			/>
 		{/if}
 	</div>
-	<div use:editable class="content editable" style="{cssVarStyles}"  />
+	<div use:editable class="content editable" style="{cssVarStyles}"></div>
 </NodeViewWrapper>
 
 <style>

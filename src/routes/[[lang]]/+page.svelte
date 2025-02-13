@@ -4,7 +4,7 @@
 	import { _ } from 'svelte-i18n';
 
 	let myData;
-	let loggedIn;
+	let loggedIn = $state();
 
 	user.subscribe((value) => {
 		myData = value;

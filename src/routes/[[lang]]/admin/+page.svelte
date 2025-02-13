@@ -3,7 +3,11 @@
     import * as Table from "$lib/components/ui/table";
     import { _ } from 'svelte-i18n';
 
-    export let data: PageData;
+	interface Props {
+		data: PageData;
+	}
+
+	let { data }: Props = $props();
     let error = '';
 </script>
 
@@ -36,10 +40,10 @@
 							{:else if file.state == 'PROCESSING'}
 								<div class="badge badge-accent loading">{$_('files.statusProcessing')} 
 								</div>
-								<span class="btn btn-ghost btn-xs loading" />
+								<span class="btn btn-ghost btn-xs loading"></span>
 							{:else if file.state == 'UPLOADED'}
 								<div class="badge badge-info loading">{$_('files.statusUploaded')}</div>
-								<span class="btn btn-ghost btn-xs loading" />
+								<span class="btn btn-ghost btn-xs loading"></span>
 							{/if}
                         </Table.Cell>
 						<Table.Cell>

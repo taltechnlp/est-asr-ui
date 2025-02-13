@@ -14,7 +14,7 @@
     "format": "prettier --ignore-path .gitignore --write --plugin-search-dir=. ."
   },
   "devDependencies": {
-    "@sveltejs/kit": "^2.0.0",
+    "@sveltejs/kit": "^2.5.27",
     "@tailwindcss/typography": "^0.5.2",
     "@types/bun": "latest",
     "@types/wavesurfer.js": "^6.0.3",
@@ -26,15 +26,15 @@
     "graphql-request": "^4.1.0",
     "postcss": "^8.4.22",
     "postcss-load-config": "^4.0.1",
-    "prettier": "^2.5.1",
-    "prettier-plugin-svelte": "^2.10.1",
+    "prettier": "^3.1.0",
+    "prettier-plugin-svelte": "^3.2.6",
     "prisma": "^5.22.0",
-    "svelte": "^4.0.0",
-    "svelte-check": "^3.4.3",
-    "svelte-preprocess": "^5.0.3",
+    "svelte": "^5.0.0",
+    "svelte-check": "^4.0.0",
+    "svelte-preprocess": "^6.0.0",
     "tailwindcss": "^3.1.8",
     "tslib": "^2.4.1",
-    "typescript": "^5.0.0"
+    "typescript": "^5.5.0"
   },
   "type": "module",
   "dependencies": {
@@ -87,7 +87,7 @@
     "tailwind-merge": "^2.2.1",
     "tailwind-variants": "^0.2.0",
     "uuid": "^8.3.2",
-    "vite": "^5.0.0",
+    "vite": "^5.4.4",
     "waveform-data": "^4.5.0",
     "wavesurfer.js": "^7.1.5",
     "winston": "^3.10.0"
