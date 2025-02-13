@@ -23,7 +23,7 @@ export const load: PageServerLoad = async ({ locals, fetch, depends, url }) => {
         if (session && session.user) userId = session.user.id;
     }
     if (!userId) {
-        throw redirect(307, "/signin");
+        redirect(307, "/signin");
     }
     const isAdmin = await prisma.user.findUnique({
         where: {
@@ -77,7 +77,7 @@ export const actions: Actions = {
             if (session && session.user) userId = session.user.id;
         }
         if (!userId) {
-            throw redirect(307, "/signin");
+            redirect(307, "/signin");
         }
         const data = await request.formData();
         const notify = data.get('notify') === "yes" ? true : false;
@@ -206,7 +206,7 @@ export const actions: Actions = {
             if (session && session.user) userId = session.user.id;
         }
         if (!userId) {
-            throw redirect(307, "/signin");
+            redirect(307, "/signin");
         }
         const data = await request.formData();
 

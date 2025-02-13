@@ -8,7 +8,7 @@ export const POST: RequestHandler = async ({ request }) => {
     const hashedPassword = await hash(password, 10);
     const valid = password && password.length > 0;
     if (!valid) {
-        throw error(401, 'password')
+        error(401, 'password');
     }
     // Find user ID
     const user = await prisma.user.findFirst({
@@ -19,7 +19,7 @@ export const POST: RequestHandler = async ({ request }) => {
         }
     })
     if (!user) {
-        throw error(401, 'userNotFound')
+        error(401, 'userNotFound');
     }
     const result = await prisma.user.update({
         where: {

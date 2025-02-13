@@ -10,10 +10,10 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
         if (session && session.user) userId = session.user.id;
     }
     if (!userId ) {
-        throw error(401, "Not authenticated user");
+        error(401, "Not authenticated user");
     }
   if (!userId) {
-    throw error(401, "Not authenticated user");
+    error(401, "Not authenticated user");
   }
   // Validate that the user owns the file
   const fileDetails = await prisma.file.findUnique({
@@ -35,7 +35,7 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
     await (await prisma.user.findUnique({ where: { id: userId } }))
       .role === "ADMIN";
   if (!fileDetails || (fileDetails.User.id !== userId && !isAdmin)) {
-    throw error(404, "fileNotFound");
+    error(404, "fileNotFound");
   }
   let location = fileDetails.path;
   await fs.rm(location).catch((e) => {
@@ -47,7 +47,7 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
     },
   }).catch((e) => {
     console.log("Failed to remove file from DB!", e);
-    throw error(503, "fileNotDeleted");
+    error(503, "fileNotDeleted");
   });
   console.log(`file ${params.fileId} deleted`);
   return new Response("", { status: 200 });
@@ -61,10 +61,10 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
             if (session && session.user) userId = session.user.id;
         }
         if (!userId ) {
-            throw error(401, "Not authenticated user");
+            error(401, "Not authenticated user");
         }
       if (!userId) {
-        throw error(401, "Not authenticated user");
+        error(401, "Not authenticated user");
       }
       const editorContent = await request.json();
       const file = await prisma.file.findUnique({
@@ -85,7 +85,7 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
       await (await prisma.user.findUnique({ where: { id: userId } }))
         .role === "ADMIN";
     if (!file|| (file.User.id !== userId && !isAdmin)) {
-      throw error(404, "fileNotFound");
+      error(404, "fileNotFound");
     }
   try {
     await fs.writeFile(
@@ -95,6 +95,6 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
     return new Response("", { status: 201 });
   } catch (err) {
     console.log(err, file.initialTranscriptionPath);
-    throw error(500, "fileWriteError");
+    error(500, "fileWriteError");
   }
 };

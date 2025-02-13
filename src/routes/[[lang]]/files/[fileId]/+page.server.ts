@@ -23,7 +23,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
         if (session && session.user) userId = session.user.id;
     }
     if (!userId) {
-        throw error(401, 'unauthorized');
+        error(401, 'unauthorized');
     } 
     const isAdmin = await prisma.user.findUnique({
         where: {
@@ -115,5 +115,5 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
             url: url.origin,
         }
     }
-    else throw error(401, 'unauthorized');
+    else error(401, 'unauthorized');
 }

@@ -14,7 +14,7 @@ export const load: LayoutServerLoad = async ({ request, locals, params, cookies,
 		}
 	}
 	if (!params.lang && cookies.get("language")) {
-		throw redirect(301, '/' + cookies.get('language') + url.pathname);
+		redirect(301, '/' + cookies.get('language') + url.pathname);
 	}
 	const language = params.lang || cookies.get("language");
 	const session = (await locals.getSession()) as Sess;

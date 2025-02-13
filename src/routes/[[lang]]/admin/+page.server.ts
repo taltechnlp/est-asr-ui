@@ -9,7 +9,7 @@ export const load = (async ({ locals, fetch }) => {
         if (session && session.user) userId = session.user.id;
     }
     if (!userId ) {
-        throw error(401, "Not authenticated user");
+        error(401, "Not authenticated user");
     }
     const files = await prisma.file.findMany({
         orderBy: {

@@ -11,7 +11,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
         if (session && session.user) userId = session.user.id;
     }
     if (!userId ) {
-        throw error(401, "Not authenticated user");
+        error(401, "Not authenticated user");
     }
     const isAdmin = await prisma.user.findUnique({
         where: {

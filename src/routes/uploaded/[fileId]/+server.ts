@@ -19,7 +19,7 @@ export const GET: RequestHandler = async ({ params, locals, request }) => {
         if (session && session.user) userId = session.user.id;
     }
     if (!userId) {
-        throw redirect(307, "/signin");
+        redirect(307, "/signin");
     }
   const file = await prisma.file.findUnique({
     where: {
@@ -34,7 +34,7 @@ export const GET: RequestHandler = async ({ params, locals, request }) => {
       }
     }
   });
-  if (!file) throw error(404);
+  if (!file) error(404);
   const isAdmin =
     await (await prisma.user.findUnique({ where: { id: userId } }))
       .role === "ADMIN";
@@ -103,7 +103,7 @@ export const GET: RequestHandler = async ({ params, locals, request }) => {
       });
     }
   }
-  throw error(401, "unauthorized");
+  error(401, "unauthorized");
 };
 
 function createReadableStreamFromReadStream(readStream) {

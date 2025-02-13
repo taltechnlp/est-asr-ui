@@ -9,7 +9,7 @@ export const load = (async ({ locals }) => {
         if (session && session.user) userId = session.user.id;
     }
     if (!userId) {
-        throw redirect(307, "/signin");
+        redirect(307, "/signin");
     }
     const user = await prisma.user.findUnique({
         where: {
@@ -45,7 +45,7 @@ export const actions: Actions = {
             if (session && session.user) userId = session.user.id;
         }
         if (!userId) {
-            throw redirect(307, "/signin");
+            redirect(307, "/signin");
         }
         const accounts = await prisma.user.findUnique({
             where: {

@@ -14,14 +14,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}
 	});
 	if (!user) {
-		throw error(401, 'email');
+		error(401, 'email');
 	}
 	if (!user.password) {
-		throw error(401, 'noPasswordSet');
+		error(401, 'noPasswordSet');
 	}
 	const valid = await bcrypt.compare(password, user.password);
 	if (!valid) {
-		throw error(401, 'password');
+		error(401, 'password');
 	}
 	const token = jwt.sign({ userId: user.id }, SECRET_KEY);
 	return new Response(
