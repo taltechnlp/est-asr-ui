@@ -4,11 +4,14 @@
 	import { _ } from 'svelte-i18n';
 	import { toTime } from './helpers';
 	import { browser } from '$app/environment';
-	import type { PageData } from './$types';
 	import type { ActionResult } from '@sveltejs/kit';
 	import { applyAction } from '$app/forms';
 
-	export let data: PageData;
+	import type { PageData, ActionData } from './$types';
+
+	let { data, form }: { data: PageData, form: ActionData } = $props();
+
+	// export let data: PageData;
 	let error = '';
 	let loading = false;
 	let upload;
@@ -38,7 +41,11 @@
 	const printError = (errorText) => {
 		if (errorText === 'fileSizeLimit') {
 			return $_('files.fileSizeLimit');
-		} else {
+		} 
+		else if (errorText === 'fileTooLong') {
+			return $_('files.fileTooLong');
+		}
+		else {
 			return $_('files.uploadError');
 		}
 	};
@@ -75,7 +82,11 @@
 			loading = false;
 			if (result.data.uploadLimit) {
 				error = 'fileSizeLimit';
-			} else {
+			}
+			else if (result.data.fileTooLong) {
+				error = 'fileTooLong';
+			} 
+			else {
 				error = result.data.message;
 			}
 			return;
@@ -232,7 +243,9 @@
 	<label for="file-upload" class="modal cursor-pointer {uploadModalOpen ? 'modal-open' : ''}">
 		<label class="modal-box relative" for="">
 			<fieldset disabled={loading} aria-busy={loading}>
-				<form method="POST">
+				<form method="POST" action="?/uploadEst">
+					{#if form?.uploadLimit}<p class="error">File is too large!</p>{/if}
+					{#if form?.fileTooLong}<p class="error">File is too long!</p>{/if}
 					<label for="file-upload" class="btn btn-sm btn-circle absolute right-3 top-2" lang="et"
 						>✕</label
 					>
@@ -281,6 +294,7 @@
 					<ul class="list-disc list-inside">
 						<li class="py-4">{$_('files.supportedFormats')}</li>
 						<li class="py-4 pt-0">{$_('files.fileSizeLimit')}</li>
+						<li class="py-4 pt-0">{$_('files.fileDurationLimit')}</li>
 					</ul>
 					{#if error}
 						<p class="mt-3 mb-3 text-red-500 text-center font-semibold">{printError(error)}</p>
@@ -290,7 +304,7 @@
 							><span class="btn btn-ghost btn-xs loading" /></button
 						>
 					{:else if upload}
-						<button class="btn btn-active btn-primary" on:click={uploadFile}
+						<button formaction="?/uploadEst" class="btn btn-active btn-primary" 
 							>{$_('files.uploadButton')}</button
 						>
 					{:else}

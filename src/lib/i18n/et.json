@@ -90,6 +90,7 @@
         "uploadHeader": "Helisalvestise ülesse laadimine",
         "supportedFormats": "Toetatud formaadid: wav, mp3, ogg, mp2, m4a, mp4, flac, amr, mpg.",
         "fileSizeLimit": "Faili suurus kuni 1000MB.",
+        "fileDurationLimit": "Kestus kuni 2 tundi",
         "cancel": "Tühista",
         "delete": "Kustuta lõplikult",
         "fileDeletion": "Faili kustutamine",

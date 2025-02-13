@@ -18,10 +18,10 @@
     "@sveltejs/adapter-node": "^1.2.3",
     "@sveltejs/kit": "1.5.0",
     "@tailwindcss/typography": "^0.5.2",
+    "@types/bun": "latest",
     "@types/wavesurfer.js": "^6.0.3",
     "@typescript-eslint/eslint-plugin": "^5.10.1",
     "@typescript-eslint/parser": "^5.10.1",
-    "@vite-pwa/sveltekit": "^0.2.5",
     "autoprefixer": "^10.4.11",
     "daisyui": "^2.6.4",
     "eslint": "^7.32.0",
@@ -39,8 +39,7 @@
     "svelte-preprocess": "^5.0.3",
     "tailwindcss": "^3.1.8",
     "tslib": "^2.4.1",
-    "typescript": "^5.0.0",
-    "@types/bun": "latest"
+    "typescript": "^5.0.0"
   },
   "type": "module",
   "dependencies": {
@@ -74,6 +73,7 @@
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "form-data": "^4.0.0",
+    "get-audio-duration": "^4.0.1",
     "hotkeys-js": "^3.10.0",
     "jsonwebtoken": "^8.5.1",
     "konva": "^9.3.6",

@@ -90,6 +90,7 @@
         "uploadHeader": "Lähetä äänitiedosto",
         "supportedFormats": "Tuetut tiedostomuodot: wav, mp3, ogg",
         "fileSizeLimit": "Tiedoston enimmäiskoko on noin 1000MB",
+        "fileDurationLimit": "Kesto enintään 2 tuntia",
         "cancel": "Poista",
         "delete": "Poista lopullisesti",
         "fileDeletion": "Poista tiedosto",
