@@ -1,8 +1,8 @@
 <script lang="ts">
     import Waveform from '$lib/components/Waveform.svelte'
     import Icon from 'svelte-awesome/components/Icon.svelte';
-	import minus from 'svelte-awesome/icons/minus-circle';
-	import plus from 'svelte-awesome/icons/plus-circle';
+	import minus from 'svelte-awesome/icons/minusCircle';
+	import plus from 'svelte-awesome/icons/plusCircle';
     import { player, waveform } from '$lib/stores';
     let { url } = $props();
     let rate = '1.0x';

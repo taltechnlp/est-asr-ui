@@ -6,13 +6,11 @@
 	import DropCursor from '@tiptap/extension-dropcursor';
 	import GapCursor from '@tiptap/extension-gapcursor';
 	import TextStyle from '@tiptap/extension-text-style';
-	import Highlight from '@tiptap/extension-highlight';
-    import Underline from '@tiptap/extension-underline';
     import Paragraph from '@tiptap/extension-paragraph';
 	import History from '@tiptap/extension-history';
 	import Icon from 'svelte-awesome/components/Icon.svelte';
-	import rotateLeft from 'svelte-awesome/icons/rotate-left';
-	import rotateRigth from 'svelte-awesome/icons/rotate-right';
+	import rotateLeft from 'svelte-awesome/icons/rotateLeft';
+	import rotateRigth from 'svelte-awesome/icons/rotateRight';
 	import download from 'svelte-awesome/icons/download';
 	import debounce from 'lodash/debounce';
 	import { downloadHandler, handleSave } from '$lib/download';

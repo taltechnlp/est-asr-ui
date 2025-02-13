@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Icon from 'svelte-awesome/components/Icon.svelte';
-	import ellipsisH from 'svelte-awesome/icons/ellipsis-h';
+	import ellipsisH from 'svelte-awesome/icons/ellipsisH';
 	import close from 'svelte-awesome/icons/close';
 	import { lang, languageAnnotationOptions } from '$lib/stores';
 	import { _ } from 'svelte-i18n';

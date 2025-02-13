@@ -19,8 +19,8 @@
 	import { WordColor } from '../plugins/wordColor';
 	import { Annotation } from '../plugins/annotation';
 	import Icon from 'svelte-awesome/components/Icon.svelte';
-	import rotateLeft from 'svelte-awesome/icons/rotate-left';
-	import rotateRigth from 'svelte-awesome/icons/rotate-right';
+	import rotateLeft from 'svelte-awesome/icons/rotateLeft';
+	import rotateRigth from 'svelte-awesome/icons/rotateRight';
 	import download from 'svelte-awesome/icons/download';
 	/* import thumbTack from 'svelte-awesome/icons/thumb-tack';
 	import bookmarkO from 'svelte-awesome/icons/bookmark-o';
@@ -30,9 +30,9 @@
 	import stickyNoteO from 'svelte-awesome/icons/sticky-note-o';
 	import language from 'svelte-awesome/icons/language';
 	import ellipsisH from 'svelte-awesome/icons/ellipsis-h'; */
-	import keyboard from 'svelte-awesome/icons/keyboard-o';
+	import keyboard from 'svelte-awesome/icons/keyboardO';
 	import settings from 'svelte-awesome/icons/cog';
-	import pencil from 'svelte-awesome/icons/pencil-square-o';
+	import pencil from 'svelte-awesome/icons/pencilSquareO';
 	import LanguageLabel from './toolbar/LanguageLabel.svelte';
 	import debounce from 'lodash/debounce';
 	import {
