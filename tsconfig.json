@@ -4,6 +4,7 @@
 		"resolveJsonModule": true,
 		"allowSyntheticDefaultImports": true,
 		"typeRoots": ["./node_modules/@types", "./src/types"],
-		"esModuleInterop": true
+		"esModuleInterop": true,
+		"moduleResolution": "bundler"
 	}
 }

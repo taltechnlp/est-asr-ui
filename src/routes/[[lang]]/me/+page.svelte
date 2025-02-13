@@ -8,7 +8,7 @@
 	import google from 'svelte-awesome/icons/google';
 	import Icon from 'svelte-awesome/components/Icon.svelte';
 	import { signIn } from '@auth/sveltekit/client';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 
 	let userData;
 

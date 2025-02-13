@@ -106,7 +106,7 @@
 
 	function openFile(fileId, fileState, isOld) {
 		if (isOld) {
-			goto(`https://tekstiks.ee/files/`);
+			window.location.href = `https://tekstiks.ee/files/`;
 		}
 		else if (fileState == 'READY') {
 			goto(`/files/${fileId}`);

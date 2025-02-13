@@ -7,7 +7,7 @@
 	import facebook from 'svelte-awesome/icons/facebook';
 	import google from 'svelte-awesome/icons/google';
 	import Icon from 'svelte-awesome/components/Icon.svelte';
-    import { page } from "$app/stores"
+    import { page } from "$app/state"
     import { onMount } from "svelte";
     import { goto, invalidate } from '$app/navigation';
 	
