@@ -89,7 +89,7 @@
         "statusUploaded": "JONOSSA",
         "uploadHeader": "Lähetä äänitiedosto",
         "supportedFormats": "Tuetut tiedostomuodot: wav, mp3, ogg",
-        "fileSizeLimit": "Tiedoston enimmäiskoko on noin 500MB",
+        "fileSizeLimit": "Tiedoston enimmäiskoko on noin 1000MB",
         "cancel": "Poista",
         "delete": "Poista lopullisesti",
         "fileDeletion": "Poista tiedosto",

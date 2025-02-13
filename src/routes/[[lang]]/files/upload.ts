@@ -6,7 +6,7 @@ import { promises as fs } from 'fs';
 import axios from 'axios';
 import Form from 'form-data';
 
-export const UPLOAD_LIMIT = 1024 * 1024 * 400  // 400MB
+export const UPLOAD_LIMIT = 1024 * 1024 * 1000  // 1000MB
 export const uploadResult = {
     0: "failed", 
     1: "network_error", 
