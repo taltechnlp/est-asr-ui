@@ -11,7 +11,7 @@ import Google from '@auth/core/providers/google';
 import EmailProvider from "@auth/core/providers/email"
 import { GITHUB_ID, GITHUB_SECRET, AUTH_SECRET, FACEBOOK_CLIENT_ID, FACEBOOK_CLIENT_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, NEXTAUTH_URL } from "$env/static/private";
 import { sequence } from "@sveltejs/kit/hooks";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "$lib/db/client";
 import { signIn } from '@auth/sveltekit/client';
 
@@ -171,6 +171,6 @@ export const auth = SvelteKitAuth(async (event) => {
 		},
 	}
 	return authOptions
-}) satisfies Handle;
+}) /* satisfies Handle; */
 
-export const handle: Handle = sequence(pwdAuthorization, auth, transformHtml)
+export const handle: Handle = sequence(pwdAuthorization, auth.handle, transformHtml)

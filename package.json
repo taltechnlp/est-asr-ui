@@ -38,6 +38,7 @@
   },
   "type": "module",
   "dependencies": {
+    "@auth/prisma-adapter": "^2.7.4",
     "@auth/sveltekit": "^1.7.4",
     "@prisma/client": "^5.22.0",
     "@sendgrid/mail": "^8.1.4",

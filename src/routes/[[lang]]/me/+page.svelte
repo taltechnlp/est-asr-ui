@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { goto } from '$app/navigation';
 	import { user as userStore } from '$lib/stores';
 	import { _ } from 'svelte-i18n';
@@ -8,7 +8,8 @@
 	import google from 'svelte-awesome/icons/google';
 	import Icon from 'svelte-awesome/components/Icon.svelte';
 	import { signIn } from '@auth/sveltekit/client';
-	import { page } from '$app/state';
+	import type { PageProps } from './$types';
+	let { data }: PageProps = $props();
 
 	let userData = $state();
 
@@ -51,7 +52,7 @@
 		<p>{userData ? userData.name : ''}</p>
 
 		<p>{$_('me.password')}:</p>
-		{#if $page.data.user.passwordSet}
+		{#if data.user.passwordSet}
 			<a href="/password-reset?email={userData.email}">
 				<button class="btn btn-outline btn-sm">{$_('me.resetPassword')}</button>
 			</a>
@@ -68,7 +69,7 @@
 	<h3 class="text-lg mb-10 font-extrabold mt-6">{$_('me.connectedAccounts')}</h3>
 	<div class="grid grid-cols-2 gap-5 place-content-between">
 		<p><Icon data={facebook} scale={1.5} /> Facebook</p>
-		{#if $page.data.accounts.facebook}
+		{#if data.accounts.facebook}
 			<form method="POST" action="?/remove" class="justify-self-end">
 				<input type="text" value="facebook" class="hidden" name="provider" />
 				<button class="btn btn-outline btn-sm btn-error">{$_('me.removeAccount')}</button>
@@ -81,7 +82,7 @@
 			</div>
 		{/if}
 		<p><Icon data={google} scale={1.5} /> Google</p>
-		{#if $page.data.accounts.google}
+		{#if data.accounts.google}
 			<form method="POST" action="?/remove" class="justify-self-end">
 				<input type="text" value="google" class="hidden" name="provider" />
 				<button class="btn btn-outline btn-sm btn-error">{$_('me.removeAccount')}</button>
@@ -94,7 +95,7 @@
 			</div>
 		{/if}
 <!-- 		<p><Icon data={github} scale={1.5} /> GitHub</p>
-		{#if $page.data.accounts.github}
+		{#if data.accounts.github}
 			<form method="POST" action="?/remove" class="justify-self-end">
 				<input type="text" value="github" class="hidden" name="provider" />
 				<button class="btn btn-outline btn-sm btn-error">{$_('me.removeAccount')}</button>

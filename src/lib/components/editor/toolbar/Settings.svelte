@@ -18,25 +18,47 @@
 				<table class="table w-full">
 					<tbody>
 						<tr>
-							<td>
-								{$_('editor.settings.fontSize')}
+							<td>{$_('editor.settings.fontSize')}</td>
+							<td class="grid-container">
+							  <input
+								type="range"
+								min="10"
+								max="22"
+								class="range pl-2"
+								step="2"
+								onchange={handleFontSizeChange}
+								bind:value={fontSize}
+							  />
+							  <span class="w-full flex justify-between text-xs px-4">
+								<span class="w-1 tex">XXS</span>
+								<span class="w-1">XS</span>
+								<span class="w-1">S</span>
+								<span class="w-1">M</span>
+								<span class="w-1">L</span>
+								<span class="w-1">XL</span>
+								<span class="w-1">XXL</span>
+							  </span>
 							</td>
-							<td>
-								<input type="range" min="10" max="22" class="range pl-2" step="2" onchange={handleFontSizeChange} bind:value={fontSize} />
-								<div class="w-full flex justify-between text-xs px-4">
-									<span class="w-1 tex">XXS</span>
-									<span class="w-1">XS</span>
-									<span class="w-1">S</span>
-									<span class="w-1">M</span>
-									<span class="w-1">L</span>
-									<span class="w-1">XL</span>
-									<span class="w-1">XXL</span>
-								</div>
-							</td>
-						</tr>
+						  </tr>
 					</tbody>
 				</table>
 			</div>
 		</div>
 	</div>
 </div>
+
+<style>
+	td.grid-container {
+	  display: grid;
+	  grid-template-rows: auto auto; /* Adjust as needed */
+	  gap: 0.5rem; /* Optional: Add some spacing */
+	}
+  
+	td.grid-container > input {
+	  /* Style the range input */
+	}
+  
+	td.grid-container > span {
+	  /* Style the labels */
+	}
+</style>
