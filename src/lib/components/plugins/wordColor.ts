@@ -1,7 +1,7 @@
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from 'prosemirror-state';
 import { Decoration, DecorationSet } from 'prosemirror-view';
-import { waveform } from '$lib/stores';
+import { waveform } from '$lib/stores.svelte';
 
 let ws;
 waveform.subscribe((w) => {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { _ } from 'svelte-i18n';
-    import { editor } from '$lib/stores';
+    import { editor } from '$lib/stores.svelte';
     import { downloadHandler } from '$lib/download';
     let { fileName } = $props();
 	let downloadOptions = [

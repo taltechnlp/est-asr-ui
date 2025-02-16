@@ -3,7 +3,7 @@ import { Node, mergeAttributes } from '@tiptap/core';
 import { SvelteNodeViewRenderer } from 'svelte-tiptap';
 // import { text } from 'svelte/internal';
 import Segment from './Segment.svelte';
-import { waveform } from '$lib/stores';
+import { waveform } from '$lib/stores.svelte';
 
 let ws;
 waveform.subscribe(w => {

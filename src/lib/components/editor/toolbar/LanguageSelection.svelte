@@ -2,7 +2,7 @@
 https://svelte.dev/e/node_invalid_placement -->
 <script lang="ts">
 	import { _ } from 'svelte-i18n';
-	import { languageAnnotationOptions } from '$lib/stores';
+	import { languageAnnotationOptions } from '$lib/stores.svelte';
 
 	let newLabel = '';
 	let newDesc = '';

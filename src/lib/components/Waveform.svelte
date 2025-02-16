@@ -11,7 +11,7 @@
 		duration,
 		editor,
 		waveform
-	} from '$lib/stores';
+	} from '$lib/stores.svelte';
 	import Peaks, { type PeaksInstance, type PeaksOptions } from 'peaks.js';
 	let { url } = $props();
 

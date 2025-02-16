@@ -7,7 +7,7 @@
 		speakerNames as speakerNamesStore,
 		words as wordsStore,
 		editorMounted
-	} from '$lib/stores';
+	} from '$lib/stores.svelte.js';
 	import type { Word, Speaker } from '$lib/helpers/converters/types';
 	let { data } = $props();
 	let words: Array<Word> = [];

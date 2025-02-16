@@ -2,7 +2,7 @@
 	import Icon from 'svelte-awesome/components/Icon.svelte';
 	import ellipsisH from 'svelte-awesome/icons/ellipsisH';
 	import close from 'svelte-awesome/icons/close';
-	import { lang, languageAnnotationOptions } from '$lib/stores';
+	import { lang, languageAnnotationOptions } from '$lib/stores.svelte';
 	import { _ } from 'svelte-i18n';
 	let { editor } = $props();
 	const colors = [

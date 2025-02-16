@@ -3,7 +3,7 @@
     import Icon from 'svelte-awesome/components/Icon.svelte';
 	import minus from 'svelte-awesome/icons/minusCircle';
 	import plus from 'svelte-awesome/icons/plusCircle';
-    import { player, waveform } from '$lib/stores';
+    import { player, waveform } from '$lib/stores.svelte';
     let { url } = $props();
     let rate = '1.0x';
 	let zoom = $state(1);

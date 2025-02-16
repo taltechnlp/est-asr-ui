@@ -4,7 +4,7 @@
 	import Button from '$lib/components/Button.svelte';
 	import { enhance } from '$app/forms';
 	import type {PageData, ActionData} from './$types';
-	import { user as userStore } from '$lib/stores';
+	import { user as userStore } from '$lib/stores.svelte';
 	
 	let email = $state(data.email);
 	let fullName = $state(data.name);

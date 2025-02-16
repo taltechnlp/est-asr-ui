@@ -13,7 +13,7 @@
 		editorMounted,
 		editorMode,
 		fontSize as fontSizeStore
-	} from '$lib/stores';
+	} from '$lib/stores.svelte';
 	import { /* findParentNodeOfTypeClosestToPos, */ findBlockNodes } from 'prosemirror-utils';
 	// import { Transform } from 'prosemirror-transform';
 

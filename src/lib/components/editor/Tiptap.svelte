@@ -43,7 +43,7 @@
 		waveform, 
 		fontSize as fontSizeStore,
 		player
-	} from '$lib/stores';
+	} from '$lib/stores.svelte';
 	import { Change, ChangeSet, Span, simplifyChanges } from 'prosemirror-changeset';
 	import { _, locale } from 'svelte-i18n';
 	import { transactionsHaveChange } from '$lib/components/editor/api/transaction';

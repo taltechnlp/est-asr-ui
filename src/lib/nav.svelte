@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { user as userStore, lang as langStore } from '$lib/stores';
+	import { userState, lang as langStore } from '$lib/stores.svelte';
 	import { afterNavigate, goto } from '$app/navigation';
 	import Logo from '$lib/components/Logo.svelte';
 	import { createEventDispatcher } from 'svelte';
@@ -7,16 +7,13 @@
 	import { uiLanguages } from './i18n';
 	let { language } = $props();
 
-	let loggedIn = $state();
-	let initials = $state();
-	userStore.subscribe((value) => {
-		if (value && value.name) {
-			loggedIn = true;
-			const rgx = new RegExp(/(\p{L}{1})\p{L}+/, 'gu');
-			let initialsArr = [...value.name.matchAll(rgx)];
-			initials = ((initialsArr.shift()?.[1] || '') + (initialsArr.pop()?.[1] || '')).toUpperCase();
-		} else loggedIn = false;
+	let loggedIn = $derived(userState.id.length > 0);
+	const rgx = new RegExp(/(\p{L}{1})\p{L}+/, 'gu');
+	let initials = $derived.by(() => {
+		let initialsArr = [...userState.name.matchAll(rgx)];
+		return ((initialsArr.shift()?.[1] || '') + (initialsArr.pop()?.[1] || '')).toUpperCase();
 	});
+
 	let path = $state('');
 	afterNavigate((nav) => {
 		path = nav.to.url.pathname;
@@ -138,6 +135,7 @@
 		</div>
 		<div class="grid sm:hidden">
 			<button class="btn btn-square btn-ghost justify-self-end" onclick={toggleMenu}>
+				
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					fill="none"

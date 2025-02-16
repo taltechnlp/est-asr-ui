@@ -1,7 +1,7 @@
 <script lang="ts">
 	import SignInForm from '$lib/components/SignInForm.svelte';
 	import { _ } from 'svelte-i18n';
-	import { user as userStore } from '$lib/stores';
+	import { user as userStore } from '$lib/stores.svelte';
 	import { signIn, signOut } from "@auth/sveltekit/client"
 	import github from 'svelte-awesome/icons/github';
 	import facebook from 'svelte-awesome/icons/facebook';
