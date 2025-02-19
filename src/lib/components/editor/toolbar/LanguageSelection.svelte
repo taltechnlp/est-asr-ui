@@ -2,14 +2,46 @@
 https://svelte.dev/e/node_invalid_placement -->
 <script lang="ts">
 	import { _ } from 'svelte-i18n';
-	import { languageAnnotationOptions } from '$lib/stores.svelte';
+	// import { languageAnnotationOptions } from '$lib/stores.svelte';
+
+	export let languageAnnotationOptions = [];
+	export let onSetActive; // Callback prop
+	export let onSave; // Callback prop
 
 	let newLabel = '';
 	let newDesc = '';
 	let newActive = false;
-	$: validated = newLabel.length > 1;
+	//let validated = false;
 
-	const setActive = (element, label) => {
+	$: validated = newLabel && newDesc;
+
+	function setActive(event, label) {
+		if (onSetActive) {
+		onSetActive(label); // Call the callback
+		}
+	}
+
+	function addNew() {
+		if (validated) {
+		languageAnnotationOptions = [
+			...languageAnnotationOptions,
+			{ label: newLabel, description: newDesc, active: newActive },
+		];
+		newLabel = '';
+		newDesc = '';
+		newActive = false;
+		}
+	}
+
+	function save() {
+		if (onSave) {
+		onSave(languageAnnotationOptions); // Call the callback
+		}
+	}
+
+	// $: validated = newLabel.length > 1;
+
+	/* const setActive = (element, label) => {
 		console.log(element.target.checked);
 		languageAnnotationOptions.update((l) =>
 			l.map((x) => {
@@ -31,7 +63,7 @@ https://svelte.dev/e/node_invalid_placement -->
         newLabel = "";
         newDesc = "";
         newActive = false;
-	};
+	}; */
 </script>
 
 <input type="checkbox" id="languages-modal" class="modal-toggle" />
@@ -44,42 +76,48 @@ https://svelte.dev/e/node_invalid_placement -->
 		<table class="table max-w-screen-2xl">
 			<thead>
 				<tr>
-					<th />
-					<th>{$_('editor.languageCode')}</th>
-					<th>{$_('editor.languageDescription')}</th>
-					<th>{$_('editor.languageActivate')}</th>
-					<th>{$_('editor.languageAction')}</th>
+				  <th>#</th>
+				  <th>{$_('editor.label')}</th>
+				  <th>{$_('editor.description')}</th>
+				  <th>{$_('editor.active')}</th>
+				  <th>{$_('editor.actions')}</th>
 				</tr>
-			</thead>
-			<tbody>
-				{#each $languageAnnotationOptions as lang, index}
-					<tr>
-						<th>{index + 1}</th>
-						<td>{lang.label}</td>
-						<td>{lang.description}</td>
-						<td class="" on:click={(e) => setActive(e, lang.label)}>
-							<input type="checkbox" bind:checked={lang.active} />
-						</td>
-						<td>
-							<button class="btn btn-ghost">{$_('editor.edit')}</button>
-						</td>
-					</tr>
+			  </thead>
+			  <tbody>
+				{#each languageAnnotationOptions as lang, index (lang.label)}
+				  <tr>
+					<th>{index + 1}</th>
+					<td>{lang.label}</td>
+					<td>{lang.description}</td>
+					<td class="text-center" on:click={(e) => setActive(e, lang.label)}>
+					  <input type="checkbox" checked={lang.active} on:change={() => {
+						lang.active = !lang.active;
+						languageAnnotationOptions = languageAnnotationOptions;
+					  }} />
+					</td>
+					<td>
+					  <button class="btn btn-ghost">{$_('editor.edit')}</button>
+					</td>
+				  </tr>
 				{/each}
 				<tr>
-					<th />
-					<td><input bind:value={newLabel} type="text" class="max-w-[3rem]" /></td>
-					<td><input bind:value={newDesc} type="text" /></td>
-					<td><input bind:value={newActive} type="checkbox" /></td>
-					<td
-						><button on:click={addNew}
-							class="btn {!validated ? 'btn-disabled' : 'btn-primary'} ">{$_('editor.addNew')}</button
-						></td
-					>
+					<th></th>
+				  <td>
+					<input bind:value={newLabel} type="text" class="input input-bordered input-sm max-w-[5rem]" />
+				  </td>
+				  <td>
+					<input bind:value={newDesc} type="text" class="input input-bordered input-sm" />
+				  </td>
+				  <td class="text-center">
+					<input bind:checked={newActive} type="checkbox" class="checkbox" />
+				  </td>
+				  <td>
+					<button on:click={addNew} class="btn btn-sm" disabled={!validated}>
+					  {$_('editor.addNew')}
+					</button>
+				  </td>
 				</tr>
-				<div class="modal-action">
-					<label for="languages-modal" class="btn">{$_('editor.save')}</label>
-				</div>
-			</tbody>
+			  </tbody>
 		</table>
 	</div>
 </div>

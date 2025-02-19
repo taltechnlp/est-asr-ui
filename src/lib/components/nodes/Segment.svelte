@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { NodeViewProps } from '@tiptap/core';
-	import { NodeViewWrapper, editable } from 'svelte-tiptap';
+	import { NodeViewWrapper, NodeViewContent } from 'svelte-tiptap';
 	import { onMount, onDestroy } from 'svelte';
 	import Icon from '../Icon.svelte';
 	import { clickOutside } from '../clickOutside';
@@ -80,14 +80,15 @@
 		let i = 0;
 		let done = false;
 		let startTime = null;
+		let testNode;
 		do {
-			node = state.doc.nodeAt(startPos + i);
-			if (node && node.marks && node.marks && node.marks.length > 0) {
-				for (let j = 0; j < node.marks.length; j++) {
+			testNode = state.doc.nodeAt(startPos + i);
+			if (testNode && testNode.marks && testNode.marks.length > 0) {
+				for (let j = 0; j < testNode.marks.length; j++) {
 					// @ts-ignore
-					if (node.marks[0].attrs.start) {
+					if (testNode.marks[0].attrs.start) {
 						// @ts-ignore
-						startTime = node.marks[0].attrs.start;
+						startTime = testNode.marks[0].attrs.start;
 						done = true;
 						break;
 					}
@@ -95,7 +96,7 @@
 			}
 			if (done) break;
 			i++;
-		} while (!done && node);
+		} while (!done && testNode);
 
 		return startTime;
 	};
@@ -343,7 +344,7 @@
 			/>
 		{/if}
 	</div>
-	<div use:editable class="content editable" style="{cssVarStyles}"></div>
+	<NodeViewContent class="content editable" style={cssVarStyles}></NodeViewContent>
 </NodeViewWrapper>
 
 <style>
