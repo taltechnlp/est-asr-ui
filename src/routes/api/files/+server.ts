@@ -7,7 +7,7 @@ import { prisma } from "$lib/db/client";
 export const GET: RequestHandler = async ({ locals, url }) => {
     let userId = locals.userId;
     if (!userId) {
-        let session = await locals.getSession();
+        let session = await locals.auth();
         if (session && session.user) userId = session.user.id;
     }
     if (!userId ) {

@@ -1,8 +1,13 @@
 import type { PageServerLoad } from "./$types";
 import { prisma } from "$lib/db/client";
+import type { Actions } from './$types';
+import { fail } from '@sveltejs/kit';
+import { signIn } from "../../../auth";
+
+export const actions = { default: signIn } satisfies Actions
 
 export const load: PageServerLoad = async (event) => {
-  let session = await event.locals.getSession();
+  let session = await event.locals.auth();
   if (!session && event.locals.userId) {
     const user = await prisma.user.findUnique({
       where: {

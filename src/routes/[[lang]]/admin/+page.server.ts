@@ -5,7 +5,7 @@ import { error, json } from '@sveltejs/kit';
 export const load = (async ({ locals, fetch }) => {
     let userId = locals.userId;
     if (!userId) {
-        let session = await locals.getSession();
+        let session = await locals.auth();
         if (session && session.user) userId = session.user.id;
     }
     if (!userId ) {

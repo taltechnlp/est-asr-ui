@@ -2,7 +2,7 @@ import type { PageServerLoad } from './$types';
 import { prisma } from "$lib/db/client";
 
 export const load = (async ({ params, locals, url}) => {
-    let session = await locals.getSession();
+    let session = await locals.auth();
     if (!session && locals.userId) {
         const user = await prisma.user.findUnique({
             where: {

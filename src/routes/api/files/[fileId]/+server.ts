@@ -6,7 +6,7 @@ import { error } from "@sveltejs/kit";
 export const DELETE: RequestHandler = async ({ params, locals }) => {
   let userId = locals.userId;
     if (!userId) {
-        let session = await locals.getSession();
+        let session = await locals.auth();
         if (session && session.user) userId = session.user.id;
     }
     if (!userId ) {
@@ -57,7 +57,7 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 export const PUT: RequestHandler = async ({ params, request, locals }) => {
         let userId = locals.userId;
         if (!userId) {
-            let session = await locals.getSession();
+            let session = await locals.auth();
             if (session && session.user) userId = session.user.id;
         }
         if (!userId ) {

@@ -17,7 +17,7 @@ export const load: LayoutServerLoad = async ({ request, locals, params, cookies,
 		redirect(301, '/' + cookies.get('language') + url.pathname);
 	}
 	const language = params.lang || cookies.get("language");
-	const session = (await locals.getSession()) as Sess;
+	const session = (await locals.auth()) as Sess;
 	if (locals.userId) {
 		const user = await prisma.user.findUnique({
 			where: {

@@ -24,7 +24,7 @@
 	}
 </script>
 
-<form onsubmit={preventDefault(submit)} class="space-y-5 {props.class}">
+<form onsubmit={preventDefault(submit)} class="space-y-5 {props.class} max-w-xl mx-auto mt-8">
 	<Input
 		label={$_('signin.email')}
 		id="email"

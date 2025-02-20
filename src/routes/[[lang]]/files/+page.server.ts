@@ -18,7 +18,7 @@ import { unlink } from "fs/promises";
 export const load: PageServerLoad = async ({ locals, fetch, depends, url }) => {
     depends('/api/files')
     let userId = locals.userId;
-    let session = await locals.getSession();
+    let session = await locals.auth();
     if (!userId) {
         if (session && session.user) userId = session.user.id;
     }
@@ -73,7 +73,7 @@ export const actions: Actions = {
     uploadEst: async ({ locals, request, fetch }) => {
         let userId = locals.userId;
         if (!userId) {
-            let session = await locals.getSession();
+            let session = await locals.auth();
             if (session && session.user) userId = session.user.id;
         }
         if (!userId) {
@@ -202,7 +202,7 @@ export const actions: Actions = {
     uploadFin: async ({ locals, request }) => {
         let userId = locals.userId;
         if (!userId) {
-            let session = await locals.getSession();
+            let session = await locals.auth();
             if (session && session.user) userId = session.user.id;
         }
         if (!userId) {

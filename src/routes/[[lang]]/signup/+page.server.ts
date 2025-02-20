@@ -29,7 +29,6 @@ export const actions: Actions = {
         const email = data.get('email') as string;
         const password = data.get('password') as string;
         const name = data.get('name') as string;
-        const random = data.get('random')
 
         if (!validateEmail(email)) {
             return fail(400, { email, invalid: true });
