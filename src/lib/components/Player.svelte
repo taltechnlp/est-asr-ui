@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
     import Waveform from '$lib/components/Waveform.svelte'
     import Icon from 'svelte-awesome/components/Icon.svelte';
 	import minus from 'svelte-awesome/icons/minus-circle';
@@ -40,6 +40,17 @@
 			$waveform.zoom.setZoom(el.srcElement.value);
 		}
 	};
+	const changePlaybackRate = (rate) => {
+        const audio = document.getElementById("audio") as HTMLMediaElement;
+		if (rate && rate >= 0.5 && rate <= 4){
+			audio.playbackRate = rate;
+		}
+	}
+    const changeSpeed= (el) => {
+        const val = (el.srcElement.value.split('x')[0]);
+        console.log(val);
+        if (val) changePlaybackRate(val);
+    }
 </script>
 
 <div class="w-full h-auto fixed bottom-0 left-0 pb-1 bg-white">
@@ -52,6 +63,25 @@
             <button class="btn btn-square btn-sm control-button ml-1" on:click={zoomOut}>
                 <Icon data={minus} scale={1} />
             </button>
+            <select class="select select-bordered ml-2"
+            bind:value={rate} on:change={changeSpeed}>
+                <option>0.5x</option>
+                <option>0.6x</option>
+                <option>0.7x</option>
+                <option>0.8x</option>
+                <option>0.9x</option>
+                <option>1.0x</option>
+                <option>1.1x</option>
+                <option>1.2x</option>
+                <option>1.3x</option>
+                <option>1.4x</option>
+                <option>1.5x</option>
+                <option>1.6x</option>
+                <option>1,7x</option>
+                <option>1.8x</option>
+                <option>1.9x</option>
+                <option>2.0x</option>
+            </select>
         </div>
         <div class="flex justify-around items-center w-48 min-w-max">
             <div class="tooltip" data-tip="Shift + Tab">
