@@ -15,26 +15,18 @@ import { prisma } from "$lib/db/client";
 import bcrypt from 'bcrypt';
 import { handle as authHandle } from "./auth"
 
-/* let userId;
-let isSignInFlow = false;
-async function pwdAuthorization({ event, resolve }) {
+/* async function pwdAuthorization({ event, resolve }) {
 	const token = event.cookies.get('token');
 	if (token) { // Logged in via pw
 		const userDetails = jwt.verify(token, SECRET_KEY);
 		if (userDetails.userId) {
 			event.locals.userId = userDetails.userId
-			userId = userDetails.userId;
 		}
-		isSignInFlow = false;
 	}
 	else {
 		const cookieString = event.request.headers.get('cookie') || '';
   		const cookies = await parse(cookieString);
-		console.log(cookies);
-		// Exception to enable OAUTH signin
-  		isSignInFlow =
-			Object.prototype.hasOwnProperty.call(cookies, 'authjs.pkce.code_verifier') ||
-			Object.prototype.hasOwnProperty.call(cookies, '__Secure-next-auth.pkce.code_verifier');
+		console.log("Cookies", cookies);
 	}
 	return resolve(event);
 } */
@@ -45,4 +37,4 @@ async function transformHtml({ event, resolve }) {
 }
 
 
-export const handle: Handle = sequence(/* pwdAuthorization,  */authHandle, transformHtml)
+export const handle: Handle = sequence( authHandle, transformHtml)

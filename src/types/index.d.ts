@@ -9,7 +9,7 @@ declare global {
   }
   
 }
-interface Sess extends Session {
+/* interface Sess extends Session {
   user: {
     name?: string | null;
     email?: string | null
@@ -18,4 +18,14 @@ interface Sess extends Session {
 }  
 export {
   Sess
-};
+}; */
+
+declare module "@auth/core/jwt" {
+  /** Returned by the `jwt` callback and `auth`, when using JWT sessions */
+  interface JWT {
+    id: string
+		email: string
+		name: string
+		picture: string
+  }
+}

@@ -10,38 +10,45 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "$lib/db/client";
 import bcrypt from 'bcrypt';
 import type {SvelteKitAuthConfig} from '@auth/sveltekit'
-
-let userId = undefined;
-let isSignInFlow = false;
+import { AuthError, CredentialsSignin } from '@auth/core/errors'
+import { type DefaultSession } from "@auth/sveltekit"
+ 
+declare module "@auth/sveltekit" {
+  interface Session {
+    user: {
+      userId: string
+      /**
+       * By default, TypeScript merges new interface properties and overwrites existing ones.
+       * In this case, the default session user properties will be overwritten,
+       * with the new ones defined above. To keep the default session user properties,
+       * you need to add them back into the newly declared interface.
+       */
+    } & DefaultSession["user"]
+  }
+}
 
 // URL will contain `error=CredentialsSignin&code=custom_error`
 
 export const { handle, signIn, signOut } = SvelteKitAuth(async (event) => {
 	const authOptions = {
-		// @ts-ignore
-		adapter: PrismaAdapter(prisma),
-		jwt: {
+		//adapter: PrismaAdapter(prisma),
+		/* jwt: {
 			secret: SECRET_KEY,
 			maxAge: 15 * 24 * 30 * 60, // 15 days
-		},
+		}, */
 		providers: [
 			/* GitHub({ clientId: GITHUB_ID, clientSecret: GITHUB_SECRET }),
-			// @ts-ignore */
-			Facebook({
+			/* Facebook({
 				clientId: FACEBOOK_CLIENT_ID,
 				clientSecret: FACEBOOK_CLIENT_SECRET,
 			}),
 			Google({
 				clientId: GOOGLE_CLIENT_ID,
 				clientSecret: GOOGLE_CLIENT_SECRET,
-			}),
+			}), */
 			Credentials({
 				// You can specify which fields should be submitted, by adding keys to the `credentials` object.
 				// e.g. domain, username, password, 2FA token, etc.
-				credentials: {
-				  email: {},
-				  password: {},
-				},
 				authorize: async (credentials) => {
 					let user = null;
 					if (
@@ -65,11 +72,21 @@ export const { handle, signIn, signOut } = SvelteKitAuth(async (event) => {
 					if (!user) {
 					  // No user found, so this is their first attempt to login
 					  // Optionally, this is also the place you could do a user registration
-					  throw new Error("Invalid credentials.")
+					  
+					  console.log("registration case")
+					  class EmailError extends CredentialsSignin {
+						code = "emailError"
+					   }
+					   // URL will contain `error=CredentialsSignin&code=custom_error`
+					throw new EmailError( "user does not exist");
 					};
 					const valid = await bcrypt.compare(credentials.password, user.password);
 					if (!valid) {
-						throw new Error("Invalid credentials.")
+						class PasswordError extends CredentialsSignin {
+							code = "passwordError"
+						   }
+						   // URL will contain `error=CredentialsSignin&code=custom_error`
+						throw new PasswordError( "wrong password");
 					};
 					// const token = jwt.sign({ userId: user.id }, SECRET_KEY);
 		   
@@ -77,7 +94,8 @@ export const { handle, signIn, signOut } = SvelteKitAuth(async (event) => {
 				  return {
 					email: user.email,
 					id: user.id,
-                    name: user.name
+                    name: user.name,
+					picture: ""
 				  }
 				},
 			}),
@@ -94,22 +112,23 @@ export const { handle, signIn, signOut } = SvelteKitAuth(async (event) => {
 				// maxAge: 24 * 60 * 60, // How long email links are valid for (default 24h)
 				}), */
 			],
-			secret: AUTH_SECRET,
+		secret: AUTH_SECRET,
 		trustHost: true,
+		session: {
+			maxAge: 2592000,
+			updateAge: 60
+			// strategy: "jwt", // "jwt" | "database"
+		},
 		pages: {
 			signIn: "/signin",
-			error: '/signin/error', // Error code passed in query string as ?error=
+			error: '/signin', // Error code passed in query string as ?error=
 			verifyRequest: '/auth/verify-request', // (used for check email message)
 			newUser: '/files' // New users will be directed here on first sign in (leave the property out if not of interest)
 		},
-		events: {
-			signIn: (x) => console.log("signin", x),
-			signOut: (x) => console.log("signout", x), 
-		}, 
 		callbacks: {
 			async jwt({ token, user, trigger, isNewUser }) {
-				if (trigger === 'signIn') console.log("Signing in", trigger, "is new user", isNewUser, user)
-				else if (trigger === 'signUp') console.log("Signing up", trigger, "is new user", isNewUser, user)
+				if (trigger === 'signIn') console.log("JWT cb: Signing in", trigger, "is new user", isNewUser, token)
+				else if (trigger === 'signUp') console.log("JWT cb: Signing up", trigger, "is new user", isNewUser, token)
 				if (user) {
 					token.id = user.id;
 					token.email = user.email;
@@ -121,10 +140,10 @@ export const { handle, signIn, signOut } = SvelteKitAuth(async (event) => {
 			async redirect({ url, baseUrl }) {
 				console.log("redirect cb", url, baseUrl)
 				// Allows relative callback URLs
-				if (url.startsWith("/")) return `${EST_ASR_URL}${url}`
+				if (url.startsWith("/")) return `${baseUrl}${url}`
 			 
 				// Allows callback URLs on the same origin
-				if (new URL(url).origin === EST_ASR_URL) return url
+				if (new URL(url).origin === baseUrl) return url
 			 
 				return baseUrl
 			},
@@ -133,7 +152,9 @@ export const { handle, signIn, signOut } = SvelteKitAuth(async (event) => {
 				if (token) {
 					session.user = token;
 				}
-				session.user.id = user.id;
+				else{
+					session.user.id = user.id;
+				}
 				return session;
 			},
 			signIn: async ({ user, account, credentials, email, profile }) => {
@@ -150,57 +171,10 @@ export const { handle, signIn, signOut } = SvelteKitAuth(async (event) => {
 						}
 					}
 				});
-				console.log(user, account, credentials, email, profile);
+				console.log("signin cb")
 				// Allow all password / 2FA requests to pass. 
 				if (account.provider === "credentials") return true;
-				else if (isSignInFlow || !existingAccount) {
-					if (!existingAccount) {
-						const emailUsed = await prisma.user.findUnique({
-							where: {
-								email: user.email
-							},
-							select: {
-								id: true,
-								email: true
-							}
-						})
-						if (emailUsed && userId && emailUsed.id === userId) {
-							// Manually add the login method
-							const addAccount = await prisma.account.create({
-								data: {
-									provider: account.provider,
-									providerAccountId: account.providerAccountId,
-									type: account.type,
-									access_token: account.access_token,
-									expires_in: account.expires_in,
-									id_token: account.id_token,
-									refresh_token: account.refresh_token,
-									scope: account.scope,
-									token_type: account.token_type,
-									user: {
-										connect: {
-											id: userId
-										}
-									}
-								}
-							})
-							if (addAccount) return true;
-							else return false;
-						}
-						// SvelteKit auth handles the case where there is a session already and account can be linked.
-					}
-					// Returns AccountNotLinked if not logged in and belongs to some other user.
-					return true;
-				}
-				else {
-					// Auth.js does not handle this case that another user has the OAUTH account and they are logged in with password.
-					if (existingAccount.userId !== userId || user.id !== userId) {
-						return false;
-					}
-					else {
-						return true;
-					}
-				}
+				return true;
 			},
 		} 
 	}

@@ -11,7 +11,10 @@
     import { goto, invalidate } from '$app/navigation';
 	import { SignIn, SignOut } from "@auth/sveltekit/components";
 	import { signIn } from "@auth/sveltekit/client"
-	import { page as pageStore } from "$app/stores";
+	import type { PageProps } from './$types';
+	import Input from '$lib/components/Input.svelte';
+	import Button from '$lib/components/Button.svelte';
+
 	import Discord from "@auth/sveltekit/providers/discord"
 	import Facebook from "@auth/sveltekit/providers/facebook"
 	import Google from "@auth/sveltekit/providers/google"
@@ -93,27 +96,50 @@
 			userState.id = user.id;
 			userState.email = user.email;
 			await invalidate("/")
-			await goto('/files')
+			await goto('/files', { invalidateAll: true })
 		}
 	}
 	const printError = (error) => {
-		if (error === 'password') {
+		if (error === 'passwordError') {
 			return $_('signin.passwordError');
-		} else if (error === 'email') {
+		} else if (error === 'emailError') {
 			return $_('signin.emailError')
-		} else if (error === 'noPasswordSet') {
+		} else if (error === 'noPasswordSetError') {
 			return $_('signin.noPasswordSet')
 		}
 		else return error;
 	};
+	let { data, form }: PageProps = $props();
 
+	let errorCode = $state("");
 	async function logIn() {
-        if (page.data.session) {
-            await invalidate("/")
-            await goto('/files')
-        } 
+		let error = false;
+		errorCode = ""
+		const body = await signIn("credentials", { redirect: false, email: "aivo.olev@gmail.com", password: 'p' })
+		.then((res) => res.json())
+		.catch((e)=>{
+			error = true;
+			console.log("signin failed");
+			errorCode = "unknownError";
+		});
+		if (!error && body.url)	{
+			const searchParams = new URLSearchParams(body.url);
+			for (const p of searchParams) {
+				if (p[0] === "code") {
+					errorCode = p[1];
+					console.log(p[1]);
+				}
+			}
+			console.log( body.url );
+		}
+		if (!errorCode) {
+			await invalidate('data:session');
+			await invalidate('/api/files');
+			await goto('/files');
+		}
     }
-    onMount(async ()=> await logIn())
+	
+
 </script>
 
 <svelte:head>
@@ -124,32 +150,46 @@
 	<a href="signin" class="tab tab-bordered tab-lg tab-active mr-8">{$_('signin.login')}</a>
 	<a href="signup" class="tab tab-bordered tab-lg">{$_('signin.register')}</a>
 </div>
-{#if error}
-<p class="mt-3 text-red-500 text-center font-semibold">{printError(error)}</p>
+{#if errorCode}
+<p class="mt-3 text-red-500 text-center font-semibold">{printError(errorCode)}</p>
 {/if}
-<SignInForm on:submit={handleSubmit} />
 
 <SignIn 
 	provider="credentials"
 	className="w-full"
 	>
-	<div slot="credentials">
-		<label>
-			Email
-			<input name="email" type="email">
-		</label>
-		<label>
-			Password
-			<input name="password" type="password">
-		</label>
-		<button type="submit">Log in</button>
+	<div slot="credentials" class="space-y-5 max-w-xl mx-auto mt-8">
+		<Input
+			label={$_('signin.email')}
+			id="email"
+			name="email"
+			type="email"
+			bind:value={email}
+			required
+		/>
+		<Input
+			label={$_('signin.password')}
+			id="password"
+			name="password"
+			type="password"
+			bind:value={password}
+			required
+		/>
+		<div class="flex place-content-between w-96">
+			<button type="submit" onclick={() => logIn()} class="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+				{$_('signin.login')}
+			</button>
+			<a href="password-reset">{$_('signin.forgotPassword')}</a>
+		</div>
 	</div>
+
 </SignIn>
 
 <div class="flex justify-center">
 	<div class="max-w-xl mt-7 gap-2">
 		<p class="mb-1">Või kasuta sisenemiseks:</p>		
 			<button class="btn btn-outline gap-2" onclick={() => signIn("facebook")}><Icon data={facebook} scale={1.5}/>Facebook</button>
+			<button class="btn btn-outline gap-2" onclick={() => logIn()}><Icon data={facebook} scale={1.5}/>credentials</button>
 			<button class="btn btn-outline gap-2" onclick={() => signIn("google")}><Icon data={google} scale={1.5}/>
 				Google</button>
 			<!-- <button class="btn btn-outline gap-2" onclick={() => signIn("github")}><Icon data={github} scale={1.5}/>GitHub</button> -->
