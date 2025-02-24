@@ -270,79 +270,81 @@
 </script>
 
 <NodeViewWrapper class="svelte-component speaker {selected}">
-	<details class="dropdown" bind:open={isListOpen} contentEditable={false}>
-		<summary class="m-1 speaker-name flex group cursor-pointer w-auto hover:bg-accent">
-			<Icon name="user" class="" />
-			<span class="text-primary font-bold font-sans">{selectedVal.name}</span>
-			<Icon name="dropdown-arrow" class="invisible group-hover:visible" />
-		</summary>
-		<div class="absolute z-10 m-2 shadow drop-shadow-lg menu bg-base-100" use:clickOutside
-		onoutclick={() => {
-			isListOpen = false;
-		}}>
-			<div class="p-1 flex">
-				<input
-					placeholder={$_('speakerSelect.addNew')}
-					bind:value={newSpeaker}
-					onkeypress={(e) => handleKeypress(e, newSpeaker)}
-				/>
-				<button
-					class="btn btn-outline btn-xs w-min ml-1 hover:text-primary"
-					onclick={() => handleNewSpeakerSave(newSpeaker, time)}
-					>{$_('speakerSelect.save')}</button
-				>
-			</div>
-			<ul class="bg-zinc-100 filter drop-shadow-lg">
-				{#each names as speaker}
-					<li
-						class="rounded-md hover:bg-cyan-200 {speaker.id == selectedVal.id
-							? 'flex justify-between flex-row p-1 bg-info'
-							: 'flex justify-between flex-row p-1'}"
+	<div class="top-container flex">
+		<details class="dropdown speaker-name-container" bind:open={isListOpen} contentEditable={false}>
+			<summary class="m-1 speaker-name flex group cursor-pointer w-auto hover:bg-accent">
+				<Icon name="user" class="" />
+				<span class="text-primary font-bold font-sans">{selectedVal.name}</span>
+				<Icon name="dropdown-arrow" class="invisible group-hover:visible" />
+			</summary>
+			<div class="absolute z-10 m-2 shadow drop-shadow-lg menu bg-base-100" use:clickOutside
+			onoutclick={() => {
+				isListOpen = false;
+			}}>
+				<div class="p-1 flex">
+					<input
+						placeholder={$_('speakerSelect.addNew')}
+						bind:value={newSpeaker}
+						onkeypress={(e) => handleKeypress(e, newSpeaker)}
+					/>
+					<button
+						class="btn btn-outline btn-xs w-min ml-1 hover:text-primary"
+						onclick={() => handleNewSpeakerSave(newSpeaker, time)}
+						>{$_('speakerSelect.save')}</button
 					>
-						{#if speaker.id === editSpeakerId}
-							<input class="w-48 flex-grow border-2 hover:bg-white" bind:value={editingValue} />
-							<div class="flex">
+				</div>
+				<ul class="bg-zinc-100 filter drop-shadow-lg">
+					{#each names as speaker}
+						<li
+							class="rounded-md hover:bg-cyan-200 {speaker.id == selectedVal.id
+								? 'flex justify-between flex-row p-1 bg-info'
+								: 'flex justify-between flex-row p-1'}"
+						>
+							{#if speaker.id === editSpeakerId}
+								<input class="w-48 flex-grow border-2 hover:bg-white" bind:value={editingValue} />
+								<div class="flex">
+									<button
+										class="btn btn-xs btn-outline w-min hover:text-primary"
+										onclick={() => {
+											handleRenameAll(speaker);
+										}}>{$_('speakerSelect.save')}</button
+									>
+								</div>
+							{:else}
 								<button
-									class="btn btn-xs btn-outline w-min hover:text-primary"
 									onclick={() => {
-										handleRenameAll(speaker);
-									}}>{$_('speakerSelect.save')}</button
+										selectSpeaker(speaker.id);
+										isListOpen = false;
+									}}
+									class="cursor-pointer inline flex-grow text-left"
 								>
-							</div>
-						{:else}
-							<button
-								onclick={() => {
-									selectSpeaker(speaker.id);
-									isListOpen = false;
-								}}
-								class="cursor-pointer inline flex-grow text-left"
-							>
-								{speaker.name}
-							</button>
-							<div>
-								<button class="btn btn-xs btn-outline w-min hover:text-primary" onclick={() => handleStartEdit(speaker)}
-									>{$_('speakerSelect.edit')}</button
-								>
-							</div>
-						{/if}
-					</li>
-				{/each}
-			</ul>
+									{speaker.name}
+								</button>
+								<div>
+									<button class="btn btn-xs btn-outline w-min hover:text-primary" onclick={() => handleStartEdit(speaker)}
+										>{$_('speakerSelect.edit')}</button
+									>
+								</div>
+							{/if}
+						</li>
+					{/each}
+				</ul>
+			</div>
+		</details>
+		<div class="flex items-center speaker-time-container" contentEditable={false} >
+			<p class="speaker-time">{numberToTime(time)}</p>
+			{#if $editorMode === 2}
+				<input
+					type="text"
+					name="topic"
+					id=""
+					placeholder={$_('speakerSelect.topicPlaceholder')}
+					class="input input-bordered input-accent input-xs w-full max-w-xs ml-5"
+					bind:value={topic}
+					onblur={saveTopic}
+				/>
+			{/if}
 		</div>
-	</details>
-	<div class="flex items-center speaker-top" contentEditable={false} >
-		<p class="speaker-time">{numberToTime(time)}</p>
-		{#if $editorMode === 2}
-			<input
-				type="text"
-				name="topic"
-				id=""
-				placeholder={$_('speakerSelect.topicPlaceholder')}
-				class="input input-bordered input-accent input-xs w-full max-w-xs ml-5"
-				bind:value={topic}
-				onblur={saveTopic}
-			/>
-		{/if}
 	</div>
 	<NodeViewContent class="content editable" style={cssVarStyles}></NodeViewContent>
 </NodeViewWrapper>
@@ -350,38 +352,30 @@
 <style>
 	:global(.speaker) {
 		display: grid;
-		grid-template-columns: minmax(auto, 150px) auto;
+		grid-template-columns: auto;
 		grid-template-rows: min-content auto;
 		width: auto;
 		grid-column-gap: 1px;
 		margin-bottom: 10px;
 	}
 
-	
-	.speaker-name {
-		grid-row-start: 2;
-		grid-column-start: 1;
-		justify-self: end;
+	.speaker-name-container {
+		/* grid-row-start: 1;
+		grid-column-start: 1; */
+		justify-self: start;
 		height: max-content;
 		min-width: 50px;
 	}
-	:global(.speaker) > .content {
-		grid-row-start: 2;
-		grid-column-start: 2;
-	}
-	.speaker-top {
-		grid-row-start: 1;
-		grid-column-start: 2;
+	.speaker-time-container {
+		/* grid-row-start: 1;
+		grid-column-start: 2; */
 	}
 	.speaker-time {
+		justify-self: start;
 		font-size: small;
 		color: rgba(156, 163, 175);
 	}
 	@media only screen and (max-width: 460px) {
-		:global(.speaker) > .content {
-			grid-row-start: 2;
-			grid-column-start: 1;
-		}
 		:global(.speaker) {
 			grid-template-columns: minmax(70px, auto) auto;
 		}	
