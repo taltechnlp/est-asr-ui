@@ -53,6 +53,12 @@ export const Word = Mark.create<WordOptions>({
 			},
 			id: {
 				default: uuidv4().substring(32 - 12)
+			},
+			lang: {
+				default: "et"
+			},
+			spellcheck: {
+				default: "false"
 			}
 		};
 	},
