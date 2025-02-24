@@ -32,24 +32,9 @@ export const Word = Mark.create<WordOptions>({
 		return {
 			start: {
 				default: ''
-				// parseHTML: element => element.getAttribute('start'),
-				/* ,
-				parseHTML: (element) => {
-					return element.getAttribute('start');
-				},*/
-				/* renderHTML: (attributes) => {
-					return attributes.start;
-				}  */
 			},
 			end: {
-				// IIFE to generate a 12 length unique ID 
-				default: '' /* ,
-				parseHTML: (element) => {
-					return element.getAttribute('end');
-				},
-				renderHTML: (attributes) => {
-					return attributes.end;
-				} */
+				default: '' 
 			},
 			id: {
 				default: uuidv4().substring(32 - 12)

@@ -22,14 +22,6 @@
 	import rotateLeft from 'svelte-awesome/icons/rotateLeft';
 	import rotateRigth from 'svelte-awesome/icons/rotateRight';
 	import download from 'svelte-awesome/icons/download';
-	/* import thumbTack from 'svelte-awesome/icons/thumb-tack';
-	import bookmarkO from 'svelte-awesome/icons/bookmark-o';
-	import info from 'svelte-awesome/icons/info';
-	import fileWordO from 'svelte-awesome/icons/file-word-o';
-	import fileCodeO from 'svelte-awesome/icons/file-code-o';
-	import stickyNoteO from 'svelte-awesome/icons/sticky-note-o';
-	import language from 'svelte-awesome/icons/language';
-	import ellipsisH from 'svelte-awesome/icons/ellipsis-h'; */
 	import keyboard from 'svelte-awesome/icons/keyboardO';
 	import settings from 'svelte-awesome/icons/cog';
 	import pencil from 'svelte-awesome/icons/pencilSquareO';
@@ -56,7 +48,6 @@
 	
 
 	interface Props {
-		// import { Dictate, Transcription } from '$lib/helpers/dictate.js/dictate';
 		content: any;
 		fileName: any;
 		fileId: any;
@@ -94,7 +85,6 @@
 
 	onMount(() => {
 		editor = createEditor({
-			/* element: element, */
 			extensions: [
 				Document,
 				DropCursor,
@@ -104,7 +94,6 @@
 				History,
 				Word,
 				WordColor,
-			/* 	Annotation, */
 				Speaker,
 				LabelHighlight.configure({
 					HTMLAttributes: {
@@ -114,7 +103,6 @@
 				}),
 				PronHighlight.configure({
 					HTMLAttributes: {
-						/* class: 'pron-label', */
 						multicolor: true
 					}
 				})
