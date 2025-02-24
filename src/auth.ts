@@ -31,21 +31,17 @@ declare module "@auth/sveltekit" {
 
 export const { handle, signIn, signOut } = SvelteKitAuth(async (event) => {
 	const authOptions = {
-		//adapter: PrismaAdapter(prisma),
-		/* jwt: {
-			secret: SECRET_KEY,
-			maxAge: 15 * 24 * 30 * 60, // 15 days
-		}, */
+		adapter: PrismaAdapter(prisma),
 		providers: [
-			/* GitHub({ clientId: GITHUB_ID, clientSecret: GITHUB_SECRET }),
-			/* Facebook({
+			/* GitHub({ clientId: GITHUB_ID, clientSecret: GITHUB_SECRET }),*/
+			Facebook({
 				clientId: FACEBOOK_CLIENT_ID,
 				clientSecret: FACEBOOK_CLIENT_SECRET,
 			}),
 			Google({
 				clientId: GOOGLE_CLIENT_ID,
 				clientSecret: GOOGLE_CLIENT_SECRET,
-			}), */
+			}), 
 			Credentials({
 				// You can specify which fields should be submitted, by adding keys to the `credentials` object.
 				// e.g. domain, username, password, 2FA token, etc.
@@ -86,7 +82,7 @@ export const { handle, signIn, signOut } = SvelteKitAuth(async (event) => {
 							code = "passwordError"
 						   }
 						   // URL will contain `error=CredentialsSignin&code=custom_error`
-						throw new PasswordError( "wrong password");
+						throw new PasswordError("wrong password");
 					};
 					// const token = jwt.sign({ userId: user.id }, SECRET_KEY);
 		   
@@ -116,8 +112,8 @@ export const { handle, signIn, signOut } = SvelteKitAuth(async (event) => {
 		trustHost: true,
 		session: {
 			maxAge: 2592000,
-			updateAge: 60
-			// strategy: "jwt", // "jwt" | "database"
+			updateAge: 60,
+			strategy: "jwt", // "jwt" | "database"
 		},
 		pages: {
 			signIn: "/signin",
@@ -126,9 +122,7 @@ export const { handle, signIn, signOut } = SvelteKitAuth(async (event) => {
 			newUser: '/files' // New users will be directed here on first sign in (leave the property out if not of interest)
 		},
 		callbacks: {
-			async jwt({ token, user, trigger, isNewUser }) {
-				if (trigger === 'signIn') console.log("JWT cb: Signing in", trigger, "is new user", isNewUser, token)
-				else if (trigger === 'signUp') console.log("JWT cb: Signing up", trigger, "is new user", isNewUser, token)
+			async jwt({ token, user, /* trigger, isNewUser */ }) {
 				if (user) {
 					token.id = user.id;
 					token.email = user.email;
@@ -138,7 +132,7 @@ export const { handle, signIn, signOut } = SvelteKitAuth(async (event) => {
 				return token;
 			},
 			async redirect({ url, baseUrl }) {
-				console.log("redirect cb", url, baseUrl)
+				//console.log("redirect cb", url, baseUrl)
 				// Allows relative callback URLs
 				if (url.startsWith("/")) return `${baseUrl}${url}`
 			 
@@ -148,32 +142,21 @@ export const { handle, signIn, signOut } = SvelteKitAuth(async (event) => {
 				return baseUrl
 			},
 			async session({ session, token, user, newSession, trigger }) {
-				console.log("session test", newSession, trigger);
+				console.log("session fn", newSession, trigger, user);
 				if (token) {
-					session.user = token;
+					session.user = {
+						id: token.id,
+						email: token.email,
+						name: token.name,
+						picture: token.picture
+					};
 				}
-				else{
+				else if (user.id) {
 					session.user.id = user.id;
 				}
 				return session;
 			},
-			signIn: async ({ user, account, credentials, email, profile }) => {
-				const existingAccount = await prisma.account.findFirst({
-					where: {
-						providerAccountId: account.providerAccountId
-					},
-					include: {
-						user: {
-							select: {
-								email: true,
-								id: true,
-							}
-						}
-					}
-				});
-				console.log("signin cb")
-				// Allow all password / 2FA requests to pass. 
-				if (account.provider === "credentials") return true;
+			signIn: async () => {
 				return true;
 			},
 		} 

@@ -8,6 +8,7 @@
 	import google from 'svelte-awesome/icons/google';
 	import Icon from 'svelte-awesome/components/Icon.svelte';
 	import { signIn } from '@auth/sveltekit/client';
+	import { SignIn } from "@auth/sveltekit/components"
 	import type { PageProps } from './$types';
 	let { data }: PageProps = $props();
 
@@ -33,6 +34,10 @@
 			};
 		}
 	};
+
+	class MySignIn extends SignIn {
+		code = true;
+	}
 </script>
 
 <svelte:head>
