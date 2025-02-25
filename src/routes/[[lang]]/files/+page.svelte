@@ -196,18 +196,19 @@
 							{:else if file.state == 'PROCESSING_ERROR'}
 								<div class="badge badge-error">{$_('files.statusError')}</div>
 							{:else if file.state == 'PROCESSING'}
-								<div class="badge badge-accent loading">{$_('files.statusProcessing')} 
-									{#if file.progress >= 0}
-										{` ${file.progress}%`}
-									{/if}
+								<div class="badge badge-accent">{$_('files.statusProcessing')} 
 								</div>
-								<span class="btn btn-ghost btn-xs loading" aria-label={$_('files.loading')}></span>
+								{#if file.progress >= 0}
+									{` ${file.progress}%`}
+								{/if}
+								<span class="btn btn-ghost btn-xs" aria-label={$_('files.loading')}></span>
+								<span class="loading loading-spinner loading-xs"></span>
 							{:else if file.state == 'UPLOADED' && file.queued}
-								<div class="badge badge-info loading">{$_('files.statusUploaded')}</div>
-								<span class="btn btn-ghost btn-xs loading" aria-label={$_('files.loading')}></span>
+								<div class="badge badge-info">{$_('files.statusUploaded')}</div>
+								<span class="loading loading-spinner loading-xs"></span>
 							{:else if file.state == 'UPLOADED'}
-								<div class="badge badge-info loading">{$_('files.statusUploaded')}</div>
-								<span class="btn btn-ghost btn-xs loading" aria-label={$_('files.loading')}></span>
+								<div class="badge badge-info">{$_('files.statusUploaded')}</div>
+								<span class="loading loading-spinner loading-xs"></span>
 							{/if}
 						</td>
 						<td class="">
