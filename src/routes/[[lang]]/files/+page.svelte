@@ -97,6 +97,7 @@
 		}
 		loading = false;
 		uploadModalOpen = false;
+		uploadModal.close();
 		invalidate('/api/files');
 		await awaitTimeout(10000).then(() =>
 			{if (donePolling) longPolling();}
@@ -128,6 +129,7 @@
 	}
 
 	let uploadModalOpen = false;
+	let uploadModal: HTMLDialogElement;
 	const uploadModalClick = (e: Event) => {
 		e.preventDefault();
 		error = '';
@@ -241,28 +243,25 @@
 		</tbody>
 	</table>
 
-	<dialog id="upload_modal" class="modal cursor-pointer modal-bottom sm:modal-middle">
+	<dialog id="upload_modal" class="modal cursor-pointer modal-bottom sm:modal-middle" bind:this={uploadModal}>
 		<div class="modal-box relative">
-			<fieldset disabled={loading} aria-busy={loading}>
-				<form method="POST" action="?/uploadEst">
+			<h3 class="text-lg font-bold mb-4">{$_('files.uploadHeader')}</h3>
+			<form method="dialog">
+				<button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" aria-label={$_('files.close')}>✕</button>
+			  </form>
+			<form method="POST" action="?/uploadEst" enctype="multipart/form-data">
+				<fieldset disabled={loading} aria-busy={loading} class="fieldset w-full bg-base-200 border border-base-300 p-4 rounded-box">
 					{#if form?.uploadLimit}<p class="error">File is too large!</p>{/if}
 					{#if form?.fileTooLong}<p class="error">File is too long!</p>{/if}
-					<label for="file-upload" class="btn btn-sm btn-circle absolute right-3 top-2" lang="et" aria-label={$_('files.close')}
-						>✕</label
-					>
-					<label for="file-upload" class="btn btn-sm btn-circle absolute right-2 top-2" lang="et" aria-label={$_('files.close')}
-						>✕</label
-					>
-					<h3 class="text-lg font-bold mb-4">{$_('files.uploadHeader')}</h3>
-					<div class="form-control w-full max-w-xs">
-						<label class="label" for="langSelect">
+					<label class="form-control w-full max-w-xs">
+						<div class="label">
 							<span class="label-text">{$_('files.language')}</span>
-						</label>
+						</div>
 						<select
 							id="langSelect"
 							required
 							bind:value={selectedLanguage}
-							class="select select-bordered"
+							class="select select-bordered w-full max-w-xs mb-4"
 						>
 							{#each languageChoices as language}
 								<option value={language}>
@@ -270,16 +269,20 @@
 								</option>
 							{/each}
 						</select>
-					</div>
-					<label class="form-control w-full max-w-xs">
+					</label>
+					<label class="form-control w-full max-w-xs mb-4">
+						<div class="label">
+							<span class="label-text">{$_('files.file')}</span>
+						</div>
 						<input
-							class="file-input file-input-bordered w-full max-w-xs"
+							class="file-input file-input-bordered file-input-primary w-full max-w-xs"
 							type="file"
 							bind:files={upload}
 							accept="audio/*,video/*,audio/wav,audio/x-wav,audio/mp3,audio/mpeg,audio/ogg,video/ogg,video/x-mpeg2,video/mpeg2,audio/x-m4a,audio/flac,audio/x-flac,audio/x-amr,audio/amr"
 							id="file"
 							name="file"
-							placeholder="Lae helisalvestis ülesse (kuni 100 MB)"
+							lang={data.language}
+							placeholder=""
 							required
 						/>
 					</label>
@@ -289,27 +292,30 @@
 							<span class="label-text">{$_('files.uploadNotify')}</span>
 						</label>
 					</div>
+				</fieldset>
+				<fieldset class="fieldset w-md bg-base-200 border border-base-300 p-4 rounded-box mb-4">
+					<legend class="fieldset-legend">{$_('files.requirements')}</legend>
 					<ul class="list-disc list-inside">
 						<li class="py-4">{$_('files.supportedFormats')}</li>
 						<li class="py-4 pt-0">{$_('files.fileSizeLimit')}</li>
 						<li class="py-4 pt-0">{$_('files.fileDurationLimit')}</li>
 					</ul>
+				</fieldset>
 					{#if error}
 						<p class="mt-3 mb-3 text-red-500 text-center font-semibold">{printError(error)}</p>
 					{/if}
 					{#if loading}
-						<button class="btn" type="submit" disabled aria-label={$_('files.uploadButton')}
+						<button class="btn" disabled aria-label={$_('files.uploadButton')}
 							><span class="btn btn-ghost btn-xs loading" aria-label={$_('files.loading')}></span></button
 						>
 					{:else if upload}
-						<button type="submit" class="btn btn-active btn-primary" aria-label={$_('files.uploadButton')}
+						<button class="btn btn-active btn-primary" aria-label={$_('files.uploadButton')} onclick={uploadFile}
 							>{$_('files.uploadButton')}</button
 						>
 					{:else}
-						<button class="btn" type="submit" disabled>{$_('files.uploadButton')}</button>
+						<button class="btn" disabled>{$_('files.uploadButton')}</button>
 					{/if}
 				</form>
-			</fieldset>
 		</div>
 		<form method="dialog" class="modal-backdrop">
 			<button aria-label={$_('files.close')}>close</button>

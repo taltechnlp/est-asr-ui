@@ -14,6 +14,7 @@ import { getAudioDurationInSeconds } from "get-audio-duration";
 import { Buffer } from 'node:buffer'; 
 import { Readable } from 'stream';
 import { unlink } from "fs/promises";
+import "../../../app.css";
 
 export const load: PageServerLoad = async ({ locals, fetch, depends, url }) => {
     depends('/api/files')
@@ -59,11 +60,9 @@ export const actions: Actions = {
             redirect(307, "/signin");
         }
         const data = await request.formData();
-        console.log(data);
         const notify = data.get('notify') === "yes" ? true : false;
         const file = data.get('file') as File;
-        if (!file.name || !file.size || !file.type) {
-            console.info("No file");
+        if (!file?.name || !file?.size || !file?.type) {
             return fail(400, { noFile: true })
         }
         if (file.size > UPLOAD_LIMIT) {

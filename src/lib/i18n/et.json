@@ -105,7 +105,8 @@
         "uploadNotify": "Teavita valmimisest e-postile",
         "noFiles": "Ühtegi ülesse laetud faili pole",
         "loading": "Laadimine...",
-        "uploadIcon": "Ülesse laadimine"
+        "uploadIcon": "Ülesse laadimine",
+        "requirements": "Nõuded"
     },
     "me": {
         "title": "Konto andmed | tekstiks.ee",

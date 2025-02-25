@@ -105,7 +105,8 @@
         "uploadNotify": "Ilmoita valmistumisesta sähköpostilla",
         "noFiles": "Ei yhä ladattuja tiedostoja",
         "loading": "Lataa...",
-        "uploadIcon": "Lataa äänitiedosto"
+        "uploadIcon": "Lataa äänitiedosto",
+        "requirements": "Näitä täytyy täyttää"
     },
     "me": {
         "title": "Käyttäjätiedot | tekstiks.ee",

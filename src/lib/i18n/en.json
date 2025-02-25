@@ -105,7 +105,8 @@
     "uploadNotify": "Notify about the completion via email",
     "noFiles": "No files uploaded yet",
     "loading": "Loading...",
-    "uploadIcon": "Upload a speech recording"
+    "uploadIcon": "Upload a speech recording",
+    "requirements": "Requirements"
   },
   "me": {
     "title": "Account details | tekstiks.ee",
