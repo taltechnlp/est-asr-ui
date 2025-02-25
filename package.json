@@ -21,7 +21,7 @@
     "@typescript-eslint/eslint-plugin": "^5.10.1",
     "@typescript-eslint/parser": "^5.10.1",
     "autoprefixer": "^10.4.11",
-    "daisyui": "^2.6.4",
+    "daisyui": "^4.12.23",
     "graphql": "^16.3.0",
     "graphql-request": "^4.1.0",
     "postcss": "^8.4.22",

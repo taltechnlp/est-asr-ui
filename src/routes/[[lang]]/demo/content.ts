@@ -5005,7 +5005,7 @@ content.content.forEach((node) => {
                     if (mark.type == 'word') {
                         const id = uuidv4().substring(36 - 12);
                         mark.attrs.id = id;
-                        words.push({ start: mark.attrs.start, end: mark.attrs.end, id: mark.attrs.id, lang: "et" });
+                        words.push({ start: mark.attrs.start, end: mark.attrs.end, id: mark.attrs.id });
                     }
                 });
             }

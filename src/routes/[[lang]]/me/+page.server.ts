@@ -50,17 +50,13 @@ export const load = (async (event) => {
 
 export const actions: Actions = {
     remove: async ({ request, locals }) => {
-        let userId = locals.userId;
-        if (!userId) {
-            let session = await locals.auth();
-            if (session && session.user) userId = session.user.id;
-        }
-        if (!userId) {
+        const session = await locals.auth();
+        if (!session || !session.user.id) {
             redirect(307, "/signin");
         }
         const accounts = await prisma.user.findUnique({
             where: {
-                id: userId
+                id: session.user.id
             },
             include: {
                 accounts: {

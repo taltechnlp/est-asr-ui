@@ -13,12 +13,9 @@ import { promisify } from "util";
 
 // Return the audio or video file for playback. Authorization requried.
 export const GET: RequestHandler = async ({ params, locals, request }) => {
-  let userId = locals.userId;
-    if (!userId) {
-        let session = await locals.auth();
-        if (session && session.user) userId = session.user.id;
-    }
-    if (!userId) {
+
+    const session = await locals.auth();
+    if (!session || !session.user.id) {
         redirect(307, "/signin");
     }
   const file = await prisma.file.findUnique({
@@ -35,10 +32,8 @@ export const GET: RequestHandler = async ({ params, locals, request }) => {
     }
   });
   if (!file) error(404);
-  const isAdmin =
-    await (await prisma.user.findUnique({ where: { id: userId } }))
-      .role === "ADMIN";
-  if ((userId === file.User.id || isAdmin)) {
+
+  if ((session.user.id === file.User.id )) {
     let location = file.path;
     const fileInfo = promisify(stat);
 

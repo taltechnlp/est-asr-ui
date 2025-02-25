@@ -102,7 +102,10 @@
             "estonian": "Virolainen",
             "finnish": "Suomalainen"
         },
-        "uploadNotify": "Ilmoita valmistumisesta sähköpostilla"
+        "uploadNotify": "Ilmoita valmistumisesta sähköpostilla",
+        "noFiles": "Ei yhä ladattuja tiedostoja",
+        "loading": "Lataa...",
+        "uploadIcon": "Lataa äänitiedosto"
     },
     "me": {
         "title": "Käyttäjätiedot | tekstiks.ee",

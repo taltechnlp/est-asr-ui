@@ -17,29 +17,12 @@ import { unlink } from "fs/promises";
 
 export const load: PageServerLoad = async ({ locals, fetch, depends, url }) => {
     depends('/api/files')
-    let userId = locals.userId;
     let session = await locals.auth();
-    if (!userId) {
-        if (session && session.user) userId = session.user.id;
-    }
-    if (!userId) {
+    if (!session || !session.user.id) {
         redirect(307, "/signin");
     }
-    const isAdmin = await prisma.user.findUnique({
-        where: {
-            id: userId
-        },
-        select: {
-            role: true
-        }
-    })
-    let adminSearchParam = "";
-    if (isAdmin && url.searchParams.has("userId")) {
-        adminSearchParam = "?userId=" + url.searchParams.get("userId");
-    }
     try {
-        const result = await fetch('/api/files' + adminSearchParam);
-        
+        const result = await fetch('/api/files');
         let files = await result.json();
         if (files.length > 0) {
             files = files.map(
@@ -71,15 +54,12 @@ export const load: PageServerLoad = async ({ locals, fetch, depends, url }) => {
 
 export const actions: Actions = {
     uploadEst: async ({ locals, request, fetch }) => {
-        let userId = locals.userId;
-        if (!userId) {
-            let session = await locals.auth();
-            if (session && session.user) userId = session.user.id;
-        }
-        if (!userId) {
+        let session = await locals.auth();
+        if (!session || !session.user.id) {
             redirect(307, "/signin");
         }
         const data = await request.formData();
+        console.log(data);
         const notify = data.get('notify') === "yes" ? true : false;
         const file = data.get('file') as File;
         if (!file.name || !file.size || !file.type) {
@@ -93,7 +73,7 @@ export const actions: Actions = {
         let id: string = uuidv4()
         id = id.replace(/[-]/gi, '').substr(0, 30)
         const newFilename = `${id}_${file.name}`
-        const uploadDir = join(SECRET_UPLOAD_DIR, userId);
+        const uploadDir = join(SECRET_UPLOAD_DIR, session.user.id);
         if (!existsSync(uploadDir)) {
             mkdirSync(uploadDir, { recursive: true });
         }
@@ -133,7 +113,7 @@ export const actions: Actions = {
             console.error(err);
             return fail(400, { fileSaveFailed: true });
         }
-        logger.info({userId, message: `file uploaded to ${saveTo}` })
+        logger.info({session, message: `file uploaded to ${saveTo}` })
 
         let duration = 0;
         let error = false;
@@ -155,7 +135,7 @@ export const actions: Actions = {
             return fail(400, { fileTooLong: true });
         }
 
-        const resultDir = path.join(RESULTS_DIR, userId, fileData.id)
+        const resultDir = path.join(RESULTS_DIR, session.user.id, fileData.id)
         const resultPath = path.join(resultDir, "result.json")
         await prisma.file.create({
             data: {
@@ -165,7 +145,7 @@ export const actions: Actions = {
                 notified: false,
                 notify: notify,
                 User: {
-                    connect: { id: userId }
+                    connect: { id: session.user.id }
                 }
             }
         }).catch(() => {return fail(400, { fileSaveFailed: true })})
@@ -200,12 +180,8 @@ export const actions: Actions = {
         return { success: true, file: fileData, error: undefined };
     },
     uploadFin: async ({ locals, request }) => {
-        let userId = locals.userId;
-        if (!userId) {
-            let session = await locals.auth();
-            if (session && session.user) userId = session.user.id;
-        }
-        if (!userId) {
+        const session = await locals.auth();
+        if (!session || !session.user.id) {
             redirect(307, "/signin");
         }
         const data = await request.formData();

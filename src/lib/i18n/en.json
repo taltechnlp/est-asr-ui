@@ -102,7 +102,10 @@
       "estonian": "Estonian",
       "finnish": "Finnish"
     },
-    "uploadNotify": "Notify about the completion via email"
+    "uploadNotify": "Notify about the completion via email",
+    "noFiles": "No files uploaded yet",
+    "loading": "Loading...",
+    "uploadIcon": "Upload a speech recording"
   },
   "me": {
     "title": "Account details | tekstiks.ee",

@@ -11,10 +11,9 @@
 
 	let { data, form }: { data: PageData, form: ActionData } = $props();
 
-	// export let data: PageData;
 	let error = '';
 	let loading = false;
-	let upload;
+	let upload: null | FileList = $state(null); 
 	let languageChoices = [
 		{ id: 0, text: 'estonian' },
 		{ id: 1, text: 'finnish' }
@@ -147,7 +146,7 @@
 </svelte:head>
 <div class="grid w-full justify-center grid-cols-[minmax(320px,_1280px)] overflow-x-auto">
 	<div class="flex justify-end max-w-screen-2xl">
-		<label for="file-upload" class="btn btn-primary gap-2 mt-5 mb-2 modal-button right">
+		<button class="btn btn-primary gap-2 mt-5 mb-2 modal-button right" onclick={() => eval(`upload_modal.showModal()`)}>
 			{$_('files.uploadButton')}
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
@@ -155,13 +154,14 @@
 				viewBox="0 0 24 24"
 				fill="#fff"
 				class="h-4 w-4"
+				aria-label={$_('files.uploadIcon')}
 				><path
 					d="M11.007,2.578,11,18.016a1,1,0,0,0,1,1h0a1,1,0,0,0,1-1l.007-15.421,2.912,2.913a1,1,0,0,0,1.414,0h0a1,1,0,0,0,0-1.414L14.122.879a3,3,0,0,0-4.244,0L6.667,4.091a1,1,0,0,0,0,1.414h0a1,1,0,0,0,1.414,0Z"
 				/><path
 					d="M22,17v4a1,1,0,0,1-1,1H3a1,1,0,0,1-1-1V17a1,1,0,0,0-1-1H1a1,1,0,0,0-1,1v4a3,3,0,0,0,3,3H21a3,3,0,0,0,3-3V17a1,1,0,0,0-1-1h0A1,1,0,0,0,22,17Z"
 				/></svg
 			>
-		</label>
+		</button>
 	</div>
 	<table class="table table-compact max-w-screen-2xl">
 		<thead>
@@ -174,7 +174,7 @@
 			</tr>
 		</thead>
 		<tbody>
-			{#if data.files}
+			{#if data.files && data.files.length > 0}
 				{#each data.files as file, index}
 					<tr
 						class="{file.state == 'READY' ? 'cursor-pointer' : ''} hover"
@@ -199,13 +199,13 @@
 										{` ${file.progress}%`}
 									{/if}
 								</div>
-								<span class="btn btn-ghost btn-xs loading"></span>
+								<span class="btn btn-ghost btn-xs loading" aria-label={$_('files.loading')}></span>
 							{:else if file.state == 'UPLOADED' && file.queued}
 								<div class="badge badge-info loading">{$_('files.statusUploaded')}</div>
-								<span class="btn btn-ghost btn-xs loading"></span>
+								<span class="btn btn-ghost btn-xs loading" aria-label={$_('files.loading')}></span>
 							{:else if file.state == 'UPLOADED'}
 								<div class="badge badge-info loading">{$_('files.statusUploaded')}</div>
-								<span class="btn btn-ghost btn-xs loading"></span>
+								<span class="btn btn-ghost btn-xs loading" aria-label={$_('files.loading')}></span>
 							{/if}
 						</td>
 						<td class="">
@@ -234,22 +234,23 @@
 					</tr>
 				{/each}
 			{:else if error}
-				<p class="">{error}</p>
+				<tr><td colspan="5" class="text-center">{error}</td></tr>
+			{:else}
+				<tr><td colspan="5" class="text-center">{$_('files.noFiles')}</td></tr>
 			{/if}
 		</tbody>
 	</table>
 
-	<input type="checkbox" id="file-upload" class="modal" onclick={uploadModalClick} />
-	<label for="file-upload" class="modal cursor-pointer {uploadModalOpen ? 'modal-open' : ''}">
-		<label class="modal-box relative" for="">
+	<dialog id="upload_modal" class="modal cursor-pointer modal-bottom sm:modal-middle">
+		<div class="modal-box relative">
 			<fieldset disabled={loading} aria-busy={loading}>
 				<form method="POST" action="?/uploadEst">
 					{#if form?.uploadLimit}<p class="error">File is too large!</p>{/if}
 					{#if form?.fileTooLong}<p class="error">File is too long!</p>{/if}
-					<label for="file-upload" class="btn btn-sm btn-circle absolute right-3 top-2" lang="et"
+					<label for="file-upload" class="btn btn-sm btn-circle absolute right-3 top-2" lang="et" aria-label={$_('files.close')}
 						>✕</label
 					>
-					<label for="file-upload" class="btn btn-sm btn-circle absolute right-2 top-2" lang="et"
+					<label for="file-upload" class="btn btn-sm btn-circle absolute right-2 top-2" lang="et" aria-label={$_('files.close')}
 						>✕</label
 					>
 					<h3 class="text-lg font-bold mb-4">{$_('files.uploadHeader')}</h3>
@@ -270,12 +271,9 @@
 							{/each}
 						</select>
 					</div>
-					<div class="form-control w-full max-w-xs">
-						<label class="label" for="file">
-							<span class="label-text">{$_('files.file')}</span>
-						</label>
+					<label class="form-control w-full max-w-xs">
 						<input
-							class="input input-bordered pt-1"
+							class="file-input file-input-bordered w-full max-w-xs"
 							type="file"
 							bind:files={upload}
 							accept="audio/*,video/*,audio/wav,audio/x-wav,audio/mp3,audio/mpeg,audio/ogg,video/ogg,video/x-mpeg2,video/mpeg2,audio/x-m4a,audio/flac,audio/x-flac,audio/x-amr,audio/amr"
@@ -284,7 +282,7 @@
 							placeholder="Lae helisalvestis ülesse (kuni 100 MB)"
 							required
 						/>
-					</div>
+					</label>
 					<div class="form-control flex-row">
 						<label class="label cursor-pointer">
 							<input type="checkbox" id="notify" bind:checked={notify} class="checkbox mr-4" />
@@ -300,11 +298,11 @@
 						<p class="mt-3 mb-3 text-red-500 text-center font-semibold">{printError(error)}</p>
 					{/if}
 					{#if loading}
-						<button class="btn" type="submit" disabled
-							><span class="btn btn-ghost btn-xs loading"></span></button
+						<button class="btn" type="submit" disabled aria-label={$_('files.uploadButton')}
+							><span class="btn btn-ghost btn-xs loading" aria-label={$_('files.loading')}></span></button
 						>
 					{:else if upload}
-						<button formaction="?/uploadEst" class="btn btn-active btn-primary" 
+						<button type="submit" class="btn btn-active btn-primary" aria-label={$_('files.uploadButton')}
 							>{$_('files.uploadButton')}</button
 						>
 					{:else}
@@ -312,8 +310,11 @@
 					{/if}
 				</form>
 			</fieldset>
-		</label>
-	</label>
+		</div>
+		<form method="dialog" class="modal-backdrop">
+			<button aria-label={$_('files.close')}>close</button>
+		</form>
+	</dialog>
 
 	<input type="checkbox" id="del-file-modal" class="modal-toggle" />
 	<label for="del-file-modal" class="modal cursor-pointer">
@@ -323,10 +324,9 @@
 				{$_('files.fileDeletionWarning')}
 			</p>
 			<div class="modal-action">
-				<label for="del-file-modal" class="btn btn-outline">{$_('files.cancel')}</label>
-				<label for="del-file-modal" class="btn" onclick={() => delFile(delFileId)}
-					>{$_('files.delete')}</label
-				>
+				<button type="button" class="btn btn-outline" onclick={() => (document.getElementById('del-file-modal') as HTMLInputElement).checked = false}>{$_('files.cancel')}</button>
+				<button type="button" class="btn" onclick={() => delFile(delFileId)} onkeydown={(e) => e.key === 'Enter' && delFile(delFileId)}
+					>{$_('files.delete')}</button>
 			</div>
 		</label>
 	</label>
