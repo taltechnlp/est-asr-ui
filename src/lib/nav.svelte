@@ -5,7 +5,7 @@
 	import { createEventDispatcher } from 'svelte';
 	import { _, locale } from 'svelte-i18n';
 	import { uiLanguages } from './i18n';
-	let { language } = $props();
+	let { language, value = $bindable() } = $props();
 
 	let loggedIn = $derived(userState.id.length > 0);
 	const rgx = new RegExp(/(\p{L}{1})\p{L}+/, 'gu');
@@ -28,6 +28,7 @@
 	const languages = uiLanguages;
 
 	let currentLanguage: string = $state(language || "et");
+	//let value = $state(value);
 	locale.set(currentLanguage); 
 	locale.subscribe(lang => {
 		currentLanguage = lang}
@@ -102,6 +103,16 @@
 						</option>
 					{/each}
 				</select>
+				<div class="dropdown">
+					<select class="select w-full max-w-xs" bind:value={value}>
+						<option value="bumblebee">Bumblebee</option>
+						<option value="emerald">Emerald</option>
+						<option value="valentine">Valentine</option>
+						<option value="fantasy">Fantasy</option>
+						<option value="cmyk">CMYK</option>
+						<option value="night">Night</option>
+					</select>
+				</div>
 				{#if !loggedIn}
 					<a
 						href="/signin"

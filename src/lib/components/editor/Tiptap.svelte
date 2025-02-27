@@ -237,7 +237,7 @@
 	</div>
 	<div class="editor max-w-5xl">
 		{#if $editor}
-			<div class="toolbar sticky top-0 z-10 pt-1 pb-1">
+			<div class="toolbar sticky top-0 z-10 pt-1 pb-1 bg-base-200">
 				{#if !editable}
 				<div class="flex items-center tooltip tooltip-bottom" data-tip={$_('editor.editing.edit')}>
 					<button
@@ -338,8 +338,6 @@
 	.toolbar {
 		display: flex;
 		justify-content: space-around;
-		background-color: #f5f5f5 !important;
-		border-color: #f5f5f5 !important;
 	}
 
 	.my-bubble-menu {

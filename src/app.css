@@ -1,5 +1,7 @@
 @import "tailwindcss";
-@plugin "daisyui";
+@plugin "daisyui" {
+	themes: /* cmyk --default,  */all;
+  }
  
 @layer base {
   :root {

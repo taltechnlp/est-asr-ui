@@ -59,7 +59,7 @@
 				names.forEach((m) => {
 					$waveform.segments.add(m);
 				});
-			} else console.log("not ready", names)
+			} else console.log("not ready"/* , names */)
 	});
 	const speakerFilter = (s) => s && s.start && s.start !== -1 && s.end && s.end !== -1 && s.name;
 	const unsubscribeSpeakerNames = speakerNames.subscribe((speakers) => {
@@ -74,11 +74,18 @@
 					editable: true,
 				};
 			});
-		console.log("updated", speakers)
+		// console.log("updated", speakers)
 		});
 	onMount(() => {
+		let styles = getComputedStyle(document.documentElement);
+		let colorPrimary = styles.getPropertyValue("--color-primary");
+		let colorSecondary = styles.getPropertyValue("--color-secondary");
+		let colorAccent = styles.getPropertyValue("--color-accent");
+		let colorBase = styles.getPropertyValue("--color-base-100");
+		let colorNeutral = styles.getPropertyValue("--color-neutral");
+		
 		const audioContext = new AudioContext();
-		console.log(names)
+		// console.log(names)
 		const options: PeaksOptions = {
 			segmentOptions: {
 					// Enable segment markers
@@ -88,22 +95,22 @@
 					overlay: true,
 
 					// Color for segment start marker handles
-					startMarkerColor: 'orange',
+					startMarkerColor: colorAccent,
 
 					// Color for segment end marker handles
-					endMarkerColor: 'orange',
+					endMarkerColor: colorAccent,
 					
 					// Segment waveform color
-					waveformColor: 'orange',
+					waveformColor: colorAccent,
 
 					// Segment overlay color
-					overlayColor: 'blue',
+					overlayColor: colorSecondary,
 
 					// Segment overlay opacity
-					overlayOpacity: 0.2,
+					overlayOpacity: 0.1,
 
 					// Segment overlay border color
-					overlayBorderColor: 'blue',
+					overlayBorderColor: colorSecondary,
 
 					// Segment overlay border width
 					overlayBorderWidth: 2,
@@ -133,11 +140,12 @@
 					overlayFontStyle: 'bold'
 				},
 			zoomview: {
+				// main waveform
 				container: document.getElementById('zoomview-container'),
-				waveformColor: 'violet',
-				playedWaveformColor: 'purple',
-				playheadColor: 'orange',
-				playheadTextColor: '#aaa',
+				waveformColor: colorNeutral,
+				playedWaveformColor: colorPrimary,
+				playheadColor: colorAccent,
+				playheadTextColor: colorBase,
 				playheadClickTolerance: 3,
 				showPlayheadTime: true,
 				timeLabelPrecision: 2,
@@ -155,8 +163,8 @@
 			},
 			overview: {
 				container: document.getElementById('overview-container'),
-				playedWaveformColor: '#e5c9fb',
-				highlightColor: 'grey',
+				playedWaveformColor: colorPrimary,
+				highlightColor: colorNeutral,
 				highlightStrokeColor:  'transparent',
 				enablePoints: false,
 				enableSegments: true,

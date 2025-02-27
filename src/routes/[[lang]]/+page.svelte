@@ -9,7 +9,7 @@
 	<title>{$_('index.title')}</title>
 </svelte:head>
 
-<div class="flex flex-col w-full pl-1 pr-1 pt-5 pb-7 justify-center hero z-20 ">
+<div class="flex flex-col w-full pl-1 pr-1 pt-5 pb-7 justify-center hero z-20">
 	<h1 class="text-4xl mb-10 font-extrabold mt-12">{$_('index.heroHeader')}</h1>
 	<p class="text-2xl">
 		{$_('index.heroDescription')}
@@ -26,27 +26,26 @@
 		<h1 class="text-2xl mb-10 font-extrabold mt-12">{$_('index.howItWorks')}</h1>
 		<p class="mb-10">
 			<a href="/">Tekstiks.ee</a>{$_('index.tekstiksIntro')}
-			<span class="text-red-700">{$_('index.tekstiksIntroRemark')}</span>
 		</p>
 		<div class="grid md:grid-cols-2 grid-cols-1 gap-10 mb-10">
 			<div class="mockup-window border border-t border-base-300">
   				<img class="screenshot border-2" src="/screenshot_demo.png" alt="Ekraanitõmmis rakendusest" />
 			</div>
 			<div class="mw-400px flex flex-col">
-				<h4 class="self-center">{$_('index.step1')}</h4>
+				<h4 class="self-center text-primary">{$_('index.step1')}</h4>
 				<p>{$_('index.step1Desc')}</p>
-				<h4 class="self-center">{$_('index.step2')}</h4>
+				<h4 class="self-center text-primary">{$_('index.step2')}</h4>
 				<p>{$_('index.step2Desc')}</p>
-				<h4 class="self-center">{$_('index.step3')}</h4>
+				<h4 class="self-center text-primary">{$_('index.step3')}</h4>
 				<p>{$_('index.step3Desc')}</p>
-				<h4 class="self-center">{$_('index.step4')}</h4>
+				<h4 class="self-center text-primary">{$_('index.step4')}</h4>
 				<p>{$_('index.step4Desc')}</p>
 			</div>
 		</div>
 	</div>
 </div>
 
-<div class="flex flex-row w-full justify-center pl-1 pr-1 bg-[#EFF9F0]">
+<div class="flex flex-row w-full justify-center pl-1 pr-1 bg-base-300">
 	<div class="grid place-items-center max-w-screen-xl">
 		<h1 class="text-2xl mb-10 font-extrabold mt-12">{$_('index.recommendations')}</h1>
 		<ul class="mb-10 list-disc">
@@ -81,7 +80,7 @@
 	</div>
 </div>
 
-<div class="flex w-full justify-center pl-1 pr-1 bg-[#EFF9F0]">
+<div class="flex w-full justify-center pl-1 pr-1 bg-base-300">
 	<div class="grid place-items-center max-w-screen-xl">
 		<h1 class="text-2xl mb-10 font-extrabold mt-12">{$_('index.os')}</h1>
 		<p class="mb-5 justify-self-start">
@@ -136,7 +135,7 @@
 	</div>
 </div>
 
-<footer class="footer footer-center p-10 bg-[#13070C] rounded text-white">
+<footer class="footer footer-center p-10 bg-accent-content rounded text-accent">
 	<div class="grid grid-flow-col gap-4">
 		<a href="/contact" class="link link-hover">{$_('index.contact')}</a>
 		<a href="/terms" class="link link-hover">{$_('index.terms')}</a>
@@ -158,7 +157,6 @@
 		object-fit: scale-down;
 	}
 	h4 {
-		color: #fe621d;
 		font-size: 1.5rem;
 		margin-top: 0.5rem;
 		margin-bottom: 0.5rem;
