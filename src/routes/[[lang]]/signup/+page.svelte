@@ -44,26 +44,6 @@
 		cancel();
 		return;
 	} 
-    /* return async ({ result }) => {
-		console.log(result)
-		// @ts-ignore
-		if (result.type === "failure") {
-			success = false;
-			if (result.data && result.data.email && result.data.exists) {
-				error = $_('signup.userExists');
-			}
-			else if (result.data && result.data.email && result.data.invalid) {
-				error = $_('signup.emailIncorrect');
-			}
-		}
-		else if (result.type === 'success') {
-			error = "";
-			success = true
-			await setTimeout(()=>{}, 3000);
-			window.location.href = '/files';
-		} 
-
-    }; */
   }}> 
 	<Input label={$_('signup.email')} id="email" name="email" type="email" bind:value={email} />
 	<Input

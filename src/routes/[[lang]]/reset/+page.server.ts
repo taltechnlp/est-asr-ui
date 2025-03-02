@@ -17,7 +17,7 @@ export const load: PageServerLoad = async ({ url}) => {
         }
         // @ts-ignore
         const valid = user.resetTokenExpiry >= Date.now();
-        console.log(resetToken, user.resetTokenExpiry , user, Date.now(), valid)
+        // console.log(resetToken, user.resetTokenExpiry , user, Date.now(), valid)
         return {valid, resetToken};
     }
     error(400, 'No valid resetToken provided');

@@ -23,7 +23,7 @@ export const Annotation = Extension.create({
 						if (node.marks && node.marks.length > 0) {
 							const mark = node.marks.find((x) => x.type.name === 'pronHighlight');
 							if (mark) {
-								console.log(mark);
+								// console.log(mark);
 								posMap.push({
 									...mark.attrs,
 									startPos: pos + posOffset,
@@ -38,14 +38,14 @@ export const Annotation = Extension.create({
 				apply(tr, state, oldState, newState) {
 					if (tr.getMeta('pron')) {
 						const { color, annovalue } = tr.getMeta('pron');
-						console.log(color, annovalue);
+						// console.log(color, annovalue);
 						const annotations = [];
 						let limit = newState.doc.nodeSize - 2;
 						newState.doc.nodesBetween(0, limit, (node, pos, parent) => {
 							if (node.marks && node.marks.length > 0) {
 								const mark = node.marks.find((x) => x.type.name === 'pronHighlight');
 								if (mark) {
-									console.log(mark, node, pos, limit);
+									// console.log(mark, node, pos, limit);
 									annotations.push(
 										Decoration.inline(pos, pos + 5, { style: 'color: green' }),
 										Decoration.widget(pos, (view, getPos) => {
@@ -72,7 +72,7 @@ export const Annotation = Extension.create({
 								}
 							}
 						});
-						console.log(annotations);
+						// console.log(annotations);
 						return {
 							set: DecorationSet.create(tr.doc, annotations),
 							posMap: state.posMap
@@ -103,7 +103,7 @@ export const Annotation = Extension.create({
 						const attrs = view.state.doc.nodeAt(pos).marks[0].attrs;
 						if (attrs.start && ws && ws.getDuration() > 0)
 							ws.seekTo(attrs.start / ws.getDuration());
-						console.log(attrs.start / ws.getDuration());
+						// console.log(attrs.start / ws.getDuration());
 						// console.log(ws.seekTo(attrs.start / ws.getDuration()) /* ws.seekTo(attrs.start / ws.getDuration()) */)
 					}
 					// console.log(pos, view.state.doc.nodeAt(pos).marks, view.state.doc.resolve(pos).textOffset, view.state.doc.nodeAt(pos).nodeSize)

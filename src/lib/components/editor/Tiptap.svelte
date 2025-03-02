@@ -151,7 +151,7 @@
 		hotkeys('tab', function(event, handler){
 			event.preventDefault()
 			if ($waveform) {
-				console.log($waveform)
+				// console.log($waveform)
 				if ($player && $player.playing) $waveform.player.pause();
             	else if ($player && !$player.playing) $waveform.player.play();
 			}

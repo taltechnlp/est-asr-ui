@@ -38,32 +38,6 @@ https://svelte.dev/e/node_invalid_placement -->
 		onSave(languageAnnotationOptions); // Call the callback
 		}
 	}
-
-	// $: validated = newLabel.length > 1;
-
-	/* const setActive = (element, label) => {
-		console.log(element.target.checked);
-		languageAnnotationOptions.update((l) =>
-			l.map((x) => {
-				if (x.label === label)
-					return { label: x.label, description: x.description, active: element.target.checked };
-				else return x;
-			})
-		);
-	};
-	const addNew = () => {
-		languageAnnotationOptions.update((l) => {
-			l.push({
-				label: newLabel,
-				description: newDesc,
-				active: newActive
-			});
-			return l;
-		});
-        newLabel = "";
-        newDesc = "";
-        newActive = false;
-	}; */
 </script>
 
 <input type="checkbox" id="languages-modal" class="modal-toggle" />

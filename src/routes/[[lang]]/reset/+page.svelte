@@ -18,7 +18,7 @@
 		}
 		if (res.status === 200) {
 			const data = await res.body;
-			console.log(data)
+			// console.log(data)
 			window.location.href = '/signin';
 			return { props: { data } };
 		} else {

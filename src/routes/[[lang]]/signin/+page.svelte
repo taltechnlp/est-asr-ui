@@ -97,7 +97,7 @@
 				error = true;
 				console.log("Failed to parse signin response.");
 			};
-			console.log(res, body)
+			// console.log(res, body)
 		} else {
 			res = await signIn(provider, { redirect: false}).catch((e)=>{
 				error = true;
@@ -111,7 +111,7 @@
 			for (const p of searchParams) {
 				if (p[0] === "code") {
 					errorCode = p[1];
-					console.log(p[1]);
+					// console.log(p[1]);
 				}
 			}
 		}

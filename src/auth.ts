@@ -64,7 +64,7 @@ export const { handle, signIn, signOut } = SvelteKitAuth(async (event) => {
 							}
 						});
 					};
-                    console.log("credentials:", credentials, "user:", user);
+                    // ("credentials:", credentials, "user:", user);
 					if (!user) {
 					  // No user found, so this is their first attempt to login
 					  // Optionally, this is also the place you could do a user registration

@@ -69,7 +69,7 @@ export const actions: Actions = {
         })
         const data = await request.formData();
         const provider = data.get('provider')
-        console.log(provider)
+        // console.log(provider)
         const account = accounts.accounts.find(x => x.provider === provider);
         if (account) await prisma.account.delete({
             where: {

@@ -222,7 +222,7 @@
 			peaksInstance.on('segments.enter', function (event) {
 				const progress = Math.round($waveform.player.getCurrentTime() * 100) / 100;
 				playingTime.set(progress);
-				console.log("entered segment");
+				// console.log("entered segment");
 				if ($editor) {
 					// Apply word color decoration change to state without adding this state change to the history stack.
 					let newState = $editor.view.state.apply(
@@ -235,12 +235,12 @@
 							})
 							.setMeta('addToHistory', false)
 					);
-					console.log("entered segment", event.segment.id)
+					// console.log("entered segment", event.segment.id)
 					$editor.view.updateState(newState);
 				}
 			});
 			peaksInstance.on('segments.click', function(event) {
-				console.log(`Segment clicked: ${event.segment.id}`);
+				// console.log(`Segment clicked: ${event.segment.id}`);
 			});
 			peaksInstance.on('player.seeked', (time) => {
 				playingTime.set(time);
