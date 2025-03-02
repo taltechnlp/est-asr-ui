@@ -16,14 +16,14 @@ import { Readable } from 'stream';
 import { unlink } from "fs/promises";
 import "../../../app.css";
 
-export const load: PageServerLoad = async ({ locals, fetch, depends, url }) => {
-    depends('/api/files')
+export const load: PageServerLoad = async ({ locals, fetch, depends }) => {
+    depends('/api/files');
     let session = await locals.auth();
     if (!session || !session.user.id) {
         redirect(307, "/signin");
     }
+    const result = await fetch('/api/files');
     try {
-        const result = await fetch('/api/files');
         let files = await result.json();
         if (files.length > 0) {
             files = files.map(
@@ -179,7 +179,7 @@ export const actions: Actions = {
         return { success: true, file: fileData, error: undefined };
     },
     uploadFin: async ({ locals, request }) => {
-        const session = await locals.auth();
+        let session = await locals.auth();
         if (!session || !session.user.id) {
             redirect(307, "/signin");
         }
@@ -193,24 +193,29 @@ export const actions: Actions = {
             return fail(400, { uploadLimit: true });
         }
         const newFilename = `${Date.now()}-${Math.round(Math.random() * 1E4)}-${file.name}`
-        const uploadDir = join(SECRET_UPLOAD_DIR, userId);
+        const uploadDir = join(SECRET_UPLOAD_DIR, session.user.id);
         if (!existsSync(uploadDir)) {
             mkdirSync(uploadDir, { recursive: true });
         }
         const saveTo = join(uploadDir, newFilename);
-        console.log(
+        console.log("Upload FIN",
             `File [${newFilename}]: filename: %j, mimeType: %j, path: %j`,
             file.name,
             file.type,
             saveTo
         );
         try {
-            // @ts-ignore
-            await writeFile(saveTo, file.stream())
+            const arrayBuffer = await file.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            // Convert the Buffer to a Readable stream
+            const stream = Readable.from(buffer);
+            await fs.writeFile(saveTo, stream);
         } catch (err) {
             console.error(err);
             return fail(400, { fileSaveFailed: true });
         }
+        logger.info({session, message: `file uploaded to ${saveTo}` })
+        
         let id = uuidv4()
         id = id.replace(/[-]/gi, '').substr(0, 30)
 
@@ -223,9 +228,10 @@ export const actions: Actions = {
         }
         const uploadResult = await uploadToFinnishAsr(fileData.path, fileData.filename)
         if (!uploadResult.externalId) {
+            console.log("Upload FIN", "Upload failed", fileData, uploadResult)
             return { file: fileData, result: uploadResult[1] };
         }
-        console.log(fileData, statSync(fileData.path).ctime, uploadResult.externalId)
+        console.log("Upload FIN", fileData, statSync(fileData.path).ctime, uploadResult.externalId)
         const uploadedFile = await prisma.file.create({
             data: {
                 ...fileData,
@@ -234,11 +240,11 @@ export const actions: Actions = {
                 language: "fin",
                 notified: false,
                 User: {
-                    connect: { id: userId }
+                    connect: { id: session.user.id }
                 }
             }
         })
-        console.log("Upload saved to DB", uploadedFile)
+        console.log("Upload FIN", "Upload saved to DB", uploadedFile)
         return { success: true, file: fileData };
     },
 

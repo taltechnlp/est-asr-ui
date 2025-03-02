@@ -5,7 +5,7 @@
 	import { createEventDispatcher } from 'svelte';
 	import { _, locale } from 'svelte-i18n';
 	import { uiLanguages } from './i18n';
-	let { language } = $props();
+	let { language, value = $bindable() } = $props();
 
 	let loggedIn = $derived(userState.id.length > 0);
 	const rgx = new RegExp(/(\p{L}{1})\p{L}+/, 'gu');
@@ -28,6 +28,7 @@
 	const languages = uiLanguages;
 
 	let currentLanguage: string = $state(language || "et");
+	//let value = $state(value);
 	locale.set(currentLanguage); 
 	locale.subscribe(lang => {
 		currentLanguage = lang}
@@ -91,7 +92,7 @@
 				>
 					{$_('index.headerDemo')}
 				</a>
-				<select class="select select-ghost max-w-xs" bind:value={currentLanguage} onchange={switchLocale}>
+				<select class="select select-ghost max-w-xs w-24" bind:value={currentLanguage} onchange={switchLocale}>
 					{#each languages as value}
 						<option {value}>
 							{String.fromCodePoint(
@@ -102,6 +103,14 @@
 						</option>
 					{/each}
 				</select>
+				<!-- <select class="select select-ghost max-w-xs w-24" bind:value={value}>
+					<option value="bumblebee">Bumblebee</option>
+					<option value="emerald">Emerald</option>
+					<option value="valentine">Valentine</option>
+					<option value="fantasy">Fantasy</option>
+					<option value="cmyk">CMYK</option>
+					<option value="night">Night</option>
+				</select> -->
 				{#if !loggedIn}
 					<a
 						href="/signin"
@@ -134,8 +143,7 @@
 			</div>
 		</div>
 		<div class="grid sm:hidden">
-			<button class="btn btn-square btn-ghost justify-self-end" onclick={toggleMenu}>
-				
+			<button class="btn btn-square btn-ghost justify-self-end" onclick={toggleMenu} aria-label={$_('nav.toggleMenu')}>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					fill="none"

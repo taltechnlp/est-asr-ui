@@ -59,7 +59,7 @@
             <button class="btn btn-square btn-sm control-button ml-5" onclick={zoomIn}>
                 <Icon data={plus} scale={1} />
             </button>
-            <input type="range" min="0" max="3" bind:value={zoom} style="width: 100px" class="ml-1 hidden sm:block" onchange={zoomSlider}>
+            <input type="range" min="0" max="3" bind:value={zoom} style="width: 100px; accent-color: var(--color-primary)" class="ml-1 hidden sm:block bg-base-100" onchange={zoomSlider}>
             <button class="btn btn-square btn-sm control-button ml-1" onclick={zoomOut}>
                 <Icon data={minus} scale={1} />
             </button>

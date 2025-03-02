@@ -277,7 +277,7 @@
 				<span class="text-primary font-bold font-sans">{selectedVal.name}</span>
 				<Icon name="dropdown-arrow" class="invisible group-hover:visible" />
 			</summary>
-			<div class="absolute z-10 m-2 shadow drop-shadow-lg menu bg-base-100" use:clickOutside
+			<div class="absolute z-10 m-2 shadow drop-shadow-lg menu bg-base-100 border-2" use:clickOutside
 			onoutclick={() => {
 				isListOpen = false;
 			}}>
@@ -293,15 +293,15 @@
 						>{$_('speakerSelect.save')}</button
 					>
 				</div>
-				<ul class="bg-zinc-100 filter drop-shadow-lg">
+				<ul class="filter drop-shadow-lg">
 					{#each names as speaker}
 						<li
-							class="rounded-md hover:bg-cyan-200 {speaker.id == selectedVal.id
+							class="rounded-md hover:bg-accent {speaker.id == selectedVal.id
 								? 'flex justify-between flex-row p-1 bg-info'
 								: 'flex justify-between flex-row p-1'}"
 						>
 							{#if speaker.id === editSpeakerId}
-								<input class="w-48 flex-grow border-2 hover:bg-white" bind:value={editingValue} />
+								<input class="w-48 flex-grow border-2 hover:bg-accent" bind:value={editingValue} />
 								<div class="flex">
 									<button
 										class="btn btn-xs btn-outline w-min hover:text-primary"

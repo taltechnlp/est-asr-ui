@@ -147,7 +147,7 @@
 <svelte:head>
 	<title>{$_('files.title')}</title>
 </svelte:head>
-<div class="grid w-full justify-center grid-cols-[minmax(320px,_1280px)] overflow-x-auto">
+<div class="grid w-full min-h-[100dvh] justify-center content-start grid-cols-[minmax(320px,_1280px)] overflow-x-auto bg-base-100">
 	<div class="flex justify-end max-w-screen-2xl">
 		<button class="btn btn-primary gap-2 mt-5 mb-2 modal-button right" onclick={() => eval(`upload_modal.showModal()`)}>
 			{$_('files.uploadButton')}
