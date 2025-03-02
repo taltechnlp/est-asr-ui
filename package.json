@@ -2,11 +2,11 @@
   "name": "fe-tekstiks",
   "version": "0.0.1",
   "scripts": {
-    "prod": "ORIGIN=https://uus.tekstiks.ee BODY_SIZE_LIMIT=0 PORT=5173 HOST=127.0.0.1 bun run build/index.js",
+    "prod": "ORIGIN=https://uus.tekstiks.ee BODY_SIZE_LIMIT=Infinity PORT=5173 HOST=127.0.0.1 bun run build/index.js",
     "dev": "vite dev",
     "build": "vite build",
     "package": "svelte-kit package",
-    "preview": "ORIGIN=https://uus.tekstiks.ee  BODY_SIZE_LIMIT=0 HOST=127.0.0.1 PORT=5173 vite preview",
+    "preview": "ORIGIN=https://uus.tekstiks.ee  BODY_SIZE_LIMIT=Infinity HOST=127.0.0.1 PORT=5173 vite preview",
     "prepare": "vite sync",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-check --tsconfig ./tsconfig.json --watch",
