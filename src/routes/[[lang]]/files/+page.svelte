@@ -25,7 +25,8 @@
 	const delFile = async (fileId) => {
 		const response = await fetch('/api/files/' + fileId, {
 			method: 'DELETE'
-		}).catch(e => console.error("Failed to delete file", fileId))
+		}).catch(e => console.error("Failed to delete file", fileId));
+		(document.getElementById('del-file-modal') as HTMLInputElement).checked = false
 		if (!response) {
 			return;
 		}
@@ -146,7 +147,7 @@
 <svelte:head>
 	<title>{$_('files.title')}</title>
 </svelte:head>
-<div class="grid w-full justify-center grid-cols-[minmax(320px,_1280px)] overflow-x-auto">
+<div class="grid w-full min-h-[100dvh] justify-center content-start grid-cols-[minmax(320px,_1280px)] overflow-x-auto bg-base-100">
 	<div class="flex justify-end max-w-screen-2xl">
 		<button class="btn btn-primary gap-2 mt-5 mb-2 modal-button right" onclick={() => eval(`upload_modal.showModal()`)}>
 			{$_('files.uploadButton')}
@@ -222,17 +223,21 @@
 							{:else if file.state == 'READY'}
 								<button class="btn btn-outline btn-xs">{$_('files.openButton')}</button>
 							{/if}
-							
-							{#if !file.oldSystem}
-							<label
-								for="del-file-modal"
+							<button
 								class="btn btn-outline btn-xs"
 								onclick={(e) => {
 									delFileId = file.id;
 									e.stopPropagation();
-								}}>{$_('files.deleteButton')}</label
-							>
-							{/if}
+									(document.getElementById('del-file-modal') as HTMLInputElement).checked = true;
+								}}
+								onkeydown={(e) => {
+									if (e.key === 'Enter') {
+										delFileId = file.id;
+										e.stopPropagation();
+										(document.getElementById('del-file-modal') as HTMLInputElement).checked = true;
+									}
+								}}
+								>{$_('files.deleteButton')}</button>
 						</td>
 					</tr>
 				{/each}

@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @plugin "daisyui" {
-	themes: /* cmyk --default,  */all;
+	themes: cmyk --default;
   }
  
 @layer base {

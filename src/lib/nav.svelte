@@ -92,7 +92,7 @@
 				>
 					{$_('index.headerDemo')}
 				</a>
-				<select class="select select-ghost max-w-xs" bind:value={currentLanguage} onchange={switchLocale}>
+				<select class="select select-ghost max-w-xs w-24" bind:value={currentLanguage} onchange={switchLocale}>
 					{#each languages as value}
 						<option {value}>
 							{String.fromCodePoint(
@@ -103,16 +103,14 @@
 						</option>
 					{/each}
 				</select>
-				<div class="dropdown">
-					<select class="select w-full max-w-xs" bind:value={value}>
-						<option value="bumblebee">Bumblebee</option>
-						<option value="emerald">Emerald</option>
-						<option value="valentine">Valentine</option>
-						<option value="fantasy">Fantasy</option>
-						<option value="cmyk">CMYK</option>
-						<option value="night">Night</option>
-					</select>
-				</div>
+				<!-- <select class="select select-ghost max-w-xs w-24" bind:value={value}>
+					<option value="bumblebee">Bumblebee</option>
+					<option value="emerald">Emerald</option>
+					<option value="valentine">Valentine</option>
+					<option value="fantasy">Fantasy</option>
+					<option value="cmyk">CMYK</option>
+					<option value="night">Night</option>
+				</select> -->
 				{#if !loggedIn}
 					<a
 						href="/signin"
@@ -145,8 +143,7 @@
 			</div>
 		</div>
 		<div class="grid sm:hidden">
-			<button class="btn btn-square btn-ghost justify-self-end" onclick={toggleMenu}>
-				
+			<button class="btn btn-square btn-ghost justify-self-end" onclick={toggleMenu} aria-label={$_('nav.toggleMenu')}>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					fill="none"

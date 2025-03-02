@@ -10,14 +10,14 @@
 
 	let { data, children }: Props = $props();
 	
-	let currentTheme = $state('mytheme'); // default to our custom theme
+	let currentTheme = $state('cmyk'); // default to our custom theme
 	// Nice themes: Bumblebee, Emerald, Valentine (kui valitav), Fantasy, CMYK, Night (UI needs change first)
 </script>
 
 <svelte:head> 
 </svelte:head>
 
-<div class="w-full flex justify-center" data-theme={currentTheme}>
+<div class="w-full flex justify-center bg-base-100" data-theme={currentTheme}>
 	<Nav language={data.language} bind:value={currentTheme} />
 </div>
 
