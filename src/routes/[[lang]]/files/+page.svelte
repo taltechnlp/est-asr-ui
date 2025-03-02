@@ -25,7 +25,8 @@
 	const delFile = async (fileId) => {
 		const response = await fetch('/api/files/' + fileId, {
 			method: 'DELETE'
-		}).catch(e => console.error("Failed to delete file", fileId))
+		}).catch(e => console.error("Failed to delete file", fileId));
+		(document.getElementById('del-file-modal') as HTMLInputElement).checked = false;
 		if (!response) {
 			return;
 		}
@@ -190,13 +191,14 @@
 						</td>
 						<td>
 							{#if file.oldSystem}
-							<div class="badge badge-info">{$_('files.statusOld')}</div>
+							<div class="badge badge-info pl-2 pr-2">{$_('files.statusOld')}</div>
 							{:else if file.state == 'READY'}
-								<div class="badge badge-success">{$_('files.statusReady')}</div>
+								<div class="badge badge-success pl-2 pr-2">{$_('files.statusReady')}</div>
 							{:else if file.state == 'PROCESSING_ERROR'}
-								<div class="badge badge-error">{$_('files.statusError')}</div>
+								<div class="badge badge-error pl-2 pr-2">{$_('files.statusError')}</div>
 							{:else if file.state == 'PROCESSING'}
-								<div class="badge badge-accent">{$_('files.statusProcessing')} 
+								<div class="badge badge-accent pl-2 pr-2">
+									{$_('files.statusProcessing')} 
 								</div>
 								{#if file.progress >= 0}
 									{` ${file.progress}%`}
@@ -204,10 +206,10 @@
 								<span class="btn btn-ghost btn-xs" aria-label={$_('files.loading')}></span>
 								<span class="loading loading-spinner loading-xs"></span>
 							{:else if file.state == 'UPLOADED' && file.queued}
-								<div class="badge badge-info">{$_('files.statusUploaded')}</div>
+								<div class="badge badge-info pl-2 pr-2">{$_('files.statusUploaded')}</div>
 								<span class="loading loading-spinner loading-xs"></span>
 							{:else if file.state == 'UPLOADED'}
-								<div class="badge badge-info">{$_('files.statusUploaded')}</div>
+								<div class="badge badge-info pl-2 pr-2">{$_('files.statusUploaded')}</div>
 								<span class="loading loading-spinner loading-xs"></span>
 							{/if}
 						</td>
@@ -224,14 +226,21 @@
 							{/if}
 							
 							{#if !file.oldSystem}
-							<label
-								for="del-file-modal"
+							<button
 								class="btn btn-outline btn-xs"
 								onclick={(e) => {
 									delFileId = file.id;
 									e.stopPropagation();
-								}}>{$_('files.deleteButton')}</label
-							>
+									(document.getElementById('del-file-modal') as HTMLInputElement).checked = true;
+								}}
+								onkeydown={(e) => {
+									if (e.key === 'Enter') {
+										delFileId = file.id;
+										e.stopPropagation();
+										(document.getElementById('del-file-modal') as HTMLInputElement).checked = true;
+									}
+								}}
+								>{$_('files.deleteButton')}</button>
 							{/if}
 						</td>
 					</tr>
