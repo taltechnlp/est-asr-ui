@@ -1,49 +1,62 @@
 <script lang="ts">
 	import type { NodeViewProps } from '@tiptap/core';
-	import { NodeViewWrapper, editable } from 'svelte-tiptap';
+	import { NodeViewWrapper, NodeViewContent } from 'svelte-tiptap';
 	import { onMount, onDestroy } from 'svelte';
 	import Icon from '../Icon.svelte';
 	import { clickOutside } from '../clickOutside';
 	import type { Speaker } from '$lib/helpers/converters/types';
 	import { v4 as uuidv4 } from 'uuid';
 
-	export let node: NodeViewProps['node'];
-	export let decorations: NodeViewProps['decorations'];
-	export let extension: NodeViewProps['extension'];
-	export let updateAttributes: NodeViewProps['updateAttributes'];
-	export let deleteNode: NodeViewProps['deleteNode'];
-	export let editor: NodeViewProps['editor'];
-	export let getPos: NodeViewProps['getPos'];
-	export let selected: NodeViewProps['selected'] = false;
 	import {
 		speakerNames,
 		addSpeakerBlock,
 		editorMounted,
 		editorMode,
 		fontSize as fontSizeStore
-	} from '$lib/stores';
+	} from '$lib/stores.svelte';
 	import { /* findParentNodeOfTypeClosestToPos, */ findBlockNodes } from 'prosemirror-utils';
 	// import { Transform } from 'prosemirror-transform';
 
 	import { _ } from 'svelte-i18n';
+	interface Props {
+		node: NodeViewProps['node'];
+		decorations: NodeViewProps['decorations'];
+		extension: NodeViewProps['extension'];
+		updateAttributes: NodeViewProps['updateAttributes'];
+		deleteNode: NodeViewProps['deleteNode'];
+		editor: NodeViewProps['editor'];
+		getPos: NodeViewProps['getPos'];
+		selected?: NodeViewProps['selected'];
+	}
+
+	let {
+		node = $bindable(),
+		decorations,
+		extension,
+		updateAttributes,
+		deleteNode,
+		editor,
+		getPos,
+		selected = false
+	}: Props = $props();
 
 	type Name = {
 		name: string;
 		id: string;
 	};
 
-	let isListOpen = false;
+	let isListOpen = $state(false);
 	let initialName = node.attrs['data-name'];
 	let initialId = node.attrs['id'];
-	let topic = node.attrs['topic'];
-	let selectedVal: Name = {
+	let topic = $state(node.attrs['topic']);
+	let selectedVal: Name = $state({
 		name: node.attrs['data-name'],
 		id: node.attrs['id']
-	};
-	let newSpeaker = '';
-	let editSpeakerId = '';
-	let editingValue = '';
-	let names;
+	});
+	let newSpeaker = $state('');
+	let editSpeakerId = $state('');
+	let editingValue = $state('');
+	let names = $state();
 	speakerNames.subscribe((ns) => {
 		// Update dropdown list where for each id one name is shown only
 		names = ns.reduce((acc, curr) => {
@@ -67,14 +80,15 @@
 		let i = 0;
 		let done = false;
 		let startTime = null;
+		let testNode;
 		do {
-			node = state.doc.nodeAt(startPos + i);
-			if (node && node.marks && node.marks && node.marks.length > 0) {
-				for (let j = 0; j < node.marks.length; j++) {
+			testNode = state.doc.nodeAt(startPos + i);
+			if (testNode && testNode.marks && testNode.marks.length > 0) {
+				for (let j = 0; j < testNode.marks.length; j++) {
 					// @ts-ignore
-					if (node.marks[0].attrs.start) {
+					if (testNode.marks[0].attrs.start) {
 						// @ts-ignore
-						startTime = node.marks[0].attrs.start;
+						startTime = testNode.marks[0].attrs.start;
 						done = true;
 						break;
 					}
@@ -82,15 +96,13 @@
 			}
 			if (done) break;
 			i++;
-		} while (!done && node);
+		} while (!done && testNode);
 
 		return startTime;
 	};
-	let cssVarStyles
-	$: time = findTimeStamps(getPos() + 1, editor.state);
-	$: {
-		cssVarStyles = `font-size:${$fontSizeStore}px`;
-	}
+	let cssVarStyles = $derived(`font-size:${$fontSizeStore}px`)
+	let time = $derived(findTimeStamps(getPos() + 1, editor.state));
+	
 
 	const handleClick = () => {
 		isListOpen ? (isListOpen = false) : (isListOpen = true);
@@ -258,118 +270,112 @@
 </script>
 
 <NodeViewWrapper class="svelte-component speaker {selected}">
-	<details class="dropdown" bind:open={isListOpen} contentEditable={false}>
-		<summary class="m-1 speaker-name flex group cursor-pointer w-auto hover:bg-accent">
-			<Icon name="user" class="" />
-			<span class="text-primary font-bold font-sans">{selectedVal.name}</span>
-			<Icon name="dropdown-arrow" class="invisible group-hover:visible" />
-		</summary>
-		<div class="absolute z-10 m-2 shadow drop-shadow-lg menu bg-base-100" use:clickOutside
-		on:outclick={() => {
-			isListOpen = false;
-		}}>
-			<div class="p-1 flex">
-				<input
-					placeholder={$_('speakerSelect.addNew')}
-					bind:value={newSpeaker}
-					on:keypress={(e) => handleKeypress(e, newSpeaker)}
-				/>
-				<button
-					class="btn btn-outline btn-xs w-min ml-1 hover:text-primary"
-					on:click={() => handleNewSpeakerSave(newSpeaker, time)}
-					>{$_('speakerSelect.save')}</button
-				>
-			</div>
-			<ul class="bg-zinc-100 filter drop-shadow-lg">
-				{#each names as speaker}
-					<li
-						class="rounded-md hover:bg-cyan-200 {speaker.id == selectedVal.id
-							? 'flex justify-between flex-row p-1 bg-info'
-							: 'flex justify-between flex-row p-1'}"
+	<div class="top-container flex">
+		<details class="dropdown speaker-name-container" bind:open={isListOpen} contentEditable={false}>
+			<summary class="m-1 speaker-name flex group cursor-pointer w-auto hover:bg-accent">
+				<Icon name="user" class="" />
+				<span class="text-primary font-bold font-sans">{selectedVal.name}</span>
+				<Icon name="dropdown-arrow" class="invisible group-hover:visible" />
+			</summary>
+			<div class="absolute z-10 m-2 shadow drop-shadow-lg menu bg-base-100" use:clickOutside
+			onoutclick={() => {
+				isListOpen = false;
+			}}>
+				<div class="p-1 flex">
+					<input
+						placeholder={$_('speakerSelect.addNew')}
+						bind:value={newSpeaker}
+						onkeypress={(e) => handleKeypress(e, newSpeaker)}
+					/>
+					<button
+						class="btn btn-outline btn-xs w-min ml-1 hover:text-primary"
+						onclick={() => handleNewSpeakerSave(newSpeaker, time)}
+						>{$_('speakerSelect.save')}</button
 					>
-						{#if speaker.id === editSpeakerId}
-							<input class="w-48 flex-grow border-2 hover:bg-white" bind:value={editingValue} />
-							<div class="flex">
+				</div>
+				<ul class="bg-zinc-100 filter drop-shadow-lg">
+					{#each names as speaker}
+						<li
+							class="rounded-md hover:bg-cyan-200 {speaker.id == selectedVal.id
+								? 'flex justify-between flex-row p-1 bg-info'
+								: 'flex justify-between flex-row p-1'}"
+						>
+							{#if speaker.id === editSpeakerId}
+								<input class="w-48 flex-grow border-2 hover:bg-white" bind:value={editingValue} />
+								<div class="flex">
+									<button
+										class="btn btn-xs btn-outline w-min hover:text-primary"
+										onclick={() => {
+											handleRenameAll(speaker);
+										}}>{$_('speakerSelect.save')}</button
+									>
+								</div>
+							{:else}
 								<button
-									class="btn btn-xs btn-outline w-min hover:text-primary"
-									on:click={() => {
-										handleRenameAll(speaker);
-									}}>{$_('speakerSelect.save')}</button
+									onclick={() => {
+										selectSpeaker(speaker.id);
+										isListOpen = false;
+									}}
+									class="cursor-pointer inline flex-grow text-left"
 								>
-							</div>
-						{:else}
-							<button
-								on:click={() => {
-									selectSpeaker(speaker.id);
-									isListOpen = false;
-								}}
-								class="cursor-pointer inline flex-grow text-left"
-							>
-								{speaker.name}
-							</button>
-							<div>
-								<button class="btn btn-xs btn-outline w-min hover:text-primary" on:click={() => handleStartEdit(speaker)}
-									>{$_('speakerSelect.edit')}</button
-								>
-							</div>
-						{/if}
-					</li>
-				{/each}
-			</ul>
+									{speaker.name}
+								</button>
+								<div>
+									<button class="btn btn-xs btn-outline w-min hover:text-primary" onclick={() => handleStartEdit(speaker)}
+										>{$_('speakerSelect.edit')}</button
+									>
+								</div>
+							{/if}
+						</li>
+					{/each}
+				</ul>
+			</div>
+		</details>
+		<div class="flex items-center speaker-time-container" contentEditable={false} >
+			<p class="speaker-time">{numberToTime(time)}</p>
+			{#if $editorMode === 2}
+				<input
+					type="text"
+					name="topic"
+					id=""
+					placeholder={$_('speakerSelect.topicPlaceholder')}
+					class="input input-bordered input-accent input-xs w-full max-w-xs ml-5"
+					bind:value={topic}
+					onblur={saveTopic}
+				/>
+			{/if}
 		</div>
-	</details>
-	<div class="flex items-center speaker-top" contentEditable={false} >
-		<p class="speaker-time">{numberToTime(time)}</p>
-		{#if $editorMode === 2}
-			<input
-				type="text"
-				name="topic"
-				id=""
-				placeholder={$_('speakerSelect.topicPlaceholder')}
-				class="input input-bordered input-accent input-xs w-full max-w-xs ml-5"
-				bind:value={topic}
-				on:blur={saveTopic}
-			/>
-		{/if}
 	</div>
-	<div use:editable class="content editable" style="{cssVarStyles}"  />
+	<NodeViewContent class="content editable" style={cssVarStyles}></NodeViewContent>
 </NodeViewWrapper>
 
 <style>
 	:global(.speaker) {
 		display: grid;
-		grid-template-columns: minmax(auto, 150px) auto;
+		grid-template-columns: auto;
 		grid-template-rows: min-content auto;
 		width: auto;
 		grid-column-gap: 1px;
 		margin-bottom: 10px;
 	}
 
-	
-	.speaker-name {
-		grid-row-start: 2;
-		grid-column-start: 1;
-		justify-self: end;
+	.speaker-name-container {
+		/* grid-row-start: 1;
+		grid-column-start: 1; */
+		justify-self: start;
 		height: max-content;
 		min-width: 50px;
 	}
-	:global(.speaker) > .content {
-		grid-row-start: 2;
-		grid-column-start: 2;
-	}
-	.speaker-top {
-		grid-row-start: 1;
-		grid-column-start: 2;
+	.speaker-time-container {
+		/* grid-row-start: 1;
+		grid-column-start: 2; */
 	}
 	.speaker-time {
+		justify-self: start;
 		font-size: small;
 		color: rgba(156, 163, 175);
 	}
 	@media only screen and (max-width: 460px) {
-		:global(.speaker) > .content {
-			grid-row-start: 2;
-			grid-column-start: 1;
-		}
 		:global(.speaker) {
 			grid-template-columns: minmax(70px, auto) auto;
 		}	

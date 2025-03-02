@@ -4,19 +4,26 @@
 	import Button from '$lib/components/Button.svelte';
 	import { enhance } from '$app/forms';
 	import type {PageData, ActionData} from './$types';
-	import { user as userStore } from '$lib/stores';
+	import { userState } from '$lib/stores.svelte';
+	import { goto } from '$app/navigation';
 	
-	export let data: PageData;
-	let email = data.email;
-	let fullName = data.name;
-	let password = '';
-	let confirmPassword = '';
-	let error;
-	let confirmPasswordInputRef;
-	let success = false;
-
-	export let form: ActionData;
-	
+	let { data, form } = $props();
+	let email = $state(data.email);
+	let fullName = $state(data.name);
+	let password = $state('');
+	let confirmPassword = $state('');
+	let error = $state();
+		$effect(() => {
+			if (!form?.success) {
+				error = "test";
+			}
+			else if (form?.success) {
+				error = "";
+				setTimeout(()=>{
+					goto('/signin');
+				}, 3000);
+			}
+		})
 </script>
 
 <svelte:head>
@@ -30,15 +37,14 @@
 {#if (error)}
 	<p class="mt-3 text-red-500 text-center font-semibold">{error}</p>
 {/if}
-{#if !success}
-<form  method="POST" action="?/register" class="space-y-5 max-w-xl mx-auto mt-8" use:enhance={({ form:ActionData, data: PageData, cancel }) => {
+{#if !form?.success}
+<form  method="POST" action="?/register" class="space-y-5 max-w-xl mx-auto mt-8" use:enhance={({ formElement, formData, action, cancel, submitter }) => {
 	if (password !== confirmPassword) {
 		error = $_('signup.passwordsDontMatch');
-		confirmPasswordInputRef.focus();
 		cancel();
 		return;
 	} 
-    return async ({ result }) => {
+    /* return async ({ result }) => {
 		console.log(result)
 		// @ts-ignore
 		if (result.type === "failure") {
@@ -52,14 +58,12 @@
 		}
 		else if (result.type === 'success') {
 			error = "";
-			success = true;
-			// @ts-ignore
-			userStore.set(result.user);
+			success = true
 			await setTimeout(()=>{}, 3000);
 			window.location.href = '/files';
 		} 
 
-    };
+    }; */
   }}> 
 	<Input label={$_('signup.email')} id="email" name="email" type="email" bind:value={email} />
 	<Input
@@ -82,7 +86,6 @@
 		name="confirm-password"
 		type="password"
 		bind:value={confirmPassword}
-		bind:inputRef={confirmPasswordInputRef}
 	/>
 	<Button type="submit">{$_('signup.register')}</Button>
 </form>

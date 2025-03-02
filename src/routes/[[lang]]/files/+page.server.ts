@@ -1,50 +1,29 @@
 import { prisma } from "$lib/db/client";
-import type { Prisma } from "@prisma/client";
 import { v4 as uuidv4 } from 'uuid';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
-import { SECRET_UPLOAD_DIR, FIN_ASR_UPLOAD_URL, EST_ASR_URL, RESULTS_DIR } from '$env/static/private';
-import { existsSync, mkdirSync, statSync, unlinkSync } from 'fs';
-import { promises as fs, writeFileSync } from 'fs';
+import { SECRET_UPLOAD_DIR, RESULTS_DIR } from '$env/static/private';
+import { existsSync, mkdirSync, statSync } from 'fs';
+import { promises as fs } from 'fs';
 import { uploadToFinnishAsr, UPLOAD_LIMIT } from "./upload";
 import path from "path";
 import { logger } from '$lib/logging/client';
-
-const uploadResult = {
-    0: "failed",
-    1: "network_error",
-    2: "ok"
-} as const satisfies { [index: number]: string; };
-type UploadResult = (typeof uploadResult)[keyof typeof uploadResult]
-
+import { getAudioDurationInSeconds } from "get-audio-duration";
+import { Buffer } from 'node:buffer'; 
+import { Readable } from 'stream';
+import { unlink } from "fs/promises";
+import "../../../app.css";
 
 export const load: PageServerLoad = async ({ locals, fetch, depends, url }) => {
     depends('/api/files')
-    let userId = locals.userId;
-    let session = await locals.getSession();
-    if (!userId) {
-        if (session && session.user) userId = session.user.id;
-    }
-    if (!userId) {
-        throw redirect(307, "/signin");
-    }
-    const isAdmin = await prisma.user.findUnique({
-        where: {
-            id: userId
-        },
-        select: {
-            role: true
-        }
-    })
-    let adminSearchParam = "";
-    if (isAdmin && url.searchParams.has("userId")) {
-        adminSearchParam = "?userId=" + url.searchParams.get("userId");
+    let session = await locals.auth();
+    if (!session || !session.user.id) {
+        redirect(307, "/signin");
     }
     try {
-        const result = await fetch('/api/files' + adminSearchParam);
-        
+        const result = await fetch('/api/files');
         let files = await result.json();
         if (files.length > 0) {
             files = files.map(
@@ -66,7 +45,6 @@ export const load: PageServerLoad = async ({ locals, fetch, depends, url }) => {
                 }
             )
         }
-        console.log(files)
         return { files, session };
     }
     catch (error) {
@@ -77,27 +55,24 @@ export const load: PageServerLoad = async ({ locals, fetch, depends, url }) => {
 
 export const actions: Actions = {
     uploadEst: async ({ locals, request, fetch }) => {
-        let userId = locals.userId;
-        if (!userId) {
-            let session = await locals.getSession();
-            if (session && session.user) userId = session.user.id;
-        }
-        if (!userId) {
-            throw redirect(307, "/signin");
+        let session = await locals.auth();
+        if (!session || !session.user.id) {
+            redirect(307, "/signin");
         }
         const data = await request.formData();
         const notify = data.get('notify') === "yes" ? true : false;
         const file = data.get('file') as File;
-        if (!file.name || !file.size || !file.type) {
+        if (!file?.name || !file?.size || !file?.type) {
             return fail(400, { noFile: true })
         }
         if (file.size > UPLOAD_LIMIT) {
+            console.info("File too large");
             return fail(400, { uploadLimit: true });
         }
         let id: string = uuidv4()
         id = id.replace(/[-]/gi, '').substr(0, 30)
         const newFilename = `${id}_${file.name}`
-        const uploadDir = join(SECRET_UPLOAD_DIR, userId);
+        const uploadDir = join(SECRET_UPLOAD_DIR, session.user.id);
         if (!existsSync(uploadDir)) {
             mkdirSync(uploadDir, { recursive: true });
         }
@@ -128,14 +103,38 @@ export const actions: Actions = {
             externalId
         }
         try {
-            await fs.writeFile(saveTo, Buffer.from(await (file as Blob).arrayBuffer()))
+            const arrayBuffer = await file.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            // Convert the Buffer to a Readable stream
+            const stream = Readable.from(buffer);
+            await fs.writeFile(saveTo, stream);
         } catch (err) {
             console.error(err);
             return fail(400, { fileSaveFailed: true });
         }
-        logger.info({userId, message: `file uploaded to ${saveTo}` })
-        const resultDir = path.join(RESULTS_DIR, userId, fileData.id)
-        console.log("resultDIR", resultDir);
+        logger.info({session, message: `file uploaded to ${saveTo}` })
+
+        let duration = 0;
+        let error = false;
+        try {
+            await getAudioDurationInSeconds(saveTo).then((dur) => {
+                duration = dur;
+                console.log("File duration in seconds:", duration)
+                if (duration > 7200) { // not more than 2h
+                    error = true;
+                }
+            });
+        }
+        catch (e) {
+            console.log("Failed to read file duration at", saveTo);
+            error = true;
+        };
+        if (error) {
+            await unlink(saveTo).catch(e => console.log("Failed to remove uploaded file that was too long", e));
+            return fail(400, { fileTooLong: true });
+        }
+
+        const resultDir = path.join(RESULTS_DIR, session.user.id, fileData.id)
         const resultPath = path.join(resultDir, "result.json")
         await prisma.file.create({
             data: {
@@ -145,7 +144,7 @@ export const actions: Actions = {
                 notified: false,
                 notify: notify,
                 User: {
-                    connect: { id: userId }
+                    connect: { id: session.user.id }
                 }
             }
         }).catch(() => {return fail(400, { fileSaveFailed: true })})
@@ -180,13 +179,9 @@ export const actions: Actions = {
         return { success: true, file: fileData, error: undefined };
     },
     uploadFin: async ({ locals, request }) => {
-        let userId = locals.userId;
-        if (!userId) {
-            let session = await locals.getSession();
-            if (session && session.user) userId = session.user.id;
-        }
-        if (!userId) {
-            throw redirect(307, "/signin");
+        const session = await locals.auth();
+        if (!session || !session.user.id) {
+            redirect(307, "/signin");
         }
         const data = await request.formData();
 
@@ -247,4 +242,4 @@ export const actions: Actions = {
         return { success: true, file: fileData };
     },
 
-};
+} satisfies Actions;

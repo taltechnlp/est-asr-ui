@@ -1,12 +1,6 @@
 import { spawn, execFile } from "child_process";
-import { writeFile } from "fs/promises";
 import { existsSync, mkdirSync} from 'fs';
-import { prisma } from "$lib/db/client";
-import { unlink } from "fs/promises";
 
-/* "-bg",
-"run",
-"-disable-jobs-cancellation", */
 export const runNextflow = (
     fileId: string,
     filePath: string,

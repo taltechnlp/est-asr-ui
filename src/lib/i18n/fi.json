@@ -90,6 +90,7 @@
         "uploadHeader": "Lähetä äänitiedosto",
         "supportedFormats": "Tuetut tiedostomuodot: wav, mp3, ogg",
         "fileSizeLimit": "Tiedoston enimmäiskoko on noin 1000MB",
+        "fileDurationLimit": "Kesto enintään 2 tuntia",
         "cancel": "Poista",
         "delete": "Poista lopullisesti",
         "fileDeletion": "Poista tiedosto",
@@ -101,7 +102,11 @@
             "estonian": "Virolainen",
             "finnish": "Suomalainen"
         },
-        "uploadNotify": "Ilmoita valmistumisesta sähköpostilla"
+        "uploadNotify": "Ilmoita valmistumisesta sähköpostilla",
+        "noFiles": "Ei yhä ladattuja tiedostoja",
+        "loading": "Lataa...",
+        "uploadIcon": "Lataa äänitiedosto",
+        "requirements": "Näitä täytyy täyttää"
     },
     "me": {
         "title": "Käyttäjätiedot | tekstiks.ee",

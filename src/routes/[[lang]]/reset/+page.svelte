@@ -1,9 +1,8 @@
-<script>
+<script lang="ts">
 	import PasswordResetForm from '$lib/components/PasswordResetForm.svelte';
 	import { _ } from 'svelte-i18n';
 	import Button from '$lib/components/Button.svelte';
-	export let data;
-	export let error;
+	let { data, error = $bindable() } = $props();
 
 	async function handleSubmit({ detail: { password } }) {
 		const res = await fetch ("/api/reset", {

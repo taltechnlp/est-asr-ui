@@ -1,13 +1,20 @@
-<script>
+<script lang="ts">
+	import { preventDefault } from 'svelte/legacy';
+
 	import Input from '$lib/components/Input.svelte';
 	import Button from '$lib/components/Button.svelte';
 	import { _ } from 'svelte-i18n';
 	import { createEventDispatcher } from 'svelte';
+	interface Props {
+		[key: string]: any
+	}
 
-	let password = '';
-	let confirmPassword = '';
-	let error;
-	let confirmPasswordInputRef;
+	let { ...props }: Props = $props();
+
+	let password = $state('');
+	let confirmPassword = $state('');
+	let error = $state();
+	let confirmPasswordInputRef = $state();
 
 	const dispatch = createEventDispatcher();
 
@@ -25,7 +32,7 @@
 	}
 </script>
 
-<form method="POST" on:submit|preventDefault={submit} class="space-y-5 {$$props.class}">
+<form method="POST" onsubmit={preventDefault(submit)} class="space-y-5 {props.class}">
 	<Input
 		label={$_('passwordReset.password')}
 		id="password"

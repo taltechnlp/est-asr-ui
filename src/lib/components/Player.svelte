@@ -1,12 +1,12 @@
 <script lang="ts">
     import Waveform from '$lib/components/Waveform.svelte'
     import Icon from 'svelte-awesome/components/Icon.svelte';
-	import minus from 'svelte-awesome/icons/minus-circle';
-	import plus from 'svelte-awesome/icons/plus-circle';
-    import { player, waveform } from '$lib/stores';
-    export let url;
+	import minus from 'svelte-awesome/icons/minusCircle';
+	import plus from 'svelte-awesome/icons/plusCircle';
+    import { player, waveform } from '$lib/stores.svelte';
+    let { url } = $props();
     let rate = '1.0x';
-	let zoom = 1;
+	let zoom = $state(1);
 	const togglePlay = () => {
 		if ($waveform) {
             if ($player && $player.playing) $waveform.player.pause();
@@ -56,15 +56,15 @@
 <div class="w-full h-auto fixed bottom-0 left-0 pb-1 bg-white">
     <div class="controls flex justify-between items-center pt-0.5 pb-0.5">
         <div class="flex justify-center items-center">
-            <button class="btn btn-square btn-sm control-button ml-5" on:click={zoomIn}>
+            <button class="btn btn-square btn-sm control-button ml-5" onclick={zoomIn}>
                 <Icon data={plus} scale={1} />
             </button>
-            <input type="range" min="0" max="3" bind:value={zoom} style="width: 100px" class="ml-1 hidden sm:block" on:change={zoomSlider}>
-            <button class="btn btn-square btn-sm control-button ml-1" on:click={zoomOut}>
+            <input type="range" min="0" max="3" bind:value={zoom} style="width: 100px" class="ml-1 hidden sm:block" onchange={zoomSlider}>
+            <button class="btn btn-square btn-sm control-button ml-1" onclick={zoomOut}>
                 <Icon data={minus} scale={1} />
             </button>
             <select class="select select-bordered ml-2"
-            bind:value={rate} on:change={changeSpeed}>
+            bind:value={rate} onchange={changeSpeed}>
                 <option>0.5x</option>
                 <option>0.6x</option>
                 <option>0.7x</option>
@@ -85,7 +85,7 @@
         </div>
         <div class="flex justify-around items-center w-48 min-w-max">
             <div class="tooltip" data-tip="Shift + Tab">
-                <button class="btn btn-square control-button" on:click={seekBackward}>
+                <button class="btn btn-square control-button" onclick={seekBackward}>
                     <svg
                         viewBox="0 0 24 24"
                         class="h-6 w-6 border-0"
@@ -98,7 +98,7 @@
                 </button>
             </div>
             <div class="tooltip" data-tip="Tab">
-                <button class="btn btn-square control-button" on:click={togglePlay} class:loading="{!$player.ready}">
+                <button class="btn btn-square control-button" onclick={togglePlay} class:loading="{!$player.ready}">
                     {#if $player.ready && !$player.playing}
                         <svg
                             viewBox="0 0 24 24"
@@ -125,7 +125,7 @@
                 </button>
             </div>
              <div class="tooltip" data-tip="Alt + Tab">
-                 <button class="btn btn-square control-button" on:click={seekForward}>
+                 <button class="btn btn-square control-button" onclick={seekForward}>
                     <svg viewBox="0 0 24 24" class="h-6 w-6" fill="rgba(0, 0, 0, 0.54)" stroke="currentColor"
                     ><path
                     d="M22.74,9.25,9,.137V6.485L0,.057V23.943l9-6.428v6.428l13.741-9.811a3,3,0,0,0,0-4.882Z"

@@ -35,12 +35,13 @@ export const actions: Actions = {
             data: { resetToken, resetTokenExpiry }
         });
         // 3. Email them that reset token
+        // TODO: replace language in URL to be dynamic. Required b.c. of Chrome loosing token on redirect
         const mailRes = await sendMail({
             to: user.email,
             subject: "Parooli lähtestamise link",
             html: createEmail(`Siin on tellitud parooli lähtestamise link! See aegub 24 tunni jooksul.
             \n\n
-            <a href="${ORIGIN}/reset?resetToken=${resetToken}">Klõpsa siia, et lähtestada oma tekst.ee parool.</a>`)
+            <a href="${ORIGIN}/et/reset?resetToken=${resetToken}">Klõpsa siia, et lähtestada oma tekst.ee parool.</a>`)
         });
         return {
             success: true

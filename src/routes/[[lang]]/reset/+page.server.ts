@@ -13,12 +13,12 @@ export const load: PageServerLoad = async ({ url}) => {
             }
         })
         if (!user) {
-            throw error(404, 'Token not found');
+            error(404, 'Token not found');
         }
         // @ts-ignore
         const valid = user.resetTokenExpiry >= Date.now();
         console.log(resetToken, user.resetTokenExpiry , user, Date.now(), valid)
         return {valid, resetToken};
     }
-    throw error(400, 'No valid resetToken provided');
+    error(400, 'No valid resetToken provided');
 };

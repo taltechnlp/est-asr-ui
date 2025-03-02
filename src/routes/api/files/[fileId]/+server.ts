@@ -4,17 +4,10 @@ import type { RequestHandler } from "./$types";
 import { error } from "@sveltejs/kit";
 
 export const DELETE: RequestHandler = async ({ params, locals }) => {
-  let userId = locals.userId;
-    if (!userId) {
-        let session = await locals.getSession();
-        if (session && session.user) userId = session.user.id;
+    const session = await locals.auth();
+    if (!session || !session.user.id) {
+        error(401, "Not authenticated user");
     }
-    if (!userId ) {
-        throw error(401, "Not authenticated user");
-    }
-  if (!userId) {
-    throw error(401, "Not authenticated user");
-  }
   // Validate that the user owns the file
   const fileDetails = await prisma.file.findUnique({
     where: {
@@ -31,11 +24,8 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
       },
     },
   });
-  const isAdmin =
-    await (await prisma.user.findUnique({ where: { id: userId } }))
-      .role === "ADMIN";
-  if (!fileDetails || (fileDetails.User.id !== userId && !isAdmin)) {
-    throw error(404, "fileNotFound");
+  if (!fileDetails || (fileDetails.User.id !== session.user.id)) {
+    error(404, "fileNotFound");
   }
   let location = fileDetails.path;
   await fs.rm(location).catch((e) => {
@@ -47,7 +37,7 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
     },
   }).catch((e) => {
     console.log("Failed to remove file from DB!", e);
-    throw error(503, "fileNotDeleted");
+    error(503, "fileNotDeleted");
   });
   console.log(`file ${params.fileId} deleted`);
   return new Response("", { status: 200 });
@@ -55,17 +45,10 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 
 // Save edited transcription to disk
 export const PUT: RequestHandler = async ({ params, request, locals }) => {
-        let userId = locals.userId;
-        if (!userId) {
-            let session = await locals.getSession();
-            if (session && session.user) userId = session.user.id;
+        const session = await locals.auth();
+        if (!session || !session.user.id) {
+            error(401, "Not authenticated user");
         }
-        if (!userId ) {
-            throw error(401, "Not authenticated user");
-        }
-      if (!userId) {
-        throw error(401, "Not authenticated user");
-      }
       const editorContent = await request.json();
       const file = await prisma.file.findUnique({
           where: {
@@ -81,20 +64,20 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
                   },
             },
         });
-    const isAdmin =
-      await (await prisma.user.findUnique({ where: { id: userId } }))
-        .role === "ADMIN";
-    if (!file|| (file.User.id !== userId && !isAdmin)) {
-      throw error(404, "fileNotFound");
+    if (!file|| (file.User.id !== session.user.id )) {
+      error(404, "fileNotFound");
     }
-  try {
-    await fs.writeFile(
-      file.initialTranscriptionPath,
-      JSON.stringify(editorContent),
-    );
-    return new Response("", { status: 201 });
-  } catch (err) {
-    console.log(err, file.initialTranscriptionPath);
-    throw error(500, "fileWriteError");
-  }
+    let success = false;
+    try {
+      await fs.writeFile(
+        file.initialTranscriptionPath,
+        JSON.stringify(editorContent),
+      );
+      success = true;
+    } catch (err) {
+      console.log(err, file.initialTranscriptionPath);
+      success = false;
+    }
+    if (success) return new Response("", { status: 201 });
+    else error(500, "fileWriteError");
 };

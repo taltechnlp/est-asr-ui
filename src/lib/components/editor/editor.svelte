@@ -6,22 +6,24 @@
 	import DropCursor from '@tiptap/extension-dropcursor';
 	import GapCursor from '@tiptap/extension-gapcursor';
 	import TextStyle from '@tiptap/extension-text-style';
-	import Highlight from '@tiptap/extension-highlight';
-    import Underline from '@tiptap/extension-underline';
     import Paragraph from '@tiptap/extension-paragraph';
 	import History from '@tiptap/extension-history';
 	import Icon from 'svelte-awesome/components/Icon.svelte';
-	import rotateLeft from 'svelte-awesome/icons/rotate-left';
-	import rotateRigth from 'svelte-awesome/icons/rotate-right';
+	import rotateLeft from 'svelte-awesome/icons/rotateLeft';
+	import rotateRigth from 'svelte-awesome/icons/rotateRight';
 	import download from 'svelte-awesome/icons/download';
 	import debounce from 'lodash/debounce';
 	import { downloadHandler, handleSave } from '$lib/download';
 	import { _ } from 'svelte-i18n';
 
-	export let data: string;
-	export let fileId: string;
-	let element: HTMLDivElement | undefined;
-	let editor: undefined | Editor;
+	interface Props {
+		data: string;
+		fileId: string;
+	}
+
+	let { data, fileId }: Props = $props();
+	let element: HTMLDivElement | undefined = $state();
+	let editor: undefined | Editor = $state();
 	let demo = true;
 
 	const debouncedSave = debounce(() => handleSave(editor, fileId), 5000, {
@@ -70,14 +72,14 @@
 	});
 </script>
 
-<div class="w-full fixed top-2 left-0 right-0 flex justify-center z-20" />
+<div class="w-full fixed top-2 left-0 right-0 flex justify-center z-20"></div>
 <div class="grid w-full mt-4 mb-12 justify-center">
 	<div class="editor">
 		{#if editor}
 			<div class="toolbar sticky top-0 z-10 pt-1 pb-1">
 				<div>
 					<span
-						on:click={() => editor.chain().focus().undo().run()}
+						onclick={() => editor.chain().focus().undo().run()}
 						class:disabled={!editor.can().undo()}
 						style="color: rgba(0, 0, 0, 0.54);"
 						class="ml-6 tooltip tooltip-bottom cursor-pointer"
@@ -86,7 +88,7 @@
 						<Icon data={rotateLeft} scale={1.5} />
 					</span>
 					<span
-						on:click={() => editor.chain().focus().redo().run()}
+						onclick={() => editor.chain().focus().redo().run()}
 						class:disabled={!editor.can().redo()}
 						style="color: rgba(0, 0, 0, 0.54);"
 						class="ml-3 tooltip tooltip-bottom cursor-pointer"
@@ -98,7 +100,7 @@
 				<div class="flex">
 					<button
 						class="btn btn-link btn-sm"
-						on:click={() => {
+						onclick={() => {
 							downloadHandler(editor.getJSON(), '', '', true);
 						}}
 					>
@@ -108,7 +110,7 @@
 				</div>
 			</div>
 		{/if}
-		<div bind:this={element} id="myEditor" class="max-w-5xl " />
+		<div bind:this={element} id="myEditor" class="max-w-5xl "></div>
 	</div>
 </div>
 

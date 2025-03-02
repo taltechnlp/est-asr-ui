@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { run } from 'svelte/legacy';
+
 	import { onMount, onDestroy } from 'svelte';
 	import { beforeNavigate } from "$app/navigation";
 	import {
@@ -9,9 +11,9 @@
 		duration,
 		editor,
 		waveform
-	} from '$lib/stores';
+	} from '$lib/stores.svelte';
 	import Peaks, { type PeaksInstance, type PeaksOptions } from 'peaks.js';
-	export let url;
+	let { url } = $props();
 
 	let peaksInstance: PeaksInstance;
 	let peaksReady = false;
@@ -50,13 +52,15 @@
 			i += 1;
 		}
 	});
-	let names;
-	$: if ($waveform && $waveform.segments) {
-			$waveform.segments.removeAll();
-			names.forEach((m) => {
-				$waveform.segments.add(m);
-			});
-		} else console.log("not ready", names)
+	let names = $state();
+	run(() => {
+		if ($waveform && $waveform.segments) {
+				$waveform.segments.removeAll();
+				names.forEach((m) => {
+					$waveform.segments.add(m);
+				});
+			} else console.log("not ready", names)
+	});
 	const speakerFilter = (s) => s && s.start && s.start !== -1 && s.end && s.end !== -1 && s.name;
 	const unsubscribeSpeakerNames = speakerNames.subscribe((speakers) => {
 		names = speakers
@@ -325,8 +329,8 @@
 </script>
 
 <div>
-	<div id="zoomview-container" class="waveform-container w-full" />
-	<div id="overview-container" class="w-full h-auto " />
+	<div id="zoomview-container" class="waveform-container w-full"></div>
+	<div id="overview-container" class="w-full h-auto "></div>
 	<audio id="audio">
 		<source src={url} type="audio/mpeg">
 	</audio>

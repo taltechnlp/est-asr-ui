@@ -1,6 +1,6 @@
-<script>
+<script lang="ts">
 	import { goto } from '$app/navigation';
-	import { user as userStore } from '$lib/stores';
+	import { userState } from '$lib/stores.svelte';
 	import { _ } from 'svelte-i18n';
 	import { signOut } from '@auth/sveltekit/client';
 	import github from 'svelte-awesome/icons/github';
@@ -8,13 +8,10 @@
 	import google from 'svelte-awesome/icons/google';
 	import Icon from 'svelte-awesome/components/Icon.svelte';
 	import { signIn } from '@auth/sveltekit/client';
-	import { page } from '$app/stores';
+	import { SignIn } from "@auth/sveltekit/components"
+	import type { PageProps } from './$types';
+	let { data }: PageProps = $props();
 
-	let userData;
-
-	userStore.subscribe((value) => {
-		userData = value;
-	});
 	const handleSignOut = async () => {
 		try {
 			const response = await fetch('/api/signout', {
@@ -24,7 +21,9 @@
 					'Content-Type': 'application/json'
 				}
 			});
-			userStore.set({ name: '', email: '', id: '' });
+			userState.email = "";
+			userState.id = "";
+			userState.name = "";
 			// Log out of OAuth sessions
 			await signOut();
 			await goto('/');
@@ -35,6 +34,10 @@
 			};
 		}
 	};
+
+	class MySignIn extends SignIn {
+		code = true;
+	}
 </script>
 
 <svelte:head>
@@ -45,21 +48,21 @@
 	<h2 class="text-xl mb-10 font-extrabold mt-6">{$_('me.header')}</h2>
 	<div class="grid grid-cols-2 gap-5">
 		<p>{$_('me.email')}:</p>
-		<p>{userData ? userData.email : ''}</p>
+		<p>{userState.email}</p>
 
 		<p>{$_('me.name')}:</p>
-		<p>{userData ? userData.name : ''}</p>
+		<p>{userState.name}</p>
 
 		<p>{$_('me.password')}:</p>
-		{#if $page.data.user.passwordSet}
-			<a href="/password-reset?email={userData.email}">
+		{#if data.user.passwordSet}
+			<a href="/password-reset?email={userState.email}">
 				<button class="btn btn-outline btn-sm">{$_('me.resetPassword')}</button>
 			</a>
 		{:else}
 			<div class="flex flex-col">
 				<p>{$_('me.passwordNotSet')}
 				</p>
-				<a href="/password-reset?email={userData.email}">
+				<a href="/password-reset?email={userState.email}">
 					<button class="btn btn-outline btn-sm">{$_('me.setPassword')}</button>
 				</a>
 			</div>
@@ -68,33 +71,33 @@
 	<h3 class="text-lg mb-10 font-extrabold mt-6">{$_('me.connectedAccounts')}</h3>
 	<div class="grid grid-cols-2 gap-5 place-content-between">
 		<p><Icon data={facebook} scale={1.5} /> Facebook</p>
-		{#if $page.data.accounts.facebook}
+		{#if data.accounts.facebook}
 			<form method="POST" action="?/remove" class="justify-self-end">
 				<input type="text" value="facebook" class="hidden" name="provider" />
 				<button class="btn btn-outline btn-sm btn-error">{$_('me.removeAccount')}</button>
 			</form>
 		{:else}
 			<div class="justify-self-end">
-				<button class="btn btn-outline btn-sm" on:click={() => signIn('facebook')}
+				<button class="btn btn-outline btn-sm" onclick={() => signIn('facebook')}
 					>{$_('me.connectAccount')}</button
 				>
 			</div>
 		{/if}
 		<p><Icon data={google} scale={1.5} /> Google</p>
-		{#if $page.data.accounts.google}
+		{#if data.accounts.google}
 			<form method="POST" action="?/remove" class="justify-self-end">
 				<input type="text" value="google" class="hidden" name="provider" />
 				<button class="btn btn-outline btn-sm btn-error">{$_('me.removeAccount')}</button>
 			</form>
 		{:else}
 			<div class="justify-self-end">
-				<button class="btn btn-outline btn-sm" on:click={() => signIn('google')}
+				<button class="btn btn-outline btn-sm" onclick={() => signIn('google')}
 					>{$_('me.connectAccount')}</button
 				>
 			</div>
 		{/if}
 <!-- 		<p><Icon data={github} scale={1.5} /> GitHub</p>
-		{#if $page.data.accounts.github}
+		{#if data.accounts.github}
 			<form method="POST" action="?/remove" class="justify-self-end">
 				<input type="text" value="github" class="hidden" name="provider" />
 				<button class="btn btn-outline btn-sm btn-error">{$_('me.removeAccount')}</button>
@@ -109,7 +112,7 @@
 	</div>
 
 	<div class="mt-10">
-		<button class="btn btn-info" on:click={async () => await handleSignOut()}
+		<button class="btn btn-info" onclick={async () => await handleSignOut()}
 			>{$_('me.logoutButton')}</button
 		>
 	</div>

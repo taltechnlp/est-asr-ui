@@ -17,23 +17,13 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
             }
         }
     })
-    let userId = locals.userId;
-    if (!userId) {
-        let session = await locals.getSession();
-        if (session && session.user) userId = session.user.id;
-    }
-    if (!userId) {
-        throw error(401, 'unauthorized');
+    const session = await locals.auth();
+    if (!session || !session.user.id) {
+        error(401, 'unauthorized');
     } 
-    const isAdmin = await prisma.user.findUnique({
-        where: {
-            id: userId
-        },
-        select: {
-            role: true
-        }
-    });
-    if (userId === file.User.id || isAdmin) {
+    if (session.user.id !== file.User.id ) {
+        return error(401, 'unauthorized');
+    }
         const content = await fs.readFile(file.initialTranscriptionPath, 'utf8');
 
         /* let peaksExist = true;
@@ -114,6 +104,4 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
             },
             url: url.origin,
         }
-    }
-    else throw error(401, 'unauthorized');
 }

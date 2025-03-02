@@ -1,19 +1,23 @@
 import type { PageServerLoad, Actions } from './$types';
 import { prisma } from "$lib/db/client";
-import { fail, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
+import google from 'svelte-awesome/icons/google';
+import facebook from 'svelte-awesome/icons/facebook';
+import github from 'svelte-awesome/icons/github';
 
-export const load = (async ({ locals }) => {
-    let userId = locals.userId;
-    if (!userId) {
-        let session = await locals.getSession();
-        if (session && session.user) userId = session.user.id;
+export const load = (async (event) => {
+    let session = await event.locals.auth();
+    if (!session || !session.user || !session.user.id) {
+        redirect(307, "/signin");
     }
-    if (!userId) {
-        throw redirect(307, "/signin");
+    let accounts = {
+        google: false,
+        facebook: false,
+        github: false
     }
     const user = await prisma.user.findUnique({
         where: {
-           id: userId 
+           id: session.user.id 
         },
         include: {
             accounts: {
@@ -22,13 +26,20 @@ export const load = (async ({ locals }) => {
                 }
             },
         }
-    })
-
+    }); 
+    if (!user) {
+        return {
+            accounts,
+            user: {}
+        }
+    };
+    if ( user.accounts ) {
+        user.accounts.forEach(account => {
+            accounts[account.provider] = true;
+        });
+    }
     return {
-        accounts: user.accounts.reduce((acc, x) => {
-            acc[x.provider] = true;
-            return acc;
-        }, {}),
+        accounts,
         user: {
             passwordSet: user.password ? true : false,
             emailVerified: user.emailVerified,
@@ -39,17 +50,13 @@ export const load = (async ({ locals }) => {
 
 export const actions: Actions = {
     remove: async ({ request, locals }) => {
-        let userId = locals.userId;
-        if (!userId) {
-            let session = await locals.getSession();
-            if (session && session.user) userId = session.user.id;
-        }
-        if (!userId) {
-            throw redirect(307, "/signin");
+        const session = await locals.auth();
+        if (!session || !session.user.id) {
+            redirect(307, "/signin");
         }
         const accounts = await prisma.user.findUnique({
             where: {
-                id: userId
+                id: session.user.id
             },
             include: {
                 accounts: {

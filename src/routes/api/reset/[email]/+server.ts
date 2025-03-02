@@ -14,7 +14,7 @@ export const POST: RequestHandler= async ({ params, url }) => {
       }
     })  
     if (!user) {
-      throw error(403, 'No user with this email')
+      error(403, 'No user with this email');
     }
   const randomBytesPromiseified = promisify(randomBytes);
   const resetToken = (await randomBytesPromiseified(20)).toString("hex");

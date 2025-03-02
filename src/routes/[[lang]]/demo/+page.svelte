@@ -2,7 +2,7 @@
 	import Tiptap from '$lib/components/editor/Tiptap.svelte';
 	import Player from '$lib/components/Player.svelte';
 	import { content, words, speakers } from './content';
-	import { speakerNames as speakerNamesStore, words as wordsStore, editorMounted } from '$lib/stores';
+	import { speakerNames as speakerNamesStore, words as wordsStore, editorMounted } from '$lib/stores.svelte';
 	const file = {
 		json: content,
 		id: 1,

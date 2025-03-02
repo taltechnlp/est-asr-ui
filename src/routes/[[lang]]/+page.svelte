@@ -1,17 +1,8 @@
 <script lang="ts">
-	import { user } from '$lib/stores';
+	import { userState } from '$lib/stores.svelte';
 	import Hero from '$lib/components/Hero.svelte';
 	import { _ } from 'svelte-i18n';
-
-	let myData;
-	let loggedIn;
-
-	user.subscribe((value) => {
-		myData = value;
-		if (value && value.name) {
-			loggedIn = true;
-		} else loggedIn = false;
-	});
+	let loggedIn = $derived(userState.id.length > 0);
 </script>
 
 <svelte:head>

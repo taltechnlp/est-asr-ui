@@ -5,7 +5,7 @@ import type { Speaker, Word } from '$lib/helpers/converters/types'
 import type { PeaksInstance } from 'peaks.js';
 
 // User session state
-export const user = writable({ name: '', email: '', id: '' });
+export const userState = $state({ name: '', email: '', id: '' });
 export const files = writable([]);
 export const lang = writable({ language: 'ET' });
 
