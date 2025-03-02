@@ -225,7 +225,6 @@
 								<button class="btn btn-outline btn-xs">{$_('files.openButton')}</button>
 							{/if}
 							
-							{#if !file.oldSystem}
 							<button
 								class="btn btn-outline btn-xs"
 								onclick={(e) => {
@@ -241,7 +240,6 @@
 									}
 								}}
 								>{$_('files.deleteButton')}</button>
-							{/if}
 						</td>
 					</tr>
 				{/each}
