@@ -69,7 +69,8 @@
     "passwordsDontMatch": "Sisestatud paroolid ei kattu!",
     "userExists": "An account exists with this email aadress! Password can be reset.",
     "emailIncorrect": "Email address is not correct!",
-    "success": "Account was successfully created! Confirmation email was sent."
+    "success": "Account was successfully created! Confirmation email was sent.",
+    "retry": "Failed to create account. Please try again."
   },
   "files": {
     "title": "Files | tekstiks.ee",

@@ -69,7 +69,8 @@
         "passwordsDontMatch": "Sisestatud paroolid ei kattu!",
         "userExists": "Kasutaja selle e-posti aadressiga juba eksisteerib! Parooli ununemisel saab seda lähtestada.",
         "emailIncorrect": "E-posti aadress pole korrektne!",
-        "success": "Konto loomine õnnestus! Kinnituskiri saadetud."
+        "success": "Konto loomine õnnestus! Kinnituskiri saadetud.",
+        "retry": "Konto loomine ebaõnnestus. Palun proovi uuesti."
     },
     "files": {
         "title": "Failid | tekstiks.ee",

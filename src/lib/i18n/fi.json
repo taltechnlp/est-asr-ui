@@ -69,7 +69,8 @@
         "passwordsDontMatch": "Salasana ei ole oikein!",
         "userExists": "Käyttäjätili on jo olemassa tällä sähköpostiosoitteella. Salasanan voi asettaa uudelleen.",
         "emailIncorrect": "Sähköpostiosoite ei ole oikein!",
-        "success": "Tilin luominen onnistui! Vahvistussähköposti lähetetty."
+        "success": "Tilin luominen onnistui! Vahvistussähköposti lähetetty.",
+        "retry": "Tilin luominen epäonnistui. Yritä uudelleen."
     },
     "files": {
         "title": "Tiedostot | tekstiks.ee",

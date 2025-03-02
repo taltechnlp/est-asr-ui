@@ -14,8 +14,14 @@
 	let confirmPassword = $state('');
 	let error = $state();
 		$effect(() => {
-			if (!form?.success) {
-				error = "test";
+			if (!form?.success && form?.email && form?.invalid) {
+				error = $_('signup.emailIncorrect');
+			}
+			else if (!form?.success && form?.email && form?.exists) {
+				error = $_('signup.userExists');
+			}
+			else if (!form?.success && form?.retry) {
+				error = $_('signup.retry');
 			}
 			else if (form?.success) {
 				error = "";
