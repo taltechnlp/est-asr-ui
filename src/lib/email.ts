@@ -44,8 +44,9 @@ const nodemailerConfig = {
     pass: SMTP_PASSWORD, // smtp_pass
   },
   tls: {
-    minVersion: 'TLSv1.2', // Enforce minimum TLS version
-    rejectUnauthorized: true, // Enable certificate validation
+    rejectUnauthorized: false,  // Note: Only use this in development/testing
+    ciphers: 'SSLv3',
+    minVersion: 'TLSv1'
   },
   from: {
     name: 'Tekstiks.ee', // realname
@@ -58,9 +59,9 @@ const nodemailerConfig = {
   // use_ipv6 = no (Nodemailer defaults to IPv4)
   // copy=no (This is a Mutt-specific setting for whether to copy sent messages)
   // Timeout settings (in milliseconds)
-  connectionTimeout: 15000,    // 15 seconds
-  greetingTimeout: 10000,     // 10 seconds
-  socketTimeout: 20000,       // 20 seconds
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
 };
 
 export const sendEmail = async (info: EmailInfo) => {
