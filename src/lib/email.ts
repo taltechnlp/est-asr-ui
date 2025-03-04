@@ -69,7 +69,7 @@ export const sendEmail = async (info: EmailInfo) => {
     const transporter = nodemailer.createTransport(nodemailerConfig);
 
     // Add timeout promise
-    const emailPromise = transporter.sendEmail({
+    const emailPromise = transporter.sendMail({
       from: SMTP_FROM,
       to: info.to,
       subject: info.subject,
