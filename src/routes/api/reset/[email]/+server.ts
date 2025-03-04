@@ -3,7 +3,7 @@ import { prisma } from '$lib/db/client';
 import { error } from "@sveltejs/kit";
 import { promisify } from "util";
 import { randomBytes } from "crypto";
-import { sendMail, createEmail } from "$lib/email";
+import { sendEmail, createEmail } from "$lib/email";
 import { ORIGIN } from '$env/static/private';
 
 export const POST: RequestHandler= async ({ params, url }) => {
@@ -25,7 +25,7 @@ export const POST: RequestHandler= async ({ params, url }) => {
     data: { resetToken, resetTokenExpiry }
   });
   // 3. Email them that reset token
-  const mailRes = await sendMail({
+  const mailRes = await sendEmail({
     to: user.email,
     subject: "Parooli lähtestamise link",
     html: createEmail(`Siin on tellitud parooli lähtestamise link! See aegub 24 tunni jooksul.

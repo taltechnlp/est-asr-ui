@@ -66,7 +66,7 @@
 			body: formData
 		});
 		const result: ActionResult = deserialize(await response.text());
-		console.log('Upload result', result);
+		// console.log('Upload result', result);
 		if (result.type === 'success') {
 			// rerun all `load` functions, following the successful update
 			await invalidateAll();

@@ -2,7 +2,7 @@ import type { Actions } from './$types'
 import { prisma } from "$lib/db/client";
 import { hash } from 'bcrypt'
 import { v4 as uuidv4 } from 'uuid';
-import { sendMail, createEmail } from '$lib/email';
+import { sendEmail, createEmail } from '$lib/email';
 import { fail } from '@sveltejs/kit';
 import { uiLanguages } from '$lib/i18n';
 
@@ -63,7 +63,7 @@ export const actions: Actions = {
             }
         });
         // TODO: translate the email
-        const signupMailRes = await sendMail({
+        const signupMailRes = await sendEmail({
             to: user.email,
             subject: "Konto loodud",
             html: createEmail(`Konto e-posti aadressiga ${user.email} edukalt loodud!

@@ -1,6 +1,6 @@
 import type { Actions } from './$types'
 import { prisma } from "$lib/db/client";
-import { sendMail, createEmail } from '$lib/email';
+import { sendEmail, createEmail } from '$lib/email';
 import { fail } from '@sveltejs/kit';
 import { promisify } from "util";
 import { randomBytes } from "crypto";
@@ -36,7 +36,7 @@ export const actions: Actions = {
         });
         // 3. Email them that reset token
         // TODO: replace language in URL to be dynamic. Required b.c. of Chrome loosing token on redirect
-        const mailRes = await sendMail({
+        const mailRes = await sendEmail({
             to: user.email,
             subject: "Parooli lähtestamise link",
             html: createEmail(`Siin on tellitud parooli lähtestamise link! See aegub 24 tunni jooksul.
