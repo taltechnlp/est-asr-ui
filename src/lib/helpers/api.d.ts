@@ -105,8 +105,11 @@ export type FinErrorMessage =
 
 export type FinAsrFinished = {
     done: true;
+    error?: {
+        code: FinErrorCode;
+        message: FinErrorMessage;
+    }
     message?: FinErrorMessage | string;
-    code?: FinErrorCode;
     id: string;
     metadata: {
         version: string;

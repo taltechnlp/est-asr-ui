@@ -1,17 +1,16 @@
 import { unlink } from "fs/promises";
 import { prisma } from "$lib/db/client";
 import { createWriteStream, stat } from "fs";
+import { promises as fs } from 'fs';
 import path from "path";
 import type {
     EditorContent,
-    EstResult,
     FinAsrFinished,
     FinAsrResult,
     SectionType,
-    TranscriberResult,
 } from "./api.d";
-import { EST_ASR_URL, FIN_ASR_RESULTS_URL, RESULTS_DIR } from "$env/static/private";
-import { logger } from "../logging/client";
+import { FIN_ASR_RESULTS_URL } from "$env/static/private";
+// import { logger } from "../logging/client";
 
 let finToEstFormat: (sucRes: FinAsrFinished) => EditorContent = function (
     sucRes: FinAsrFinished,
@@ -124,177 +123,29 @@ let finToEstFormat: (sucRes: FinAsrFinished) => EditorContent = function (
 }; */
 
 export const checkCompletion = async (
-    fileId,
-    state,
-    externalId,
-    filePath,
-    language,
-    uploadDir,
-    userId,
-    fetch
-) => {
-    if (language === "est2") {
-        try {
-            /* const result = await fetch(
-              "http://bark.phon.ioc.ee/transcribe/v1/result?id=" + externalId
-            ).catch(e => {
-              console.log("Error fetching", "http://bark.phon.ioc.ee/transcribe/v1/result?id=" + externalId, e);
-              return {done: false}
-            })
-            if (!result) return {done: false};
-            const body: TranscriberResult = await result.json();
-            if (!body.done) {
-              return { done: false };
-            } else if (body.error) {
-              await prisma.file.update({
-                data: { state: "PROCESSING_ERROR" },
-                where: {
-                  id: fileId,
-                },
-              });
-              console.log(
-                `Failed to transcribe ${fileId}. Failed with code`,
-                body.error.code,
-                body.error.message,
-              );
-              await unlink(path);
-              return { done: true };
-            } else if (body) {
-              const path = `${uploadDir}/${fileId}.json`;
-              const text = JSON.stringify(body.result);
-              const writeStream = createWriteStream(path);
-              writeStream.on("finish", async function () {
-                await prisma.file.update({
-                  data: {
-                    initialTranscriptionPath: path,
-                    state: "READY",
-                  },
-                  where: {
-                    id: fileId,
-                  },
-                });
-              });
-              writeStream.write(text);
-              writeStream.end();
-              // Pre-generate waveform peaks
-              await generatePeaks(fileId);
-              return { done: true };
-            } */
-            return { done: false };
-        }
-        catch (e) {
-            return { done: false }
-        }
-    } else if (language === "est") {
-        // Retry starting transcription process
-        /* if (state === "UPLOADED") {
-            console.log("Retrying", filePath, RESULTS_DIR, userId, fileId)
-            const result = await fetch(
-                `/api/transcribe`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        fileId,
-                        filePath,
-                        resultDir: path.join(RESULTS_DIR, userId, fileId, "result.json"),
-                        workflowName: externalId,
-                    })
-                }
-            ).catch(e => console.error("Could not start Nextflow process", e))
-            if (result && result.ok) {
-                const body = await result.json();
-                console.log("Result nok", body)
-                if (body.requestId) {
-                    await prisma.file.update({
-                        where: {
-                            id: fileId
-                        },
-                        data: {
-                            state: "PROCESSING"
-                        }
-                    }).catch(e => console.error("Could not save file PROCESSING status to DB", e))
-                };
-            }
-            return { done: false };
-        } */
-        // Progress request
-/*         const progressRequest = await fetch(
-            `transcribe/progress/` + fileId,
-        ).catch(e => {
-            console.log("Transcription progress fetch error", e);
-        });
-        if (!progressRequest) return { done: false }
-        // Request successful
-        if (progressRequest.status === 200) {
-            const progress = await progressRequest.json();
-            // Transcription is in progress
-            if (!progress.done) {
-                logger.info({userId, message: `progress: ${progress.progress}, queued: ${progress.queued}`})
-                return {
-                    done: false,
-                    fileId,
-                    progress: progress.progress,
-                    status: (progress.progress === 0 ? "UPLOADED" : "PROCESSING"),
-                    queued: progress.queued
-                };
-            } // Transcription finished and succesfully
-            else if (progress.done && progress.success) {
-                await prisma.file.update({
-                    data: {
-                        state: "READY",
-                    },
-                    where: {
-                        id: fileId,
-                    },
-                });
-                return { done: true };
-            } else if ((progress.done && !progress.success)) {
-                await prisma.file.update({
-                    data: { state: "PROCESSING_ERROR" },
-                    where: {
-                        id: fileId,
-                    },
-                });
-                console.log(
-                    `Failed to transcribe ${fileId}. Failed with code`,
-                    progress.errorCode,
-                    progress.errorMessage,
-                );
-                await unlink(filePath);
-                return { done: true };
-            }
-        } else if (
-            progressRequest.status === 400 || progressRequest.status === 404
-        ) {
-            const progress = await progressRequest.json();
-            await prisma.file.update({
-                data: { state: "PROCESSING_ERROR" },
-                where: {
-                    id: fileId,
-                },
-            });
-            console.log(
-                `Failed to transcribe ${fileId}. Failed with code`,
-                progress.errorCode,
-                progress.errorMessage,
-            );
-            await unlink(filePath);
-            return { done: true };
-        } // Network error, service down etc.
-        else return { done: false }; */
-    } else {
+    fileId: string,
+    state: string,
+    externalId: string,
+    filePath: string,
+    language: string,
+    initialTranscriptionPath: string,
+    fetch: Function
+): Promise<{ done: boolean }> => {
+    if (language === "finnish") {
         const result = await fetch(FIN_ASR_RESULTS_URL, {
             method: "POST",
             body: externalId,
-        }).catch(e => console.error("Post failed to", FIN_ASR_RESULTS_URL, externalId))
+        }).catch(() => {
+            console.error("Post failed to", FIN_ASR_RESULTS_URL, externalId);
+            return { done: false };
+        });
+        if (!result) return { done: false };
         const body: FinAsrResult = await result.json();
         if (!body) return { done: false };
         if (!body.done) {
             return { done: false };
         } // Error case
-        else if (body.code) {
+        else if (body.error) {
             await prisma.file.update({
                 data: { state: "PROCESSING_ERROR" },
                 where: {
@@ -302,21 +153,40 @@ export const checkCompletion = async (
                 },
             });
             console.log(
-                `Failed to transcribe ${fileId}. Failed with code ${body.code,
-                body.message}`,
+                `Failed to transcribe ${fileId}. Failed with code ${body.error.code}, ${body.error.message}`
             );
             await unlink(filePath);
             return { done: true };
         } else if (body) {
             const formatted = finToEstFormat(body);
-            const path = `${uploadDir}/${fileId}.json`;
             const text = JSON.stringify(formatted);
-            const writeStream = createWriteStream(path);
+            
+            // Ensure parent directory exists
+            const parentDir = path.dirname(initialTranscriptionPath);
+            try {
+                await fs.mkdir(parentDir, { recursive: true });
+            } catch (err) {
+                console.error('Error creating directory:', err);
+                await prisma.file.update({
+                    data: { state: "PROCESSING_ERROR" },
+                    where: { id: fileId },
+                });
+                return { done: true };
+            }
+
+            const writeStream = createWriteStream(initialTranscriptionPath);
+            writeStream.on("error", async (err) => {
+                console.error("Error writing file:", err);
+                await prisma.file.update({
+                    data: { state: "PROCESSING_ERROR" },
+                    where: { id: fileId },
+                });
+            });
             writeStream.on("finish", async function () {
                 await prisma.file.update({
                     data: {
-                        initialTranscriptionPath: path,
-                        state: "READY",
+                        initialTranscriptionPath,
+                        state: "READY", 
                     },
                     where: {
                         id: fileId,
@@ -329,6 +199,9 @@ export const checkCompletion = async (
             // await generatePeaks(fileId);
             return { done: true };
         }
+    }
+    else {
+        return { done: true };
     }
 };
 
@@ -355,6 +228,7 @@ export const getFiles = async (id) => {
                     externalId: true,
                     path: true,
                     language: true,
+                    initialTranscriptionPath: true,
                     workflows: {
                         take: 1, 
                         select: {
@@ -371,10 +245,13 @@ export const getFiles = async (id) => {
             },
         },
     });
-    if (user) return user.files.map(
-        file => {
+    if (user) return Promise.all(user.files.map(
+        async file => {
             let progress = -1;
             if (file.state !== "READY" && file.state !== "ABORTED" && file.state !== "PROCESSING_ERROR") {
+                if (file.language === "finnish") {
+                    await checkCompletion(file.id, file.state, file.externalId, file.path, file.language, file.initialTranscriptionPath, fetch);
+                }
                 if (file.workflows && file.workflows.length > 0 && file.workflows[0].processes) {
                     progress = Math.floor(file.workflows[0].processes.length / 30 * 100);
                 } 
@@ -395,8 +272,7 @@ export const getFiles = async (id) => {
                 userId: user.id,
                 progress
             }
-
         }
-    );
+    ));
     else return [];
 };

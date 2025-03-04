@@ -9,7 +9,7 @@ import { existsSync, mkdirSync, statSync } from 'fs';
 import { promises as fs } from 'fs';
 import { uploadToFinnishAsr, UPLOAD_LIMIT } from "./upload";
 import path from "path";
-import { logger } from '$lib/logging/client';
+// import { logger } from '$lib/logging/client';
 import { getAudioDurationInSeconds } from "get-audio-duration";
 import { Buffer } from 'node:buffer'; 
 import { Readable } from 'stream';
@@ -33,7 +33,7 @@ export const load: PageServerLoad = async ({ locals, fetch, depends }) => {
                         state: file.state,
                         text: file.text,
                         filename: file.filename,
-                        duration: file.duration?.toNumber(),
+                        duration: file.duration,
                         mimetype: file.mimetype,
                         uploadedAt: file.uploadedAt?.toString(),
                         textTitle: file.textTitle,
@@ -54,12 +54,16 @@ export const load: PageServerLoad = async ({ locals, fetch, depends }) => {
 }
 
 export const actions: Actions = {
-    uploadEst: async ({ locals, request, fetch }) => {
+    default: async ({ locals, request, fetch }) => {
         let session = await locals.auth();
         if (!session || !session.user.id) {
             redirect(307, "/signin");
         }
         const data = await request.formData();
+        const lang = data.get('lang') as string;
+        if (lang !== "estonian" && lang !== "finnish") {
+            return fail(400, { invalidLang: true })
+        }
         const notify = data.get('notify') === "yes" ? true : false;
         const file = data.get('file') as File;
         if (!file?.name || !file?.size || !file?.type) {
@@ -83,16 +87,19 @@ export const actions: Actions = {
             file.type,
             saveTo
         );
-        const uploadedAt = new Date()
+        const uploadedAt = new Date();
         const increaseAscii = (char: string) => {
             const ascii = char.charCodeAt(0);
             if (ascii <= 57) {
               return String.fromCharCode(ascii + 60);
             } else return char;
           };
-        const externalId = Array.from(id)
-            .map(increaseAscii)
-            .join("");
+        let externalId = "";
+        if (lang === "estonian") {
+            externalId = Array.from(id)
+                .map(increaseAscii)
+                .join("");
+        }
         const fileData = {
             id: id,
             uploadedAt,
@@ -100,7 +107,8 @@ export const actions: Actions = {
             mimetype: file.type,
             encoding: "7bit",
             path: saveTo,
-            externalId
+            externalId,
+            language: lang
         }
         try {
             const arrayBuffer = await file.arrayBuffer();
@@ -108,11 +116,11 @@ export const actions: Actions = {
             // Convert the Buffer to a Readable stream
             const stream = Readable.from(buffer);
             await fs.writeFile(saveTo, stream);
+            console.log("File saved to", saveTo);
         } catch (err) {
             console.error(err);
             return fail(400, { fileSaveFailed: true });
         }
-        logger.info({session, message: `file uploaded to ${saveTo}` })
 
         let duration = 0;
         let error = false;
@@ -136,49 +144,75 @@ export const actions: Actions = {
 
         const resultDir = path.join(RESULTS_DIR, session.user.id, fileData.id)
         const resultPath = path.join(resultDir, "result.json")
-        await prisma.file.create({
-            data: {
-                ...fileData,
-                language: "est",
-                initialTranscriptionPath: resultPath,
-                notified: false,
-                notify: notify,
-                User: {
-                    connect: { id: session.user.id }
-                }
-            }
-        }).catch(() => {return fail(400, { fileSaveFailed: true })})
-        const result = await fetch(
-            `/api/transcribe`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    fileId: id,
-                    filePath: saveTo,
-                    resultDir,
-                    workflowName: externalId
-                })
-            }
-        ).catch(e => console.error("Could not start Nextflow process", e))
-        if (result && result.ok) { 
-            const body = await result.json();
-            if (body.requestId) {
-                await prisma.file.update({
-                    where: {
-                        id: fileData.id
-                    },
-                    data: {
-                        state: "PROCESSING"
+        if (lang === "estonian") {
+            await prisma.file.create({
+                data: {
+                    ...fileData,
+                    duration: duration,
+                    initialTranscriptionPath: resultPath,
+                    notified: false,
+                    notify: notify,
+                    User: {
+                        connect: { id: session.user.id }
                     }
-                }).catch(e => console.error("Could not save file PROCESSING status to DB", e))
-            };
+                }
+            }).catch(() => {return fail(400, { fileSaveFailed: true })})
+            const result = await fetch(
+                `/api/transcribe`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        fileId: id,
+                        filePath: saveTo,
+                        resultDir,
+                        workflowName: externalId
+                    })
+                }
+            ).catch(e => console.error("Could not start Nextflow process", e))
+            if (result && result.ok) { 
+                const body = await result.json();
+                if (body.requestId) {
+                    await prisma.file.update({
+                        where: {
+                            id: fileData.id
+                        },
+                        data: {
+                            state: "PROCESSING"
+                        }
+                    }).catch(e => console.error("Could not save file PROCESSING status to DB", e))
+                };
+            }
         }
-
+        else { // Finnish
+            console.log("Uploading to Finnish ASR", fileData)
+            const uploadResult = await uploadToFinnishAsr(fileData.path, fileData.filename)
+            if (!uploadResult.externalId) {
+                console.log("Upload FIN", "Upload failed", fileData, uploadResult)
+                return fail(400, { finnishUploadFailed: true });
+            }
+            fileData.externalId = uploadResult.externalId;
+            await prisma.file.create({
+                data: {
+                    ...fileData,
+                    duration: duration,
+                    initialTranscriptionPath: resultPath,
+                    notified: false,
+                    notify: notify,
+                    User: {
+                        connect: { id: session.user.id }
+                    }
+                }
+            }).catch(e => {
+                console.error("Could not save file UPLOADED status to DB", e)
+                return fail(400, { finnishUploadFailed: true })
+            })
+            console.log("File uploaded to DB", uploadResult.externalId)
+        }
         return { success: true, file: fileData, error: undefined };
     },
-    uploadFin: async ({ locals, request }) => {
+    /* uploadFin: async ({ locals, request }) => {
         let session = await locals.auth();
         if (!session || !session.user.id) {
             redirect(307, "/signin");
@@ -246,6 +280,6 @@ export const actions: Actions = {
         })
         console.log("Upload FIN", "Upload saved to DB", uploadedFile)
         return { success: true, file: fileData };
-    },
+    }, */
 
 } satisfies Actions;

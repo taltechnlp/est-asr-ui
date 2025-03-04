@@ -3,7 +3,7 @@ import { prisma } from "$lib/db/client";
 import type { Prisma } from "@prisma/client";
 import { error } from '@sveltejs/kit';
 import type { IWeblog } from '$lib/helpers/api.d'
-import { logger } from '$lib/logging/client';
+// import { logger } from '$lib/logging/client';
 import { sendMail, createEmail } from "$lib/email";
 import { ORIGIN } from '$env/static/private';
 

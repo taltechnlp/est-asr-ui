@@ -107,7 +107,12 @@
     "noFiles": "No files uploaded yet",
     "loading": "Loading...",
     "uploadIcon": "Upload a speech recording",
-    "requirements": "Requirements"
+    "requirements": "Requirements",
+    "noFile": "No file selected",
+    "fileSaveFailed": "File save failed",
+    "fileTooLong": "File duration too long",
+    "invalidLang": "Invalid language",
+    "finnishUploadFailed": "Error processing the file"
   },
   "me": {
     "title": "Account details | tekstiks.ee",

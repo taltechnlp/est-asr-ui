@@ -107,7 +107,12 @@
         "noFiles": "Ühtegi ülesse laetud faili pole",
         "loading": "Laadimine...",
         "uploadIcon": "Ülesse laadimine",
-        "requirements": "Nõuded"
+        "requirements": "Nõuded",
+        "noFile": "Ühtegi faili ei ole valitud",
+        "fileSaveFailed": "Faili salvestamine ebaõnnestus",
+        "fileTooLong": "Faili kestus on liiga pikk",
+        "invalidLang": "Vale keel",
+        "finnishUploadFailed": "Faili töötlemisel tekkis viga"
     },
     "me": {
         "title": "Konto andmed | tekstiks.ee",

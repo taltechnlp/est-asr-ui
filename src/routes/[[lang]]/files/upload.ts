@@ -40,7 +40,7 @@ type FileSaveResult = boolean | {
 
 export const uploadToFinnishAsr: UploadToService = async (filePath, filename) => {
     const stats = statSync(filePath);
-	const fileSizeInBytes = stats.size;
+	// const fileSizeInBytes = stats.size;
 	const uploadedAt = stats.ctime;
 	const form = new Form();
 	const file = await readFile(filePath);
@@ -57,20 +57,20 @@ export const uploadToFinnishAsr: UploadToService = async (filePath, filename) =>
     if (result.status !== 200) {
         await fs.unlink(filePath);
         console.log(result.status, result.statusText)
-        return { uploadedAt, result: uploadResult[1] };
+        return { externalId: "", uploadedAt, result: uploadResult[1] };
     }
 	const body = result.data as FinUploadResult;
     // Error in the service
 	if (body.error) {
 		await fs.unlink(filePath);
-		console.log(result.status, result.statusText);
+        console.log(body.error)
 		return { externalId: "", uploadedAt, result: uploadResult[0] };
 	}
     // Ok
 	return { externalId: body.jobid, uploadedAt, result: uploadResult[2]};
 }
 
-export const uploadToBark: UploadToService = async (filePath, filename) => {
+/* export const uploadToBark: UploadToService = async (filePath, filename) => {
     const extension = filename
         .split(".")
         .pop()
@@ -105,7 +105,7 @@ export const uploadToBark: UploadToService = async (filePath, filename) => {
 
     return { externalId, uploadedAt, result: uploadResult[2] };
 
-};
+}; */
 
 export const uploadToEstAsr: UploadToService = async (filePath, filename) => {
     const extension = filename
@@ -113,7 +113,7 @@ export const uploadToEstAsr: UploadToService = async (filePath, filename) => {
         .pop()
         .toLowerCase();
     const stats = statSync(filePath);
-    const fileSizeInBytes = stats.size;
+    // const fileSizeInBytes = stats.size;
     const uploadedAt = stats.ctime;
     const file = await readFile(filePath);
     const form = new Form();

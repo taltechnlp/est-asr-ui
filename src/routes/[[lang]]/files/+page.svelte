@@ -1,18 +1,16 @@
 <script lang="ts">
-	import { goto, invalidate } from '$app/navigation';
+	import { goto, invalidate, invalidateAll } from '$app/navigation';
 	import { onDestroy, onMount } from 'svelte';
 	import { _ } from 'svelte-i18n';
 	import { toTime } from './helpers';
 	import { browser } from '$app/environment';
 	import type { ActionResult } from '@sveltejs/kit';
-	import { applyAction } from '$app/forms';
+	import { applyAction, deserialize } from '$app/forms';
+	import type { PageProps } from './$types';
+	let {  form, data }: PageProps = $props();
 
-	import type { PageData, ActionData } from './$types';
-
-	let { data, form }: { data: PageData, form: ActionData } = $props();
-
-	let error = '';
-	let loading = false;
+	let error = $state('');
+	let loading = $state(false);
 	let upload: null | FileList = $state(null); 
 	let languageChoices = [
 		{ id: 0, text: 'estonian' },
@@ -33,7 +31,7 @@
 		if (!response.ok) {
 			console.log('Server error');
 		} else {
-			invalidate('/api/files')
+			await invalidateAll();
 		}
 		return;
 	};
@@ -50,56 +48,67 @@
 		}
 	};
 
-	const uploadFile = async (event: Event) => {
+	async function uploadFile(event: SubmitEvent & { currentTarget: EventTarget & HTMLFormElement}) {
 		event.preventDefault();
-		const formData = new FormData();
-		formData.append('file', upload[0], upload[0].name);
+		error = '';
+		
+		// Get the form element
+		const form = event.target as HTMLFormElement;
+		const formData = new FormData(form);
+		
+		// Add additional form data
 		formData.append('notify', notify ? "yes" : "no");
+		formData.append('lang', selectedLanguage.text);
+		
 		loading = true;
-		loading = true;
-		let response;
-		if (selectedLanguage.id === 0) {
-			response = await fetch('files?/uploadEst', {
-				method: 'POST',
-				body: formData
-			}).catch(e => console.log("Upload failed."))
+		const response = await fetch(form.action, {
+			method: 'POST',
+			body: formData
+		});
+		const result: ActionResult = deserialize(await response.text());
+		console.log('Upload result', result);
+		if (result.type === 'success') {
+			// rerun all `load` functions, following the successful update
+			await invalidateAll();
+			loading = false;
+			uploadModal.close();
+			applyAction(result);
 		}
-		else {
-			response = await fetch('files?/uploadFin', {
-				method: 'POST',
-				body: formData
-			}).catch(e => console.log("Upload failed."))
-		} 
-		if (!response) console.log("No connection")
-		const result: ActionResult = await response.json();
+
 		if (result.type === 'error') {
 			loading = false;
 			error = result.error;
 			console.log('Upload failed', result.error);
-			return;
+			applyAction(result);
 		}
 		if (result.type === 'failure') {
 			loading = false;
+			console.log('Upload failed', result.data);
 			if (result.data.uploadLimit) {
 				error = 'fileSizeLimit';
 			}
 			else if (result.data.fileTooLong) {
 				error = 'fileTooLong';
-			} 
-			else {
-				error = result.data.message;
 			}
-			return;
+			else if (result.data.fileSaveFailed) {
+				error = 'fileSaveFailed';
+			}
+			else if (result.data.noFile) {
+				error = 'noFile';
+				console.log('Unexpected uploaderror', result.data);
+			}
+			else if (result.data.finnishUploadFailed) {
+				error = 'finnishUploadFailed';
+			}
+			applyAction(result);
 		}
 		if (result.type === 'redirect') {
 			loading = false;
 			error = '';
-			applyAction(result);
+			uploadModal.close();
+			goto(result.location);
 		}
-		loading = false;
-		uploadModalOpen = false;
-		uploadModal.close();
-		invalidate('/api/files');
+
 		await awaitTimeout(10000).then(() =>
 			{if (donePolling) longPolling();}
 		);
@@ -122,20 +131,14 @@
 		}
 		do {
 			await awaitTimeout(10000);
-			invalidate('/api/files');
+			await invalidateAll();
 		} while (!donePolling);
 	};
 	if (browser) {
 		onMount(longPolling)
 	}
 
-	let uploadModalOpen = false;
 	let uploadModal: HTMLDialogElement;
-	const uploadModalClick = (e: Event) => {
-		e.preventDefault();
-		error = '';
-		uploadModalOpen = !uploadModalOpen;
-	};
 
 	onDestroy(() => {
 		if (!donePolling) {
@@ -191,13 +194,13 @@
 						</td>
 						<td>
 							{#if file.oldSystem}
-							<div class="badge badge-info pl-2 pr-2">{$_('files.statusOld')}</div>
+							<div class="badge badge-md badge-info pl-2 pr-2">{$_('files.statusOld')}</div>
 							{:else if file.state == 'READY'}
-								<div class="badge badge-success pl-2 pr-2">{$_('files.statusReady')}</div>
+								<div class="badge badge-md badge-success pl-2 pr-2">{$_('files.statusReady')}</div>
 							{:else if file.state == 'PROCESSING_ERROR'}
-								<div class="badge badge-error pl-2 pr-2">{$_('files.statusError')}</div>
+								<div class="badge badge-md badge-error pl-2 pr-2">{$_('files.statusError')}</div>
 							{:else if file.state == 'PROCESSING'}
-								<div class="badge badge-accent pl-2 pr-2">
+								<div class="badge badge-md badge-accent pl-2 pr-2">
 									{$_('files.statusProcessing')} 
 								</div>
 								{#if file.progress >= 0}
@@ -206,10 +209,10 @@
 								<span class="btn btn-ghost btn-xs" aria-label={$_('files.loading')}></span>
 								<span class="loading loading-spinner loading-xs"></span>
 							{:else if file.state == 'UPLOADED' && file.queued}
-								<div class="badge badge-info pl-2 pr-2">{$_('files.statusUploaded')}</div>
+								<div class="badge badge-md badge-info pl-2 pr-2">{$_('files.statusUploaded')}</div>
 								<span class="loading loading-spinner loading-xs"></span>
 							{:else if file.state == 'UPLOADED'}
-								<div class="badge badge-info pl-2 pr-2">{$_('files.statusUploaded')}</div>
+								<div class="badge badge-md badge-info pl-2 pr-2">{$_('files.statusUploaded')}</div>
 								<span class="loading loading-spinner loading-xs"></span>
 							{/if}
 						</td>
@@ -257,7 +260,7 @@
 			<form method="dialog">
 				<button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" aria-label={$_('files.close')}>✕</button>
 			  </form>
-			<form method="POST" action="?/uploadEst" enctype="multipart/form-data">
+			<form method="POST" enctype="multipart/form-data" onsubmit={uploadFile}>
 				<fieldset disabled={loading} aria-busy={loading} class="fieldset w-full bg-base-200 border border-base-300 p-4 rounded-box">
 					{#if form?.uploadLimit}<p class="error">File is too large!</p>{/if}
 					{#if form?.fileTooLong}<p class="error">File is too long!</p>{/if}
@@ -312,12 +315,15 @@
 					{#if error}
 						<p class="mt-3 mb-3 text-red-500 text-center font-semibold">{printError(error)}</p>
 					{/if}
+					{#if form?.uploadLimit}
+						<p class="mt-3 mb-3 text-red-500 text-center font-semibold">{printError("fileTooLong")}</p>
+					{/if}
 					{#if loading}
 						<button class="btn" disabled aria-label={$_('files.uploadButton')}
 							><span class="btn btn-ghost btn-xs loading" aria-label={$_('files.loading')}></span></button
 						>
 					{:else if upload}
-						<button class="btn btn-active btn-primary" aria-label={$_('files.uploadButton')} onclick={uploadFile}
+						<button type="submit" class="btn btn-active btn-primary" aria-label={$_('files.uploadButton')}
 							>{$_('files.uploadButton')}</button
 						>
 					{:else}
