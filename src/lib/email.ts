@@ -35,33 +35,25 @@ interface EmailInfo {
 }
 
 const nodemailerConfig = {
-  // SMTP configuration
-  host: SMTP_HOST, // smtp_url indicates Office365
-  port: SMTP_PORT, // Explicitly specified in smtp_url
-  secure: true, // ssl_starttls implies STARTTLS, which is secure: true after upgrade
+  host: SMTP_HOST,
+  port: SMTP_PORT,  // Office 365 uses port 587 for TLS
+  secure: false,  // true for 465, false for other ports
   auth: {
-    user: SMTP_USER, // From smtp_url
-    pass: SMTP_PASSWORD, // smtp_pass
+    user: SMTP_USER,  
+    pass: SMTP_PASSWORD,  
   },
   tls: {
-    rejectUnauthorized: false,  // Note: Only use this in development/testing
     ciphers: 'SSLv3',
-    minVersion: 'TLSv1'
+    rejectUnauthorized: true,  // Keep this true for security
   },
-  from: {
-    name: 'Tekstiks.ee', // realname
-    address: SMTP_FROM, // from
-  },
-  replyTo: SMTP_REPLYTO, // replyto (if you want to include it)
-  // Other settings (not directly applicable to Nodemailer, but for context)
-  // send_charset=utf-8 (Nodemailer defaults to UTF-8)
-  // hostname = ttu.ee (This is typically used for the HELO/EHLO command, Nodemailer usually handles this automatically)
-  // use_ipv6 = no (Nodemailer defaults to IPv4)
-  // copy=no (This is a Mutt-specific setting for whether to copy sent messages)
-  // Timeout settings (in milliseconds)
   connectionTimeout: 10000,
   greetingTimeout: 10000,
   socketTimeout: 10000,
+  from: {
+    name: 'Tekstiks.ee',
+    address: SMTP_FROM,  // Must match the authenticated user email
+  },
+  replyTo: SMTP_REPLYTO,
 };
 
 export const sendEmail = async (info: EmailInfo) => {
