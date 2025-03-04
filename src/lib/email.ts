@@ -63,7 +63,7 @@ const nodemailerConfig = {
   socketTimeout: 20000,       // 20 seconds
 };
 
-export async function sendEmail(info: EmailInfo) {
+export const sendEmail = async (info: EmailInfo) => {
   console.log('Sending email to', info.to);
   try {
     const transporter = nodemailer.createTransport(nodemailerConfig);
