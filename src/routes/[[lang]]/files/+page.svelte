@@ -43,6 +43,18 @@
 		else if (errorText === 'fileTooLong') {
 			return $_('files.fileTooLong');
 		}
+		else if (errorText === 'noFile') {
+			return $_('files.noFile');
+		}
+		else if (errorText === 'fileSaveFailed') {
+			return $_('files.fileSaveFailed');
+		}
+		else if (errorText === 'finnishUploadFailed') {
+			return $_('files.finnishUploadFailed');
+		}
+		else if (errorText === 'invalidLang') {
+			return $_('files.invalidLang');
+		}
 		else {
 			return $_('files.uploadError');
 		}

@@ -29,6 +29,10 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
                 }
             },
         });
+        if (!file) {
+            console.error("File not found in the database.");
+            return new Response("File not found in the database.", { status: 404 });
+        }
         // trace is only provided for the following events: process_submitted, process_started, process_completed, error
         if (workflow.trace) {
             try {

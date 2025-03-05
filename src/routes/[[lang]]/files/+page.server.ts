@@ -62,15 +62,17 @@ export const actions: Actions = {
         const data = await request.formData();
         const lang = data.get('lang') as string;
         if (lang !== "estonian" && lang !== "finnish") {
+            console.error("Invalid language", lang)
             return fail(400, { invalidLang: true })
         }
         const notify = data.get('notify') === "yes" ? true : false;
-        const file = data.get('file') as File;
-        if (!file?.name || !file?.size || !file?.type) {
+        const file = data.get('file') as Blob;
+        if (!file || !('name' in file) || !('size' in file) || !('type' in file)) {
+            console.error("no file name, size or type", file)
             return fail(400, { noFile: true })
         }
         if (file.size > UPLOAD_LIMIT) {
-            console.info("File too large");
+            console.error("File too large");
             return fail(400, { uploadLimit: true });
         }
         let id: string = uuidv4()
@@ -138,7 +140,7 @@ export const actions: Actions = {
             error = true;
         };
         if (error) {
-            await unlink(saveTo).catch(e => console.log("Failed to remove uploaded file that was too long", e));
+            await unlink(saveTo).catch(e => console.error("Failed to remove uploaded file that was too long", e));
             return fail(400, { fileTooLong: true });
         }
 
@@ -156,7 +158,10 @@ export const actions: Actions = {
                         connect: { id: session.user.id }
                     }
                 }
-            }).catch(() => {return fail(400, { fileSaveFailed: true })})
+            }).catch((e) => {
+                console.error("Could not save file UPLOADED status to DB", e)
+                return fail(400, { fileSaveFailed: true })
+            })
             const result = await fetch(
                 `/api/transcribe`, {
                     method: "POST",
@@ -186,10 +191,9 @@ export const actions: Actions = {
             }
         }
         else { // Finnish
-            console.log("Uploading to Finnish ASR", fileData)
             const uploadResult = await uploadToFinnishAsr(fileData.path, fileData.filename)
             if (!uploadResult.externalId) {
-                console.log("Upload FIN", "Upload failed", fileData, uploadResult)
+                console.error("Upload FIN", "Upload failed", fileData, uploadResult)
                 return fail(400, { finnishUploadFailed: true });
             }
             fileData.externalId = uploadResult.externalId;
