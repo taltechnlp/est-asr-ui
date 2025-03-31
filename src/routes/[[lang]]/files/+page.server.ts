@@ -15,7 +15,7 @@ import { Buffer } from 'node:buffer';
 import { Readable } from 'stream';
 import { unlink } from "fs/promises";
 import "../../../app.css";
-
+import { spawn } from "node:child_process";
 export const load: PageServerLoad = async ({ locals, fetch, depends }) => {
     depends('/api/files');
     let session = await locals.auth();
@@ -108,9 +108,9 @@ export const actions: Actions = {
             filename: file.name,
             mimetype: file.type,
             encoding: "7bit",
-            path: saveTo,
             externalId,
-            language: lang
+            language: lang,
+            path: saveTo
         }
         try {
             const arrayBuffer = await file.arrayBuffer();
@@ -143,10 +143,43 @@ export const actions: Actions = {
             await unlink(saveTo).catch(e => console.error("Failed to remove uploaded file that was too long", e));
             return fail(400, { fileTooLong: true });
         }
-
+        const opusPath = saveTo + '.opus';
+        let failed = false;
+        const toOpus = new Promise((resolve, reject) => {
+            console.log('converting to opus', saveTo, opusPath);
+            const ffmpeg = spawn('ffmpeg', [
+                '-i', saveTo,
+                '-c:a', 'libopus',        // Use Opus codec
+                '-b:a', '24k',            // 24kbps bitrate (good for speech)
+                '-y',
+                /* '--vbr', 'on',             // Variable bitrate
+                '-compression_level', '10', // Maximum compression
+                '-application', 'voip',    // Optimize for speech */
+                opusPath
+            ]);
+            ffmpeg.on('error', function (e) {
+                console.log('ffmpeg error: ' + e);
+                failed = true;
+                resolve(true);
+            })
+            ffmpeg.on('exit', function (code) {
+                console.log('ffmpeg finished with ' + code);
+                if (code === 1 || code === 2) {
+                    failed = true;
+                }
+                resolve(true);
+            });
+        })
+        await toOpus.catch(e => failed = true);
+        if (failed) {
+            await unlink(opusPath).catch(e => console.error("Failed to remove opus file", e));
+            return fail(400, { fileSaveFailed: true });
+        }
+        fileData.path = opusPath;
         const resultDir = path.join(RESULTS_DIR, session.user.id, fileData.id)
         const resultPath = path.join(resultDir, "result.json")
         if (lang === "estonian") {
+            await unlink(saveTo).catch(e => console.error("Failed to remove uploaded file converted to opus", e));
             await prisma.file.create({
                 data: {
                     ...fileData,
@@ -191,12 +224,13 @@ export const actions: Actions = {
             }
         }
         else { // Finnish
-            const uploadResult = await uploadToFinnishAsr(fileData.path, fileData.filename)
+            const uploadResult = await uploadToFinnishAsr(saveTo, fileData.filename)
             if (!uploadResult.externalId) {
                 console.error("Upload FIN", "Upload failed", fileData, uploadResult)
                 return fail(400, { finnishUploadFailed: true });
             }
             fileData.externalId = uploadResult.externalId;
+            await unlink(saveTo).catch(e => console.error("Failed to remove uploaded file converted to opus", e));
             await prisma.file.create({
                 data: {
                     ...fileData,

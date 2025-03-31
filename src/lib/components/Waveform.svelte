@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { run } from 'svelte/legacy';
-
 	import { onMount, onDestroy } from 'svelte';
 	import { beforeNavigate } from "$app/navigation";
 	import {
@@ -12,11 +11,8 @@
 		editor,
 		waveform
 	} from '$lib/stores.svelte';
-	import Peaks, { type PeaksInstance, type PeaksOptions } from 'peaks.js';
-	let { url } = $props();
-
-	let peaksInstance: PeaksInstance;
-	let peaksReady = false;
+	import Peaks, { type Peaks, type PeaksOptions } from 'peaks.js';
+	let { url, dataUri } = $props();
 	const wordFilter = (w) => w && w.id && w.start && w.end;
 	/* $: wordSegments = $words.filter(wordFilter).map((word) => {
 		return {
@@ -159,7 +155,6 @@
 				segmentOptions: {
 					overlayOpacity: 0.1,
 				}
-				
 			},
 			overview: {
 				container: document.getElementById('overview-container'),
@@ -170,56 +165,49 @@
 				enableSegments: true,
 			},
 			mediaElement: document.getElementById('audio'),
-			webAudio: {
-				audioContext: audioContext,
-				scale: 128,
-				multiChannel: false
-			},
 			withCredentials: true,
 			zoomLevels: [512, 1024, 2048, 4096],
 			keyboard: true,
 			nudgeIncrement: 0.01,
 			emitCueEvents: false, // enter segment event for example
-			/* points: [
-				{
-				time: 150,
-				editable: true,
-				labelText: "A point"
-				},
-				{
-				time: 160,
-				editable: true,
-				labelText: "Another point"
-				}
-			], */
-			
 		};
+
+		if (dataUri) {
+			options.dataUri = {
+				arraybuffer: dataUri
+			}
+		} else {
+			console.log("no pre-generated peaks");
+			options.webAudio = {
+				audioContext: audioContext,
+				scale: 128,
+				multiChannel: false
+			};
+		}
 
 		Peaks.init(options, function(err, peaks) {
 		// Do something when the waveform is displayed and ready, or handle errors
 			if(err) console.log("Error initiating Peaks", err);
-			peaksInstance = peaks;
-			if (peaksInstance)	waveform.set(peaksInstance);
+			if (peaks)	waveform.set(peaks);
 			// Event subscriptions
-			peaksInstance.on('peaks.ready', function () {
-				peaksReady = true;
-				duration.set(peaksInstance.player.getDuration());
-				peaksInstance.player.pause();
+			peaks.on('peaks.ready', function () {
+				duration.set(peaks.player.getDuration());
+				peaks.player.pause();
 				player.update((x) => {
 					return { ...x, ready: true };
 				});
 			});
-			peaksInstance.on('player.playing', function() {
+			peaks.on('player.playing', function() {
 				player.update((x) => {
 					return { ...x, playing: true };
 				});
 			});
-			peaksInstance.on('player.pause', function() {
+			peaks.on('player.pause', function() {
 				player.update((x) => {
 					return { ...x, playing: false };
 				});
 			});
-			peaksInstance.on('segments.enter', function (event) {
+			peaks.on('segments.enter', function (event) {
 				const progress = Math.round($waveform.player.getCurrentTime() * 100) / 100;
 				playingTime.set(progress);
 				// console.log("entered segment");
@@ -239,10 +227,10 @@
 					$editor.view.updateState(newState);
 				}
 			});
-			peaksInstance.on('segments.click', function(event) {
+			peaks.on('segments.click', function(event) {
 				// console.log(`Segment clicked: ${event.segment.id}`);
 			});
-			peaksInstance.on('player.seeked', (time) => {
+			peaks.on('player.seeked', (time) => {
 				playingTime.set(time);
 			});
 		});

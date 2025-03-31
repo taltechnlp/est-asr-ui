@@ -21,6 +21,6 @@
 <main class="grid grid-rows-[1fr_auto] content-between">
 	<div class="self-stretch h-full mb-96">
 		<Tiptap content={file.json} fileId={file.id} demo={true} fileName={file.name} uploadedAt={file.uploadedAt} />
-		<Player url={`/${file.name}`} />
+		<Player url={`/${file.name}`} dataUri={`/demo.dat`} />	
 	</div>
 </main>

@@ -132,14 +132,15 @@ export const checkCompletion = async (
     fetch: Function
 ): Promise<{ done: boolean }> => {
     if (language === "finnish") {
+        let error = false;
         const result = await fetch(FIN_ASR_RESULTS_URL, {
             method: "POST",
             body: externalId,
         }).catch(() => {
             console.error("Post failed to", FIN_ASR_RESULTS_URL, externalId);
-            return { done: false };
+            error = true;
         });
-        if (!result) return { done: false };
+        if (!result || error) return { done: false };
         const body: FinAsrResult = await result.json();
         if (!body) return { done: false };
         if (!body.done) {

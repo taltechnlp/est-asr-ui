@@ -4,20 +4,17 @@ import type { RequestHandler } from "./$types";
 import {
   createReadStream,
   promises as fs,
-  readFile,
-  ReadStream,
   stat,
-  statSync,
 } from "fs";
 import { promisify } from "util";
 
 // Return the audio or video file for playback. Authorization requried.
 export const GET: RequestHandler = async ({ params, locals, request }) => {
 
-    const session = await locals.auth();
-    if (!session || !session.user.id) {
-        redirect(307, "/signin");
-    }
+  const session = await locals.auth();
+  if (!session || !session.user.id) {
+      redirect(307, "/signin");
+  }
   const file = await prisma.file.findUnique({
     where: {
       id: params.fileId,

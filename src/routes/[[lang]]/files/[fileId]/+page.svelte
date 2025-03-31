@@ -65,6 +65,6 @@
 			fileName={data.file.name}
 			uploadedAt={data.file.uploadedAt}
 		/>
-		<Player url={`${data.url}/uploaded/${data.file.id}`} />
+		<Player url={data.mediaUrl} dataUri={data.waveformUrl} />	
 	</div>
 </main>

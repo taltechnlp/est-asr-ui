@@ -2,6 +2,7 @@ import { prisma } from "$lib/db/client";
 import type { PageServerLoad } from './$types';
 import { promises as fs } from 'fs';
 import { error } from '@sveltejs/kit';
+import { spawn } from 'child_process';
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
     const file = await prisma.file.findUnique({
@@ -16,7 +17,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
                 }
             }
         }
-    })
+    });
     const session = await locals.auth();
     if (!session || !session.user.id) {
         error(401, 'unauthorized');
@@ -24,84 +25,80 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
     if (session.user.id !== file.User.id ) {
         return error(401, 'unauthorized');
     }
-        const content = await fs.readFile(file.initialTranscriptionPath, 'utf8');
-
-        /* let peaksExist = true;
-        let peaksPath = file.path + '.json';
-        await fs.access(file.path + ".json").catch(e => peaksExist = false);
-        if (!peaksExist) {
-            let fileExists = true;
-            await fs.access(file.path).catch(e => fileExists = false);
-            console.log('file', fileExists)
-            if (fileExists) {
-                let failed = false;
-                const wavPath = file.path + '.wav';
-                // ffmpeg - i!{ audio_file } -f sox - | sox - t sox - -c 1 - b 16 - t wav audio.wav rate - v 16k
-                const toWav = new Promise((resolve, reject) => {
-                    const ffmpeg = spawn('ffmpeg', ['-i', file.path,  wavPath] );
-                    ffmpeg.on('exit', function (code) {
-                        console.log('ffmpeg finished with ' + code);
-                        if (code === 1 || code == 2) {
-                            failed = true;
-                        }
-                        resolve(true);
-                    })
-                })
-                await toWav.catch(e => failed = true);
-                if (failed) {
-                    return false;
-                }
-                const peaksDone = new Promise((resolve, reject) => {
-                    const generatePeaks = spawn('audiowaveform', ['-i', wavPath, '-o', peaksPath, '--pixels-per-second', '20', '--bits', '8']);
-                    generatePeaks.on('exit', function (code) {
-                        console.log('generate peaks exited with code ' + code);
-                        if (code === 1 || code == 2) {
-                            failed = true;
-                        }
-                        resolve(true);
-                    })
-                })
-                await peaksDone.catch(e => {
-                    peaksExist = false;
-                    console.log(e);
-                })
-                await fs.unlink(wavPath);
-                if (failed) {
-                    return {
-                        file: {
-                            id: file.id,
-                            state: file.state,
-                            content: content,
-                            path: file.path,
-                            name: file.filename,
-                            uploadedAt: file.uploadedAt
-                        },
-                        url: url.origin,
-                        peaks: null
+    const content = await fs.readFile(file.initialTranscriptionPath, 'utf8');
+    let fileExists = true;
+    let mediaFile;
+    try {
+        mediaFile = await fs.access(file.path);
+    } catch (e) {
+        fileExists = false;
+    }
+    let peaksExists = true;
+    let waveFormFile;
+    try {
+        waveFormFile = await fs.access(file.path + '.dat');
+    } catch (e) {
+        peaksExists = false;
+    }
+    if (!fileExists) {
+        return error(404, 'file not found');
+    }
+    let peaksPath = file.path + '.dat';
+    await fs.access(peaksPath).catch(e => peaksExists = false);
+    if (!peaksExists) {
+        await fs.access(file.path).catch(e => fileExists = false);
+        let failed = false;
+        if (fileExists) {
+            const peaksDone = new Promise((resolve, reject) => {
+                const generatePeaks = spawn('audiowaveform', ['-i', file.path, '-b', '8', '-o', peaksPath]);
+                generatePeaks.on('exit', function (code) {
+                    console.log('generate peaks exited with code ' + code);
+                    if (code === 1 || code == 2) {
+                        failed = true;
                     }
-                }
-                peaksExist = true;
-                const normalizeDone = new Promise((resolve, reject) => {
-                    const normalize = spawn('python', ['./scripts/normalize_peaks.py', peaksPath]);
-                    normalize.on('exit', function (code) {
-                        console.log('normalize exited with code ' + code);
-                        resolve(true);
-                    })
+                    resolve(true);
                 })
-                await normalizeDone.catch(e => console.log(e))
+            })
+            await peaksDone.catch(e => {
+                failed = true;
+                console.log(e);
+            })
+            
+            if (failed) {
+                return {
+                    file: {
+                        id: file.id,
+                        state: file.state,
+                        content: content,
+                        path: file.path,
+                        name: file.filename,
+                        uploadedAt: file.uploadedAt
+                    },
+                    mediaUrl: `${url.origin}/uploaded/${file.id}`,
+                    waveformUrl: ""
+                }
             }
+            /* const normalizeDone = new Promise((resolve, reject) => {
+                const normalize = spawn('python', ['./scripts/normalize_peaks.py', peaksPath]);
+                normalize.on('exit', function (code) {
+                    console.log('normalize exited with code ' + code);
+                    resolve(true);
+                })
+            })
+            await normalizeDone.catch(e => console.log(e)) */
         }
-        let peaks = null;
-        if (peaksExist) peaks = await fs.readFile(peaksPath, 'utf-8'); */
-        return {
-            file: {
-                id: file.id,
-                state: file.state,
-                content: content,
-                path: file.path,
-                name: file.filename,
-                uploadedAt: file.uploadedAt
-            },
-            url: url.origin,
-        }
+    }
+
+    return {
+        file: {
+            id: file.id,
+            state: file.state,
+            content: content,
+            path: file.path,
+            name: file.filename,
+            uploadedAt: file.uploadedAt
+        },
+        mediaUrl: `${url.origin}/uploaded/${file.id}`,
+        waveformUrl: `${url.origin}/uploaded/${file.id}/peaks`
+    }   
 }

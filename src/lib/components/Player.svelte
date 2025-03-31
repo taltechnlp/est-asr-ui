@@ -4,7 +4,7 @@
 	import minus from 'svelte-awesome/icons/minusCircle';
 	import plus from 'svelte-awesome/icons/plusCircle';
     import { player, waveform } from '$lib/stores.svelte';
-    let { url } = $props();
+    let { url, dataUri } = $props();
     let rate = '1.0x';
 	let zoom = $state(1);
 	const togglePlay = () => {
@@ -140,6 +140,7 @@
     </div>
     <Waveform
         url={url}
+        dataUri={dataUri}
     />
 </div>
 
