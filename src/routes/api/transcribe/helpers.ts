@@ -6,6 +6,7 @@ export const runNextflow = (
     filePath: string,
     workflowName: string,
     resultsDir: string,
+    resume: boolean,
     doPunctuation: boolean,
     doSpeakerId: boolean,
     doLanguageId: boolean,
@@ -35,6 +36,9 @@ export const runNextflow = (
       "--do_language_id",
       "false" // doLanguageId  ? "true" : "false",
     ];
+    if (resume) {
+      parameters.push("-resume");
+    }
     try {
         if (!existsSync(resultsDir)){
             mkdirSync(resultsDir, { recursive: true });
