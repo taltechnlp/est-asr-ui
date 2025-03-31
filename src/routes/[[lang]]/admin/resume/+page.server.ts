@@ -78,21 +78,29 @@ export const actions = {
         if (!file) {
             return { success: false };
         }
-        // Generate a new id
-        let newId = uuidv4();
-        newId = newId.replace(/[-]/gi, '').substr(0, 30)
+        // Generate a new id that conforms to the required pattern
+        // ^[a-z](?:[a-z\d]|[-_](?=[a-z\d])){0,79}$
+        let baseId = uuidv4();
+        // Remove hyphens and take a substring (e.g., 29 chars to keep total length 30)
+        baseId = baseId.replace(/[-]/gi, '').substring(0, 29);
+        // Prepend 'r' to ensure it starts with a letter
+        const newId = `r${baseId}`;
         if (!existsSync(file.path)) {
             return { success: false };
         }
+        const resultDir = join(RESULTS_DIR, session.user.id, newId);
+        const resultPath = join(resultDir, "result.json");
         // Replace the externalId with the new id
         await prisma.file.update({
             where: {
                 id: fileId as string
             },
-            data: { externalId: newId }
+            data: { 
+                externalId: newId,
+                initialTranscriptionPath: resultPath
+            }
         });
         // Send to Nextflow
-        const resultDir = join(RESULTS_DIR, session.user.id, file.id)
         const result = await fetch(
             `/api/transcribe`, {
                 method: "POST",
