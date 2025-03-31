@@ -42,10 +42,54 @@ export const load = (async ({ locals }) => {
             id: true,
             filename: true,
             state: true,
-            uploadedAt: true
+            uploadedAt: true,
+            path: true
         },
         orderBy: {
             uploadedAt: 'desc'
+        }
+    })
+    files.forEach(async (file) => {
+        // Check if the file was uploaded more than 3 hours ago
+        if (file.state === 'PROCESSING' && file.uploadedAt < new Date(Date.now() - 3 * 60 * 60 * 1000)) {
+            // Generate a new id that conforms to the required pattern
+            // ^[a-z](?:[a-z\d]|[-_](?=[a-z\d])){0,79}$
+            let baseId = uuidv4();
+            // Remove hyphens and take a substring (e.g., 29 chars to keep total length 30)
+            baseId = baseId.replace(/[-]/gi, '').substring(0, 29);
+            // Prepend 'r' to ensure it starts with a letter
+            const newId = `r${baseId}`;
+            if (!existsSync(file.path)) {
+                return { success: false };
+            }
+            const resultDir = join(RESULTS_DIR, session.user.id, newId);
+            const resultPath = join(resultDir, "result.json");
+            // Replace the externalId with the new id
+            await prisma.file.update({
+                where: {
+                    id: file.id
+                },
+                data: { 
+                    externalId: newId,
+                    initialTranscriptionPath: resultPath
+                }
+            });
+            // Send to Nextflow
+            const result = await fetch(
+                `/api/transcribe`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        fileId: newId,
+                        filePath: file.path,
+                        resultDir: resultDir,
+                        workflowName: newId,
+                        resume: true
+                    })
+                }
+            ).catch(e => console.error("Could not start Nextflow process", e))
         }
     })
     return { files, session };
