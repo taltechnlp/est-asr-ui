@@ -112,7 +112,7 @@ export const actions = {
                     filePath: file.path,
                     resultDir: resultDir,
                     workflowName: newId,
-                    resume: true
+                    resume: false
                 })
             }
         ).catch(e => console.error("Could not start Nextflow process", e))
