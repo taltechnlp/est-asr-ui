@@ -86,11 +86,13 @@ export const load = (async ({ locals }) => {
                         filePath: file.path,
                         resultDir: resultDir,
                         workflowName: newId,
-                        resume: true
+                        resume: false
                     })
                 }
             ).catch(e => console.error("Could not start Nextflow process", e))
         }
+        // Add a delay of 1 second between each file
+        await new Promise(resolve => setTimeout(resolve, 1000));
     })
     return { files, session };
 }) satisfies PageServerLoad;
@@ -156,7 +158,7 @@ export const actions = {
                     filePath: file.path,
                     resultDir: resultDir,
                     workflowName: newId,
-                    resume: true
+                    resume: false
                 })
             }
         ).catch(e => console.error("Could not start Nextflow process", e))
