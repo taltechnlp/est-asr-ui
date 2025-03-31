@@ -1,18 +1,19 @@
-import { redirect, error } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { prisma } from "$lib/db/client";
 import { Role } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { join } from 'path';
-import { existsSync, mkdirSync } from 'fs';
-import { RESULTS_DIR, SECRET_UPLOAD_DIR } from '$env/static/private';
+import { existsSync} from 'fs';
+import { RESULTS_DIR } from '$env/static/private';
+import { base } from '$app/paths';
 
-export const load = (async ({ locals, fetch, depends }) => {
+export const load = (async ({ locals }) => {
     // depends('/api/files');
     console.log('load');
     let session = await locals.auth();
     if (!session || !session.user.id) {
-        redirect(307, "/signin");
+        redirect(307, `${base}/signin`);
     }
 
     // --- Admin Check ---
@@ -27,7 +28,7 @@ export const load = (async ({ locals, fetch, depends }) => {
     // If adminUser is null, it means no user was found with that ID AND ADMIN role
     if (!adminUser) {
         // error(403, 'Forbidden: You do not have access to this page.');
-        redirect(307, '/');
+        redirect(307, `${base}/`);
     }
     // --- End Admin Check ---
 
@@ -54,7 +55,7 @@ export const actions = {
     resumeProcessing: async ({ request, locals, fetch }) => {
         let session = await locals.auth();
         if (!session || !session.user.id) {
-            redirect(307, "/signin");
+            redirect(307, `${base}/signin`);
         }
         const adminUser = await prisma.user.findUnique({
             where: {
@@ -64,7 +65,7 @@ export const actions = {
         });
         if (!adminUser) {
             // error(403, 'Forbidden: You do not have access to this page.');
-            redirect(307, '/');
+            redirect(307, `${base}/`);
         }
         const formData = await request.formData();
         const fileId = formData.get('fileId');
