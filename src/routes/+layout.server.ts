@@ -1,8 +1,6 @@
-import { locale } from 'svelte-i18n';
 import type { LayoutServerLoad } from './$types';
 import { uiLanguages } from '$lib/i18n';
 import { redirect } from '@sveltejs/kit';
-import { prisma } from '$lib/db/client';
 import { base } from '$app/paths';
 
 export const load: LayoutServerLoad = async ({ request, locals, params, cookies, url, depends }) => {
