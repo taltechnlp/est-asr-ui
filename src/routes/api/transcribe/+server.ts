@@ -5,7 +5,7 @@ import { runNextflow } from "./helpers";
 
 
 export const POST: RequestHandler = async ({ request }) => {
-    const {fileId, filePath, resultDir, workflowName} = await request.json();
-    const processSpawned = runNextflow(fileId, filePath, workflowName, resultDir, true, true, true, PIPELINE_DIR, NEXTFLOW_PROFILE, EST_ASR_URL, NEXTFLOW_PATH);
+    const {fileId, filePath, resultDir, workflowName, resume} = await request.json();
+    const processSpawned = runNextflow(fileId, filePath, workflowName, resultDir, resume, true, true, true, PIPELINE_DIR, NEXTFLOW_PROFILE, EST_ASR_URL, NEXTFLOW_PATH);
     return json( { requestId: workflowName } );
 }
