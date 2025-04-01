@@ -123,7 +123,6 @@ export const actions: Actions = {
             console.error(err);
             return fail(400, { fileSaveFailed: true });
         }
-
         let duration = 0;
         let error = false;
         try {
@@ -188,7 +187,18 @@ export const actions: Actions = {
                         }
                     }).catch(e => console.error("Could not save file PROCESSING status to DB", e))
                 };
-            }
+            } else {
+                await prisma.file.update({
+                    where: {
+                        id: fileData.id
+                    },
+                    data: {
+                        state: "UPLOADED"
+                    }
+                }).catch(e => console.error("Could not save file UPLOADED status to DB", e))
+                // TODO: Retry sending to Nextflow later
+            };
+            return { success: true, file: fileData, error: undefined };
         }
         else { // Finnish
             const uploadResult = await uploadToFinnishAsr(fileData.path, fileData.filename)
@@ -213,77 +223,7 @@ export const actions: Actions = {
                 return fail(400, { finnishUploadFailed: true })
             })
             console.log("File uploaded to DB", uploadResult.externalId)
+            return { success: true, file: fileData, error: undefined };
         }
-        return { success: true, file: fileData, error: undefined };
     },
-    /* uploadFin: async ({ locals, request }) => {
-        let session = await locals.auth();
-        if (!session || !session.user.id) {
-            redirect(307, "/signin");
-        }
-        const data = await request.formData();
-
-        const file = data.get('file') as File;
-        if (!file.name || !file.size || !file.type) {
-            return fail(400, { noFile: true })
-        }
-        if (file.size > UPLOAD_LIMIT) {
-            return fail(400, { uploadLimit: true });
-        }
-        const newFilename = `${Date.now()}-${Math.round(Math.random() * 1E4)}-${file.name}`
-        const uploadDir = join(SECRET_UPLOAD_DIR, session.user.id);
-        if (!existsSync(uploadDir)) {
-            mkdirSync(uploadDir, { recursive: true });
-        }
-        const saveTo = join(uploadDir, newFilename);
-        console.log("Upload FIN",
-            `File [${newFilename}]: filename: %j, mimeType: %j, path: %j`,
-            file.name,
-            file.type,
-            saveTo
-        );
-        try {
-            const arrayBuffer = await file.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
-            // Convert the Buffer to a Readable stream
-            const stream = Readable.from(buffer);
-            await fs.writeFile(saveTo, stream);
-        } catch (err) {
-            console.error(err);
-            return fail(400, { fileSaveFailed: true });
-        }
-        logger.info({session, message: `file uploaded to ${saveTo}` })
-        
-        let id = uuidv4()
-        id = id.replace(/[-]/gi, '').substr(0, 30)
-
-        const fileData = {
-            id: id,
-            filename: file.name,
-            mimetype: file.type,
-            encoding: "7bit",
-            path: saveTo
-        }
-        const uploadResult = await uploadToFinnishAsr(fileData.path, fileData.filename)
-        if (!uploadResult.externalId) {
-            console.log("Upload FIN", "Upload failed", fileData, uploadResult)
-            return { file: fileData, result: uploadResult[1] };
-        }
-        console.log("Upload FIN", fileData, statSync(fileData.path).ctime, uploadResult.externalId)
-        const uploadedFile = await prisma.file.create({
-            data: {
-                ...fileData,
-                uploadedAt: statSync(fileData.path).ctime,
-                externalId: uploadResult.externalId,
-                language: "fin",
-                notified: false,
-                User: {
-                    connect: { id: session.user.id }
-                }
-            }
-        })
-        console.log("Upload FIN", "Upload saved to DB", uploadedFile)
-        return { success: true, file: fileData };
-    }, */
-
 } satisfies Actions;

@@ -71,14 +71,6 @@ export const actions: Actions = {
             `)
         }).catch(e => console.log("User creation email sending failed", e));
 
-        // Create JWT token for the users
-        /* const token = jwt.sign({ userId: user.id }, SECRET_KEY);
-        cookies.set("token", token, {
-            httpOnly: true,
-            maxAge: 1000 * 60 * 60 * 24 * 365, // 1 year cookie
-            path: '/',
-            sameSite: 'strict',
-          }); */
         console.log("User created", user.id, user.email, user.name);
         return { success: true, user: {
             id: user.id,
