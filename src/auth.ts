@@ -12,7 +12,9 @@ import bcrypt from 'bcrypt';
 import type {SvelteKitAuthConfig} from '@auth/sveltekit'
 import { AuthError, CredentialsSignin } from '@auth/core/errors'
 import { type DefaultSession } from "@auth/sveltekit"
-import { uiLanguages } from '$lib/i18n'; // Import your list of languages
+import { uiLanguages, defaultLang } from '$lib/i18n'; // Import your list of languages and default language
+// No longer need URL if redirect callback is removed
+// import { URL } from 'url'; // Make sure URL is available (usually is in Node env)
 
 declare module "@auth/sveltekit" {
   interface Session {
@@ -31,9 +33,9 @@ declare module "@auth/sveltekit" {
 // URL will contain `error=CredentialsSignin&code=custom_error`
 
 export const { handle, signIn, signOut } = SvelteKitAuth(async (event) => {
-	// --- Capture lang parameter from the event ---
-	const lang = event.params.lang;
-	// --- End Capture ---
+	// Determine language for potential use in other callbacks if needed
+	const langForCallback = event.params.lang || event.cookies.get('lang') || defaultLang;
+	// console.log("SvelteKitAuth handler: Determined lang for callbacks:", langForCallback);
 
 	const authOptions = {
 		adapter: PrismaAdapter(prisma),
@@ -121,13 +123,13 @@ export const { handle, signIn, signOut } = SvelteKitAuth(async (event) => {
 			strategy: "jwt", // "jwt" | "database"
 		},
 		pages: {
-			signIn: "/signin",
-			error: '/signin', // Error code passed in query string as ?error=
-			verifyRequest: '/auth/verify-request', // (used for check email message)
-			newUser: '/files' // New users will be directed here on first sign in (leave the property out if not of interest)
+			signIn: "/et/signin",
+			// error: '/signin', // Keep this commented out/removed
+			verifyRequest: '/et/auth/verify-request',
+			newUser: '/et/files'
 		},
 		callbacks: {
-			async jwt({ token, user, /* trigger, isNewUser */ }) {
+			async jwt({ token, user }) {
 				if (user) {
 					token.id = user.id;
 					token.email = user.email;
@@ -136,105 +138,10 @@ export const { handle, signIn, signOut } = SvelteKitAuth(async (event) => {
 				}
 				return token;
 			},
-			async redirect({ url, baseUrl }) {
-				// console.log("redirect cb received:", { originalUrl: url, baseUrl, currentRequestLang: lang });
-
-				// --- Updated Helper Function ---
-				const adjustPathForLang = (path: string): string => {
-					// 1. Check if the current request even has a language context.
-					if (!lang) {
-						// If no current lang, remove any existing lang prefix from the path
-						// to avoid redirecting to a stale language context.
-						// Or redirect to a default language? For now, let's try removing.
-						for (const knownLang of uiLanguages) {
-							const prefix = `/${knownLang}`;
-							if (path === prefix) {
-								// console.log(`Path is just lang '${knownLang}', replacing with root '/'`);
-								return '/'; // Go to root if path was just the language code
-							}
-							if (path.startsWith(prefix + '/')) {
-								const newPath = path.substring(prefix.length); // Remove '/et' -> '/signin'
-								// console.log(`No current lang, removing prefix '${knownLang}' from path:`, { original: path, adjusted: newPath });
-								return newPath.startsWith('/') ? newPath : '/' + newPath; // Ensure leading slash
-							}
-						}
-						// console.log("No current lang and no known prefix found in path:", path);
-						return path; // No current lang, no known prefix found
-					}
-
-					// 2. Current request has a language (lang is defined).
-					const targetPrefix = `/${lang}`; // e.g., /et
-
-					// Check if the path *already* starts with the *correct* language prefix.
-					if (path === targetPrefix || path.startsWith(targetPrefix + '/')) {
-						// console.log("Path already has correct prefix:", path);
-						return path; // Already correct
-					}
-
-					// Check if the path starts with a *different* known language prefix.
-					for (const knownLang of uiLanguages) {
-						if (knownLang === lang) continue; // Skip checking against the target lang itself
-
-						const existingPrefix = `/${knownLang}`;
-						if (path === existingPrefix) {
-							// Path is just the wrong language code (e.g., /fi when lang is et)
-							// console.log(`Path is different lang '${knownLang}', replacing with target '${targetPrefix}'`);
-							return targetPrefix; // Replace /fi with /et
-						}
-						if (path.startsWith(existingPrefix + '/')) {
-							// Path starts with the wrong language code (e.g., /fi/dashboard when lang is et)
-							const restOfPath = path.substring(existingPrefix.length); // Get '/dashboard'
-							const newPath = targetPrefix + restOfPath; // Prepend correct lang -> '/et/dashboard'
-							// console.log(`Path has different lang prefix '${knownLang}', replacing with target '${targetPrefix}':`, { original: path, adjusted: newPath });
-							return newPath;
-						}
-					}
-
-					// 3. Path does not start with *any* known language prefix. Prepend the target one.
-					// Ensure we don't create '//' if the original path is just '/'
-					const newPath = `${targetPrefix}${path === '/' ? '' : path}`;
-					// console.log("Path has no known prefix, prepending target lang:", { original: path, adjusted: newPath });
-					return newPath;
-				};
-				// --- End Updated Helper Function ---
-
-				// 1. Handle relative URLs (e.g., "/dashboard", "/")
-				if (url.startsWith("/")) {
-					const adjustedPath = adjustPathForLang(url); // Use the new helper
-					const finalUrl = `${baseUrl}${adjustedPath}`;
-					// console.log("Redirecting relative URL:", { final: finalUrl });
-					return finalUrl;
-				}
-
-				// 2. Handle absolute URLs on the same origin
-				try {
-					const urlObject = new URL(url);
-					if (urlObject.origin === baseUrl) {
-						const adjustedPath = adjustPathForLang(urlObject.pathname); // Use the new helper
-						const finalUrl = `${baseUrl}${adjustedPath}${urlObject.search}${urlObject.hash}`;
-						// console.log("Redirecting same-origin absolute URL:", { final: finalUrl });
-						return finalUrl;
-					}
-				} catch (e) {
-					console.warn("Could not parse redirect URL, falling back:", url, e);
-				}
-
-				// 3. Fallback: Redirect to the app's base URL, adjusted for the current language context.
-				const adjustedBasePath = adjustPathForLang('/'); // Adjust the root path '/'
-				const finalUrl = `${baseUrl}${adjustedBasePath}`;
-				// console.log("Redirecting fallback to base:", { final: finalUrl });
-				return finalUrl;
-			},
-			async session({ session, token, user, newSession, trigger }) {
+			async session({ session, token, user }) {
 				if (token) {
-					session.user = {
-						id: token.id,
-						email: token.email,
-						name: token.name,
-						picture: token.picture
-					};
-				}
-				else if (user.id) {
+					session.user = { id: token.id, email: token.email, name: token.name, picture: token.picture };
+				} else if (user?.id) {
 					session.user.id = user.id;
 				}
 				return session;
@@ -242,7 +149,14 @@ export const { handle, signIn, signOut } = SvelteKitAuth(async (event) => {
 			signIn: async () => {
 				return true;
 			},
-		} 
+		},
+		// Add the events object for logging errors
+		events: {
+			async error(message) {
+			  // This will still log errors encountered by Auth.js internally
+			  console.error("Auth.js Error Event:", message);
+			}
+		  }
 	}
 	return authOptions satisfies SvelteKitAuthConfig
 });

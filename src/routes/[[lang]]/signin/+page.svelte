@@ -1,17 +1,26 @@
 <script lang="ts">
 	import { _ } from 'svelte-i18n';
-	import { userState } from '$lib/stores.svelte';
+	// No need for userState store if using Auth.js session data primarily
+	// import { userState } from '$lib/stores.svelte';
 	// import github from 'svelte-awesome/icons/github';
-    import { page } from "$app/state"
+	// No need for page store if using PageData prop
+    // import { page } from "$app/stores";
+	import { page } from "$app/state"
     import { onMount } from "svelte";
     import { goto, invalidate } from '$app/navigation';
 	import { signIn } from "@auth/sveltekit/client"
-	import type { PageProps } from './$types';
+	// Import PageData type which includes data from load and form actions
+	import type { PageData, ActionData } from './$types';
 	import Input from '$lib/components/Input.svelte';
 
 	import Facebook from "@auth/sveltekit/providers/facebook"
 	import Google from "@auth/sveltekit/providers/google"
 	import MicrosoftEntraID from "@auth/sveltekit/providers/microsoft-entra-id"
+
+	import { CredentialsSignin, OAuthAccountNotLinked } from "@auth/core/errors";
+
+	// Get data from load function and form actions using runes
+	let { data }: { data: PageData & { form?: ActionData } } = $props();
 
 	const providers = [
 		Google,
@@ -39,93 +48,141 @@
 			return ""
 		}
 	}
-	
 	let error = $state(null);
-	let email = ""
-  	let password = ""
+	// Local variables for form inputs, potentially pre-filled from form action failure
+	let email = $state(data.form?.email || "");
+  	let password = $state("");
+	let clientSideErrorCode = "";
 
-	async function handleSubmit({detail: {email, password}}) {
-		const response = await fetch('/api/signin', {
-			method: 'POST',
-			body: JSON.stringify({email, password}),
-			headers: {
-				'Content-Type': 'application/json'
-			}
-		}).catch(e => console.error("Signin failed"));
-		if (!response) {
-			error = "Signin request failed!";
-			return;
-		}
-		if (!response.ok) {
-			error = (await response.json()).message;
-			return;
-		}
-		else {
-			const user = await response.json()
-			userState.name = user.name;
-			userState.id = user.id;
-			userState.email = user.email;
-			await invalidate("/")
-			await goto('/files', { invalidateAll: true })
-		}
-	}
-	const printError = (error) => {
-		if (error === 'passwordError') {
+	// Derived state to determine the error code to display
+	// Prioritize form action error, then URL error
+	let displayErrorCode = $derived(data.form?.error || data.urlError?.code || clientSideErrorCode);
+
+	// Function to translate error codes into user-friendly messages
+	const printError = (code: string | undefined | null): string => {
+		console.log("[printError] Called with code:", code);
+		if (!code) return "";
+
+		if (code === 'OAuthAccountNotLinked') {
+			return $_('signin.errorOAuthAccountNotLinked');
+		} else if (code === 'CredentialsSignin') {
+			console.log("[printError] Translating CredentialsSignin");
+			return $_('signin.errorInvalidCredentials');
+		} else if (code === 'passwordError') {
 			return $_('signin.passwordError');
-		} else if (error === 'emailError') {
-			return $_('signin.emailError')
-		} else if (error === 'noPasswordSetError') {
-			return $_('signin.noPasswordSet')
+		} else if (code === 'emailError') {
+			return $_('signin.emailError');
+		} else if (code === 'noPasswordSetError') {
+			return $_('signin.noPasswordSet');
+		} else if (code === 'SigninFailed') {
+			return $_('signin.errorSigninFailed');
+		} else if (code === 'NetworkError') {
+			return $_('signin.errorNetwork');
 		}
-		else return error;
+		console.warn("[printError] Displaying unknown error code:", code);
+		return $_('signin.errorUnknown') + ` (${code})`;
 	};
-	let { data, form }: PageProps = $props();
-	let errorCode = $state("");
-	async function logIn(provider) {
-		let error = false;
-		errorCode = "";
-		let res, body;
-		if (provider === "credentials") {
-			res = await signIn(provider, { redirect: false, email, password }).catch((e)=>{
-				error = true;
-				console.log("signin failed", e);
-			});
-			try {
-				body = await res.json();
-			}
-			catch (e) {
-				error = true;
-				console.log("Failed to parse signin response.");
-			};
-			// console.log(res, body)
-		} else {
-			res = await signIn(provider, { redirect: false}).catch((e)=>{
-				error = true;
-				console.log("signin failed", e);
-				// errorCode = "otherSigninError";
-			});
-			// console.log("signin result", res)
+
+	// Client-side login function
+	async function logIn(provider: string | undefined) {
+		clientSideErrorCode = "";
+		console.log("[logIn] Attempting sign in with provider:", provider);
+
+		if (!provider) {
+			console.error("[logIn] Provider is undefined");
+			clientSideErrorCode = "UnknownProvider";
+			return;
 		}
-		if (!error && body && body.url)	{
-			const searchParams = new URLSearchParams(body.url);
-			for (const p of searchParams) {
-				if (p[0] === "code") {
-					errorCode = p[1];
-					// console.log(p[1]);
+
+		try {
+			// For credentials provider, handle the error directly without redirect
+			if (provider === 'credentials') {
+				// First, check if credentials are valid before attempting sign-in
+				if (!email || !password) {
+					clientSideErrorCode = email ? "passwordError" : "emailError";
+					return;
+				}
+				
+				// Attempt sign-in with redirect:false
+				const result = await signIn(provider, {
+					redirect: false,
+					email,
+					password
+				});
+				
+				console.log("[logIn] Raw credentials result:", result);
+				const res = await result.json();
+				console.log("[logIn] Raw credentials result:", res);
+				// Check for error in URL
+				if (result && result.ok && 'url' in result && result.url) {
+					const url = new URL(result.url);
+					const errorParam = url.searchParams.get('error');
+					console.log("[logIn] Parsed errorParam from URL:", errorParam);
+					
+					if (errorParam) {
+						// Set the error code but DON'T reload or redirect
+						clientSideErrorCode = errorParam;
+						return; // Important: return early to prevent page reload
+					} else {
+						// Success - reload to update session
+						await invalidate('data:session');
+						window.location.reload();
+					}
+				} else if (result && !result.ok) {
+					clientSideErrorCode = "SigninFailed";
+					return; // Important: return early
+				} else if (result?.ok) {
+					await invalidate('data:session');
+					window.location.reload();
+				}
+			} 
+			// For OAuth providers, use the existing logic
+			else {
+				const result = await signIn(provider, {
+					redirect: false
+				});
+				
+				console.log("[logIn] Raw OAuth result:", result);
+				
+				if (result && 'error' in result && result.error) {
+					clientSideErrorCode = (result as any).error;
+				} else if (result && result.ok && 'url' in result && result.url) {
+					try {
+						const url = new URL(result.url);
+						const errorParam = url.searchParams.get('error');
+						if (errorParam) {
+							clientSideErrorCode = errorParam;
+						} else {
+							await invalidate('data:session');
+							window.location.reload();
+						}
+					} catch (e) {
+						console.error("[logIn] Error parsing URL", e);
+						clientSideErrorCode = "SigninFailed";
+					}
+				} else if (result && !result.ok) {
+					clientSideErrorCode = "SigninFailed";
+				} else if (result?.ok) {
+					await invalidate('data:session');
+					window.location.reload();
+				} else {
+					console.warn("[logIn] Unexpected result structure");
+					clientSideErrorCode = "SigninFailed";
 				}
 			}
+		} catch (error) {
+			console.error("[logIn] Caught exception during signIn:", error);
+			clientSideErrorCode = "NetworkError";
 		}
-		if (!errorCode) {
-			await invalidate('data:session');
-			await invalidate('/api/files');
-			await goto('/files');
-		}
-    }
-	// Backup when returning from various auth redirects
+		
+		console.log("[logIn] Final clientSideErrorCode:", clientSideErrorCode);
+	}
+
+	// Backup invalidation on mount (can sometimes help refresh session state)
+	// You might not need this if invalidate is handled correctly after successful login
 	onMount(async ()=> {
-		await invalidate('data:session');
-		if (data.email) await goto('/files');
-	})
+		// await invalidate('data:session');
+	});
 
 </script>
 
@@ -134,12 +191,15 @@
 </svelte:head>
 
 <div class="tabs flex justify-center">
-	<a href="signin" class="tab tab-bordered tab-lg tab-active mr-8">{$_('signin.login')}</a>
-	<a href="signup" class="tab tab-bordered tab-lg">{$_('signin.register')}</a>
+	<a href="../signin" class="tab tab-bordered tab-lg tab-active mr-8">{$_('signin.login')}</a> <!-- Adjusted href for relative path -->
+	<a href="../signup" class="tab tab-bordered tab-lg">{$_('signin.register')}</a> <!-- Adjusted href for relative path -->
 </div>
-{#if errorCode}
-<p class="mt-3 text-red-500 text-center font-semibold">{printError(errorCode)}</p>
+
+<!-- Updated error display section -->
+{#if displayErrorCode}
+<p class="mt-3 text-red-500 text-center font-semibold">{printError(displayErrorCode)}</p>
 {/if}
+<!-- End updated error display section -->
 
 <div 
 	class="w-full"
@@ -171,15 +231,17 @@
 </div>
 
 <div class="flex justify-center">
+	<!-- OAuth Buttons -->
 	<div class="max-w-xl mt-7 gap-2">
-		<p class="mb-1">Või kasuta sisenemiseks:</p>		
-			<button class="btn btn-outline gap-2" onclick={() => logIn("facebook")}>
+		<p class="mb-1">{$_('signin.useOtherMethods')}:</p> <!-- Example i18n key -->
+			<!-- Use client-side logIn function -->
+			<button type="button" class="btn btn-outline gap-2" onclick={() => logIn("facebook")}>
 				<div class="flex items-center justify-center pr-2">
 					{@html getProviderLogo("facebook") || ""}
 				</div>
 				Facebook
 			</button>
-			<button class="btn btn-outline gap-2" onclick={() => logIn("google")}>
+			<button type="button" class="btn btn-outline gap-2" onclick={() => logIn("google")}>
 				<div class="flex items-center justify-center pr-2">
 					{@html getProviderLogo("google") || ""}
 				</div>

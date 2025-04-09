@@ -13,3 +13,4 @@ init({
     initialLocale: getLocaleFromNavigator(),
   });
 export const uiLanguages = ['et', 'en', 'fi'];
+export const defaultLang = 'et';

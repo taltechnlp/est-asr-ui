@@ -57,7 +57,13 @@
     "password": "Password",
     "email": "Email",
     "forgotPassword": "Forgot password?",
-    "noPasswordSet": "Password not set"
+    "noPasswordSet": "Password not set",
+    "errorOAuthAccountNotLinked": "This email is already associated with another sign-in method. Please sign in using the original method.",
+    "useOtherMethods": "Or use:",
+    "errorInvalidCredentials": "Invalid credentials.",
+    "errorSigninFailed": "Sign in failed.",
+    "errorNetwork": "Network error.",
+    "errorUnknown": "Unknown sign in error."
   },
   "signup": {
     "header": "Register | tekstiks.ee",

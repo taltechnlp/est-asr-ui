@@ -57,7 +57,13 @@
         "password": "Salasana",
         "email": "Sähköpostiosoite",
         "forgotPassword": "Unohtuiko salasana?",
-        "noPasswordSet": "Salasanaa ei ole asetettu"
+        "noPasswordSet": "Salasanaa ei ole asetettu",
+        "errorOAuthAccountNotLinked": "Tämä sähköpostiosoite on jo liitetty toiseen kirjautumismenetelmään. Kirjaudu sisään käyttäen alkuperäistä tapaa.",
+        "useOtherMethods": "Vaihda kirjautumismenetelmään:",
+        "errorInvalidCredentials": "Väärä käyttäjätunnus tai salasana.",
+        "errorSigninFailed": "Kirjautumine epäonnistui.",
+        "errorNetwork": "Verkkovirhe.",
+        "errorUnknown": "Tuntematon kirjautumisvirhe."
     },
     "signup": {
         "header": "Rekisteröidy | tekstiks.ee",

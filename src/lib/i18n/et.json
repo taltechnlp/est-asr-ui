@@ -57,7 +57,13 @@
         "password": "Parool",
         "email": "E-posti aadress",
         "forgotPassword": "Unustasid parooli?",
-        "noPasswordSet": "Parooli pole veel seatud"
+        "noPasswordSet": "Parooli pole veel seatud",
+        "errorOAuthAccountNotLinked": "Selle e-posti aadressiga on juba ühendatud teine sisselogimismeetod. Palun logi sisse selle asemel kasutades seda kontot.",
+        "useOtherMethods": "Või kasuta sisenemiseks:",
+        "errorInvalidCredentials": "Vale e-post või salasõna.",
+        "errorSigninFailed": "Sisselogimine ebaõnnestus.",
+        "errorNetwork": "Internetiühendusega seotud viga.",
+        "errorUnknown": "Tundmatu sisselogimisviga."
     },
     "signup": {
         "header": "Registreeru | tekstiks.ee",
