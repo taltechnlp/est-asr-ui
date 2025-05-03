@@ -23,7 +23,7 @@
 	<h2 class="mb-2 text-xl font-extrabold">{$_('contact.serviceSupport')}</h2>
 	<p class="mb-2">{$_('contact.serviceSupportDetails')}</p>
 	<p class="mb-10">
-		<span class="link">tugi[@]tekstiks.ee</span>
+		<span class="link">aivo.olev[@]taltech.ee</span>
 	</p>
 	<h2 class="mb-2 text-xl font-extrabold">{$_('contact.finnishService')}</h2>
 	<p class="mb-2">{$_('contact.finnishServiceDetails')}</p>

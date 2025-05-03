@@ -162,6 +162,14 @@
 <svelte:head>
 	<title>{$_('files.title')}</title>
 </svelte:head>
+{#if false}
+<div role="alert" class="alert alert-error mx-auto max-w-7xl">
+	<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+	  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+	</svg>
+	<span>{$_('files.hardwareFailureWarning')}</span>
+</div>
+{/if}
 <div class="grid w-full min-h-[100dvh] justify-center content-start grid-cols-[minmax(320px,_1280px)] overflow-x-auto bg-base-100">
 	<div class="flex justify-end max-w-screen-2xl">
 		<button class="btn btn-primary gap-2 mt-5 mb-2 modal-button right" onclick={() => eval(`upload_modal.showModal()`)}>

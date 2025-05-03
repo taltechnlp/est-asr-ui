@@ -112,7 +112,8 @@
         "fileSaveFailed": "Faili salvestamine ebaõnnestus",
         "fileTooLong": "Faili kestus on liiga pikk",
         "invalidLang": "Vale keel",
-        "finnishUploadFailed": "Faili töötlemisel tekkis viga"
+        "finnishUploadFailed": "Faili töötlemisel tekkis viga",
+        "hardwareFailureWarning": "Hoiatus! Riistvara rikke tõttu on täna lõunast kella 12:00 kuni 14:00 oodata erakorralist katkestust. Seni ei saa uusi faile ülesse laadida."
     },
     "me": {
         "title": "Konto andmed | tekstiks.ee",
