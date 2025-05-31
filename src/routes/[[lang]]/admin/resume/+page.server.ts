@@ -54,7 +54,7 @@ export const load = (async ({ locals, fetch }) => {
     for (const file of files) {
         // Check if the file was uploaded more than 3 hours ago
         // Also check if the state is 'PROCESSING' (it might be 'PROCESSING_ERROR')
-        if (file.state === 'PROCESSING' && file.uploadedAt < new Date(Date.now() - 3 * 60 * 60 * 1000)) {
+        if ((file.state === 'PROCESSING' || file.state === 'UPLOADED') && file.uploadedAt < new Date(Date.now() - 3 * 60 * 60 * 1000)) {
             // Generate a new id that conforms to the required pattern
             // ^[a-z](?:[a-z\d]|[-_](?=[a-z\d])){0,79}$
             let baseId = uuidv4();
@@ -82,9 +82,8 @@ export const load = (async ({ locals, fetch }) => {
                     },
                     data: {
                         externalId: newId,
-                        initialTranscriptionPath: resultPath
-                        // Optionally reset state if needed, e.g., back to PENDING or keep as PROCESSING
-                        // state: 'PROCESSING' // Or maybe a new state like 'RETRYING'
+                        initialTranscriptionPath: resultPath,
+                        state: 'PROCESSING'
                     }
                 });
 
@@ -100,7 +99,7 @@ export const load = (async ({ locals, fetch }) => {
                             filePath: file.path,
                             resultDir: resultDir,
                             workflowName: newId, // Use the new ID
-                            resume: false // Should this be true if resuming? Assuming false based on original code.
+                            resume: false 
                         })
                     }
                 );
