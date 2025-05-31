@@ -26,7 +26,11 @@
 	let editor: undefined | Editor = $state();
 	let demo = true;
 
-	const debouncedSave = debounce(() => handleSave(editor, fileId), 5000, {
+	async function handleSaveLocal() {
+		return await handleSave(editor, fileId);
+	}
+
+	const debouncedSave = debounce(handleSaveLocal, 5000, {
 		leading: false,
 		trailing: true
 	});
@@ -69,6 +73,14 @@
 				// console.log(editor.schema);
 			}
 		});
+	});
+
+	onDestroy(() => {
+		// Cancel any pending debounced saves to prevent race conditions
+		debouncedSave.cancel();
+		if (editor) {
+			editor.destroy();
+		}
 	});
 </script>
 
