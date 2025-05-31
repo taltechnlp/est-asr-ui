@@ -112,7 +112,8 @@
     "fileSaveFailed": "File save failed",
     "fileTooLong": "File duration too long",
     "invalidLang": "Invalid language",
-    "finnishUploadFailed": "Error processing the file"
+    "finnishUploadFailed": "Error processing the file",
+    "hardwareFailureWarning": "Warning! Due to a hardware failure, an emergency outage is expected today from 12:00 PM to 2:00 PM. During this time, uploading new files will not be possible."
   },
   "me": {
     "title": "Account details | tekstiks.ee",
