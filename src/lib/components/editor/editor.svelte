@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte';
+	import { beforeNavigate } from '$app/navigation';
 	import { Editor, getDebugJSON } from '@tiptap/core';
 	import Document from '@tiptap/extension-document';
 	import Text from '@tiptap/extension-text';
@@ -25,9 +26,14 @@
 	let element: HTMLDivElement | undefined = $state();
 	let editor: undefined | Editor = $state();
 	let demo = true;
+	let hasUnsavedChanges = $state(false);
 
 	async function handleSaveLocal() {
-		return await handleSave(editor, fileId);
+		const result = await handleSave(editor, fileId);
+		if (result) {
+			hasUnsavedChanges = false;
+		}
+		return result;
 	}
 
 	const debouncedSave = debounce(handleSaveLocal, 5000, {
@@ -35,7 +41,30 @@
 		trailing: true
 	});
 
+	// Save before navigation to prevent data loss
+	beforeNavigate(async () => {
+		// If there are unsaved changes, save them immediately
+		if (hasUnsavedChanges && editor && !demo) {
+			debouncedSave.cancel(); // Cancel the debounced version
+			await handleSaveLocal(); // Execute immediately
+		}
+	});
+
+	// Handle browser navigation/reload/close
+	function handleBeforeUnload(event: BeforeUnloadEvent) {
+		if (hasUnsavedChanges && !demo) {
+			// Flush any pending debounced saves immediately
+			debouncedSave.flush();
+			// Standard way to show "Are you sure you want to leave?" dialog
+			event.preventDefault();
+			return event.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+		}
+	}
+
 	onMount(() => {
+		// Add beforeunload listener for browser navigation/reload/close
+		window.addEventListener('beforeunload', handleBeforeUnload);
+
 		editor = new Editor({
 			element: element,
 			extensions: [
@@ -69,13 +98,18 @@
 			onTransaction: () => {
 				// force re-render so `editor.isActive` works as expected
 				// editor = editor;
-				if (!demo) debouncedSave();
+				if (!demo) {
+					hasUnsavedChanges = true;
+					debouncedSave();
+				}
 				// console.log(editor.schema);
 			}
 		});
 	});
 
 	onDestroy(() => {
+		// Remove beforeunload listener
+		window.removeEventListener('beforeunload', handleBeforeUnload);
 		// Cancel any pending debounced saves to prevent race conditions
 		debouncedSave.cancel();
 		if (editor) {
@@ -113,7 +147,7 @@
 					<button
 						class="btn btn-link btn-sm"
 						onclick={() => {
-							downloadHandler(editor.getJSON(), '', '', true);
+							downloadHandler(editor.getJSON(), '', '', true, false);
 						}}
 					>
 						<Icon data={download} scale={1} />
