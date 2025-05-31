@@ -112,7 +112,8 @@
         "fileSaveFailed": "Tiedoston tallentaminen epäonnistui",
         "fileTooLong": "Tiedoston kesto on liian pitkä",
         "invalidLang": "Valea kieli",
-        "finnishUploadFailed": "Tiedoston käsittelyssä tapahtui virhe"
+        "finnishUploadFailed": "Tiedoston käsittelyssä tapahtui virhe",
+        "hardwareFailureWarning": "Järjestelmä toipuu laitteistoviasta. Uudet lataukset eivät tällä hetkellä etene tai epäonnistu."
     },
     "me": {
         "title": "Käyttäjätiedot | tekstiks.ee",

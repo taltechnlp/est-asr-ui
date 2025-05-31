@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte';
+	import { beforeNavigate } from '$app/navigation';
 	import { Editor, getDebugJSON } from '@tiptap/core';
 	import Document from '@tiptap/extension-document';
 	import Text from '@tiptap/extension-text';
@@ -25,13 +26,103 @@
 	let element: HTMLDivElement | undefined = $state();
 	let editor: undefined | Editor = $state();
 	let demo = true;
+	let hasUnsavedChanges = $state(false);
 
-	const debouncedSave = debounce(() => handleSave(editor, fileId), 5000, {
-		leading: false,
-		trailing: true
+	// Track current values explicitly
+	let currentFileId = $state(fileId);
+	let currentEditor = $state(editor);
+	let debouncedSave: any = $state();
+
+	// Watch for fileId changes and recreate debounced function
+	$effect(() => {
+		if (currentFileId !== fileId) {
+			console.log('FileId changed from', currentFileId, 'to', fileId);
+			// Cancel any pending saves for the old file
+			if (debouncedSave) {
+				debouncedSave.cancel();
+				console.log('Cancelled debounced save for old fileId:', currentFileId);
+			}
+			hasUnsavedChanges = false;
+			currentFileId = fileId;
+			
+			// Create a new debounced function for the new file
+			debouncedSave = debounce(() => handleSaveLocal(), 5000, {
+				leading: false,
+				trailing: true
+			});
+			console.log('Created new debounced save for fileId:', fileId);
+		}
 	});
 
+	// Watch for editor changes
+	$effect(() => {
+		currentEditor = editor;
+	});
+
+	async function handleSaveLocal() {
+		// Capture values at function call time
+		const editorToSave = currentEditor;
+		const fileIdToSave = currentFileId;
+		
+		if (!editorToSave || !fileIdToSave) {
+			console.warn('Cannot save: missing editor or fileId', { editor: !!editorToSave, fileId: fileIdToSave });
+			return false;
+		}
+
+		// Double-check we're still on the same file
+		if (fileIdToSave !== fileId) {
+			console.warn('File changed during save, aborting save for:', fileIdToSave, 'current:', fileId);
+			return false;
+		}
+
+		console.log('Attempting to save fileId:', fileIdToSave);
+		const result = await handleSave(editorToSave, fileIdToSave);
+		if (result) {
+			hasUnsavedChanges = false;
+			console.log('Successfully saved fileId:', fileIdToSave);
+		} else {
+			console.error('Failed to save fileId:', fileIdToSave);
+		}
+		return result;
+	}
+
+	// Initialize the debounced function
+	if (!debouncedSave) {
+		debouncedSave = debounce(() => handleSaveLocal(), 5000, {
+			leading: false,
+			trailing: true
+		});
+	}
+
+	// Save before navigation to prevent data loss
+	beforeNavigate(async () => {
+		console.log('beforeNavigate triggered', { hasUnsavedChanges, currentFileId, currentEditor: !!currentEditor, demo });
+		
+		// Always cancel any pending debounced saves to prevent race conditions
+		debouncedSave.cancel();
+		
+		// If there are unsaved changes, save them immediately
+		if (hasUnsavedChanges && currentEditor && !demo && currentFileId) {
+			console.log('Saving before navigation for fileId:', currentFileId);
+			await handleSaveLocal(); // Execute immediately
+		}
+	});
+
+	// Handle browser navigation/reload/close
+	function handleBeforeUnload(event: BeforeUnloadEvent) {
+		if (hasUnsavedChanges && !demo) {
+			// Flush any pending debounced saves immediately
+			debouncedSave.flush();
+			// Standard way to show "Are you sure you want to leave?" dialog
+			event.preventDefault();
+			return event.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+		}
+	}
+
 	onMount(() => {
+		// Add beforeunload listener for browser navigation/reload/close
+		window.addEventListener('beforeunload', handleBeforeUnload);
+
 		editor = new Editor({
 			element: element,
 			extensions: [
@@ -65,10 +156,24 @@
 			onTransaction: () => {
 				// force re-render so `editor.isActive` works as expected
 				// editor = editor;
-				if (!demo) debouncedSave();
+				if (!demo && currentFileId) {
+					console.log('Transaction detected for fileId:', currentFileId);
+					hasUnsavedChanges = true;
+					debouncedSave();
+				}
 				// console.log(editor.schema);
 			}
 		});
+	});
+
+	onDestroy(() => {
+		// Remove beforeunload listener
+		window.removeEventListener('beforeunload', handleBeforeUnload);
+		// Cancel any pending debounced saves to prevent race conditions
+		debouncedSave.cancel();
+		if (editor) {
+			editor.destroy();
+		}
 	});
 </script>
 
@@ -101,7 +206,7 @@
 					<button
 						class="btn btn-link btn-sm"
 						onclick={() => {
-							downloadHandler(editor.getJSON(), '', '', true);
+							downloadHandler(editor.getJSON(), '', '', true, false);
 						}}
 					>
 						<Icon data={download} scale={1} />

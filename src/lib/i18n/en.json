@@ -112,7 +112,8 @@
     "fileSaveFailed": "File save failed",
     "fileTooLong": "File duration too long",
     "invalidLang": "Invalid language",
-    "finnishUploadFailed": "Error processing the file"
+    "finnishUploadFailed": "Error processing the file",
+    "hardwareFailureWarning": "System is experiencing a hardware failure. New uploads currently do not progress or fail."
   },
   "me": {
     "title": "Account details | tekstiks.ee",

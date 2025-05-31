@@ -112,7 +112,8 @@
         "fileSaveFailed": "Faili salvestamine ebaõnnestus",
         "fileTooLong": "Faili kestus on liiga pikk",
         "invalidLang": "Vale keel",
-        "finnishUploadFailed": "Faili töötlemisel tekkis viga"
+        "finnishUploadFailed": "Faili töötlemisel tekkis viga",
+        "hardwareFailureWarning": "Süsteemis on riistvararike. Uued üleslaadimised hetkel ebaõnnestuvad."
     },
     "me": {
         "title": "Konto andmed | tekstiks.ee",
