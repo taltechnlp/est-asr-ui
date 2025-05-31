@@ -4,7 +4,7 @@ export const handleSave = async (editor, fileId) => {
 	const result = await fetch(`/api/files/${fileId}`, {
 		method: 'PUT',
 		body: JSON.stringify(editor.getJSON())
-	}).catch(e=> console.error("Saving file failes", fileId))
+	}).catch(e=> console.error("Saving file failed", fileId))
 	if (!result || !result.ok) {
 		return false;
 	}
