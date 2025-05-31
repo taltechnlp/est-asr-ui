@@ -28,24 +28,82 @@
 	let demo = true;
 	let hasUnsavedChanges = $state(false);
 
+	// Track current values explicitly
+	let currentFileId = $state(fileId);
+	let currentEditor = $state(editor);
+	let debouncedSave: any = $state();
+
+	// Watch for fileId changes and recreate debounced function
+	$effect(() => {
+		if (currentFileId !== fileId) {
+			console.log('FileId changed from', currentFileId, 'to', fileId);
+			// Cancel any pending saves for the old file
+			if (debouncedSave) {
+				debouncedSave.cancel();
+				console.log('Cancelled debounced save for old fileId:', currentFileId);
+			}
+			hasUnsavedChanges = false;
+			currentFileId = fileId;
+			
+			// Create a new debounced function for the new file
+			debouncedSave = debounce(() => handleSaveLocal(), 5000, {
+				leading: false,
+				trailing: true
+			});
+			console.log('Created new debounced save for fileId:', fileId);
+		}
+	});
+
+	// Watch for editor changes
+	$effect(() => {
+		currentEditor = editor;
+	});
+
 	async function handleSaveLocal() {
-		const result = await handleSave(editor, fileId);
+		// Capture values at function call time
+		const editorToSave = currentEditor;
+		const fileIdToSave = currentFileId;
+		
+		if (!editorToSave || !fileIdToSave) {
+			console.warn('Cannot save: missing editor or fileId', { editor: !!editorToSave, fileId: fileIdToSave });
+			return false;
+		}
+
+		// Double-check we're still on the same file
+		if (fileIdToSave !== fileId) {
+			console.warn('File changed during save, aborting save for:', fileIdToSave, 'current:', fileId);
+			return false;
+		}
+
+		console.log('Attempting to save fileId:', fileIdToSave);
+		const result = await handleSave(editorToSave, fileIdToSave);
 		if (result) {
 			hasUnsavedChanges = false;
+			console.log('Successfully saved fileId:', fileIdToSave);
+		} else {
+			console.error('Failed to save fileId:', fileIdToSave);
 		}
 		return result;
 	}
 
-	const debouncedSave = debounce(handleSaveLocal, 5000, {
-		leading: false,
-		trailing: true
-	});
+	// Initialize the debounced function
+	if (!debouncedSave) {
+		debouncedSave = debounce(() => handleSaveLocal(), 5000, {
+			leading: false,
+			trailing: true
+		});
+	}
 
 	// Save before navigation to prevent data loss
 	beforeNavigate(async () => {
+		console.log('beforeNavigate triggered', { hasUnsavedChanges, currentFileId, currentEditor: !!currentEditor, demo });
+		
+		// Always cancel any pending debounced saves to prevent race conditions
+		debouncedSave.cancel();
+		
 		// If there are unsaved changes, save them immediately
-		if (hasUnsavedChanges && editor && !demo) {
-			debouncedSave.cancel(); // Cancel the debounced version
+		if (hasUnsavedChanges && currentEditor && !demo && currentFileId) {
+			console.log('Saving before navigation for fileId:', currentFileId);
 			await handleSaveLocal(); // Execute immediately
 		}
 	});
@@ -98,7 +156,8 @@
 			onTransaction: () => {
 				// force re-render so `editor.isActive` works as expected
 				// editor = editor;
-				if (!demo) {
+				if (!demo && currentFileId) {
+					console.log('Transaction detected for fileId:', currentFileId);
 					hasUnsavedChanges = true;
 					debouncedSave();
 				}
