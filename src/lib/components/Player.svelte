@@ -5,7 +5,7 @@
 	import plus from 'svelte-awesome/icons/plusCircle';
     import { player, waveform } from '$lib/stores.svelte';
     let { url } = $props();
-    let rate = '1.0x';
+    let rate = $state('1.0x');
 	let zoom = $state(1);
 	const togglePlay = () => {
 		if ($waveform) {

@@ -12,13 +12,16 @@
 	let { data } = $props();
 	let words: Array<Word> = [];
 	let speakers: Array<Speaker> = [];
-	let transcription = $state('');
 	let json = JSON.parse(data.file && data.file.content);
 	let content;
+	let transcription = $state();
+	
 	// First time transcription from the Estonian JSON format.
 	if (json && !json.type) {
 		content = fromEstFormat(json);
-		({ transcription, words, speakers } = content);
+		transcription = content.transcription;
+		words = content.words;
+		speakers = content.speakers;
 	}
 	// Already in Editor format
 	else if (json && json.content) {

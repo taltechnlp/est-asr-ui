@@ -41,8 +41,8 @@
 	}
 	
 	let error = $state(null);
-	let email = ""
-  	let password = ""
+	let email = $state("")
+  	let password = $state("")
 
 	async function handleSubmit({detail: {email, password}}) {
 		const response = await fetch('/api/signin', {

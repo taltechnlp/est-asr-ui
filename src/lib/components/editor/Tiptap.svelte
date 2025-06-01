@@ -65,7 +65,7 @@
 
 	// Track current values to prevent closure capture bug
 	let currentFileId = $state(fileId);
-	let currentEditor = $state(editor);
+	let currentEditor = $state(null);
 	let hasUnsavedChanges = $state(false);
 	let debouncedSave: any = $state();
 
@@ -93,6 +93,16 @@
 	// Watch for editor changes
 	$effect(() => {
 		currentEditor = editor;
+	});
+
+	// Initialize the debounced function
+	$effect(() => {
+		if (!debouncedSave) {
+			debouncedSave = debounce(handleSaveLocal, 5000, {
+				leading: false,
+				trailing: true
+			});
+		}
 	});
 
 	const options: Intl.DateTimeFormatOptions = {
@@ -256,14 +266,6 @@
 		return result;
 	}
 
-	// Initialize the debounced function
-	if (!debouncedSave) {
-		debouncedSave = debounce(handleSaveLocal, 5000, {
-			leading: false,
-			trailing: true
-		});
-	}
-
 	// Save before navigation to prevent data loss
 	beforeNavigate(async () => {
 		console.log('beforeNavigate triggered', { hasUnsavedChanges, currentFileId, currentEditor: !!currentEditor, demo });
@@ -305,11 +307,10 @@
 	}
 
 	let isActive = $derived((name, attrs = {}) => $editor.isActive(name, attrs));
-	let fontSize: string = $state(localStorage.getItem('fontSize'));
+	let fontSize: string = $state(localStorage.getItem('fontSize') || "16");
 	$effect(() => {
 		fontSizeStore.set(fontSize)
 	});
-	if (!fontSize) fontSize = "16"; // 16px default
 </script>
 
 <div class="w-full fixed top-2 left-0 right-0 flex justify-center z-20"></div>

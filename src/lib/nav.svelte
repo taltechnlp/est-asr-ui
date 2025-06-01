@@ -29,7 +29,12 @@
 
 	let currentLanguage: string = $state(language || "et");
 	//let value = $state(value);
-	locale.set(currentLanguage); 
+	
+	// Sync currentLanguage with locale store
+	$effect(() => {
+		locale.set(currentLanguage);
+	});
+	
 	locale.subscribe(lang => {
 		currentLanguage = lang}
 	)

@@ -1,9 +1,6 @@
 <script lang="ts">
-	import { run } from 'svelte/legacy';
-
 	import { onMount, onDestroy } from 'svelte';
 	import { beforeNavigate } from '$app/navigation';
-	import { getDebugJSON } from '@tiptap/core';
 	import type { Node, Schema } from 'prosemirror-model';
 	import Document from '@tiptap/extension-document';
 	import { LabelHighlight } from '../marks/labelHighlight';
@@ -309,11 +306,10 @@
 	}
 
 	let isActive = $derived((name, attrs = {}) => $editor.isActive(name, attrs));
-	let fontSize: string = $state(localStorage.getItem('fontSize'));
-	run(() => {
+	let fontSize: string = $state(localStorage.getItem('fontSize') || "16");
+	$effect(() => {
 		fontSizeStore.set(fontSize)
 	});
-	if (!fontSize) fontSize = "16"; // 16px default
 </script>
 
 <div class="w-full fixed top-2 left-0 right-0 flex justify-center z-20"></div>
@@ -429,7 +425,10 @@
 			</div>
 		</BubbleMenu>
 	{/if}
-	<LanguageSelection />
+	<LanguageSelection 
+		onSetActive={(label) => {/* handle language activation */}} 
+		onSave={(options) => {/* handle save language options */}} 
+	/>
 	<Hotkeys />
 	<Settings bind:fontSize={fontSize}></Settings>
 	<Download fileName={fileName} />
