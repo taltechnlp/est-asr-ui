@@ -25,9 +25,10 @@ declare module '@tiptap/core' {
 
 export const Suggestion = Node.create<SuggestionOptions>({
 	name: 'suggestion',
-	group: 'block',
-	priority: 1100,
+	group: 'inline',
+	inline: true,
 	content: 'inline*',
+	priority: 1100,
 
 	addOptions() {
 		return {
@@ -64,13 +65,34 @@ export const Suggestion = Node.create<SuggestionOptions>({
 	parseHTML() {
 		return [
 			{
-				tag: 'span[data-suggestion]'
+				tag: 'span[data-suggestion]',
+				getAttrs: (element) => {
+					if (element instanceof HTMLElement) {
+						return {
+							originalText: element.getAttribute('data-original-text') || '',
+							suggestions: JSON.parse(element.getAttribute('data-suggestions') || '[]'),
+						};
+					}
+					return {};
+				}
 			}
 		];
 	},
 
-	renderHTML({ HTMLAttributes }) {
-		return ['span', mergeAttributes({ 'data-suggestion': 'true' }, HTMLAttributes), 0];
+	renderHTML({ HTMLAttributes, node }) {
+		return [
+			'span', 
+			mergeAttributes(
+				{ 
+					'data-suggestion': 'true',
+					'data-original-text': node.attrs.originalText,
+					'data-suggestions': JSON.stringify(node.attrs.suggestions),
+					'style': 'display: inline;'
+				}, 
+				HTMLAttributes
+			), 
+			0
+		];
 	},
 
 	addNodeView() {
@@ -87,13 +109,16 @@ export const Suggestion = Node.create<SuggestionOptions>({
 					const selectedText = state.doc.textBetween(from, to);
 					
 					if (selectedText.trim()) {
-						// Create a suggestion node with the selected text and suggestions
+						// Extract the selected content to preserve any marks (like word marks)
+						const selectedContent = state.doc.slice(from, to).content;
+						
+						// Create a suggestion node with the selected content and suggestions
 						const suggestionNode = this.type.create({
 							originalText: selectedText,
 							suggestions: attributes?.suggestions || [],
 							start: attributes?.start || from,
 							end: attributes?.end || to
-						});
+						}, selectedContent);
 						
 						const transaction = state.tr.replaceWith(from, to, suggestionNode);
 						dispatch(transaction);
@@ -110,12 +135,12 @@ export const Suggestion = Node.create<SuggestionOptions>({
 				if (dispatch) {
 					const node = state.doc.nodeAt(from);
 					if (node && node.type.name === 'suggestion') {
-						// Restore the original text
-						const originalText = node.attrs.originalText || '';
+						// Restore the original content with any preserved marks
+						const originalContent = node.content;
 						const transaction = state.tr.replaceWith(
 							from, 
 							from + node.nodeSize, 
-							state.schema.text(originalText)
+							originalContent
 						);
 						dispatch(transaction);
 					}
@@ -131,11 +156,21 @@ export const Suggestion = Node.create<SuggestionOptions>({
 				if (dispatch) {
 					const node = state.doc.nodeAt(from);
 					if (node && node.type.name === 'suggestion') {
-						// Replace with the suggested text
+						// Replace with the suggested text, preserving any marks from the original content
+						let newContent;
+						
+						// Check if the original content had marks we should preserve
+						if (node.content && node.content.firstChild && node.content.firstChild.marks) {
+							// Apply the same marks to the new text
+							newContent = state.schema.text(suggestionText, node.content.firstChild.marks);
+						} else {
+							newContent = state.schema.text(suggestionText);
+						}
+						
 						const transaction = state.tr.replaceWith(
 							from,
 							from + node.nodeSize,
-							state.schema.text(suggestionText)
+							newContent
 						);
 						dispatch(transaction);
 					}

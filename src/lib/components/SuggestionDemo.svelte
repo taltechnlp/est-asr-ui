@@ -85,53 +85,52 @@
 					{ word: 'occured', suggestions: ['occurred', 'occur', 'occurrence'] }
 				];
 				
-				// Find positions of words to replace (in reverse order to avoid position shifts)
-				const replacements: Array<{start: number, end: number, word: string, suggestions: string[]}> = [];
+				// Process words sequentially to avoid conflicts
+				let wordIndex = 0;
 				
-				wordsToCorrect.forEach(({ word, suggestions }) => {
+				const processNextWord = () => {
+					if (wordIndex >= wordsToCorrect.length) return;
+					
+					const { word, suggestions } = wordsToCorrect[wordIndex];
 					const doc = $editor.state.doc;
 					
+					// Find the position of the word in the document
+					let found = false;
 					doc.descendants((node, pos) => {
-						if (node.isText && node.text && node.text.includes(word)) {
+						if (!found && node.isText && node.text && node.text.includes(word)) {
 							const text = node.text;
-							const wordIndex = text.indexOf(word);
+							const wordStart = pos + text.indexOf(word);
+							const wordEnd = wordStart + word.length;
 							
-							if (wordIndex !== -1) {
-								const wordStart = pos + wordIndex;
-								const wordEnd = wordStart + word.length;
-								
-								replacements.push({
+							// Select the word and create suggestion
+							$editor.commands.setTextSelection({ from: wordStart, to: wordEnd });
+							
+							setTimeout(() => {
+								$editor.commands.setSuggestion({
+									originalText: word,
+									suggestions: suggestions,
 									start: wordStart,
-									end: wordEnd,
-									word: word,
-									suggestions: suggestions
+									end: wordEnd
 								});
-								return false; // Stop after first match for this word
-							}
+								
+								// Process next word
+								wordIndex++;
+								setTimeout(processNextWord, 50);
+							}, 50);
+							
+							found = true;
+							return false;
 						}
 					});
-				});
-				
-				// Sort replacements by position (descending) to avoid position conflicts
-				replacements.sort((a, b) => b.start - a.start);
-				
-				// Apply all replacements in a single transaction
-				if (replacements.length > 0) {
-					const tr = $editor.state.tr;
 					
-					replacements.forEach(({ start, end, word, suggestions }) => {
-						const suggestionNode = $editor.schema.nodes.suggestion.create({
-							originalText: word,
-							suggestions: suggestions,
-							start: start,
-							end: end
-						});
-						
-						tr.replaceWith(start, end, suggestionNode);
-					});
-					
-					$editor.view.dispatch(tr);
-				}
+					if (!found) {
+						// Word not found, skip to next
+						wordIndex++;
+						setTimeout(processNextWord, 10);
+					}
+				};
+				
+				processNextWord();
 			}, 100);
 		}
 	};

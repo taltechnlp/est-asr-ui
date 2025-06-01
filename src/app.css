@@ -77,10 +77,6 @@
 	color: #9b9b9b;
 }
 
-.svelte-renderer {
-	display: block;
-}
-
 .wavesurfer-region {
 	border-color: #b2b0b6;
 	border-style: solid;

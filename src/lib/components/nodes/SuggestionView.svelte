@@ -34,15 +34,22 @@
 		
 		if (pos !== null) {
 			try {
-				// Since this is a block node with inline content, replace with a paragraph containing the text
-				const textNode = editor.state.schema.text(suggestion);
-				const paragraphNode = editor.state.schema.nodes.paragraph.create({}, textNode);
+				// For inline nodes, preserve any marks from the original content
+				let newContent;
 				
-				// Create a transaction to replace the suggestion node with the paragraph
+				// Check if the current node has content with marks we should preserve
+				if (node.content && node.content.firstChild && node.content.firstChild.marks) {
+					// Apply the same marks to the new text
+					newContent = editor.state.schema.text(suggestion, node.content.firstChild.marks);
+				} else {
+					newContent = editor.state.schema.text(suggestion);
+				}
+				
+				// Create a transaction to replace the suggestion node with the corrected text
 				const transaction = editor.state.tr.replaceWith(
 					pos,
 					pos + node.nodeSize,
-					paragraphNode
+					newContent
 				);
 				
 				// Apply the transaction
@@ -56,19 +63,18 @@
 	};
 
 	const handleIgnore = () => {
-		// Replace suggestion with original text
+		// Replace suggestion with original content (preserving any marks)
 		const pos = getPos();
 		
 		if (pos !== null) {
 			try {
-				// Create paragraph with original text
-				const textNode = editor.state.schema.text(originalText);
-				const paragraphNode = editor.state.schema.nodes.paragraph.create({}, textNode);
+				// Restore the original content with any preserved marks
+				const originalContent = node.content;
 				
 				const transaction = editor.state.tr.replaceWith(
 					pos,
 					pos + node.nodeSize,
-					paragraphNode
+					originalContent
 				);
 				
 				editor.view.dispatch(transaction);
@@ -85,7 +91,7 @@
 	};
 </script>
 
-<NodeViewWrapper class="suggestion-wrapper" data-suggestion={true}>
+<NodeViewWrapper as="span" class="suggestion-wrapper" data-suggestion={true}>
 	<span 
 		class="suggestion-text {isDropdownOpen ? 'suggestion-active' : ''}" 
 		contentEditable={false}
@@ -99,7 +105,7 @@
 			}
 		}}
 	>
-		{originalText}
+		<NodeViewContent as="span" />
 		
 		{#if suggestions.length > 0}
 			<span class="suggestion-indicator">⚠</span>
@@ -155,6 +161,7 @@
 		border-radius: 2px;
 		transition: background-color 0.2s ease;
 		display: inline;
+		white-space: normal;
 	}
 
 	.suggestion-text:hover,
@@ -166,6 +173,7 @@
 		font-size: 0.8em;
 		color: #d97706;
 		margin-left: 2px;
+		display: inline;
 	}
 
 	.suggestion-dropdown {
@@ -181,6 +189,7 @@
 		max-width: 250px;
 		padding: 4px 0;
 		margin-top: 2px;
+		display: block;
 	}
 
 	.suggestion-header {
@@ -243,7 +252,7 @@
 		-ms-user-select: none;
 	}
 
-	/* Ensure the NodeView doesn't interfere with inline layout */
+	/* Ensure suggestion wrapper stays inline */
 	:global(.suggestion-wrapper) {
 		display: inline !important;
 	}

@@ -60,67 +60,6 @@ let finToEstFormat: (sucRes: FinAsrFinished) => EditorContent = function (
 
     return result;
 };
-/* export const generatePeaks = async (fileId) => {
-    const file = await prisma.file.findUnique({
-        where: {
-            id: fileId,
-        },
-    });
-    let processFailed = false;
-    const wavPath = file.path + ".wav";
-    let peaksPath = file.path + ".json";
-    // ffmpeg - i!{ audio_file } -f sox - | sox - t sox - -c 1 - b 16 - t wav audio.wav rate - v 16k
-    const toWav = new Promise((resolve, reject) => {
-        const ffmpeg = spawn("ffmpeg", ["-i", file.path, wavPath]);
-        ffmpeg.on("exit", function (code) {
-            console.log("ffmpeg finished with " + code);
-            if (code === 1 || code == 2) {
-                processFailed = true;
-            }
-            resolve(true);
-        });
-    });
-    await toWav.catch((e) => processFailed = true);
-    if (processFailed) {
-        return false;
-    }
-    const peaksDone = new Promise((resolve, reject) => {
-        const generatePeaks = spawn("audiowaveform", [
-            "-i",
-            wavPath,
-            "-o",
-            peaksPath,
-            "--pixels-per-second",
-            "1",
-            "--bits",
-            "8",
-        ]);
-        generatePeaks.on("exit", function (code) {
-            console.log("generate peaks exited with code " + code);
-            if (code === 1 || code == 2) {
-                processFailed = true;
-            }
-            resolve(true);
-        });
-    });
-    await peaksDone.catch((e) => processFailed = true);
-    await fs.unlink(wavPath);
-    if (processFailed) {
-        return false;
-    }
-    const normalizeDone = new Promise((resolve, reject) => {
-        const normalize = spawn("python", [
-            "./scripts/normalize_peaks.py",
-            peaksPath,
-        ]);
-        normalize.on("exit", function (code) {
-            console.log("normalize exited with code " + code);
-            resolve(true);
-        });
-    });
-    await normalizeDone.catch((e) => console.log(e));
-    return true;
-}; */
 
 export const checkCompletion = async (
     fileId: string,
