@@ -2,6 +2,7 @@
 	import { run } from 'svelte/legacy';
 
 	import { onMount, onDestroy } from 'svelte';
+	import { beforeNavigate } from '$app/navigation';
 	import { getDebugJSON } from '@tiptap/core';
 	import type { Node, Schema } from 'prosemirror-model';
 	import Document from '@tiptap/extension-document';
@@ -66,6 +67,38 @@
 	let element: HTMLDivElement | undefined;
 	let editor: Readable<Editor> = $state();
 
+	// Track current values to prevent closure capture bug
+	let currentFileId = $state(fileId);
+	let currentEditor = $state(editor);
+	let hasUnsavedChanges = $state(false);
+	let debouncedSave: any = $state();
+
+	// Watch for fileId changes and recreate debounced function
+	$effect(() => {
+		if (currentFileId !== fileId) {
+			console.log('FileId changed from', currentFileId, 'to', fileId);
+			// Cancel any pending saves for the old file
+			if (debouncedSave) {
+				debouncedSave.cancel();
+				console.log('Cancelled debounced save for old fileId:', currentFileId);
+			}
+			hasUnsavedChanges = false;
+			currentFileId = fileId;
+			
+			// Create a new debounced function for the new file
+			debouncedSave = debounce(handleSaveLocal, 5000, {
+				leading: false,
+				trailing: true
+			});
+			console.log('Created new debounced save for fileId:', fileId);
+		}
+	});
+
+	// Watch for editor changes
+	$effect(() => {
+		currentEditor = editor;
+	});
+
 	const options: Intl.DateTimeFormatOptions = {
 		/* weekday: "long", */ year: '2-digit',
 		month: 'long',
@@ -74,16 +107,14 @@
 	let uploadedAtFormatted = $derived(new Date(uploadedAt).toLocaleDateString($locale, options));
 	let durationSeconds = $derived(new Date(1000 * $duration).toISOString().substr(11, 8));
 
-	const debouncedSave = debounce(handleSave, 5000, {
-		leading: false,
-		trailing: true
-	});
-
 	const date = new Date(0);
 	date.setSeconds(45); // specify value for SECONDS here
 	var timeString = date.toISOString().substring(11, 19);
 
 	onMount(() => {
+		// Add beforeunload listener for browser navigation/reload/close
+		window.addEventListener('beforeunload', handleBeforeUnload);
+
 		editor = createEditor({
 			extensions: [
 				Document,
@@ -138,7 +169,13 @@
 				prevEditorDoc = transaction.doc;
 				// console.log(speakerChanges)
 				// console.log(transaction, editor.state)
-				if (!demo) debouncedSave();
+				if (!demo && currentFileId) {
+					console.log('Transaction detected for fileId:', currentFileId);
+					hasUnsavedChanges = true;
+					if (debouncedSave) {
+						debouncedSave();
+					}
+				}
 				// console.log(editor.schema);
 			}
 		});
@@ -181,6 +218,12 @@
 
 
 	onDestroy(() => {
+		// Remove beforeunload listener
+		window.removeEventListener('beforeunload', handleBeforeUnload);
+		// Cancel any pending debounced saves to prevent race conditions
+		if (debouncedSave) {
+			debouncedSave.cancel();
+		}
 		hotkeys.unbind();
 		editorMounted.set(false);
 		editorStore.set(null);
@@ -190,16 +233,81 @@
 		window.removeEventListener("resize", updateWindowSize)
 	});
 
+	async function handleSaveLocal() {
+		// Capture values at function call time
+		const editorToSave = currentEditor;
+		const fileIdToSave = currentFileId;
+		
+		if (!editorToSave || !fileIdToSave) {
+			console.warn('Cannot save: missing editor or fileId', { editor: !!editorToSave, fileId: fileIdToSave });
+			return false;
+		}
+
+		// Double-check we're still on the same file
+		if (fileIdToSave !== fileId) {
+			console.warn('File changed during save, aborting save for:', fileIdToSave, 'current:', fileId);
+			return false;
+		}
+
+		console.log('Attempting to save fileId:', fileIdToSave);
+		const result = await handleSave();
+		if (result) {
+			hasUnsavedChanges = false;
+			console.log('Successfully saved fileId:', fileIdToSave);
+		} else {
+			console.error('Failed to save fileId:', fileIdToSave);
+		}
+		return result;
+	}
+
+	// Initialize the debounced function
+	if (!debouncedSave) {
+		debouncedSave = debounce(handleSaveLocal, 5000, {
+			leading: false,
+			trailing: true
+		});
+	}
+
+	// Save before navigation to prevent data loss
+	beforeNavigate(async () => {
+		console.log('beforeNavigate triggered', { hasUnsavedChanges, currentFileId, currentEditor: !!currentEditor, demo });
+		
+		// Always cancel any pending debounced saves to prevent race conditions
+		if (debouncedSave) {
+			debouncedSave.cancel();
+		}
+		
+		// If there are unsaved changes, save them immediately
+		if (hasUnsavedChanges && currentEditor && !demo && currentFileId) {
+			console.log('Saving before navigation for fileId:', currentFileId);
+			await handleSaveLocal(); // Execute immediately
+		}
+	});
+
+	// Handle browser navigation/reload/close
+	function handleBeforeUnload(event: BeforeUnloadEvent) {
+		if (hasUnsavedChanges && !demo) {
+			// Flush any pending debounced saves immediately
+			if (debouncedSave) {
+				debouncedSave.flush();
+			}
+			// Standard way to show "Are you sure you want to leave?" dialog
+			event.preventDefault();
+			return event.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+		}
+	}
+
 	async function handleSave() {
-		const result = await fetch(`/api/files/${fileId}`, {
+		const result = await fetch(`/api/files/${currentFileId}`, {
 			method: 'PUT',
-			body: JSON.stringify($editor.getJSON())
-		}).catch(e=> console.error("Saving file failes", fileId))
+			body: JSON.stringify($currentEditor.getJSON())
+		}).catch(e=> console.error("Saving file failed", currentFileId))
 		if (!result || !result.ok) {
 			return false;
 		}
 		return true;
 	}
+
 	let isActive = $derived((name, attrs = {}) => $editor.isActive(name, attrs));
 	let fontSize: string = $state(localStorage.getItem('fontSize'));
 	run(() => {
