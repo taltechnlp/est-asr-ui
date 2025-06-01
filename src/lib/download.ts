@@ -1,4 +1,5 @@
-import { Document, Packer, Paragraph, TextRun, SectionType } from 'docx';
+import * as docx from 'docx';
+const { Document, Packer, Paragraph, TextRun, SectionType } = docx;
 
 export const handleSave = async (editor, fileId) => {
 	const result = await fetch(`/api/files/${fileId}`, {
