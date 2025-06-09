@@ -1,3 +1,4 @@
+
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-3.0.x"]
@@ -9,22 +10,22 @@ datasource db {
 }
 
 model File {
-  id                       String    @id @db.VarChar(30)
-  state                    String    @default("UPLOADED") @db.Text()
-  text                     String?   @db.Text()
-  path                     String    @db.Text()
-  filename                 String    @db.Text()
-  language                 String    @db.Text()
+  id                       String       @id @db.VarChar(30)
+  state                    String       @default("UPLOADED") @db.Text
+  text                     String?      @db.Text
+  path                     String       @db.Text
+  filename                 String       @db.Text
+  language                 String       @db.Text
   duration                 Decimal?
   uploadedAt               DateTime?
-  mimetype                 String    @db.Text()
-  encoding                 String    @db.Text()
-  externalId               String?   @db.Text()
-  textTitle                String?   @db.Text()
-  initialTranscriptionPath String?   @db.Text()
-  initialTranscription     String?   @db.Text()
-  uploader                 String?   @db.VarChar(30)
-  User                     User?     @relation(fields: [uploader], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  mimetype                 String       @db.Text
+  encoding                 String       @db.Text
+  externalId               String?      @db.Text
+  textTitle                String?      @db.Text
+  initialTranscriptionPath String?      @db.Text
+  initialTranscription     String?      @db.Text
+  uploader                 String?      @db.VarChar(30)
+  User                     User?        @relation(fields: [uploader], references: [id], onUpdate: NoAction, onDelete: Cascade)
   workflows                NfWorkflow[]
   notify                   Boolean?
   notified                 Boolean?
@@ -36,23 +37,35 @@ enum Role {
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?  @db.Text
-  access_token       String?  @db.Text
-  expires_at         Int?
-  expires_in         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?  @db.Text
-  session_state      String?
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  expires_in        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+
   @@unique([provider, providerAccountId])
+  @@map("account")
 }
 
 model Session {
@@ -61,21 +74,34 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt    DateTime
+  token        String
+  createdAt    DateTime
+  updatedAt    DateTime
+  ipAddress    String?
+  userAgent    String?
+
+  @@unique([token])
+  @@map("session")
 }
 
 model User {
-  id               String  @id @db.VarChar(30) @default(cuid())
-  email            String  @unique(map: "default$default.User.email._UNIQUE")
+  id               String    @id @db.VarChar(30) @default(cuid())
+  email            String    @unique(map: "default$default.User.email._UNIQUE")
   name             String
   password         String?
   resetToken       String?
   resetTokenExpiry BigInt?
   files            File[]
-  role             Role    @default(USER)
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
+  role             Role      @default(USER)
+  emailVerified    DateTime?
+  image            String?
+  accounts         Account[]
+  sessions         Session[]
+  createdAt        DateTime
+  updatedAt        DateTime
+
+  @@map("user")
 }
 
 model VerificationToken {
@@ -107,42 +133,52 @@ enum NfEvent {
 }
 
 model NfWorkflow {
-  run_id  String @unique
-  event NfEvent
-  run_name String @unique
-  utc_time DateTime
-  file_id String
-  file File  @relation(fields: [file_id], references: [id], onDelete: Cascade)
-  processes NfProcess[]
+  run_id         String      @unique
+  event          NfEvent
+  run_name       String      @unique
+  utc_time       DateTime
+  file_id        String
+  file           File        @relation(fields: [file_id], references: [id], onDelete: Cascade)
+  processes      NfProcess[]
   succeededCount Int?
-  runningCount Int?
-  pendingCount Int?
-  failedCount Int?
+  runningCount   Int?
+  pendingCount   Int?
+  failedCount    Int?
   progressLength Int?
 }
 
-
 model NfProcess {
-  id String @id @default(cuid())
-  task_id Int
-  process String
-  tag String?
-  hash String
-  status NfStatus
-  exit DateTime?
-  start DateTime?
-  submit DateTime?
-  complete DateTime?
-  duration Int?
-  realtime Int?
-  cpu Float?
-  mem Float?
-  peak_rss Float?
-  peak_vmem Float?
-  rchar Float?
-  wchar Float?
-  vol_ctxt Int?
-  inv_ctxt Int?
+  id          String     @id @default(cuid())
+  task_id     Int
+  process     String
+  tag         String?
+  hash        String
+  status      NfStatus
+  exit        DateTime?
+  start       DateTime?
+  submit      DateTime?
+  complete    DateTime?
+  duration    Int?
+  realtime    Int?
+  cpu         Float?
+  mem         Float?
+  peak_rss    Float?
+  peak_vmem   Float?
+  rchar       Float?
+  wchar       Float?
+  vol_ctxt    Int?
+  inv_ctxt    Int?
   workflow_id String
-  workflow NfWorkflow    @relation(fields: [workflow_id], references: [run_id], onDelete: Cascade)
+  workflow    NfWorkflow @relation(fields: [workflow_id], references: [run_id], onDelete: Cascade)
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@map("verification")
 }

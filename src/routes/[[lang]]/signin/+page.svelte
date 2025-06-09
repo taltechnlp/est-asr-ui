@@ -28,8 +28,8 @@
 	}
 	
 	let error = $state(null);
-	let email = ""
-  	let password = ""
+	let email = $state("")
+  	let password = $state("")
 
 	const printError = (error) => {
 		if (error === 'passwordError') {

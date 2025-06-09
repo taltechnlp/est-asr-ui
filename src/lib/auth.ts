@@ -45,6 +45,7 @@ export const auth = betterAuth({
     
     trustedOrigins: [
         "http://localhost:5173", // SvelteKit dev server
+        "http://localhost:5174", // Alternative port when 5173 is busy
         "http://localhost:4173", // SvelteKit preview
         // Add your production domains here
     ],
