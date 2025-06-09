@@ -5,19 +5,10 @@
     import { page } from "$app/state"
     import { onMount } from "svelte";
     import { goto, invalidate } from '$app/navigation';
-	import { signIn } from "@auth/sveltekit/client"
+	import { authClient } from "$lib/auth-client"; // Updated to use Better Auth client
 	import type { PageProps } from './$types';
 	import Input from '$lib/components/Input.svelte';
 
-	import Facebook from "@auth/sveltekit/providers/facebook"
-	import Google from "@auth/sveltekit/providers/google"
-	import MicrosoftEntraID from "@auth/sveltekit/providers/microsoft-entra-id"
-
-	const providers = [
-		Google,
-		Facebook,
-		MicrosoftEntraID,
-	]
 	const getProviderLogo = (providerName) => {
 		switch (providerName.toLowerCase()) {
 		case "google":
@@ -31,10 +22,6 @@
 			return `<svg class="w-6 h-6" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
 			<path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669c1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
 			</svg>`
-		case "microsoft entra id":
-			return `<svg class="w-6 h-6" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-			<path fill="#f3f3f3" d="M0 0h23v23H0z"/><path fill="#f35325" d="M1 1h10v10H1z"/><path fill="#81bc06" d="M12 1h10v10H12z"/><path fill="#05a6f0" d="M1 12h10v10H1z"/><path fill="#ffba08" d="M12 12h10v10H12z"/>
-			</svg>`
 		default:
 			return ""
 		}
@@ -44,31 +31,6 @@
 	let email = ""
   	let password = ""
 
-	async function handleSubmit({detail: {email, password}}) {
-		const response = await fetch('/api/signin', {
-			method: 'POST',
-			body: JSON.stringify({email, password}),
-			headers: {
-				'Content-Type': 'application/json'
-			}
-		}).catch(e => console.error("Signin failed"));
-		if (!response) {
-			error = "Signin request failed!";
-			return;
-		}
-		if (!response.ok) {
-			error = (await response.json()).message;
-			return;
-		}
-		else {
-			const user = await response.json()
-			userState.name = user.name;
-			userState.id = user.id;
-			userState.email = user.email;
-			await invalidate("/")
-			await goto('/files', { invalidateAll: true })
-		}
-	}
 	const printError = (error) => {
 		if (error === 'passwordError') {
 			return $_('signin.passwordError');
@@ -79,53 +41,51 @@
 		}
 		else return error;
 	};
+	
 	let { data, form }: PageProps = $props();
 	let errorCode = $state("");
+	
 	async function logIn(provider) {
-		let error = false;
-		errorCode = "";
-		let res, body;
-		if (provider === "credentials") {
-			res = await signIn(provider, { redirect: false, email, password }).catch((e)=>{
-				error = true;
-				console.log("signin failed", e);
-			});
-			try {
-				body = await res.json();
-			}
-			catch (e) {
-				error = true;
-				console.log("Failed to parse signin response.");
-			};
-			// console.log(res, body)
-		} else {
-			res = await signIn(provider, { redirect: false}).catch((e)=>{
-				error = true;
-				console.log("signin failed", e);
-				// errorCode = "otherSigninError";
-			});
-			// console.log("signin result", res)
-		}
-		if (!error && body && body.url)	{
-			const searchParams = new URLSearchParams(body.url);
-			for (const p of searchParams) {
-				if (p[0] === "code") {
-					errorCode = p[1];
-					// console.log(p[1]);
+		try {
+			errorCode = "";
+			
+			if (provider === "credentials") {
+				// Use Better Auth email/password sign in
+				const result = await authClient.signIn.email({
+					email,
+					password,
+				});
+				
+				if (result.error) {
+					errorCode = result.error.message || "loginError";
+					return;
 				}
+			} else {
+				// Use Better Auth social sign in
+				await authClient.signIn.social({
+					provider: provider,
+					callbackURL: "/files"
+				});
+				return; // Social providers will redirect
 			}
-		}
-		if (!errorCode) {
+			
+			// If we get here, login was successful
 			await invalidate('data:session');
-			await invalidate('/api/files');
 			await goto('/files');
+			
+		} catch (e) {
+			console.error("Login failed:", e);
+			errorCode = "loginError";
 		}
     }
-	// Backup when returning from various auth redirects
-	onMount(async ()=> {
-		await invalidate('data:session');
-		if (data.email) await goto('/files');
-	})
+	
+	// Check if user is already logged in
+	onMount(async () => {
+		const session = await authClient.getSession();
+		if (session) {
+			await goto('/files');
+		}
+	});
 
 </script>
 

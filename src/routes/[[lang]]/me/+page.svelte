@@ -2,42 +2,41 @@
 	import { goto } from '$app/navigation';
 	import { userState } from '$lib/stores.svelte';
 	import { _ } from 'svelte-i18n';
-	import { signOut } from '@auth/sveltekit/client';
+	import { authClient } from '$lib/auth-client';
 	import github from 'svelte-awesome/icons/github';
 	import facebook from 'svelte-awesome/icons/facebook';
 	import google from 'svelte-awesome/icons/google';
 	import Icon from 'svelte-awesome/components/Icon.svelte';
-	import { signIn } from '@auth/sveltekit/client';
-	import { SignIn } from "@auth/sveltekit/components"
 	import type { PageProps } from './$types';
 	let { data }: PageProps = $props();
 
 	const handleSignOut = async () => {
 		try {
-			const response = await fetch('/api/signout', {
-				method: 'POST',
-				body: '',
-				headers: {
-					'Content-Type': 'application/json'
+			await authClient.signOut({
+				fetchOptions: {
+					onSuccess: () => {
+						userState.email = "";
+						userState.id = "";
+						userState.name = "";
+						goto('/');
+					}
 				}
 			});
-			userState.email = "";
-			userState.id = "";
-			userState.name = "";
-			// Log out of OAuth sessions
-			await signOut();
-			await goto('/');
 		} catch (error) {
-			return {
-				status: 500,
-				body: { error }
-			};
+			console.error("Sign out error:", error);
 		}
 	};
 
-	class MySignIn extends SignIn {
-		code = true;
-	}
+	const connectAccount = async (provider: string) => {
+		try {
+			await authClient.signIn.social({
+				provider: provider,
+				callbackURL: "/me"
+			});
+		} catch (error) {
+			console.error("Connect account error:", error);
+		}
+	};
 </script>
 
 <svelte:head>
@@ -78,7 +77,7 @@
 			</form>
 		{:else}
 			<div class="justify-self-end">
-				<button class="btn btn-outline btn-sm" onclick={() => signIn('facebook')}
+				<button class="btn btn-outline btn-sm" onclick={() => connectAccount('facebook')}
 					>{$_('me.connectAccount')}</button
 				>
 			</div>
@@ -91,28 +90,15 @@
 			</form>
 		{:else}
 			<div class="justify-self-end">
-				<button class="btn btn-outline btn-sm" onclick={() => signIn('google')}
+				<button class="btn btn-outline btn-sm" onclick={() => connectAccount('google')}
 					>{$_('me.connectAccount')}</button
 				>
 			</div>
 		{/if}
-<!-- 		<p><Icon data={github} scale={1.5} /> GitHub</p>
-		{#if data.accounts.github}
-			<form method="POST" action="?/remove" class="justify-self-end">
-				<input type="text" value="github" class="hidden" name="provider" />
-				<button class="btn btn-outline btn-sm btn-error">{$_('me.removeAccount')}</button>
-			</form>
-		{:else}
-			<div class="justify-self-end">
-				<button class="btn btn-outline btn-sm" on:click={() => signIn('github')}
-					>{$_('me.connectAccount')}</button
-				>
-			</div>
-		{/if} -->
 	</div>
 
 	<div class="mt-10">
-		<button class="btn btn-info" onclick={async () => await handleSignOut()}
+		<button class="btn btn-info" onclick={handleSignOut}
 			>{$_('me.logoutButton')}</button
 		>
 	</div>

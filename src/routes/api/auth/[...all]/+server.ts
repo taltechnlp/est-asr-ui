@@ -1,9 +1,10 @@
 import { auth } from "$lib/auth";
+import type { RequestHandler } from "@sveltejs/kit";
 
-export async function GET({ request }: { request: Request }) {
+export const GET: RequestHandler = async ({ request }) => {
     return auth.handler(request);
-}
+};
 
-export async function POST({ request }: { request: Request }) {
+export const POST: RequestHandler = async ({ request }) => {
     return auth.handler(request);
-} 
+}; 
