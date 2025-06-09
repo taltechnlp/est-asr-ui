@@ -19,12 +19,5 @@ declare global {
 	
 } 
 
-declare module "@auth/sveltekit" {
-	interface User {
-	  /** comment **/
-	  id: string
-	}
-}
-
 export {}
 
