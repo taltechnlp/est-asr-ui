@@ -18,7 +18,11 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
             });
         }
     } catch (error) {
-        console.log('Better Auth signout error (non-critical):', error);
+        // Only log if it's not the expected "session not found" error
+        if (!error.message?.includes('Failed to get session')) {
+            console.log('Better Auth signout error:', error);
+        }
+        // Silently ignore "Failed to get session" errors as they're expected during logout
     }
     
     // Redirect to home page
