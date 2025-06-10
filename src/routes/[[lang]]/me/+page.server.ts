@@ -20,7 +20,7 @@ export const load = (async (event) => {
            id: session.user.id 
         },
         include: {
-            Account: {
+            accounts: {
                 select: {
                     provider: true,
                 }
@@ -33,8 +33,8 @@ export const load = (async (event) => {
             user: {}
         }
     };
-    if ( user.Account ) {
-        user.Account.forEach(account => {
+    if ( user.accounts ) {
+        user.accounts.forEach(account => {
             accounts[account.provider] = true;
         });
     }
@@ -59,7 +59,7 @@ export const actions: Actions = {
                 id: session.user.id
             },
             include: {
-                Account: {
+                accounts: {
                     select: {
                         provider: true,
                         id: true
@@ -70,7 +70,7 @@ export const actions: Actions = {
         const data = await request.formData();
         const provider = data.get('provider')
         // console.log(provider)
-        const account = accounts.Account.find(x => x.provider === provider);
+        const account = accounts.accounts.find(x => x.provider === provider);
         if (account) await prisma.account.delete({
             where: {
                 id: account.id
