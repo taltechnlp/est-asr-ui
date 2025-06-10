@@ -35,10 +35,8 @@ export const load: LayoutServerLoad = async ({ request, locals, params, cookies,
 
 	const language = params.lang || cookies.get("language");
 
-	// Get session from Better Auth
-	const session = await auth.api.getSession({
-		headers: request.headers
-	});
+	// Get session using the same logic as hooks.server.ts (Better Auth + session cookie)
+	const session = await locals.auth();
 
 	if (session && session.user) {
 		return {

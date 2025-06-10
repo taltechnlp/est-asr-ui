@@ -211,7 +211,7 @@ export const getFiles = async (id) => {
             id: id
         },
         include: {
-            files: {
+            File: {
                 orderBy: {
                     uploadedAt: "desc",
                 },
@@ -229,12 +229,12 @@ export const getFiles = async (id) => {
                     path: true,
                     language: true,
                     initialTranscriptionPath: true,
-                    workflows: {
+                    NfWorkflow: {
                         take: 1, 
                         select: {
                             progressLength: true,
                             succeededCount: true,
-                            processes: {
+                            NfProcess: {
                                 select: {
                                     status: true,
                                 }
@@ -245,15 +245,15 @@ export const getFiles = async (id) => {
             },
         },
     });
-    if (user) return Promise.all(user.files.map(
+    if (user) return Promise.all(user.File.map(
         async file => {
             let progress = -1;
             if (file.state !== "READY" && file.state !== "ABORTED" && file.state !== "PROCESSING_ERROR") {
                 if (file.language === "finnish") {
                     await checkCompletion(file.id, file.state, file.externalId, file.path, file.language, file.initialTranscriptionPath, fetch);
                 }
-                if (file.workflows && file.workflows.length > 0 && file.workflows[0].processes) {
-                    progress = Math.floor(file.workflows[0].processes.length / 30 * 100);
+                if (file.NfWorkflow && file.NfWorkflow.length > 0 && file.NfWorkflow[0].NfProcess) {
+                    progress = Math.floor(file.NfWorkflow[0].NfProcess.length / 30 * 100);
                 } 
             }
             return {

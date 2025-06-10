@@ -17,6 +17,7 @@ export const auth = betterAuth({
     }),
     
     secret: AUTH_SECRET,
+    baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5173", // Dynamic base URL
     
     socialProviders: {
         facebook: {

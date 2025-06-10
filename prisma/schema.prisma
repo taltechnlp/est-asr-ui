@@ -81,7 +81,7 @@ model VerificationToken {
 model Account {
   id                    String    @id
   userId                String
-  type                  String
+  type                  String? @default("oauth")
   provider              String
   providerAccountId     String
   refresh_token         String?
@@ -125,7 +125,7 @@ model Session {
 }
 
 model User {
-  id               String    @id @db.VarChar(30)
+  id               String    @id @default(nanoid(25)) @db.VarChar(30)
   email            String    @unique(map: "default$default.User.email._UNIQUE")
   name             String
   password         String?
@@ -134,8 +134,8 @@ model User {
   role             Role      @default(USER)
   emailVerified    DateTime?
   image            String?
-  createdAt        DateTime
-  updatedAt        DateTime
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @default(now()) @updatedAt
   File             File[]
   Account          Account[]
   Session          Session[]
