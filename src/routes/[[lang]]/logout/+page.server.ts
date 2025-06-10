@@ -1,4 +1,4 @@
-import type { PageServerLoad, Actions } from './$types';
+import type { PageServerLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
 import { auth } from '$lib/auth';
 
@@ -19,12 +19,13 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
         }
     } catch (error) {
         // Only log if it's not the expected "session not found" error
-        if (!error.message?.includes('Failed to get session')) {
-            console.log('Better Auth signout error:', error);
+        if (error instanceof Error && !error.message.includes('Failed to get session')) {
+            console.log('Better Auth signout error (unexpected):', error);
         }
-        // Silently ignore "Failed to get session" errors as they're expected during logout
+        // For "Failed to get session" errors, we silently continue
+        // as this is expected when signing out with an expired/invalid session
     }
     
-    // Redirect to home page
+    // Redirect to home page after logout
     throw redirect(302, '/');
 }; 
