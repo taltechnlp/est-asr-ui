@@ -13,17 +13,22 @@
 	let password = $state('');
 	let confirmPassword = $state('');
 	let error = $state();
+	let isLoading = $state(false);
 		$effect(() => {
 			if (!form?.success && form?.email && form?.invalid) {
+				isLoading = false;
 				error = $_('signup.emailIncorrect');
 			}
 			else if (!form?.success && form?.email && form?.exists) {
+				isLoading = false;
 				error = $_('signup.userExists');
 			}
 			else if (!form?.success && form?.retry) {
+				isLoading = false;
 				error = $_('signup.retry');
 			}
 			else if (form?.success) {
+				isLoading = false;
 				error = "";
 				setTimeout(()=>{
 					goto('/signin');
@@ -49,7 +54,17 @@
 		error = $_('signup.passwordsDontMatch');
 		cancel();
 		return;
-	} 
+	}
+	
+	// Set loading state when form is submitted
+	isLoading = true;
+	error = '';
+	
+	return async ({ result, update }) => {
+		// Clear loading state when form completes
+		isLoading = false;
+		await update();
+	};
   }}> 
 	<Input label={$_('signup.email')} id="email" name="email" type="email" bind:value={email} />
 	<Input
@@ -73,7 +88,9 @@
 		type="password"
 		bind:value={confirmPassword}
 	/>
-	<Button type="submit">{$_('signup.register')}</Button>
+	<Button type="submit" loading={isLoading}>
+		{isLoading ? $_('signup.registering') : $_('signup.register')}
+	</Button>
 </form>
 {:else}
 <p class="space-y-5 max-w-xl mx-auto mt-8">	{$_('signup.success')} </p>

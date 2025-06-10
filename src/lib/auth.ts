@@ -8,6 +8,7 @@ import {
     GOOGLE_CLIENT_ID, 
     GOOGLE_CLIENT_SECRET 
 } from "$env/static/private";
+import { generateShortId } from "./utils/generateId";
 
 const prisma = new PrismaClient();
 
@@ -27,17 +28,29 @@ export const auth = betterAuth({
         }
     },
     
-    // Add callbacks to handle user data transformation
-    callbacks: {
-        user: {
-            async beforeCreate(user) {
-                // Transform emailVerified from boolean to DateTime/null
-                if (typeof user.emailVerified === 'boolean') {
-                    user.emailVerified = user.emailVerified ? new Date() : null;
-                }
-                return user;
-            }
+    // User field configuration to handle emailVerified properly
+    user: {
+        fields: {
+            emailVerified: "emailVerified"
         }
+    },
+    
+    // Database hooks to handle data transformation
+    databaseHooks: {
+        user: {
+            create: {
+                before: async (user) => {
+                    // Transform emailVerified from boolean to DateTime/null
+                    const transformedUser = { ...user } as any;
+                    if (typeof user.emailVerified === 'boolean') {
+                        transformedUser.emailVerified = user.emailVerified ? new Date() : null;
+                    }
+                    return {
+                        data: transformedUser,
+                    };
+                },
+            },
+        },
     },
     
     // Configure email verification handling
@@ -73,8 +86,15 @@ export const auth = betterAuth({
     
     trustedOrigins: [
         "http://localhost:5174", // Current dev server port
-        "http://localhost:5173", // SvelteKit dev server  
+        "http://localhost:5173", // Alternative port
         "http://localhost:4173", // SvelteKit preview
         // Add your production domains here
     ],
+    
+    // Configure ID generation to use shorter IDs
+    advanced: {
+        database: {
+            generateId: generateShortId
+        }
+    },
 }); 
