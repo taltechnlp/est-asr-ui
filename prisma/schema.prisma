@@ -9,112 +9,72 @@ datasource db {
 }
 
 model File {
-  id                       String       @id @db.VarChar(30)
-  state                    String       @default("UPLOADED")
-  text                     String?
-  path                     String
-  filename                 String
+  id                       String    @id @db.VarChar(30)
+  state                    String    @default("UPLOADED") @db.Text()
+  text                     String?   @db.Text()
+  path                     String    @db.Text()
+  filename                 String    @db.Text()
+  language                 String    @db.Text()
   duration                 Decimal?
   uploadedAt               DateTime?
-  mimetype                 String
-  encoding                 String
-  externalId               String?
-  textTitle                String?
-  initialTranscriptionPath String?
-  initialTranscription     String?
-  uploader                 String?      @db.VarChar(30)
-  language                 String
-  notified                 Boolean?
+  mimetype                 String    @db.Text()
+  encoding                 String    @db.Text()
+  externalId               String?   @db.Text()
+  textTitle                String?   @db.Text()
+  initialTranscriptionPath String?   @db.Text()
+  initialTranscription     String?   @db.Text()
+  uploader                 String?   @db.VarChar(30)
+  User                     User?     @relation(fields: [uploader], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  workflows                NfWorkflow[]
   notify                   Boolean?
-  User                     User?        @relation(fields: [uploader], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  NfWorkflow               NfWorkflow[]
+  notified                 Boolean?
 }
 
-model NfProcess {
-  id          String     @id
-  task_id     Int
-  process     String
-  tag         String?
-  hash        String
-  status      NfStatus
-  submit      DateTime?
-  cpu         Float?
-  mem         Float?
-  peak_rss    Float?
-  peak_vmem   Float?
-  rchar       Float?
-  wchar       Float?
-  vol_ctxt    Int?
-  inv_ctxt    Int?
-  workflow_id String
-  start       DateTime?
-  exit        DateTime?
-  duration    Int?
-  realtime    Int?
-  complete    DateTime?
-  NfWorkflow  NfWorkflow @relation(fields: [workflow_id], references: [run_id], onDelete: Cascade)
+enum Role {
+  USER
+  ADMIN
 }
 
-model NfWorkflow {
-  run_id         String      @unique
-  run_name       String      @unique
-  file_id        String
-  event          NfEvent
-  utc_time       DateTime
-  failedCount    Int?
-  pendingCount   Int?
-  progressLength Int?
-  runningCount   Int?
-  succeededCount Int?
-  NfProcess      NfProcess[]
-  File           File        @relation(fields: [file_id], references: [id], onDelete: Cascade)
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
-
+// Better Auth Account model
 model Account {
   id                    String    @id
   userId                String
-  scope                 String?
+  type                  String    @default("oauth")
+  provider              String
+  providerAccountId     String
   accessToken           String?
   refreshToken          String?
   idToken               String?
   accessTokenExpiresAt  DateTime?
   refreshTokenExpiresAt DateTime?
+  scope                 String?
   password              String?
-  createdAt             DateTime
-  updatedAt             DateTime
-  provider              String
-  providerAccountId     String
-  type                  String    @default("oauth")
-  User                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@map("account")
 }
 
+// Better Auth Session model
 model Session {
   id        String   @id
   userId    String
   token     String   @unique
   expiresAt DateTime
-  createdAt DateTime
-  updatedAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   ipAddress String?
   userAgent String?
-  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("session")
 }
 
+// Updated User model for Better Auth
 model User {
-  id               String    @id @default(nanoid(25)) @db.VarChar(30)
+  id               String    @id @db.VarChar(30)
   email            String    @unique(map: "default$default.User.email._UNIQUE")
   name             String
   password         String?
@@ -124,32 +84,24 @@ model User {
   emailVerified    DateTime?
   image            String?
   createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @default(now()) @updatedAt
-  File             File[]
-  Account          Account[]
-  Session          Session[]
+  updatedAt        DateTime  @updatedAt
+  files            File[]
+  accounts         Account[]
+  sessions         Session[]
 
   @@map("user")
 }
 
+// Better Auth Verification model
 model Verification {
   id         String    @id
   identifier String
   value      String
   expiresAt  DateTime
-  createdAt  DateTime?
-  updatedAt  DateTime?
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
 
   @@map("verification")
-}
-
-enum NfEvent {
-  started
-  process_submitted
-  process_started
-  process_completed
-  error
-  completed
 }
 
 enum NfStatus {
@@ -163,7 +115,51 @@ enum NfStatus {
   ABORTED
 }
 
-enum Role {
-  USER
-  ADMIN
+enum NfEvent {
+  started
+  process_submitted
+  process_started
+  process_completed
+  error
+  completed
+}
+
+model NfWorkflow {
+  run_id         String      @unique
+  event          NfEvent
+  run_name       String      @unique
+  utc_time       DateTime
+  file_id        String
+  file           File        @relation(fields: [file_id], references: [id], onDelete: Cascade)
+  processes      NfProcess[]
+  succeededCount Int?
+  runningCount   Int?
+  pendingCount   Int?
+  failedCount    Int?
+  progressLength Int?
+}
+
+model NfProcess {
+  id          String     @id @default(cuid())
+  task_id     Int
+  process     String
+  tag         String?
+  hash        String
+  status      NfStatus
+  exit        DateTime?
+  start       DateTime?
+  submit      DateTime?
+  complete    DateTime?
+  duration    Int?
+  realtime    Int?
+  cpu         Float?
+  mem         Float?
+  peak_rss    Float?
+  peak_vmem   Float?
+  rchar       Float?
+  wchar       Float?
+  vol_ctxt    Int?
+  inv_ctxt    Int?
+  workflow_id String
+  workflow    NfWorkflow @relation(fields: [workflow_id], references: [run_id], onDelete: Cascade)
 }
