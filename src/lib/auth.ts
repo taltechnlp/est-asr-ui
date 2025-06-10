@@ -27,6 +27,25 @@ export const auth = betterAuth({
         }
     },
     
+    // Add callbacks to handle user data transformation
+    callbacks: {
+        user: {
+            async beforeCreate(user) {
+                // Transform emailVerified from boolean to DateTime/null
+                if (typeof user.emailVerified === 'boolean') {
+                    user.emailVerified = user.emailVerified ? new Date() : null;
+                }
+                return user;
+            }
+        }
+    },
+    
+    // Configure email verification handling
+    emailVerification: {
+        sendOnSignUp: false, // Don't send verification emails automatically
+        autoSignInAfterVerification: true,
+    },
+    
     socialProviders: {
         facebook: {
             clientId: FACEBOOK_CLIENT_ID,
