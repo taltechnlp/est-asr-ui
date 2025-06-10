@@ -81,19 +81,7 @@ model VerificationToken {
 model Account {
   id                    String    @id
   userId                String
-  type                  String? @default("oauth")
-  provider              String
-  providerAccountId     String
-  refresh_token         String?
-  access_token          String?
-  expires_at            Int?
-  expires_in            Int?
-  token_type            String?
   scope                 String?
-  id_token              String?
-  session_state         String?
-  accountId             String
-  providerId            String
   accessToken           String?
   refreshToken          String?
   idToken               String?
@@ -102,6 +90,9 @@ model Account {
   password              String?
   createdAt             DateTime
   updatedAt             DateTime
+  provider              String
+  providerAccountId     String
+  type                  String    @default("oauth")
   User                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
@@ -109,17 +100,15 @@ model Account {
 }
 
 model Session {
-  id           String   @id
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  expiresAt    DateTime
-  token        String   @unique
-  createdAt    DateTime
-  updatedAt    DateTime
-  ipAddress    String?
-  userAgent    String?
-  User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("session")
 }
