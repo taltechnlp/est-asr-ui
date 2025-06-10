@@ -17,15 +17,7 @@ export const auth = betterAuth({
     }),
     
     secret: AUTH_SECRET,
-    baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5173", // Dynamic base URL
-    
-    // Configure field mappings for account model  
-    account: {
-        fields: {
-            accountId: "providerAccountId", // Map Better Auth's accountId to our providerAccountId
-            providerId: "provider",         // Map Better Auth's providerId to our provider
-        }
-    },
+    baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5173",
     
     socialProviders: {
         facebook: {
