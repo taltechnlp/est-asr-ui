@@ -2,22 +2,14 @@
 	import { _ } from 'svelte-i18n';
 	import { userState } from '$lib/stores.svelte';
 	// import github from 'svelte-awesome/icons/github';
-    import { page } from "$app/state"
+    import { page } from "$app/stores";
     import { onMount } from "svelte";
-    import { goto, invalidate } from '$app/navigation';
-	import { signIn } from "@auth/sveltekit/client"
+    import { goto, invalidate, invalidateAll } from '$app/navigation';
+	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
 	import Input from '$lib/components/Input.svelte';
+	import Button from '$lib/components/Button.svelte';
 
-	import Facebook from "@auth/sveltekit/providers/facebook"
-	import Google from "@auth/sveltekit/providers/google"
-	import MicrosoftEntraID from "@auth/sveltekit/providers/microsoft-entra-id"
-
-	const providers = [
-		Google,
-		Facebook,
-		MicrosoftEntraID,
-	]
 	const getProviderLogo = (providerName) => {
 		switch (providerName.toLowerCase()) {
 		case "google":
@@ -31,10 +23,6 @@
 			return `<svg class="w-6 h-6" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
 			<path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669c1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
 			</svg>`
-		case "microsoft entra id":
-			return `<svg class="w-6 h-6" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-			<path fill="#f3f3f3" d="M0 0h23v23H0z"/><path fill="#f35325" d="M1 1h10v10H1z"/><path fill="#81bc06" d="M12 1h10v10H12z"/><path fill="#05a6f0" d="M1 12h10v10H1z"/><path fill="#ffba08" d="M12 12h10v10H12z"/>
-			</svg>`
 		default:
 			return ""
 		}
@@ -44,88 +32,63 @@
 	let email = $state("")
   	let password = $state("")
 
-	async function handleSubmit({detail: {email, password}}) {
-		const response = await fetch('/api/signin', {
-			method: 'POST',
-			body: JSON.stringify({email, password}),
-			headers: {
-				'Content-Type': 'application/json'
-			}
-		}).catch(e => console.error("Signin failed"));
-		if (!response) {
-			error = "Signin request failed!";
-			return;
+	const getErrorMessage = (error) => {
+		// Handle URL error parameters (from OAuth flows)
+		if (typeof error === 'string') {
+			// Better Auth / OAuth errors (from URL parameters)
+			if (error === 'AccessDenied') return $_('auth.AccessDenied');
+			if (error === 'AccountNotLinked') return $_('auth.AccountNotLinked');
+			if (error === 'CallbackRouteError') return $_('auth.CallbackRouteError');
+			if (error === 'OAuthAccountNotLinked') return $_('auth.AccountNotLinked');
+			
+			// Server form errors
+			if (error === 'Invalid email or password') return $_('signin.invalidCredentials');
+			if (error === 'Email and password are required') return $_('signin.missingCredentials');
+			if (error === 'An error occurred during login') return $_('signin.serverError');
+			
+			// Legacy error codes (if any still exist)
+			if (error === 'passwordError') return $_('signin.passwordError');
+			if (error === 'emailError') return $_('signin.emailError');
+			if (error === 'noPasswordSetError') return $_('signin.noPasswordSet');
+			if (error === 'loginError') return $_('signin.loginError');
+			
+			// Default for unknown errors
+			return $_('auth.otherError');
 		}
-		if (!response.ok) {
-			error = (await response.json()).message;
-			return;
-		}
-		else {
-			const user = await response.json()
-			userState.name = user.name;
-			userState.id = user.id;
-			userState.email = user.email;
-			await invalidate("/")
-			await goto('/files', { invalidateAll: true })
-		}
-	}
-	const printError = (error) => {
-		if (error === 'passwordError') {
-			return $_('signin.passwordError');
-		} else if (error === 'emailError') {
-			return $_('signin.emailError')
-		} else if (error === 'noPasswordSetError') {
-			return $_('signin.noPasswordSet')
-		}
-		else return error;
+		
+		return null;
 	};
+	
 	let { data, form }: PageProps = $props();
 	let errorCode = $state("");
-	async function logIn(provider) {
-		let error = false;
-		errorCode = "";
-		let res, body;
-		if (provider === "credentials") {
-			res = await signIn(provider, { redirect: false, email, password }).catch((e)=>{
-				error = true;
-				console.log("signin failed", e);
-			});
-			try {
-				body = await res.json();
-			}
-			catch (e) {
-				error = true;
-				console.log("Failed to parse signin response.");
-			};
-			// console.log(res, body)
-		} else {
-			res = await signIn(provider, { redirect: false}).catch((e)=>{
-				error = true;
-				console.log("signin failed", e);
-				// errorCode = "otherSigninError";
-			});
-			// console.log("signin result", res)
+	
+	// Handle both form errors and URL error parameters
+	$effect(() => {
+		// Check for form errors first
+		if (form?.error) {
+			errorCode = form.error;
 		}
-		if (!error && body && body.url)	{
-			const searchParams = new URLSearchParams(body.url);
-			for (const p of searchParams) {
-				if (p[0] === "code") {
-					errorCode = p[1];
-					// console.log(p[1]);
-				}
-			}
+		// Check for URL error parameters (from OAuth flows)
+		else if ($page?.url?.searchParams?.get('error')) {
+			errorCode = $page.url.searchParams.get('error');
 		}
-		if (!errorCode) {
-			await invalidate('data:session');
-			await invalidate('/api/files');
-			await goto('/files');
+		else {
+			errorCode = "";
+		}
+	});
+	
+	async function logInSocial(provider) {
+		try {
+			// For social login, we'll still use Better Auth
+			const { authClient } = await import("$lib/auth-client");
+			await authClient.signIn.social({
+				provider: provider,
+				callbackURL: "/files"
+			});
+		} catch (e) {
+			errorCode = "loginError";
 		}
     }
-	// Backup when returning from various auth redirects
-	onMount(async ()=> {
-		await invalidate('data:session');
-		if (data.email) await goto('/files');
-	})
 
 </script>
 
@@ -138,48 +101,53 @@
 	<a href="signup" class="tab tab-bordered tab-lg">{$_('signin.register')}</a>
 </div>
 {#if errorCode}
-<p class="mt-3 text-red-500 text-center font-semibold">{printError(errorCode)}</p>
+<p class="mt-3 text-red-500 text-center font-semibold">{getErrorMessage(errorCode)}</p>
 {/if}
 
-<div 
-	class="w-full"
-	>
-	<div class="space-y-5 max-w-xl mx-auto mt-8">
-		<Input
-			label={$_('signin.email')}
-			id="email"
-			name="email"
-			type="email"
-			bind:value={email}
-			required
-		/>
-		<Input
-			label={$_('signin.password')}
-			id="password"
-			name="password"
-			type="password"
-			bind:value={password}
-			required
-		/>
-		<div class="flex place-content-between w-96">
-			<button type="submit" onclick={() => logIn("credentials")} class="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-				{$_('signin.login')}
-			</button>
-			<a href="password-reset">{$_('signin.forgotPassword')}</a>
-		</div>
+<form method="POST" class="space-y-5 max-w-xl mx-auto mt-8" use:enhance={() => {
+    return async ({ result }) => {
+        if (result.type === 'failure') {
+            errorCode = String(result.data?.error ?? 'An error occurred');
+        } else if (result.type === 'success') {
+            // Invalidate all load functions to refetch session data
+            await invalidateAll();
+            // Then navigate to the files page
+            await goto('/files');
+        }
+    };
+}}>
+	<Input
+		label={$_('signin.email')}
+		id="email"
+		name="email"
+		type="email"
+		bind:value={email}
+		required
+	/>
+	<Input
+		label={$_('signin.password')}
+		id="password"
+		name="password"
+		type="password"
+		bind:value={password}
+		required
+	/>
+	<div class="flex place-content-between w-96">
+		<Button type="submit">{$_('signin.login')}</Button>
+		<a href="password-reset">{$_('signin.forgotPassword')}</a>
 	</div>
-</div>
+</form>
 
 <div class="flex justify-center">
 	<div class="max-w-xl mt-7 gap-2">
-		<p class="mb-1">Või kasuta sisenemiseks:</p>		
-			<button class="btn btn-outline gap-2" onclick={() => logIn("facebook")}>
+		<p class="mb-1">{$_('signin.orUseProvider')}</p>		
+			<button class="btn btn-outline gap-2" onclick={() => logInSocial("facebook")}>
 				<div class="flex items-center justify-center pr-2">
 					{@html getProviderLogo("facebook") || ""}
 				</div>
 				Facebook
 			</button>
-			<button class="btn btn-outline gap-2" onclick={() => logIn("google")}>
+			<button class="btn btn-outline gap-2" onclick={() => logInSocial("google")}>
 				<div class="flex items-center justify-center pr-2">
 					{@html getProviderLogo("google") || ""}
 				</div>
