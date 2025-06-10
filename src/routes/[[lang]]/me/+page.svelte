@@ -12,22 +12,19 @@
 
 	const handleSignOut = async () => {
 		try {
-			await authClient.signOut({
-				fetchOptions: {
-					onSuccess: () => {
-						userState.email = "";
-						userState.id = "";
-						userState.name = "";
-						goto('/');
-					}
-				}
-			});
+			// Clear user state
+			userState.email = "";
+			userState.id = "";
+			userState.name = "";
+			
+			// Redirect to logout route which will handle session cleanup
+			goto('/logout');
 		} catch (error) {
 			console.error("Sign out error:", error);
 		}
 	};
 
-	const connectAccount = async (provider: string) => {
+	const connectAccount = async (provider: "facebook" | "google") => {
 		try {
 			await authClient.signIn.social({
 				provider: provider,

@@ -38,7 +38,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 					httpOnly: true,
 					sameSite: 'strict',
 					secure: process.env.NODE_ENV === 'production',
-					maxAge: 1000 * 60 * 60 * 24 * 365 // one year
+					maxAge: 60 * 60 * 24 * 7 // 7 days
 				})
 			}
 		}

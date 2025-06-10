@@ -5,9 +5,10 @@
     import { page } from "$app/state"
     import { onMount } from "svelte";
     import { goto, invalidate } from '$app/navigation';
-	import { authClient } from "$lib/auth-client"; // Updated to use Better Auth client
+	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
 	import Input from '$lib/components/Input.svelte';
+	import Button from '$lib/components/Button.svelte';
 
 	const getProviderLogo = (providerName) => {
 		switch (providerName.toLowerCase()) {
@@ -45,47 +46,27 @@
 	let { data, form }: PageProps = $props();
 	let errorCode = $state("");
 	
-	async function logIn(provider) {
+	// Handle form results
+	$effect(() => {
+		if (form?.error) {
+			errorCode = form.error;
+		}
+		// Note: Success case will be handled by server redirect, so no need for client-side redirect
+	});
+	
+	async function logInSocial(provider) {
 		try {
-			errorCode = "";
-			
-			if (provider === "credentials") {
-				// Use Better Auth email/password sign in
-				const result = await authClient.signIn.email({
-					email,
-					password,
-				});
-				
-				if (result.error) {
-					errorCode = result.error.message || "loginError";
-					return;
-				}
-			} else {
-				// Use Better Auth social sign in
-				await authClient.signIn.social({
-					provider: provider,
-					callbackURL: "/files"
-				});
-				return; // Social providers will redirect
-			}
-			
-			// If we get here, login was successful
-			await invalidate('data:session');
-			await goto('/files');
-			
+			// For social login, we'll still use Better Auth
+			const { authClient } = await import("$lib/auth-client");
+			await authClient.signIn.social({
+				provider: provider,
+				callbackURL: "/files"
+			});
 		} catch (e) {
-			console.error("Login failed:", e);
+			console.error("Social login failed:", e);
 			errorCode = "loginError";
 		}
     }
-	
-	// Check if user is already logged in
-	onMount(async () => {
-		const session = await authClient.getSession();
-		if (session) {
-			await goto('/files');
-		}
-	});
 
 </script>
 
@@ -101,45 +82,39 @@
 <p class="mt-3 text-red-500 text-center font-semibold">{printError(errorCode)}</p>
 {/if}
 
-<div 
-	class="w-full"
-	>
-	<div class="space-y-5 max-w-xl mx-auto mt-8">
-		<Input
-			label={$_('signin.email')}
-			id="email"
-			name="email"
-			type="email"
-			bind:value={email}
-			required
-		/>
-		<Input
-			label={$_('signin.password')}
-			id="password"
-			name="password"
-			type="password"
-			bind:value={password}
-			required
-		/>
-		<div class="flex place-content-between w-96">
-			<button type="submit" onclick={() => logIn("credentials")} class="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-				{$_('signin.login')}
-			</button>
-			<a href="password-reset">{$_('signin.forgotPassword')}</a>
-		</div>
+<form method="POST" class="space-y-5 max-w-xl mx-auto mt-8" use:enhance>
+	<Input
+		label={$_('signin.email')}
+		id="email"
+		name="email"
+		type="email"
+		bind:value={email}
+		required
+	/>
+	<Input
+		label={$_('signin.password')}
+		id="password"
+		name="password"
+		type="password"
+		bind:value={password}
+		required
+	/>
+	<div class="flex place-content-between w-96">
+		<Button type="submit">{$_('signin.login')}</Button>
+		<a href="password-reset">{$_('signin.forgotPassword')}</a>
 	</div>
-</div>
+</form>
 
 <div class="flex justify-center">
 	<div class="max-w-xl mt-7 gap-2">
 		<p class="mb-1">Või kasuta sisenemiseks:</p>		
-			<button class="btn btn-outline gap-2" onclick={() => logIn("facebook")}>
+			<button class="btn btn-outline gap-2" onclick={() => logInSocial("facebook")}>
 				<div class="flex items-center justify-center pr-2">
 					{@html getProviderLogo("facebook") || ""}
 				</div>
 				Facebook
 			</button>
-			<button class="btn btn-outline gap-2" onclick={() => logIn("google")}>
+			<button class="btn btn-outline gap-2" onclick={() => logInSocial("google")}>
 				<div class="flex items-center justify-center pr-2">
 					{@html getProviderLogo("google") || ""}
 				</div>
