@@ -17,7 +17,15 @@ export const auth = betterAuth({
     }),
     
     secret: AUTH_SECRET,
-    baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5173",
+    baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5174",
+    
+    // Field mappings for account model - Better Auth expects different field names
+    account: {
+        fields: {
+            accountId: "providerAccountId", // Map Better Auth's accountId to our providerAccountId
+            providerId: "provider",         // Map Better Auth's providerId to our provider
+        }
+    },
     
     socialProviders: {
         facebook: {
@@ -45,8 +53,8 @@ export const auth = betterAuth({
     // },
     
     trustedOrigins: [
-        "http://localhost:5173", // SvelteKit dev server
-        "http://localhost:5174", // Alternative port when 5173 is busy
+        "http://localhost:5174", // Current dev server port
+        "http://localhost:5173", // SvelteKit dev server  
         "http://localhost:4173", // SvelteKit preview
         // Add your production domains here
     ],
