@@ -2,9 +2,9 @@
 	import { _ } from 'svelte-i18n';
 	import { userState } from '$lib/stores.svelte';
 	// import github from 'svelte-awesome/icons/github';
-    import { page } from "$app/state"
+    import { page } from "$app/stores";
     import { onMount } from "svelte";
-    import { goto, invalidate } from '$app/navigation';
+    import { goto, invalidate, invalidateAll } from '$app/navigation';
 	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
 	import Input from '$lib/components/Input.svelte';
@@ -32,26 +32,49 @@
 	let email = $state("")
   	let password = $state("")
 
-	const printError = (error) => {
-		if (error === 'passwordError') {
-			return $_('signin.passwordError');
-		} else if (error === 'emailError') {
-			return $_('signin.emailError')
-		} else if (error === 'noPasswordSetError') {
-			return $_('signin.noPasswordSet')
+	const getErrorMessage = (error) => {
+		// Handle URL error parameters (from OAuth flows)
+		if (typeof error === 'string') {
+			// Better Auth / OAuth errors (from URL parameters)
+			if (error === 'AccessDenied') return $_('auth.AccessDenied');
+			if (error === 'AccountNotLinked') return $_('auth.AccountNotLinked');
+			if (error === 'CallbackRouteError') return $_('auth.CallbackRouteError');
+			if (error === 'OAuthAccountNotLinked') return $_('auth.AccountNotLinked');
+			
+			// Server form errors
+			if (error === 'Invalid email or password') return $_('signin.invalidCredentials');
+			if (error === 'Email and password are required') return $_('signin.missingCredentials');
+			if (error === 'An error occurred during login') return $_('signin.serverError');
+			
+			// Legacy error codes (if any still exist)
+			if (error === 'passwordError') return $_('signin.passwordError');
+			if (error === 'emailError') return $_('signin.emailError');
+			if (error === 'noPasswordSetError') return $_('signin.noPasswordSet');
+			if (error === 'loginError') return $_('signin.loginError');
+			
+			// Default for unknown errors
+			return $_('auth.otherError');
 		}
-		else return error;
+		
+		return null;
 	};
 	
 	let { data, form }: PageProps = $props();
 	let errorCode = $state("");
 	
-	// Handle form results
+	// Handle both form errors and URL error parameters
 	$effect(() => {
+		// Check for form errors first
 		if (form?.error) {
 			errorCode = form.error;
 		}
-		// Note: Success case will be handled by server redirect, so no need for client-side redirect
+		// Check for URL error parameters (from OAuth flows)
+		else if ($page?.url?.searchParams?.get('error')) {
+			errorCode = $page.url.searchParams.get('error');
+		}
+		else {
+			errorCode = "";
+		}
 	});
 	
 	async function logInSocial(provider) {
@@ -63,7 +86,6 @@
 				callbackURL: "/files"
 			});
 		} catch (e) {
-			console.error("Social login failed:", e);
 			errorCode = "loginError";
 		}
     }
@@ -79,10 +101,21 @@
 	<a href="signup" class="tab tab-bordered tab-lg">{$_('signin.register')}</a>
 </div>
 {#if errorCode}
-<p class="mt-3 text-red-500 text-center font-semibold">{printError(errorCode)}</p>
+<p class="mt-3 text-red-500 text-center font-semibold">{getErrorMessage(errorCode)}</p>
 {/if}
 
-<form method="POST" class="space-y-5 max-w-xl mx-auto mt-8" use:enhance>
+<form method="POST" class="space-y-5 max-w-xl mx-auto mt-8" use:enhance={() => {
+    return async ({ result }) => {
+        if (result.type === 'failure') {
+            errorCode = String(result.data?.error ?? 'An error occurred');
+        } else if (result.type === 'success') {
+            // Invalidate all load functions to refetch session data
+            await invalidateAll();
+            // Then navigate to the files page
+            await goto('/files');
+        }
+    };
+}}>
 	<Input
 		label={$_('signin.email')}
 		id="email"
@@ -107,7 +140,7 @@
 
 <div class="flex justify-center">
 	<div class="max-w-xl mt-7 gap-2">
-		<p class="mb-1">Või kasuta sisenemiseks:</p>		
+		<p class="mb-1">{$_('signin.orUseProvider')}</p>		
 			<button class="btn btn-outline gap-2" onclick={() => logInSocial("facebook")}>
 				<div class="flex items-center justify-center pr-2">
 					{@html getProviderLogo("facebook") || ""}

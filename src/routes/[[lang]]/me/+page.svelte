@@ -95,8 +95,8 @@
 	</div>
 
 	<div class="mt-10">
-		<button class="btn btn-info" onclick={handleSignOut}
-			>{$_('me.logoutButton')}</button
-		>
+		<form method="POST" action="?/logout">
+			<button class="btn btn-info" type="submit">{$_('me.logoutButton')}</button>
+		</form>
 	</div>
 </div>

@@ -57,11 +57,17 @@
         "password": "Parool",
         "email": "E-posti aadress",
         "forgotPassword": "Unustasid parooli?",
-        "noPasswordSet": "Parooli pole veel seatud"
+        "noPasswordSet": "Parooli pole veel seatud",
+        "orUseProvider": "Või kasuta sisenemiseks:",
+        "invalidCredentials": "Vale e-posti aadress või parool.",
+        "loginError": "Sisselogimise viga. Palun proovi uuesti.",
+        "missingCredentials": "E-posti aadress ja parool on nõutud.",
+        "serverError": "Sisselogimise ajal tekkis viga."
     },
     "signup": {
         "header": "Registreeru | tekstiks.ee",
         "register": "Registreeru",
+        "registering": "Registreerib...",
         "name": "Nimi",
         "password": "Parool",
         "passwordConfirm": "Korda parooli",

@@ -65,24 +65,23 @@ export const actions: Actions = {
       });
       
       console.log('[SIGNIN] Session created, user authenticated successfully');
+
+      // On success, just return a success status. The client will handle the redirect.
+      return { success: true };
+
     } catch (error) {
       console.error('[SIGNIN] Login error:', error);
       return fail(500, {
         error: 'An error occurred during login'
       });
     }
-    
-    // Redirect to files page after successful login (outside try-catch)
-    redirect(302, '/files');
   }
 };
 
 export const load: PageServerLoad = async (event) => {
   event.depends('data:session');
-  let session = await event.locals.auth();
-  if (session && session.user) return {
-    name: session.user.name,
-    email: session.user.email,
-  };
-  else return null;
+  const session = await event.locals.auth();
+  if (session?.user) {
+    redirect(302, '/files');
+  }
 };
