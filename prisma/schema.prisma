@@ -1,4 +1,3 @@
-
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-3.0.x"]
@@ -11,48 +10,88 @@ datasource db {
 
 model File {
   id                       String       @id @db.VarChar(30)
-  state                    String       @default("UPLOADED") @db.Text
-  text                     String?      @db.Text
-  path                     String       @db.Text
-  filename                 String       @db.Text
-  language                 String       @db.Text
+  state                    String       @default("UPLOADED")
+  text                     String?
+  path                     String
+  filename                 String
   duration                 Decimal?
   uploadedAt               DateTime?
-  mimetype                 String       @db.Text
-  encoding                 String       @db.Text
-  externalId               String?      @db.Text
-  textTitle                String?      @db.Text
-  initialTranscriptionPath String?      @db.Text
-  initialTranscription     String?      @db.Text
+  mimetype                 String
+  encoding                 String
+  externalId               String?
+  textTitle                String?
+  initialTranscriptionPath String?
+  initialTranscription     String?
   uploader                 String?      @db.VarChar(30)
-  User                     User?        @relation(fields: [uploader], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  workflows                NfWorkflow[]
-  notify                   Boolean?
+  language                 String
   notified                 Boolean?
+  notify                   Boolean?
+  User                     User?        @relation(fields: [uploader], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  NfWorkflow               NfWorkflow[]
 }
 
-enum Role {
-  USER
-  ADMIN
+model NfProcess {
+  id          String     @id
+  task_id     Int
+  process     String
+  tag         String?
+  hash        String
+  status      NfStatus
+  submit      DateTime?
+  cpu         Float?
+  mem         Float?
+  peak_rss    Float?
+  peak_vmem   Float?
+  rchar       Float?
+  wchar       Float?
+  vol_ctxt    Int?
+  inv_ctxt    Int?
+  workflow_id String
+  start       DateTime?
+  exit        DateTime?
+  duration    Int?
+  realtime    Int?
+  complete    DateTime?
+  NfWorkflow  NfWorkflow @relation(fields: [workflow_id], references: [run_id], onDelete: Cascade)
+}
+
+model NfWorkflow {
+  run_id         String      @unique
+  run_name       String      @unique
+  file_id        String
+  event          NfEvent
+  utc_time       DateTime
+  failedCount    Int?
+  pendingCount   Int?
+  progressLength Int?
+  runningCount   Int?
+  succeededCount Int?
+  NfProcess      NfProcess[]
+  File           File        @relation(fields: [file_id], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
 
 model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  expires_in        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  id                    String    @id
+  userId                String
+  type                  String
+  provider              String
+  providerAccountId     String
+  refresh_token         String?
+  access_token          String?
+  expires_at            Int?
+  expires_in            Int?
+  token_type            String?
+  scope                 String?
+  id_token              String?
+  session_state         String?
   accountId             String
   providerId            String
   accessToken           String?
@@ -63,53 +102,65 @@ model Account {
   password              String?
   createdAt             DateTime
   updatedAt             DateTime
+  User                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@map("account")
 }
 
 model Session {
-  id           String   @id @default(cuid())
+  id           String   @id
   sessionToken String   @unique
   userId       String
   expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt    DateTime
-  token        String
+  token        String   @unique
   createdAt    DateTime
   updatedAt    DateTime
   ipAddress    String?
   userAgent    String?
+  User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([token])
   @@map("session")
 }
 
 model User {
-  id               String    @id @db.VarChar(30) @default(cuid())
+  id               String    @id @db.VarChar(30)
   email            String    @unique(map: "default$default.User.email._UNIQUE")
   name             String
   password         String?
   resetToken       String?
   resetTokenExpiry BigInt?
-  files            File[]
   role             Role      @default(USER)
   emailVerified    DateTime?
   image            String?
-  accounts         Account[]
-  sessions         Session[]
   createdAt        DateTime
   updatedAt        DateTime
+  File             File[]
+  Account          Account[]
+  Session          Session[]
 
   @@map("user")
 }
 
-model VerificationToken {
+model Verification {
+  id         String    @id
   identifier String
-  token      String   @unique
-  expires    DateTime
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
 
-  @@unique([identifier, token])
+  @@map("verification")
+}
+
+enum NfEvent {
+  started
+  process_submitted
+  process_started
+  process_completed
+  error
+  completed
 }
 
 enum NfStatus {
@@ -123,62 +174,7 @@ enum NfStatus {
   ABORTED
 }
 
-enum NfEvent {
-  started
-  process_submitted
-  process_started
-  process_completed
-  error
-  completed
-}
-
-model NfWorkflow {
-  run_id         String      @unique
-  event          NfEvent
-  run_name       String      @unique
-  utc_time       DateTime
-  file_id        String
-  file           File        @relation(fields: [file_id], references: [id], onDelete: Cascade)
-  processes      NfProcess[]
-  succeededCount Int?
-  runningCount   Int?
-  pendingCount   Int?
-  failedCount    Int?
-  progressLength Int?
-}
-
-model NfProcess {
-  id          String     @id @default(cuid())
-  task_id     Int
-  process     String
-  tag         String?
-  hash        String
-  status      NfStatus
-  exit        DateTime?
-  start       DateTime?
-  submit      DateTime?
-  complete    DateTime?
-  duration    Int?
-  realtime    Int?
-  cpu         Float?
-  mem         Float?
-  peak_rss    Float?
-  peak_vmem   Float?
-  rchar       Float?
-  wchar       Float?
-  vol_ctxt    Int?
-  inv_ctxt    Int?
-  workflow_id String
-  workflow    NfWorkflow @relation(fields: [workflow_id], references: [run_id], onDelete: Cascade)
-}
-
-model Verification {
-  id         String    @id
-  identifier String
-  value      String
-  expiresAt  DateTime
-  createdAt  DateTime?
-  updatedAt  DateTime?
-
-  @@map("verification")
+enum Role {
+  USER
+  ADMIN
 }

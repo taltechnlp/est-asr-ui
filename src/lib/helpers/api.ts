@@ -206,7 +206,7 @@ export const checkCompletion = async (
 };
 
 export const getFiles = async (id) => {
-    const user = await prisma.user.findUnique({
+    		const user = await prisma.user.findUnique({
         where: {
             id: id
         },
