@@ -48,6 +48,13 @@
 		type DiffCommand,
 		type DiffSuggestion 
 	} from '$lib/components/editor/api/diffCommands';
+	import { 
+		SegmentExtractor, 
+		SegmentAPIClient, 
+		ExtractionStrategy,
+		type TextSegment,
+		type SegmentRequest
+	} from '$lib/components/editor/api/segmentExtraction';
 	import LanguageSelection from './toolbar/LanguageSelection.svelte';
 	import PronounceLabel from './toolbar/PronLabel.svelte';
 	import Download from './toolbar/Download.svelte';
@@ -85,6 +92,12 @@
 	let showDiff = $state(false);
 	let currentDiffSuggestion = $state<DiffSuggestion | null>(null);
 	let diffCommands = $state<DiffCommand[]>([]);
+
+	// Segment extraction state
+	let segmentExtractor = $state<SegmentExtractor | null>(null);
+	let segmentAPIClient = $state<SegmentAPIClient | null>(null);
+	let extractedSegments = $state<TextSegment[]>([]);
+	let isAnalyzingSegments = $state(false);
 
 	// Watch for fileId changes and recreate debounced function
 	$effect(() => {
@@ -167,32 +180,8 @@
 		console.log('Refreshing diff suggestions...');
 		
 		try {
-			const response = await fetch('/api/diff-suggestions', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({
-					content: $editor.getJSON(),
-					fileId: currentFileId
-				})
-			});
-
-			if (response.ok) {
-				const data = await response.json();
-				if (data.success && data.suggestions.length > 0) {
-					// For now, take the first suggestion
-					const suggestion = data.suggestions[0];
-					currentDiffSuggestion = suggestion;
-					diffCommands = suggestion.commands;
-					
-					// Clear existing marks and apply new ones
-					clearDiffMarks($editor);
-					createDiffMarks($editor, diffCommands);
-				}
-			} else {
-				console.error('Failed to fetch diff suggestions');
-			}
+			// Extract segments and analyze them
+			await analyzeCurrentSegments();
 		} catch (error) {
 			console.error('Error refreshing diff suggestions:', error);
 			// Fallback to example commands
@@ -201,6 +190,85 @@
 				diffCommands = EXAMPLE_DIFF_COMMANDS;
 				createDiffMarks($editor, diffCommands);
 			}
+		}
+	}
+
+	async function analyzeCurrentSegments() {
+		if (!$editor || isAnalyzingSegments) return;
+
+		isAnalyzingSegments = true;
+		
+		try {
+			// Initialize extractor and API client if needed
+			if (!segmentExtractor) {
+				segmentExtractor = new SegmentExtractor($editor);
+			}
+			if (!segmentAPIClient) {
+				segmentAPIClient = new SegmentAPIClient();
+			}
+
+			// Extract segments based on current selection or entire document
+			const { selection } = $editor.state;
+			let segments: TextSegment[] = [];
+
+			if (selection.from !== selection.to) {
+				// Analyze selected text
+				segments = segmentExtractor.extractSelection();
+			} else {
+				// Analyze entire document by paragraphs
+				segments = segmentExtractor.extract({
+					strategy: ExtractionStrategy.PARAGRAPH,
+					minLength: 10,
+					maxLength: 1000
+				});
+			}
+
+			if (segments.length === 0) {
+				console.log('No segments found for analysis');
+				return;
+			}
+
+			extractedSegments = segments;
+			console.log(`Extracted ${segments.length} segments for analysis`);
+
+			// Send segments for analysis
+			const response = await segmentAPIClient.analyzeSegmentsByType(
+				segments,
+				'comprehensive',
+				currentFileId,
+				'et'
+			);
+
+			// Convert response to diff commands
+			const allCommands: DiffCommand[] = [];
+			response.segments.forEach(segmentResponse => {
+				segmentResponse.suggestions.forEach(suggestion => {
+					allCommands.push({
+						id: `${segmentResponse.segmentId}_${suggestion.start}_${suggestion.end}`,
+						type: suggestion.type,
+						start: suggestion.start,
+						end: suggestion.end,
+						originalText: suggestion.originalText,
+						newText: suggestion.newText,
+						reason: suggestion.reason,
+						confidence: suggestion.confidence
+					});
+				});
+			});
+
+			// Apply diff visualization
+			if (showDiff) {
+				clearDiffMarks($editor);
+				diffCommands = allCommands;
+				createDiffMarks($editor, diffCommands);
+			}
+
+			console.log(`Generated ${allCommands.length} diff commands`);
+		} catch (error) {
+			console.error('Error analyzing segments:', error);
+			throw error;
+		} finally {
+			isAnalyzingSegments = false;
 		}
 	}
 
