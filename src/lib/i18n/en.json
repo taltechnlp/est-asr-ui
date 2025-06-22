@@ -57,11 +57,17 @@
     "password": "Password",
     "email": "Email",
     "forgotPassword": "Forgot password?",
-    "noPasswordSet": "Password not set"
+    "noPasswordSet": "Password not set",
+    "orUseProvider": "Or sign in with:",
+    "invalidCredentials": "Invalid email or password.",
+    "loginError": "Login failed. Please try again.",
+    "missingCredentials": "Email and password are required.",
+    "serverError": "An error occurred during login."
   },
   "signup": {
     "header": "Register | tekstiks.ee",
     "register": "Register",
+    "registering": "Registering...",
     "name": "Name",
     "password": "Password",
     "passwordConfirm": "Repeat password",
@@ -129,7 +135,7 @@
     "passwordNotSet": "Password not set",
     "setPassword": "Set password"
   },
-  "auth":{
+  "auth": {
     "AccessDenied": "The login method is already connected to another Tekstiks.ee account or the same email is being used by another Tekstiks.ee account.",
     "AccountNotLinked": "The login method has the same email address as another Tekstiks.ee account. Please use that account instead.",
     "CallbackRouteError": "The login method has the same email address as another Tekstiks.ee account. Please log into that account first.",
@@ -261,12 +267,12 @@
     "noConnections": "No connections are available at this moment!",
     "providePermission": "Please provide permission to your microphone",
     "permissionWarning": "The browser will prompt to give a permission to access your microphone.",
-    "cancel":"Cancel",
+    "cancel": "Cancel",
     "ok": "Ok",
     "accessDisabledHeading": "Access to microphone is disabled",
     "accessDisabledContent": "Access to the microphone is disable for this website.",
     "close": "Close",
-    "download":"Download",
+    "download": "Download",
     "resultsPlaceholder": "Speech recognition results will appear here.",
     "recognizer": {
       "taltech": "TalTech speech recognition",

@@ -57,11 +57,17 @@
         "password": "Salasana",
         "email": "Sähköpostiosoite",
         "forgotPassword": "Unohtuiko salasana?",
-        "noPasswordSet": "Salasanaa ei ole asetettu"
+        "noPasswordSet": "Salasanaa ei ole asetettu",
+        "orUseProvider": "Tai kirjaudu sisään:",
+        "invalidCredentials": "Virheellinen sähköposti tai salasana.",
+        "loginError": "Kirjautuminen epäonnistui. Yritä uudelleen.",
+        "missingCredentials": "Sähköposti ja salasana ovat pakollisia.",
+        "serverError": "Kirjautumisen aikana tapahtui virhe."
     },
     "signup": {
         "header": "Rekisteröidy | tekstiks.ee",
         "register": "Rekisteröidy",
+        "registering": "Rekisteröidään...",
         "name": "Nimi",
         "password": "Salasana",
         "passwordConfirm": "Toista salasana",

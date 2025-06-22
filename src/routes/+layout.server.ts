@@ -2,6 +2,7 @@ import type { LayoutServerLoad } from './$types';
 import { uiLanguages } from '$lib/i18n';
 import { redirect } from '@sveltejs/kit';
 import { base } from '$app/paths';
+import { auth } from '$lib/auth';
 
 export const load: LayoutServerLoad = async ({ request, locals, params, cookies, url, depends }) => {
 	depends('data:session');
@@ -34,7 +35,8 @@ export const load: LayoutServerLoad = async ({ request, locals, params, cookies,
 
 	const language = params.lang || cookies.get("language");
 
-	const session = (await locals.auth());
+	// Get session using the same logic as hooks.server.ts (Better Auth + session cookie)
+	const session = await locals.auth();
 
 	if (session && session.user) {
 		return {

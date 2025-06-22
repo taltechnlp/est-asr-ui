@@ -145,7 +145,7 @@ export const checkCompletion = async (
 };
 
 export const getFiles = async (id) => {
-    const user = await prisma.user.findUnique({
+    		const user = await prisma.user.findUnique({
         where: {
             id: id
         },
@@ -187,6 +187,7 @@ export const getFiles = async (id) => {
     if (user) return Promise.all(user.files.map(
         async file => {
             let progress = -1;
+            let status = file.state;
             if (file.state !== "READY" && file.state !== "ABORTED" && file.state !== "PROCESSING_ERROR") {
                 if (file.language === "finnish") {
                     await checkCompletion(file.id, file.state, file.externalId, file.path, file.language, file.initialTranscriptionPath, fetch);

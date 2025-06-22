@@ -6,6 +6,15 @@ declare global {
 	namespace App {
 		interface Locals {
 			userId: string | undefined;
+			auth: () => Promise<{
+				user: {
+					id: string;
+					email: string;
+					name: string;
+					userId: string;
+				};
+				expires: string;
+			} | null>;
 		}
 		// interface Platform {}
 		// interface Session {}
@@ -18,13 +27,6 @@ declare global {
 	}
 	
 } 
-
-declare module "@auth/sveltekit" {
-	interface User {
-	  /** comment **/
-	  id?: string
-	}
-}
 
 export {}
 

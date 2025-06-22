@@ -35,55 +35,73 @@ enum Role {
   ADMIN
 }
 
+// Better Auth Account model
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?  @db.Text
-  access_token       String?  @db.Text
-  expires_at         Int?
-  expires_in         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?  @db.Text
-  session_state      String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                    String    @id
+  userId                String
+  type                  String    @default("oauth")
+  provider              String
+  providerAccountId     String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@map("account")
 }
 
+// Better Auth Session model
 model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
 }
 
+// Updated User model for Better Auth
 model User {
-  id               String  @id @db.VarChar(30) @default(cuid())
-  email            String  @unique(map: "default$default.User.email._UNIQUE")
+  id               String    @id @db.VarChar(30)
+  email            String    @unique(map: "default$default.User.email._UNIQUE")
   name             String
   password         String?
   resetToken       String?
   resetTokenExpiry BigInt?
+  role             Role      @default(USER)
+  emailVerified    DateTime?
+  image            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
   files            File[]
-  role             Role    @default(USER)
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
+  accounts         Account[]
+  sessions         Session[]
+
+  @@map("user")
 }
 
-model VerificationToken {
+// Better Auth Verification model
+model Verification {
+  id         String    @id
   identifier String
-  token      String   @unique
-  expires    DateTime
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
 
-  @@unique([identifier, token])
+  @@map("verification")
 }
 
 enum NfStatus {
@@ -107,42 +125,41 @@ enum NfEvent {
 }
 
 model NfWorkflow {
-  run_id  String @unique
-  event NfEvent
-  run_name String @unique
-  utc_time DateTime
-  file_id String
-  file File  @relation(fields: [file_id], references: [id], onDelete: Cascade)
-  processes NfProcess[]
+  run_id         String      @unique
+  event          NfEvent
+  run_name       String      @unique
+  utc_time       DateTime
+  file_id        String
+  file           File        @relation(fields: [file_id], references: [id], onDelete: Cascade)
+  processes      NfProcess[]
   succeededCount Int?
-  runningCount Int?
-  pendingCount Int?
-  failedCount Int?
+  runningCount   Int?
+  pendingCount   Int?
+  failedCount    Int?
   progressLength Int?
 }
 
-
 model NfProcess {
-  id String @id @default(cuid())
-  task_id Int
-  process String
-  tag String?
-  hash String
-  status NfStatus
-  exit DateTime?
-  start DateTime?
-  submit DateTime?
-  complete DateTime?
-  duration Int?
-  realtime Int?
-  cpu Float?
-  mem Float?
-  peak_rss Float?
-  peak_vmem Float?
-  rchar Float?
-  wchar Float?
-  vol_ctxt Int?
-  inv_ctxt Int?
+  id          String     @id @default(cuid())
+  task_id     Int
+  process     String
+  tag         String?
+  hash        String
+  status      NfStatus
+  exit        DateTime?
+  start       DateTime?
+  submit      DateTime?
+  complete    DateTime?
+  duration    Int?
+  realtime    Int?
+  cpu         Float?
+  mem         Float?
+  peak_rss    Float?
+  peak_vmem   Float?
+  rchar       Float?
+  wchar       Float?
+  vol_ctxt    Int?
+  inv_ctxt    Int?
   workflow_id String
-  workflow NfWorkflow    @relation(fields: [workflow_id], references: [run_id], onDelete: Cascade)
+  workflow    NfWorkflow @relation(fields: [workflow_id], references: [run_id], onDelete: Cascade)
 }
