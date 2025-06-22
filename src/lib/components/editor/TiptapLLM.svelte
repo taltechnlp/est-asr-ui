@@ -287,17 +287,6 @@
 				WordColor,
 				Speaker,
 				Diff,
-				/* LabelHighlight.configure({
-					HTMLAttributes: {
-						class: 'lang-label',
-						multicolor: true
-					}
-				}),
-				PronHighlight.configure({
-					HTMLAttributes: {
-						multicolor: true
-					}
-				}) */
 			],
 			editorProps: {
 				attributes: {
