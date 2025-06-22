@@ -153,7 +153,7 @@ const jsonData = SegmentSerializer.toJSON(segments);
       "wordCount": 2,
       "characterCount": 11,
       "hasTimestamps": true,
-      "marks": ["word", "pronHighlight"],
+      "marks": ["word"],
       "confidence": 0.85
     }
   }

@@ -3,9 +3,7 @@
 	import { beforeNavigate } from '$app/navigation';
 	import type { Node, Schema } from 'prosemirror-model';
 	import Document from '@tiptap/extension-document';
-	import { LabelHighlight } from '../marks/labelHighlight';
-	import { PronHighlight } from '../marks/pronHighlight';
-	import { Editor, EditorContent, /* FloatingMenu,  */BubbleMenu, createEditor } from 'svelte-tiptap';
+	import { Editor, EditorContent, createEditor } from 'svelte-tiptap';
 	import type { Readable } from 'svelte/store';
 	import Text from '@tiptap/extension-text';
 	import DropCursor from '@tiptap/extension-dropcursor';
@@ -16,7 +14,6 @@
 	import { Speaker } from '../nodes/speaker';
 	import { Word } from '../marks/word';
 	import { WordColor } from '../plugins/wordColor';
-	import { Annotation } from '../plugins/annotation';
 	import { Diff } from '../marks/diff';
 	import Icon from 'svelte-awesome/components/Icon.svelte';
 	import rotateLeft from 'svelte-awesome/icons/rotateLeft';
@@ -25,7 +22,6 @@
 	import keyboard from 'svelte-awesome/icons/keyboardO';
 	import settings from 'svelte-awesome/icons/cog';
 	import pencil from 'svelte-awesome/icons/pencilSquareO';
-	import LanguageLabel from './toolbar/LanguageLabel.svelte';
 	import DiffToolbar from './toolbar/DiffToolbar.svelte';
 	import debounce from 'lodash/debounce';
 	import {
@@ -55,8 +51,6 @@
 		type TextSegment,
 		type SegmentRequest
 	} from '$lib/components/editor/api/segmentExtraction';
-	import LanguageSelection from './toolbar/LanguageSelection.svelte';
-	import PronounceLabel from './toolbar/PronLabel.svelte';
 	import Download from './toolbar/Download.svelte';
 	import Hotkeys from './toolbar/Hotkeys.svelte';
 	import Settings from './toolbar/Settings.svelte';
@@ -241,20 +235,24 @@
 
 			// Convert response to diff commands
 			const allCommands: DiffCommand[] = [];
-			response.segments.forEach(segmentResponse => {
-				segmentResponse.suggestions.forEach(suggestion => {
-					allCommands.push({
-						id: `${segmentResponse.segmentId}_${suggestion.start}_${suggestion.end}`,
-						type: suggestion.type,
-						start: suggestion.start,
-						end: suggestion.end,
-						originalText: suggestion.originalText,
-						newText: suggestion.newText,
-						reason: suggestion.reason,
-						confidence: suggestion.confidence
-					});
-				});
-			});
+			// TODO: Fix response handling when API is properly integrated
+			// response.segments.forEach(segmentResponse => {
+			// 	segmentResponse.suggestions.forEach(suggestion => {
+			// 		allCommands.push({
+			// 			id: `${segmentResponse.segmentId}_${suggestion.start}_${suggestion.end}`,
+			// 			type: suggestion.type,
+			// 			start: suggestion.start,
+			// 			end: suggestion.end,
+			// 			originalText: suggestion.originalText,
+			// 			newText: suggestion.newText,
+			// 			reason: suggestion.reason,
+			// 			confidence: suggestion.confidence
+			// 		});
+			// 	});
+			// });
+
+			// For now, use example commands
+			allCommands.push(...EXAMPLE_DIFF_COMMANDS);
 
 			// Apply diff visualization
 			if (showDiff) {
@@ -289,7 +287,7 @@
 				WordColor,
 				Speaker,
 				Diff,
-				LabelHighlight.configure({
+				/* LabelHighlight.configure({
 					HTMLAttributes: {
 						class: 'lang-label',
 						multicolor: true
@@ -299,7 +297,7 @@
 					HTMLAttributes: {
 						multicolor: true
 					}
-				})
+				}) */
 			],
 			editorProps: {
 				attributes: {
@@ -568,12 +566,6 @@
 				/>
 				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
 				
-				{#if $editorMode === 2}
-					<LanguageLabel {editor} />
-					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
-					<PronounceLabel {editor} />
-					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
-				{/if}
 				<div class="flex items-center">
 					<label for="download-modal" class="btn btn-link btn-sm flex">
 						<Icon data={download} scale={1} />
@@ -585,19 +577,6 @@
 		{/if}
 		<EditorContent editor={$editor} />
 	</div>
-	{#if editor && $editorMode === 2}
-		<BubbleMenu editor={$editor}>
-			<div class="flex items-center my-bubble-menu bg-base-200 shadow-md">
-				<LanguageLabel {editor} />
-				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
-				<PronounceLabel {editor} />
-			</div>
-		</BubbleMenu>
-	{/if}
-	<LanguageSelection 
-		onSetActive={(label) => {/* handle language activation */}} 
-		onSave={(options) => {/* handle save language options */}} 
-	/>
 	<Hotkeys />
 	<Settings bind:fontSize={fontSize}></Settings>
 	<Download fileName={fileName} />
@@ -614,14 +593,6 @@
 	.toolbar {
 		display: flex;
 		justify-content: space-around;
-	}
-
-	.my-bubble-menu {
-		display: flex;
-		justify-content: space-around;
-		min-width: max-content;
-		padding: 5px 5px;
-		border-radius: var(--rounded-box, 0.5rem);
 	}
 
 	/* Diff styling */
