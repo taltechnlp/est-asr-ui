@@ -186,6 +186,21 @@
   "demo": {
     "title": "Demo"
   },
+  "diff": {
+    "show": "Show diff view",
+    "hide": "Hide diff view",
+    "applyAll": "Apply all changes",
+    "rejectAll": "Reject all changes",
+    "refresh": "Refresh suggestions",
+    "addition": "Addition",
+    "deletion": "Deletion",
+    "replace": "Replace",
+    "insert": "Insert",
+    "delete": "Delete",
+    "speaker_change": "Speaker change",
+    "punctuation": "Punctuation",
+    "capitalization": "Capitalization"
+  },
   "passwordReset": {
     "title": "Password reset | teksiks.ee",
     "header": "Password reset",

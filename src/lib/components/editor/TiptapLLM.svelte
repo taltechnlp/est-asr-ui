@@ -12,10 +12,12 @@
 	import GapCursor from '@tiptap/extension-gapcursor';
 	import TextStyle from '@tiptap/extension-text-style';
 	import History from '@tiptap/extension-history';
+	import Strike from '@tiptap/extension-strike';
 	import { Speaker } from '../nodes/speaker';
 	import { Word } from '../marks/word';
 	import { WordColor } from '../plugins/wordColor';
 	import { Annotation } from '../plugins/annotation';
+	import { Diff } from '../marks/diff';
 	import Icon from 'svelte-awesome/components/Icon.svelte';
 	import rotateLeft from 'svelte-awesome/icons/rotateLeft';
 	import rotateRigth from 'svelte-awesome/icons/rotateRight';
@@ -24,6 +26,7 @@
 	import settings from 'svelte-awesome/icons/cog';
 	import pencil from 'svelte-awesome/icons/pencilSquareO';
 	import LanguageLabel from './toolbar/LanguageLabel.svelte';
+	import DiffToolbar from './toolbar/DiffToolbar.svelte';
 	import debounce from 'lodash/debounce';
 	import {
 		editorMounted,
@@ -37,6 +40,14 @@
 	import { Change, ChangeSet, Span, simplifyChanges } from 'prosemirror-changeset';
 	import { _, locale } from 'svelte-i18n';
 	import { transactionsHaveChange } from '$lib/components/editor/api/transaction';
+	import { 
+		applyDiffCommands, 
+		createDiffMarks, 
+		clearDiffMarks, 
+		EXAMPLE_DIFF_COMMANDS,
+		type DiffCommand,
+		type DiffSuggestion 
+	} from '$lib/components/editor/api/diffCommands';
 	import LanguageSelection from './toolbar/LanguageSelection.svelte';
 	import PronounceLabel from './toolbar/PronLabel.svelte';
 	import Download from './toolbar/Download.svelte';
@@ -69,6 +80,11 @@
 	let currentEditor = $state(null);
 	let hasUnsavedChanges = $state(false);
 	let debouncedSave: any = $state();
+
+	// Diff state
+	let showDiff = $state(false);
+	let currentDiffSuggestion = $state<DiffSuggestion | null>(null);
+	let diffCommands = $state<DiffCommand[]>([]);
 
 	// Watch for fileId changes and recreate debounced function
 	$effect(() => {
@@ -118,6 +134,76 @@
 	date.setSeconds(45); // specify value for SECONDS here
 	var timeString = date.toISOString().substring(11, 19);
 
+	// Diff functions
+	function toggleDiff() {
+		showDiff = !showDiff;
+		if (showDiff) {
+			// Load example diff commands for testing
+			diffCommands = EXAMPLE_DIFF_COMMANDS;
+			createDiffMarks($editor, diffCommands);
+		} else {
+			clearDiffMarks($editor);
+			diffCommands = [];
+		}
+	}
+
+	function applyAllChanges() {
+		if (diffCommands.length > 0) {
+			applyDiffCommands($editor, diffCommands);
+			clearDiffMarks($editor);
+			diffCommands = [];
+			showDiff = false;
+		}
+	}
+
+	function rejectAllChanges() {
+		clearDiffMarks($editor);
+		diffCommands = [];
+		showDiff = false;
+	}
+
+	async function refreshDiff() {
+		// This would typically call the LLM API to get new suggestions
+		console.log('Refreshing diff suggestions...');
+		
+		try {
+			const response = await fetch('/api/diff-suggestions', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					content: $editor.getJSON(),
+					fileId: currentFileId
+				})
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+				if (data.success && data.suggestions.length > 0) {
+					// For now, take the first suggestion
+					const suggestion = data.suggestions[0];
+					currentDiffSuggestion = suggestion;
+					diffCommands = suggestion.commands;
+					
+					// Clear existing marks and apply new ones
+					clearDiffMarks($editor);
+					createDiffMarks($editor, diffCommands);
+				}
+			} else {
+				console.error('Failed to fetch diff suggestions');
+			}
+		} catch (error) {
+			console.error('Error refreshing diff suggestions:', error);
+			// Fallback to example commands
+			if (showDiff) {
+				clearDiffMarks($editor);
+				diffCommands = EXAMPLE_DIFF_COMMANDS;
+				createDiffMarks($editor, diffCommands);
+			}
+		}
+	}
+
 	onMount(() => {
 		// Add beforeunload listener for browser navigation/reload/close
 		window.addEventListener('beforeunload', handleBeforeUnload);
@@ -130,9 +216,11 @@
 				Text,
 				TextStyle,
 				History,
+				Strike,
 				Word,
 				WordColor,
 				Speaker,
+				Diff,
 				LabelHighlight.configure({
 					HTMLAttributes: {
 						class: 'lang-label',
@@ -374,7 +462,7 @@
 				{#if windowWidth > 460}
 					<div class="flex items-center tooltip tooltip-bottom" data-tip={$_('editor.hotkeys.tooltip')}>
 						<label for="hotkeys-modal" class="btn btn-ghost flex">
-							<Icon data={keyboard} scale={1.5} />
+							<Icon data={keyboard} scale={1.2} />
 						</label>
 					</div>				
 					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
@@ -400,6 +488,17 @@
 					</div>
 					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
 				{/if}
+				
+				<!-- Diff Toolbar -->
+				<DiffToolbar 
+					{editor}
+					{showDiff}
+					onToggleDiff={toggleDiff}
+					onApplyAll={applyAllChanges}
+					onRejectAll={rejectAllChanges}
+					onRefreshDiff={refreshDiff}
+				/>
+				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
 				
 				{#if $editorMode === 2}
 					<LanguageLabel {editor} />
@@ -455,6 +554,22 @@
 		min-width: max-content;
 		padding: 5px 5px;
 		border-radius: var(--rounded-box, 0.5rem);
+	}
+
+	/* Diff styling */
+	:global(.diff-addition) {
+		background-color: #dcfce7;
+		color: #166534;
+		border-radius: 2px;
+		padding: 1px 2px;
+	}
+
+	:global(.diff-deletion) {
+		background-color: #fecaca;
+		color: #991b1b;
+		text-decoration: line-through;
+		border-radius: 2px;
+		padding: 1px 2px;
 	}
 
 </style>

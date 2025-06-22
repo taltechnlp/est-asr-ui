@@ -186,6 +186,21 @@
     "demo": {
         "title": "Demo"
     },
+    "diff": {
+        "show": "Näita erinevusi",
+        "hide": "Peida erinevused",
+        "applyAll": "Rakenda kõik muudatused",
+        "rejectAll": "Lükka tagasi kõik muudatused",
+        "refresh": "Värskenda soovitusi",
+        "addition": "Lisamine",
+        "deletion": "Kustutamine",
+        "replace": "Asenda",
+        "insert": "Lisa",
+        "delete": "Kustuta",
+        "speaker_change": "Kõneleja vahetus",
+        "punctuation": "Kirjavahemärgid",
+        "capitalization": "Suurtähed"
+    },
     "passwordReset": {
         "title": "Parooli lähtestamine | teksiks.ee",
         "header": "Parooli lähtestamine",

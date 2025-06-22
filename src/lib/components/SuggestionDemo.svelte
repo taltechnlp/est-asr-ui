@@ -19,7 +19,7 @@
 				Word,
 				Suggestion
 			],
-			content: `<p>This is a sample text. Select any word and click "Add Suggestion" to mark it for correction, or use "Load Mock Content" to see the suggestion system in action.</p>`,
+			content: `<p>See on näidistekst. Vali sõna ja klõpsa "Lisa soovitus" märkimaks see parandamiseks, või kasuta "Laadi näidissisu" et näha soovitussüsteemi töös.</p>`,
 			editorProps: {
 				attributes: {
 					class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none border-2 border-gray-300 rounded-lg p-4'
@@ -55,34 +55,34 @@
 	};
 
 	const getMockSuggestions = (word: string): string[] => {
-		// Mock spellcheck suggestions
+		// Mock spellcheck suggestions for Estonian
 		const suggestionMap: { [key: string]: string[] } = {
-			'mispelled': ['misspelled', 'miss-spelled', 'mis-spelled'],
-			'wrnog': ['wrong', 'wrote', 'wrung'],
-			'teh': ['the', 'tea', 'ten'],
-			'recieve': ['receive', 'receiver', 'received'],
-			'seperately': ['separately', 'separately'],
-			'occured': ['occurred', 'occur', 'occurrence']
+			'valekirjutatud': ['valesti kirjutatud', 'vale-kirjutatud', 'valekirjutust'],
+			'vige': ['vale', 'viga', 'vigane'],
+			'see': ['seda', 'selle', 'siin'],
+			'võtta': ['võtma', 'võtab', 'võetud'],
+			'eralidi': ['eraldi', 'ära-lidi', 'eraldina'],
+			'juhtos': ['juhtus', 'juhtu', 'juhtuma']
 		};
 		
-		return suggestionMap[word.toLowerCase()] || ['correct', 'suggestion', 'example'];
+		return suggestionMap[word.toLowerCase()] || ['õige', 'soovitus', 'näide'];
 	};
 
 	const addMockSuggestions = () => {
 		if (editor && $editor) {
-			// Clear the editor and add plain text first
-			const content = `This text contains several mispelled words. Please check teh spelling and fix recieve accordingly. The words should be corrected seperately and the error occured yesterday.`;
+			// Clear the editor and add Estonian text first
+			const content = `See tekst sisaldab mitut valekirjutatud sõna. Palun kontrolli vige kirjaviisi ja paranda võtta vastavalt. Sõnad tuleks parandada eralidi ja viga juhtos eile.`;
 			
 			$editor.commands.setContent(`<p>${content}</p>`);
 			
 			// Wait for content to be set, then programmatically add suggestions
 			setTimeout(() => {
 				const wordsToCorrect = [
-					{ word: 'mispelled', suggestions: ['misspelled', 'miss-spelled', 'mis-spelled'] },
-					{ word: 'teh', suggestions: ['the', 'tea', 'ten'] },
-					{ word: 'recieve', suggestions: ['receive', 'receiver', 'received'] },
-					{ word: 'seperately', suggestions: ['separately'] },
-					{ word: 'occured', suggestions: ['occurred', 'occur', 'occurrence'] }
+					{ word: 'valekirjutatud', suggestions: ['valesti kirjutatud', 'vale-kirjutatud', 'valekirjutust'] },
+					{ word: 'vige', suggestions: ['vale', 'viga', 'vigane'] },
+					{ word: 'võtta', suggestions: ['võtma', 'võtab', 'võetud'] },
+					{ word: 'eralidi', suggestions: ['eraldi'] },
+					{ word: 'juhtos', suggestions: ['juhtus', 'juhtu', 'juhtuma'] }
 				];
 				
 				// Process words sequentially to avoid conflicts
@@ -137,32 +137,32 @@
 </script>
 
 <div class="p-6 max-w-4xl mx-auto">
-	<h1 class="text-2xl font-bold mb-4">Suggestion NodeView Demo</h1>
+	<h1 class="text-2xl font-bold mb-4">Soovituse NodeView demo</h1>
 	
 	<div class="mb-4 space-x-2">
 		<button 
 			class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
 			onclick={addSuggestion}
 		>
-			Add Suggestion (Select text first)
+			Lisa soovitus (Vali kõigepealt tekst)
 		</button>
 		
 		<button 
 			class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
 			onclick={addMockSuggestions}
 		>
-			Load Mock Content with Suggestions
+			Laadi näidissisu soovitustega
 		</button>
 	</div>
 
 	<div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded">
-		<h3 class="font-semibold mb-2">How to use:</h3>
+		<h3 class="font-semibold mb-2">Kuidas kasutada:</h3>
 		<ol class="list-decimal list-inside space-y-1 text-sm">
-			<li>Select any text in the editor and click "Add Suggestion" to mark it as needing correction</li>
-			<li>Click on any yellow highlighted text to see correction suggestions</li>
-			<li>Choose a suggestion to apply the correction</li>
-			<li>Click "Ignore" to keep the original text</li>
-			<li>Use "Load Mock Content" to see predefined examples</li>
+			<li>Vali redaktoris tekst ja klõpsa "Lisa soovitus" märkimaks see parandamiseks</li>
+			<li>Klõpsa kollaselt esiletõstetud tekstil et näha parandussoovitusi</li>
+			<li>Vali soovitus paranduse rakendamiseks</li>
+			<li>Klõpsa "Ignoreeri" algse teksti säilitamiseks</li>
+			<li>Kasuta "Laadi näidissisu" eelnevalt määratud näidete nägemiseks</li>
 		</ol>
 	</div>
 
@@ -171,12 +171,12 @@
 	{/if}
 
 	<div class="mt-6 p-4 bg-gray-50 border border-gray-200 rounded">
-		<h3 class="font-semibold mb-2">Integration Notes:</h3>
+		<h3 class="font-semibold mb-2">Integreerimise märkused:</h3>
 		<ul class="list-disc list-inside space-y-1 text-sm text-gray-700">
-			<li>The suggestion system preserves word timing attributes when replacing text</li>
-			<li>Multiple words can be grouped into a single suggestion</li>
-			<li>Suggestions can be populated from any spellcheck or AI service</li>
-			<li>The UI is designed to be non-intrusive and accessible</li>
+			<li>Soovitussüsteem säilitab sõnade ajastuse atribuudid teksti asendamisel</li>
+			<li>Mitu sõna saab grupeerida ühte soovitusse</li>
+			<li>Soovitusi saab täita mis tahes õigekirja- või AI-teenusest</li>
+			<li>Kasutajaliides on disainitud mittesekkuvaks ja kättesaadavaks</li>
 		</ul>
 	</div>
 </div>
