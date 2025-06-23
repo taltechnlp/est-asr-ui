@@ -40,7 +40,7 @@ export interface SegmentRequest {
 
 export interface SegmentResponse {
 	requestId: string;
-	segments: {
+	segments: Array<{
 		segmentId: string;
 		suggestions: Array<{
 			type: 'replace' | 'insert' | 'delete' | 'speaker_change' | 'punctuation' | 'capitalization' | 'spacing' | 'grammar' | 'context' | 'translation';
@@ -53,7 +53,7 @@ export interface SegmentResponse {
 		}>;
 		overallConfidence: number;
 		summary: string;
-	};
+	}>;
 }
 
 // Extraction strategies
