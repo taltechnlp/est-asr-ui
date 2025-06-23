@@ -28,6 +28,7 @@ model File {
   workflows                NfWorkflow[]
   notify                   Boolean?
   notified                 Boolean?
+  aiAgentConsent           Boolean?  @default(false)
 }
 
 enum Role {

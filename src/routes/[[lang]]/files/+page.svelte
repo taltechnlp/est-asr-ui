@@ -18,6 +18,7 @@
 	];
 	let selectedLanguage = $state(languageChoices[0]);
 	let notify = $state(true);
+	let aiAgentConsent = $state(false);
 
 	let delFileId;
 	const delFile = async (fileId) => {
@@ -71,6 +72,12 @@
 		// Add additional form data
 		formData.append('notify', notify ? "yes" : "no");
 		formData.append('lang', selectedLanguage.text);
+		formData.append('aiAgentConsent', aiAgentConsent ? "yes" : "no");
+		
+		// Store consent in localStorage
+		if (aiAgentConsent) {
+			localStorage.setItem('aiAgentConsent', 'true');
+		}
 		
 		loading = true;
 		const response = await fetch(form.action, {
@@ -147,7 +154,65 @@
 		} while (!donePolling);
 	};
 	if (browser) {
-		onMount(longPolling)
+		onMount(() => {
+			longPolling();
+			
+			// Initialize AI agent if user has given consent
+			initializeAgent();
+		});
+	}
+
+	async function initializeAgent() {
+		// Check if user has given consent (this could be stored in localStorage or session)
+		const hasConsent = localStorage.getItem('aiAgentConsent') === 'true';
+		
+		if (hasConsent) {
+			try {
+				const response = await fetch('/api/agent/init', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						aiAgentConsent: true
+					})
+				});
+				
+				const result = await response.json();
+				if (result.success) {
+					console.log('ASR Agent initialized successfully');
+					// Test the agent
+					await testAgent();
+				} else {
+					console.error('Failed to initialize ASR Agent:', result.message);
+				}
+			} catch (error) {
+				console.error('Error initializing ASR Agent:', error);
+			}
+		}
+	}
+
+	async function testAgent() {
+		try {
+			const response = await fetch('/api/agent/test', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					audioFilePath: '/mock/audio/file.mp3'
+				})
+			});
+			
+			const result = await response.json();
+			if (result.success) {
+				console.log('Agent test successful:', result.result);
+			} else {
+				console.error('Agent test failed:', result.message);
+			}
+		} catch (error) {
+			console.error('Error testing agent:', error);
+		}
 	}
 
 	let uploadModal: HTMLDialogElement;
@@ -323,6 +388,20 @@
 							<span class="label-text">{$_('files.uploadNotify')}</span>
 						</label>
 					</div>
+					<div class="form-control flex-row">
+						<label class="label cursor-pointer">
+							<input type="checkbox" id="aiAgentConsent" bind:checked={aiAgentConsent} class="checkbox mr-4" />
+							<span class="label-text">{$_('files.aiAgentConsent')}</span>
+						</label>
+					</div>
+					{#if aiAgentConsent}
+						<div class="alert alert-info mt-2">
+							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+							</svg>
+							<span class="text-sm">{$_('files.aiAgentConsentDetails')}</span>
+						</div>
+					{/if}
 				</fieldset>
 				<fieldset class="fieldset w-md bg-base-200 border border-base-300 p-4 rounded-box mb-4">
 					<legend class="fieldset-legend">{$_('files.requirements')}</legend>

@@ -119,7 +119,10 @@
     "fileTooLong": "File duration too long",
     "invalidLang": "Invalid language",
     "finnishUploadFailed": "Error processing the file",
-    "hardwareFailureWarning": "System is experiencing a hardware failure. New uploads currently do not progress or fail."
+    "hardwareFailureWarning": "System is experiencing a hardware failure. New uploads currently do not progress or fail.",
+    "aiAgentConsent": "Enable AI agent for transcript refinement",
+    "aiAgentConsentDesc": "Allow an AI agent to help identify and suggest corrections for transcription errors. The agent will analyze your transcript and highlight potential issues.",
+    "aiAgentConsentDetails": "The AI agent will: analyze confidence scores, detect semantic anomalies, identify potential factual errors, and suggest corrections. You can review and accept or reject all suggestions."
   },
   "me": {
     "title": "Account details | tekstiks.ee",

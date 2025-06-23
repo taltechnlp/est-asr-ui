@@ -119,7 +119,10 @@
         "fileTooLong": "Faili kestus on liiga pikk",
         "invalidLang": "Vale keel",
         "finnishUploadFailed": "Faili töötlemisel tekkis viga",
-        "hardwareFailureWarning": "Süsteemis on riistvararike. Uued üleslaadimised hetkel ebaõnnestuvad."
+        "hardwareFailureWarning": "Süsteemis on riistvararike. Uued üleslaadimised hetkel ebaõnnestuvad.",
+        "aiAgentConsent": "Luba AI agent transkriptsiooni täiustamiseks",
+        "aiAgentConsentDesc": "Luba AI agendil aidata tuvastada ja soovitada transkriptsiooni vigade parandamist. Agent analüüsib sinu transkriptsiooni ja tõstab esile võimalikke probleeme.",
+        "aiAgentConsentDetails": "AI agent: analüüsib usaldusväärsuse skoorisid, tuvastab semantilisi anomaaliaid, identifitseerib võimalikke faktilisi vigu ja soovitab parandusi. Saad kõiki soovitusi üle vaadata ning neid vastu võtta või tagasi lükata."
     },
     "me": {
         "title": "Konto andmed | tekstiks.ee",
