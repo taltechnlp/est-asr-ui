@@ -113,19 +113,16 @@ class ErrorDetectionChain {
   }
 
   async detectErrors(asrOutput: ASROutput): Promise<SegmentOfInterest[]> {
-    const chain = new LLMChain({
-      llm: this.llm,
-      prompt: this.prompt,
-    });
-    
-    const result = await chain.invoke({
+    const formattedPrompt = await this.prompt.format({
       transcript: asrOutput.transcript,
       confidenceScores: JSON.stringify(asrOutput.confidenceScores),
       nBestList: JSON.stringify(asrOutput.nBestList)
     });
+    
+    const result = await this.llm.invoke(formattedPrompt);
 
     try {
-      return JSON.parse(result.text);
+      return JSON.parse(result.content as string);
     } catch (error) {
       console.error('Failed to parse error detection result:', error);
       return [];
@@ -169,18 +166,15 @@ class InformationAugmentationController {
     reason: string;
     priority: number;
   }> {
-    const chain = new LLMChain({
-      llm: this.llm,
-      prompt: this.prompt,
-    });
-    
-    const result = await chain.invoke({
+    const formattedPrompt = await this.prompt.format({
       segment: JSON.stringify(segment),
       context
     });
+    
+    const result = await this.llm.invoke(formattedPrompt);
 
     try {
-      return JSON.parse(result.text);
+      return JSON.parse(result.content as string);
     } catch (error) {
       console.error('Failed to parse categorization result:', error);
       return {
