@@ -183,6 +183,8 @@
 					console.log('ASR Agent initialized successfully');
 					// Test the agent
 					await testAgent();
+					// Test OpenRouter integration
+					await testOpenRouter();
 				} else {
 					console.error('Failed to initialize ASR Agent:', result.message);
 				}
@@ -212,6 +214,30 @@
 			}
 		} catch (error) {
 			console.error('Error testing agent:', error);
+		}
+	}
+
+	async function testOpenRouter() {
+		try {
+			const response = await fetch('/api/agent/test-openrouter', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					testType: 'status'
+				})
+			});
+			
+			const result = await response.json();
+			if (result.success) {
+				console.log('OpenRouter status:', result.openRouterAvailable ? 'Available' : 'Not available');
+				console.log('Message:', result.message);
+			} else {
+				console.error('OpenRouter test failed:', result.message);
+			}
+		} catch (error) {
+			console.error('Error testing OpenRouter:', error);
 		}
 	}
 

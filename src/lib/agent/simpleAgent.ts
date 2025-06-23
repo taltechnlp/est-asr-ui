@@ -1,5 +1,20 @@
 // Simplified ASR Agent for Phase 2 implementation
 // This version focuses on the core logic without complex LangChain dependencies
+import OpenAI from 'openai';
+import { AGENT_CONFIG, isOpenRouterAvailable } from './config';
+
+// Initialize OpenAI client for OpenRouter (only if API key is available)
+let openai: OpenAI | null = null;
+
+if (isOpenRouterAvailable()) {
+  openai = new OpenAI({
+    baseURL: AGENT_CONFIG.openRouter.baseURL,
+    apiKey: process.env.OPENROUTER_API_KEY,
+    defaultHeaders: AGENT_CONFIG.openRouter.headers
+  });
+} else {
+  console.warn('OpenRouter API key not found. Agent will use rule-based fallbacks.');
+}
 
 export interface ASROutput {
   transcript: string;
@@ -63,14 +78,14 @@ class MockASRTool {
   }
 }
 
-// Simple Error Detection
-class SimpleErrorDetection {
-  detectErrors(asrOutput: ASROutput): SegmentOfInterest[] {
+// LLM-based Error Detection
+class LLMErrorDetection {
+  async detectErrors(asrOutput: ASROutput): Promise<SegmentOfInterest[]> {
     const segments: SegmentOfInterest[] = [];
     
-    // Detect low confidence words
+    // First, detect low confidence words (rule-based)
     asrOutput.wordTimings.forEach((word, index) => {
-      if (word.confidence < 0.7) {
+      if (word.confidence < AGENT_CONFIG.thresholds.lowConfidence) {
         segments.push({
           id: `low_conf_${index}`,
           text: word.word,
@@ -83,7 +98,7 @@ class SimpleErrorDetection {
       }
     });
 
-    // Detect N-best variance
+    // Detect N-best variance (rule-based)
     if (asrOutput.nBestList.length > 1) {
       const words1 = asrOutput.nBestList[0].split(' ');
       const words2 = asrOutput.nBestList[1].split(' ');
@@ -103,25 +118,163 @@ class SimpleErrorDetection {
       }
     }
 
+    // Use LLM for semantic analysis
+    try {
+      const semanticSegments = await this.detectSemanticIssues(asrOutput.transcript);
+      segments.push(...semanticSegments);
+    } catch (error) {
+      console.error('Error in semantic analysis:', error);
+    }
+
     return segments;
+  }
+
+  private async detectSemanticIssues(transcript: string): Promise<SegmentOfInterest[]> {
+    // If OpenRouter is not available, return empty array
+    if (!openai) {
+      console.log('OpenRouter not available, skipping semantic analysis');
+      return [];
+    }
+
+    try {
+      const response = await openai.chat.completions.create({
+        model: AGENT_CONFIG.openRouter.model,
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert at analyzing ASR transcripts for potential errors. 
+            Identify segments that may have semantic anomalies, awkward phrasing, or potential factual inaccuracies.
+            Return only a JSON array of problematic segments.`
+          },
+          {
+            role: 'user',
+            content: `Analyze this transcript for potential issues:
+            
+            Transcript: "${transcript}"
+            
+            Return a JSON array with this structure:
+            [
+              {
+                "id": "semantic_1",
+                "text": "problematic text segment",
+                "start": 0,
+                "end": 10,
+                "reason": "semantic_anomaly",
+                "uncertaintyScore": 0.8,
+                "description": "explanation of the issue"
+              }
+            ]
+            
+            Only return valid JSON, no additional text.`
+          }
+        ],
+        temperature: AGENT_CONFIG.openRouter.temperature,
+        max_tokens: AGENT_CONFIG.openRouter.maxTokens
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (content) {
+        try {
+          const semanticIssues = JSON.parse(content);
+          return semanticIssues.map((issue: any) => ({
+            id: issue.id,
+            text: issue.text,
+            start: issue.start,
+            end: issue.end,
+            reason: issue.reason as 'semantic_anomaly',
+            uncertaintyScore: issue.uncertaintyScore,
+            categorizationReason: issue.description
+          }));
+        } catch (parseError) {
+          console.error('Failed to parse semantic analysis result:', parseError);
+          return [];
+        }
+      }
+    } catch (error) {
+      console.error('Error calling OpenRouter for semantic analysis:', error);
+    }
+
+    return [];
   }
 }
 
-// Simple Information Augmentation Controller
-class SimpleAugmentationController {
-  categorizeSOI(segment: SegmentOfInterest, context: string): {
+// LLM-based Information Augmentation Controller
+class LLMAugmentationController {
+  async categorizeSOI(segment: SegmentOfInterest, context: string): Promise<{
+    action: 'web_search' | 'user_dialogue' | 'direct_correction';
+    reason: string;
+    priority: number;
+  }> {
+    // If OpenRouter is not available, use fallback categorization
+    if (!openai) {
+      console.log('OpenRouter not available, using fallback categorization');
+      return this.getFallbackCategorization(segment);
+    }
+
+    try {
+      const response = await openai.chat.completions.create({
+        model: AGENT_CONFIG.openRouter.model,
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert at categorizing segments of interest in ASR transcripts. 
+            Analyze each segment and decide the best approach for correction.`
+          },
+          {
+            role: 'user',
+            content: `Analyze this segment of interest and categorize it:
+            
+            Segment: ${JSON.stringify(segment)}
+            Context: "${context}"
+            
+            Categorize this SOI and recommend the next action:
+            1. "web_search" - High uncertainty, factual query, or named entity verification needed
+            2. "user_dialogue" - Moderate uncertainty, ambiguity, or multiple valid interpretations  
+            3. "direct_correction" - Low uncertainty, likely simple fix
+            
+            Return JSON:
+            {
+              "action": "web_search|user_dialogue|direct_correction",
+              "reason": "explanation of the decision",
+              "priority": 1-5
+            }
+            
+            Only return valid JSON, no additional text.`
+          }
+        ],
+        temperature: AGENT_CONFIG.openRouter.temperature,
+        max_tokens: 500
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (content) {
+        try {
+          return JSON.parse(content);
+        } catch (parseError) {
+          console.error('Failed to parse categorization result:', parseError);
+          return this.getFallbackCategorization(segment);
+        }
+      }
+    } catch (error) {
+      console.error('Error calling OpenRouter for categorization:', error);
+    }
+
+    return this.getFallbackCategorization(segment);
+  }
+
+  private getFallbackCategorization(segment: SegmentOfInterest): {
     action: 'web_search' | 'user_dialogue' | 'direct_correction';
     reason: string;
     priority: number;
   } {
-    // Simple rule-based categorization
-    if (segment.uncertaintyScore > 0.8) {
+    // Fallback rule-based categorization
+    if (segment.uncertaintyScore > AGENT_CONFIG.thresholds.highUncertainty) {
       return {
         action: 'web_search',
         reason: 'High uncertainty requires external verification',
         priority: 5
       };
-    } else if (segment.uncertaintyScore > 0.5) {
+    } else if (segment.uncertaintyScore > AGENT_CONFIG.thresholds.moderateUncertainty) {
       return {
         action: 'user_dialogue',
         reason: 'Moderate uncertainty requires user input',
@@ -139,13 +292,13 @@ class SimpleAugmentationController {
 
 // Main ASR Agent Class
 export class SimpleASRAgent {
-  private errorDetection: SimpleErrorDetection;
-  private augmentationController: SimpleAugmentationController;
+  private errorDetection: LLMErrorDetection;
+  private augmentationController: LLMAugmentationController;
   private asrTool: MockASRTool;
 
   constructor() {
-    this.errorDetection = new SimpleErrorDetection();
-    this.augmentationController = new SimpleAugmentationController();
+    this.errorDetection = new LLMErrorDetection();
+    this.augmentationController = new LLMAugmentationController();
     this.asrTool = new MockASRTool();
   }
 
@@ -164,7 +317,7 @@ export class SimpleASRAgent {
 
       // Step 2: Error Detection
       processingSteps.push('Analyzing transcript for potential errors...');
-      const segmentsOfInterest = this.errorDetection.detectErrors(asrOutput);
+      const segmentsOfInterest = await this.errorDetection.detectErrors(asrOutput);
       processingSteps.push(`Found ${segmentsOfInterest.length} segments of interest`);
 
       // Step 3: Categorize and prioritize SOIs
@@ -172,7 +325,7 @@ export class SimpleASRAgent {
       const categorizedSOIs: SegmentOfInterest[] = [];
       
       for (const segment of segmentsOfInterest) {
-        const categorization = this.augmentationController.categorizeSOI(
+        const categorization = await this.augmentationController.categorizeSOI(
           segment,
           asrOutput.transcript
         );
