@@ -2,6 +2,8 @@
 // This version focuses on the core logic without complex LangChain dependencies
 import OpenAI from 'openai';
 import { AGENT_CONFIG, isOpenRouterAvailable } from './config';
+import { NERTool } from './nerTool';
+import type { TextSegment, ExtractionStrategy, ExtractionOptions } from '$lib/components/editor/api/segmentExtraction';
 
 // Initialize OpenAI client for OpenRouter (only if API key is available)
 let openai: OpenAI | null = null;
@@ -40,6 +42,13 @@ export interface SegmentOfInterest {
   action?: 'web_search' | 'user_dialogue' | 'direct_correction';
   priority?: number;
   categorizationReason?: string;
+  nerEntities?: Array<{
+    text: string;
+    label: string;
+    confidence: string;
+    potentialIssues: string[];
+    suggestions: string[];
+  }>;
 }
 
 export interface CorrectionSuggestion {
@@ -54,32 +63,277 @@ export interface CorrectionSuggestion {
 // Mock ASR Tool
 class MockASRTool {
   async transcribe(audioFilePath: string): Promise<ASROutput> {
-    // Mock ASR response
+    // Mock ASR response with Estonian text for better NER testing
     return {
-      transcript: "This is a sample transcript with some potential errors",
+      transcript: "Tallinna Ülikooli rektor Tiit Land kohtus Tartu Ülikooli professor Mart Kulliga Eesti Teaduste Akadeemias. Nad arutasid koostööd tehisintellekti valdkonnas.",
       nBestList: [
-        "This is a sample transcript with some potential errors",
-        "This is a sample transcription with some potential errors",
-        "This is a sample transcript with some potential error"
+        "Tallinna Ülikooli rektor Tiit Land kohtus Tartu Ülikooli professor Mart Kulliga Eesti Teaduste Akadeemias. Nad arutasid koostööd tehisintellekti valdkonnas.",
+        "Tallllinna Ülikooli rektor Tiit Landd kohtus Tartuu Ülikooli professor Mart Kulliga Eesti Teaduste Akadeemias. Nad arutasid koostööd tehisintellekti valdkonnas.",
+        "Tallinna Ülikooli rektor Tiit Land kohtus Tartu Ülikooli professor Mart Kulliga Eesti Teaduste Akadeemias. Nad arutasid koostööd tehisintellekti valdkonnas."
       ],
       confidenceScores: [0.85, 0.75, 0.65],
       wordTimings: [
-        { word: "This", start: 0, end: 0.5, confidence: 0.9 },
-        { word: "is", start: 0.5, end: 0.8, confidence: 0.85 },
-        { word: "a", start: 0.8, end: 1.0, confidence: 0.95 },
-        { word: "sample", start: 1.0, end: 1.8, confidence: 0.7 },
-        { word: "transcript", start: 1.8, end: 2.5, confidence: 0.8 },
-        { word: "with", start: 2.5, end: 2.8, confidence: 0.9 },
-        { word: "some", start: 2.8, end: 3.2, confidence: 0.6 },
-        { word: "potential", start: 3.2, end: 4.0, confidence: 0.5 },
-        { word: "errors", start: 4.0, end: 4.8, confidence: 0.75 }
+        { word: "Tallinna", start: 0, end: 0.8, confidence: 0.9 },
+        { word: "Ülikooli", start: 0.8, end: 1.5, confidence: 0.85 },
+        { word: "rektor", start: 1.5, end: 2.0, confidence: 0.95 },
+        { word: "Tiit", start: 2.0, end: 2.3, confidence: 0.7 },
+        { word: "Land", start: 2.3, end: 2.8, confidence: 0.8 },
+        { word: "kohtus", start: 2.8, end: 3.3, confidence: 0.9 },
+        { word: "Tartu", start: 3.3, end: 3.8, confidence: 0.6 },
+        { word: "Ülikooli", start: 3.8, end: 4.5, confidence: 0.5 },
+        { word: "professor", start: 4.5, end: 5.2, confidence: 0.75 },
+        { word: "Mart", start: 5.2, end: 5.6, confidence: 0.8 },
+        { word: "Kulliga", start: 5.6, end: 6.2, confidence: 0.9 },
+        { word: "Eesti", start: 6.2, end: 6.7, confidence: 0.95 },
+        { word: "Teaduste", start: 6.7, end: 7.3, confidence: 0.85 },
+        { word: "Akadeemias", start: 7.3, end: 8.0, confidence: 0.9 }
       ]
     };
   }
 }
 
+// Segment-based NER Analysis
+class SegmentNERAnalysis {
+  private nerTool: NERTool;
+
+  constructor() {
+    this.nerTool = new NERTool();
+  }
+
+  /**
+   * Analyze segments using NER to identify potential entity issues
+   */
+  async analyzeSegmentsWithNER(segments: TextSegment[], language: string = 'et'): Promise<SegmentOfInterest[]> {
+    const segmentsOfInterest: SegmentOfInterest[] = [];
+
+    for (const segment of segments) {
+      try {
+        // Use NER tool to analyze the segment
+        const nerResult = await this.nerTool.call(JSON.stringify({
+          text: segment.text,
+          language
+        }));
+
+        // Parse NER result to find problematic entities
+        const problematicEntities = this.extractProblematicEntities(nerResult);
+        
+        if (problematicEntities.length > 0) {
+          segmentsOfInterest.push({
+            id: `ner_${segment.id}`,
+            text: segment.text,
+            start: segment.start,
+            end: segment.end,
+            reason: 'ner_issue',
+            uncertaintyScore: this.calculateNERUncertainty(problematicEntities),
+            confidenceScore: segment.metadata.confidence,
+            nerEntities: problematicEntities,
+            action: 'direct_correction',
+            priority: this.calculateNERPriority(problematicEntities),
+            categorizationReason: `Found ${problematicEntities.length} entities with potential issues`
+          });
+        }
+      } catch (error) {
+        console.error(`Error analyzing segment ${segment.id} with NER:`, error);
+      }
+    }
+
+    return segmentsOfInterest;
+  }
+
+  /**
+   * Extract entities with issues from NER result
+   */
+  private extractProblematicEntities(nerResult: string): Array<{
+    text: string;
+    label: string;
+    confidence: string;
+    potentialIssues: string[];
+    suggestions: string[];
+  }> {
+    const entities: Array<{
+      text: string;
+      label: string;
+      confidence: string;
+      potentialIssues: string[];
+      suggestions: string[];
+    }> = [];
+
+    try {
+      // Parse the NER result to extract entity information
+      // The NER tool returns a formatted string, so we need to parse it
+      const lines = nerResult.split('\n');
+      let currentEntity: any = null;
+
+      for (const line of lines) {
+        if (line.includes('🔴') || line.includes('🟡')) {
+          // Start of a new entity
+          if (currentEntity) {
+            entities.push(currentEntity);
+          }
+          
+          // Extract entity text and label
+          const match = line.match(/[""]([^""]+)[""] \(([^)]+)\)/);
+          if (match) {
+            currentEntity = {
+              text: match[1],
+              label: match[2],
+              confidence: line.includes('🔴') ? 'low' : 'medium',
+              potentialIssues: [],
+              suggestions: []
+            };
+          }
+        } else if (currentEntity && line.includes('Issues:')) {
+          // Extract issues
+          const issuesMatch = line.match(/Issues: (.+)/);
+          if (issuesMatch) {
+            currentEntity.potentialIssues = issuesMatch[1].split(', ').filter(issue => issue !== 'None');
+          }
+        } else if (currentEntity && line.includes('Suggestions:')) {
+          // Extract suggestions
+          const suggestionsMatch = line.match(/Suggestions: (.+)/);
+          if (suggestionsMatch) {
+            currentEntity.suggestions = suggestionsMatch[1].split(', ').filter(suggestion => suggestion !== 'None');
+          }
+        }
+      }
+
+      // Add the last entity
+      if (currentEntity) {
+        entities.push(currentEntity);
+      }
+    } catch (error) {
+      console.error('Error parsing NER result:', error);
+    }
+
+    return entities;
+  }
+
+  /**
+   * Calculate uncertainty score based on NER entities
+   */
+  private calculateNERUncertainty(entities: Array<{ confidence: string; potentialIssues: string[] }>): number {
+    let totalUncertainty = 0;
+    
+    for (const entity of entities) {
+      let entityUncertainty = 0;
+      
+      // Base uncertainty from confidence
+      if (entity.confidence === 'low') {
+        entityUncertainty += 0.8;
+      } else if (entity.confidence === 'medium') {
+        entityUncertainty += 0.5;
+      } else {
+        entityUncertainty += 0.2;
+      }
+      
+      // Additional uncertainty from issues
+      entityUncertainty += entity.potentialIssues.length * 0.1;
+      
+      totalUncertainty += Math.min(entityUncertainty, 1.0);
+    }
+    
+    return Math.min(totalUncertainty / entities.length, 1.0);
+  }
+
+  /**
+   * Calculate priority score for NER issues
+   */
+  private calculateNERPriority(entities: Array<{ confidence: string; potentialIssues: string[] }>): number {
+    let priority = 0;
+    
+    for (const entity of entities) {
+      // Higher priority for low confidence entities
+      if (entity.confidence === 'low') {
+        priority += 3;
+      } else if (entity.confidence === 'medium') {
+        priority += 2;
+      } else {
+        priority += 1;
+      }
+      
+      // Higher priority for entities with more issues
+      priority += entity.potentialIssues.length;
+    }
+    
+    return priority;
+  }
+
+  /**
+   * Create text segments from ASR output for NER analysis
+   */
+  createSegmentsFromASR(asrOutput: ASROutput): TextSegment[] {
+    const segments: TextSegment[] = [];
+    
+    // Create segments based on sentence boundaries
+    const sentences = this.splitIntoSentences(asrOutput.transcript);
+    let currentPosition = 0;
+    
+    sentences.forEach((sentence, index) => {
+      if (sentence.trim()) {
+        const start = currentPosition;
+        const end = currentPosition + sentence.length;
+        
+        segments.push({
+          id: `sentence_${index}`,
+          text: sentence.trim(),
+          start,
+          end,
+          metadata: {
+            wordCount: sentence.split(' ').length,
+            characterCount: sentence.length,
+            hasTimestamps: true,
+            marks: [],
+            confidence: this.calculateSegmentConfidence(sentence, asrOutput.wordTimings, start, end)
+          }
+        });
+        
+        currentPosition = end + 1; // +1 for the space or punctuation
+      }
+    });
+    
+    return segments;
+  }
+
+  /**
+   * Split transcript into sentences
+   */
+  private splitIntoSentences(text: string): string[] {
+    // Simple sentence splitting for Estonian
+    return text.split(/[.!?]+/).filter(sentence => sentence.trim().length > 0);
+  }
+
+  /**
+   * Calculate confidence for a segment based on word timings
+   */
+  private calculateSegmentConfidence(
+    segmentText: string, 
+    wordTimings: Array<{ word: string; confidence: number }>, 
+    start: number, 
+    end: number
+  ): number {
+    const segmentWords = segmentText.split(' ');
+    let totalConfidence = 0;
+    let wordCount = 0;
+    
+    for (const timing of wordTimings) {
+      if (segmentWords.includes(timing.word)) {
+        totalConfidence += timing.confidence;
+        wordCount++;
+      }
+    }
+    
+    return wordCount > 0 ? totalConfidence / wordCount : 0.5;
+  }
+}
+
 // LLM-based Error Detection
 class LLMErrorDetection {
+  private nerAnalysis: SegmentNERAnalysis;
+
+  constructor() {
+    this.nerAnalysis = new SegmentNERAnalysis();
+  }
+
   async detectErrors(asrOutput: ASROutput): Promise<SegmentOfInterest[]> {
     const segments: SegmentOfInterest[] = [];
     
@@ -116,6 +370,15 @@ class LLMErrorDetection {
           });
         }
       }
+    }
+
+    // Use NER analysis on segments
+    try {
+      const textSegments = this.nerAnalysis.createSegmentsFromASR(asrOutput);
+      const nerSegments = await this.nerAnalysis.analyzeSegmentsWithNER(textSegments, 'et');
+      segments.push(...nerSegments);
+    } catch (error) {
+      console.error('Error in NER analysis:', error);
     }
 
     // Use LLM for semantic analysis

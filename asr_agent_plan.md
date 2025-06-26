@@ -12,12 +12,12 @@ Input Processing Chain:
 
 Input: Raw audio file/stream.
 Step 1 (ASR Tool): A LangChain tool that calls your ASR service (primarily the N-best ASR). There is a SvelteKit endpoint for this already.
-Output: 1-best transcript, N-best list, confidence scores.
-Step 2 (Initial Formatting): A simple processing step to structure the ASR output for subsequent modules (e.g., segmenting into sentences, associating confidence scores with words).
+Output: 1-best transcript with time codes for each word and segemnt. That is processed into TipTap custom schema.
+
 Error Detection and Candidate Identification Chain:
 
 Input: Formatted ASR output from the previous chain.
-Component 1 (Low Confidence Flagging):
+Component 1 (Secondary ASR system call and Low Confidence Flagging):
 Identify words/segments with ASR confidence scores below a configurable threshold. Be mindful that confidence scores alone are not perfectly reliable.   
 Component 2 (NLP-based Anomaly Detection - LLM Call):
 Use an LLM to analyze semantic coherence. Prompt the LLM to identify awkward phrasing, contextually odd statements, or potential factual inaccuracies in the transcript.   

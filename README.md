@@ -51,3 +51,92 @@ You can preview the production build with `npm run preview`.
 ## Deployment
 
 To deploy the `npm run prod` should be provided with appopriate enviroment variables. Teksiks.ee is using the Nginx reverse proxy to configure the public name and TLS certificates.
+
+## Features
+
+- **ASR Transcription**: Upload audio files and get automatic transcriptions
+- **Interactive Editor**: Rich text editor with speaker segmentation and word-level timestamps
+- **Real-time Collaboration**: Multiple users can edit transcripts simultaneously
+- **Export Options**: Download transcripts in various formats (JSON, SRT, TXT)
+- **Multi-language Support**: Estonian, English, and Finnish interfaces
+- **AI-Powered Transcript Refinement**: Advanced LLM integration for error detection and correction
+
+## AI Agent Integration
+
+### Transcript Refinement Workflow
+
+The application now includes a sophisticated AI agent pipeline for automatic transcript refinement:
+
+#### Components:
+- **NER Analysis**: Named Entity Recognition to identify proper nouns, organizations, and locations
+- **OpenRouter LLM Integration**: Real-time analysis and correction suggestions using Claude 3.5 Sonnet
+- **Error Detection**: Automatic identification of potential ASR errors and confidence assessment
+- **Correction Suggestions**: Intelligent recommendations for transcript improvements
+
+#### API Endpoints:
+- `POST /api/agent/transcript-refinement` - Trigger full transcript refinement
+- `POST /api/tools/ner` - Named Entity Recognition analysis
+- `GET /api/tools/ner` - NER service health check
+
+#### Usage:
+```javascript
+// Initialize the agent
+const agent = new TranscriptRefinementAgent(false); // false = use real OpenRouter
+
+// Analyze a single segment
+const analysis = await agent.analyzeSegment(
+  "Tallinna Ülikooli rektor Tiit Land.",
+  "segment_1",
+  0,
+  5000,
+  "Speaker 1"
+);
+
+// Refine entire transcript
+const result = await agent.refineTranscript(
+  "file_123",
+  words,
+  speakers,
+  transcriptContent
+);
+```
+
+#### Configuration:
+Set your OpenRouter API key in `.env`:
+```
+OPENROUTER_API_KEY=your_api_key_here
+```
+
+The system automatically falls back to mock mode if the API key is not available.
+
+## Development
+
+### Prerequisites
+- Node.js 18+
+- Bun package manager
+- PostgreSQL database
+
+### Setup
+1. Clone the repository
+2. Install dependencies: `bun install`
+3. Set up environment variables (see `.env.example`)
+4. Run database migrations: `bun run db:migrate`
+5. Start development server: `bun run dev`
+
+### Testing
+- Run all tests: `bun test`
+- Test transcript refinement: `bun run scripts/test_transcript_refinement.js`
+- Test NER integration: `bun run scripts/test_segment_ner_integration.js`
+
+## Architecture
+
+The application uses:
+- **SvelteKit** for the frontend and API routes
+- **TipTap** for the rich text editor
+- **Prisma** for database management
+- **OpenRouter** for LLM integration
+- **LangChain** for agent orchestration
+
+## License
+
+MIT License - see LICENSE file for details.

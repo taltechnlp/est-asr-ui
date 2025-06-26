@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  ner-service:
+    image: python:3.9-slim
+    container_name: est-asr-ner-service
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./ner-service:/app
+    working_dir: /app
+    command: >
+      sh -c "pip install -r requirements.txt &&
+             python app.py"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Redis for caching NER results
+  redis:
+    image: redis:7-alpine
+    container_name: est-asr-ner-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  redis-data: 
