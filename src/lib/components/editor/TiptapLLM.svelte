@@ -205,6 +205,9 @@
 			const { selection } = $editor.state;
 			let segments: TextSegment[] = [];
 
+			console.log('First node in content.content:', JSON.stringify(content.content?.[0], null, 2));
+			console.log('All node types in content.content:', content.content?.map(n => n.type));
+
 			if (selection.from !== selection.to) {
 				// Analyze selected text
 				segments = segmentExtractor.extractSelection();
@@ -359,6 +362,9 @@
 			$editor.setEditable(false, false);
 			editable = $editor.isEditable;
 		}
+
+		// Automatically extract and analyze segments after editor is rendered
+		analyzeCurrentSegments();
 	});
 
 	let windowWidth = $state(window.innerWidth);

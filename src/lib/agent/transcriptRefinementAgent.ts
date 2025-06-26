@@ -1,6 +1,7 @@
 import { analyzeSegmentWithOpenRouter, suggestCorrectionsWithOpenRouter } from './llmUtils';
 import { NERTool } from './nerTool';
 import type { Word, Speaker } from '$lib/helpers/converters/types';
+import { promises as fs } from 'fs';
 
 export interface SegmentAnalysis {
   segmentId: string;
@@ -229,18 +230,22 @@ export class TranscriptRefinementAgent {
     }> = [];
 
     if (content && content.content) {
+      // DEBUG: Save the received JSON to a file for inspection (ESM compatible)
+      fs.writeFile('/tmp/segment_debug.json', JSON.stringify(content, null, 2)).catch(e => {
+        console.error('Failed to write debug JSON:', e);
+      });
       // Handle TipTap editor format
       content.content.forEach((node: any, index: number) => {
-        if (node.type === 'segment' && node.content) {
-          const segmentText = node.content
-            .map((inlineNode: any) => {
-              if (inlineNode.type === 'text') {
-                return inlineNode.text || '';
-              }
-              return '';
-            })
-            .join(' ')
-            .trim();
+        if (["segment", "paragraph", "speaker"].includes(node.type)) {
+          let segmentText = '';
+          if (Array.isArray(node.content)) {
+            segmentText = node.content
+              .map((inlineNode: any) => inlineNode.text || '')
+              .join(' ')
+              .trim();
+          } else if (typeof node.text === 'string') {
+            segmentText = node.text.trim();
+          }
 
           if (segmentText) {
             // Find start and end times for this segment
