@@ -144,6 +144,61 @@ export const checkCompletion = async (
     }
 };
 
+/**
+ * Debug utility to analyze workflow events and progress
+ */
+export const debugWorkflowProgress = async (fileId: string) => {
+    try {
+        const file = await prisma.file.findUnique({
+            where: { id: fileId },
+            include: {
+                workflows: {
+                    orderBy: { utc_time: 'desc' },
+                    include: {
+                        processes: {
+                            orderBy: { submit: 'desc' }
+                        }
+                    }
+                }
+            }
+        });
+
+        if (!file) {
+            console.log(`[DEBUG] File ${fileId} not found`);
+            return null;
+        }
+
+        console.log(`[WORKFLOW DEBUG] Analysis for file: ${file.filename}`, {
+            fileId: file.id,
+            externalId: file.externalId,
+            state: file.state,
+            workflowCount: file.workflows.length,
+            workflows: file.workflows.map(wf => ({
+                runId: wf.run_id,
+                event: wf.event,
+                utcTime: wf.utc_time,
+                progressLength: wf.progressLength,
+                succeededCount: wf.succeededCount,
+                runningCount: wf.runningCount,
+                pendingCount: wf.pendingCount,
+                failedCount: wf.failedCount,
+                processCount: wf.processes.length,
+                processes: wf.processes.map(p => ({
+                    taskId: p.task_id,
+                    process: p.process,
+                    status: p.status,
+                    tag: p.tag
+                }))
+            }))
+        });
+
+        return file;
+    } catch (error) {
+        console.error(`[DEBUG ERROR] Failed to analyze workflow for file ${fileId}:`, error);
+        return null;
+    }
+};
+
 export const getFiles = async (id) => {
     		const user = await prisma.user.findUnique({
         where: {
@@ -173,6 +228,10 @@ export const getFiles = async (id) => {
                         select: {
                             progressLength: true,
                             succeededCount: true,
+                            runningCount: true,
+                            pendingCount: true,
+                            failedCount: true,
+                            event: true,
                             processes: {
                                 select: {
                                     status: true,
@@ -192,9 +251,46 @@ export const getFiles = async (id) => {
                 if (file.language === "finnish") {
                     await checkCompletion(file.id, file.state, file.externalId, file.path, file.language, file.initialTranscriptionPath, fetch);
                 }
-                if (file.workflows && file.workflows.length > 0 && file.workflows[0].processes) {
-                    progress = Math.floor(file.workflows[0].processes.length / 30 * 100);
-                } 
+                
+                // Improved progress calculation using actual workflow statistics
+                if (file.workflows && file.workflows.length > 0) {
+                    const workflow = file.workflows[0];
+
+                    // Method 1: Use workflow statistics if available (most accurate)
+                    if (workflow.progressLength && workflow.progressLength > 0) {
+                        const totalProcesses = workflow.progressLength;
+                        const completedProcesses = (workflow.succeededCount || 0) + (workflow.failedCount || 0);
+                        progress = Math.min(100, Math.floor((completedProcesses / totalProcesses) * 100));
+                    }
+                    // Method 2: Fallback to process count estimation
+                    else if (workflow.processes && workflow.processes.length > 0) {
+                        // Estimate total processes based on completed ones
+                        const completedProcesses = workflow.processes.filter(p => 
+                            p.status === 'COMPLETED' || p.status === 'ERROR' || p.status === 'FAILED'
+                        ).length;
+                        const totalProcesses = workflow.processes.length;
+                        
+                        // Use a more realistic estimation based on typical workflow patterns
+                        // Most workflows have a predictable number of processes per file
+                        const estimatedTotal = Math.max(totalProcesses, 20); // Minimum reasonable estimate
+                        progress = Math.min(100, Math.floor((completedProcesses / estimatedTotal) * 100));
+                    }
+                    // Method 3: Event-based estimation
+                    else if (workflow.event) {
+                        const eventProgress = {
+                            'started': 10,
+                            'process_submitted': 20,
+                            'process_started': 30,
+                            'process_completed': 80,
+                            'completed': 100,
+                            'error': 0
+                        };
+                        progress = eventProgress[workflow.event] || 0;
+                    }
+                    
+                    // Ensure progress doesn't exceed 100%
+                    progress = Math.min(100, Math.max(0, progress));
+                }
             }
             return {
                 id: file.id,

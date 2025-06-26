@@ -30,9 +30,10 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
             },
         });
         if (!file) {
-            console.error("File not found in the database.");
+            console.error(`File not found in database for externalId: ${workflow.runName}`);
             return new Response("File not found in the database.", { status: 404 });
         }
+
         // trace is only provided for the following events: process_submitted, process_started, process_completed, error
         if (workflow.trace) {
             try {
@@ -95,7 +96,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
                     
                 })
             }
-            catch(e) {console.log("save NF info to db failed", e)}
+            catch(e) {console.error("Failed to save trace event to database:", e)}
             
         } 
         else if (workflow.event === "error") {
@@ -131,7 +132,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
                 })
             }
             catch(e) {
-                console.log("save NF info to db failed", e)
+                console.error("Failed to save error event to database:", e);
             }
         }
         // metadata is only provided for the following events: started, completed
@@ -177,6 +178,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
                         file_id: true,                        
                     }
                 })
+
                 if (workflow.metadata.workflow.stats.failedCount > 0){
                     try {
                         await prisma.file.update({
@@ -185,6 +187,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
                                 id: updatedWf.file_id,
                             }
                         });
+                        
                         if (file.notify) {
                             await sendEmail({
                                 to: file.User.email,
@@ -208,43 +211,78 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
                         }
                     }
                     catch(e) {
-                        console.log("Saving failed transcription or sending email notification failed", e);
+                        console.error("Failed to save failed transcription or send email notification:", e);
                     }
                 }
-                else if (workflow.event === "completed" && workflow.metadata.workflow.stats.succeededCount == workflow.metadata.workflow.stats.progressLength) {
-                    try {
-                        await prisma.file.update({
-                            data: { state: "READY" },
-                            where: {
-                                id: updatedWf.file_id,
-                            }
-                        });
-                        if (file.notify) {
-                            await sendEmail({
-                                to: file.User.email,
-                                subject: "Transkribeerimine õnnestus - tekstiks.ee",
-                                html: createEmail(`Teie faili nimega ${file.filename} transkribeerimine õnnestus!
+                else {
+                    const stats = workflow.metadata.workflow.stats;
+                    const totalCompleted = (stats.succeededCount || 0) + (stats.failedCount || 0);
+                    const totalExpected = stats.progressLength;
 
-                                \n\n
-                                <a href="${ORIGIN}/files/${file.id}">Tuvastatud tekst asub siin.</a>`)
-                            });
+                    // Mark as READY if we get a 'completed' event with no failures
+                    // This handles cases where workflows have fewer steps than expected
+                    if (workflow.event === "completed" && (stats.failedCount || 0) === 0) {
+                        try {
                             await prisma.file.update({
-                                data: {
-                                    notified: true,
-                                },
+                                data: { state: "READY" },
                                 where: {
                                     id: updatedWf.file_id,
                                 }
                             });
+                            console.log(`Transcription completed successfully for file: ${file.filename}`);
+                            
+                            if (file.notify) {
+                                await sendEmail({
+                                    to: file.User.email,
+                                    subject: "Transkribeerimine õnnestus - tekstiks.ee",
+                                    html: createEmail(`Teie faili nimega ${file.filename} transkribeerimine on lõpetatud!\n\n<a href=\"${ORIGIN}/files/${file.id}\">Tuvastatud tekst asub siin.</a>`)
+                                });
+                                await prisma.file.update({
+                                    data: {
+                                        notified: true,
+                                    },
+                                    where: {
+                                        id: updatedWf.file_id,
+                                    }
+                                });
+                            }
+                        } catch(e) {
+                            console.error("Failed to save successful transcription result or send email notification:", e);
                         }
-                    }
-                    catch(e) {
-                        console.log("Saving successful transcription result or sending email notification failed", e);
+                    } else if (totalExpected && totalCompleted === totalExpected) {
+                        // Fallback: Set READY if all expected processes are finished (succeeded or failed)
+                        try {
+                            await prisma.file.update({
+                                data: { state: "READY" },
+                                where: {
+                                    id: updatedWf.file_id,
+                                }
+                            });
+                            console.log(`Transcription completed successfully for file: ${file.filename}`);
+                            
+                            if (file.notify) {
+                                await sendEmail({
+                                    to: file.User.email,
+                                    subject: "Transkribeerimine õnnestus - tekstiks.ee",
+                                    html: createEmail(`Teie faili nimega ${file.filename} transkribeerimine on lõpetatud!\n\n<a href=\"${ORIGIN}/files/${file.id}\">Tuvastatud tekst asub siin.</a>`)
+                                });
+                                await prisma.file.update({
+                                    data: {
+                                        notified: true,
+                                    },
+                                    where: {
+                                        id: updatedWf.file_id,
+                                    }
+                                });
+                            }
+                        } catch(e) {
+                            console.error("Failed to save successful transcription result or send email notification:", e);
+                        }
                     }
                 }
             }
             catch(e) {
-                console.log("save NF info to db failed", e);
+                console.error("Failed to save metadata event to database:", e);
             }
         }
         return new Response("received", { status: 200 });

@@ -317,7 +317,6 @@
 								{#if file.progress >= 0}
 									{` ${file.progress}%`}
 								{/if}
-								<span class="btn btn-ghost btn-xs" aria-label={$_('files.loading')}></span>
 								<span class="loading loading-spinner loading-xs"></span>
 							{:else if file.state == 'UPLOADED' && file.queued}
 								<div class="badge badge-md badge-info pl-2 pr-2">{$_('files.statusUploaded')}</div>
