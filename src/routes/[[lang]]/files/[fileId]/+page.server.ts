@@ -21,10 +21,25 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
     if (!session || !session.user.id) {
         error(401, 'unauthorized');
     } 
+    if (!file) {
+        error(404, 'File not found');
+    }
     if (session.user.id !== file.User.id ) {
         return error(401, 'unauthorized');
     }
-        const content = await fs.readFile(file.initialTranscriptionPath, 'utf8');
+    
+    // Add error handling for missing transcription file
+    let content;
+    try {
+        content = await fs.readFile(file.initialTranscriptionPath, 'utf8');
+    } catch (error) {
+        console.error('Error reading transcription file:', error);
+        // Provide a safe default content if the file doesn't exist
+        content = JSON.stringify({
+            type: 'doc',
+            content: []
+        });
+    }
 
         /* let peaksExist = true;
         let peaksPath = file.path + '.json';

@@ -121,6 +121,19 @@
 		// Add beforeunload listener for browser navigation/reload/close
 		window.addEventListener('beforeunload', handleBeforeUnload);
 
+		// Ensure content is valid before creating editor
+		if (!content) {
+			console.warn('TipTap: No content provided, using empty document');
+			content = {
+				type: 'doc',
+				content: []
+			};
+		}
+
+		// Declare variables that will be used in the onTransaction callback
+		let prevEditorDoc: Node;
+		let schema: Schema;
+
 		editor = createEditor({
 			extensions: [
 				Document,
@@ -185,10 +198,16 @@
 				// console.log(editor.schema);
 			}
 		});
-		editorStore.set($editor);
-		editorMounted.set(true);
-		let prevEditorDoc: Node = $editor.state.doc;
-		const schema = $editor.schema;
+		
+		// Ensure editor is properly set before accessing it
+		if ($editor) {
+			editorStore.set($editor);
+			editorMounted.set(true);
+			prevEditorDoc = $editor.state.doc;
+			schema = $editor.schema;
+		} else {
+			console.error('TipTap: Failed to create editor');
+		}
 		
 
 		hotkeys('tab', function(event, handler){
@@ -415,9 +434,15 @@
 				
 			</div>
 		{/if}
-		<EditorContent editor={$editor} />
+		{#if $editor}
+			<EditorContent editor={$editor} />
+		{:else}
+			<div class="flex items-center justify-center h-32 text-gray-500">
+				Loading editor...
+			</div>
+		{/if}
 	</div>
-	{#if editor && $editorMode === 2}
+	{#if $editor && $editorMode === 2}
 		<BubbleMenu editor={$editor}>
 			<div class="flex items-center my-bubble-menu bg-base-200 shadow-md">
 				<LanguageLabel {editor} />

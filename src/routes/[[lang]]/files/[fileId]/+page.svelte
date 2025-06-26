@@ -14,9 +14,18 @@
 	let { data } = $props();
 	let words: Array<Word> = [];
 	let speakers: Array<Speaker> = [];
-	let json = JSON.parse(data.file && data.file.content);
+	
+	// Add defensive programming for content parsing
+	let json;
 	let content;
 	let transcription = $state();
+	
+	try {
+		json = JSON.parse(data.file && data.file.content);
+	} catch (error) {
+		console.error('Error parsing file content:', error);
+		json = null;
+	}
 	
 	// Transcript refinement state
 	let refinementStatus = $state<'idle' | 'loading' | 'completed' | 'error'>('idle');
@@ -61,7 +70,14 @@
 			}
 		});
 		transcription = json;
-	} else transcription = json; // empty editor;
+	} else {
+		// Provide a safe default for empty or invalid content
+		transcription = {
+			type: 'doc',
+			content: []
+		};
+	}
+	
 	editorMounted.set(false);
 	speakerNamesStore.set(speakers);
 	wordsStore.set(words);
@@ -211,13 +227,22 @@
 			</div>
 		{/if}
 
-		<Tiptap
-			content={transcription}
-			fileId={data.file.id}
-			demo={false}
-			fileName={data.file.name}
-			uploadedAt={data.file.uploadedAt}
-		/>
-		<Player url={`${data.url}/uploaded/${data.file.id}`} />
+		{#if transcription && data.file}
+			<Tiptap
+				content={transcription}
+				fileId={data.file.id}
+				demo={false}
+				fileName={data.file.name}
+				uploadedAt={data.file.uploadedAt}
+			/>
+			<Player url={`${data.url}/uploaded/${data.file.id}`} />
+		{:else}
+			<div class="flex items-center justify-center h-64">
+				<div class="text-center">
+					<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+					<p class="text-gray-600">Loading transcript...</p>
+				</div>
+			</div>
+		{/if}
 	</div>
 </main>
