@@ -3,7 +3,7 @@ export const AGENT_CONFIG = {
   // OpenRouter settings
   openRouter: {
     baseURL: 'https://openrouter.ai/api/v1',
-    model: 'anthropic/claude-3.5-sonnet',
+    model: 'google/gemini-2.5-flash',
     temperature: 0.1,
     maxTokens: 1000,
     headers: {

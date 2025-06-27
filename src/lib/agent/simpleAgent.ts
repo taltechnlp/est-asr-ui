@@ -5,6 +5,22 @@ import { AGENT_CONFIG, isOpenRouterAvailable } from './config';
 import { NERTool } from './nerTool';
 import type { TextSegment, ExtractionStrategy, ExtractionOptions } from '$lib/components/editor/api/segmentExtraction';
 
+// Helper function to truncate long content for logging
+function truncateForLogging(content: string, maxLength: number = 500): string {
+  if (content.length <= maxLength) return content;
+  return content.substring(0, maxLength) + '... [TRUNCATED]';
+}
+
+// Helper function to safely stringify objects for logging
+function safeStringify(obj: any, maxLength: number = 1000): string {
+  try {
+    const str = JSON.stringify(obj, null, 2);
+    return truncateForLogging(str, maxLength);
+  } catch (error) {
+    return '[UNABLE TO STRINGIFY]';
+  }
+}
+
 // Initialize OpenAI client for OpenRouter (only if API key is available)
 let openai: OpenAI | null = null;
 
@@ -14,8 +30,9 @@ if (isOpenRouterAvailable()) {
     apiKey: process.env.OPENROUTER_API_KEY,
     defaultHeaders: AGENT_CONFIG.openRouter.headers
   });
+  console.log('🔧 SimpleAgent: OpenRouter client initialized with model:', AGENT_CONFIG.openRouter.model);
 } else {
-  console.warn('OpenRouter API key not found. Agent will use rule-based fallbacks.');
+  console.warn('⚠️ SimpleAgent: OpenRouter API key not found. Agent will use rule-based fallbacks.');
 }
 
 export interface ASROutput {
@@ -104,20 +121,30 @@ class SegmentNERAnalysis {
    * Analyze segments using NER to identify potential entity issues
    */
   async analyzeSegmentsWithNER(segments: TextSegment[], language: string = 'et'): Promise<SegmentOfInterest[]> {
+    console.log(`🔍 NER Analysis: Starting analysis of ${segments.length} segments (language: ${language})`);
     const segmentsOfInterest: SegmentOfInterest[] = [];
 
     for (const segment of segments) {
       try {
+        console.log(`📝 NER Analysis: Processing segment "${truncateForLogging(segment.text, 100)}"`);
+        
         // Use NER tool to analyze the segment
-        const nerResult = await this.nerTool.call(JSON.stringify({
+        const nerInput = JSON.stringify({
           text: segment.text,
           language
-        }));
+        });
+        console.log(`➡️ NER Tool Input: ${nerInput}`);
+        
+        const nerResult = await this.nerTool.call(nerInput);
+        console.log(`⬅️ NER Tool Output: ${truncateForLogging(nerResult, 800)}`);
 
         // Parse NER result to find problematic entities
         const problematicEntities = this.extractProblematicEntities(nerResult);
         
         if (problematicEntities.length > 0) {
+          console.log(`⚠️ NER Analysis: Found ${problematicEntities.length} problematic entities in segment`);
+          console.log(`🔍 Problematic entities: ${safeStringify(problematicEntities, 600)}`);
+          
           segmentsOfInterest.push({
             id: `ner_${segment.id}`,
             text: segment.text,
@@ -131,12 +158,15 @@ class SegmentNERAnalysis {
             priority: this.calculateNERPriority(problematicEntities),
             categorizationReason: `Found ${problematicEntities.length} entities with potential issues`
           });
+        } else {
+          console.log(`✅ NER Analysis: No issues found in segment`);
         }
       } catch (error) {
-        console.error(`Error analyzing segment ${segment.id} with NER:`, error);
+        console.error(`❌ NER Analysis: Error analyzing segment ${segment.id}:`, error);
       }
     }
 
+    console.log(`🎯 NER Analysis: Completed analysis, found ${segmentsOfInterest.length} segments with NER issues`);
     return segmentsOfInterest;
   }
 
@@ -335,11 +365,15 @@ class LLMErrorDetection {
   }
 
   async detectErrors(asrOutput: ASROutput): Promise<SegmentOfInterest[]> {
+    console.log(`🔍 Error Detection: Starting error detection on transcript (${asrOutput.transcript.length} chars, ${asrOutput.wordTimings.length} words)`);
     const segments: SegmentOfInterest[] = [];
     
     // First, detect low confidence words (rule-based)
+    console.log(`📊 Error Detection: Checking for low confidence words (threshold: ${AGENT_CONFIG.thresholds.lowConfidence})`);
+    let lowConfidenceCount = 0;
     asrOutput.wordTimings.forEach((word, index) => {
       if (word.confidence < AGENT_CONFIG.thresholds.lowConfidence) {
+        lowConfidenceCount++;
         segments.push({
           id: `low_conf_${index}`,
           text: word.word,
@@ -351,14 +385,18 @@ class LLMErrorDetection {
         });
       }
     });
+    console.log(`🔍 Error Detection: Found ${lowConfidenceCount} low confidence words`);
 
     // Detect N-best variance (rule-based)
+    console.log(`📊 Error Detection: Checking N-best variance (${asrOutput.nBestList.length} alternatives)`);
+    let nbestVarianceCount = 0;
     if (asrOutput.nBestList.length > 1) {
       const words1 = asrOutput.nBestList[0].split(' ');
       const words2 = asrOutput.nBestList[1].split(' ');
       
       for (let i = 0; i < Math.min(words1.length, words2.length); i++) {
         if (words1[i] !== words2[i]) {
+          nbestVarianceCount++;
           segments.push({
             id: `nbest_var_${i}`,
             text: words1[i],
@@ -371,23 +409,31 @@ class LLMErrorDetection {
         }
       }
     }
+    console.log(`🔍 Error Detection: Found ${nbestVarianceCount} N-best variance issues`);
 
     // Use NER analysis on segments
     try {
+      console.log(`🧬 Error Detection: Starting NER analysis phase`);
       const textSegments = this.nerAnalysis.createSegmentsFromASR(asrOutput);
       const nerSegments = await this.nerAnalysis.analyzeSegmentsWithNER(textSegments, 'et');
       segments.push(...nerSegments);
+      console.log(`✅ Error Detection: NER analysis completed, added ${nerSegments.length} NER-related segments`);
     } catch (error) {
-      console.error('Error in NER analysis:', error);
+      console.error('❌ Error Detection: Error in NER analysis:', error);
     }
 
     // Use LLM for semantic analysis
     try {
+      console.log(`🧠 Error Detection: Starting semantic analysis phase`);
       const semanticSegments = await this.detectSemanticIssues(asrOutput.transcript);
       segments.push(...semanticSegments);
+      console.log(`✅ Error Detection: Semantic analysis completed, added ${semanticSegments.length} semantic segments`);
     } catch (error) {
-      console.error('Error in semantic analysis:', error);
+      console.error('❌ Error Detection: Error in semantic analysis:', error);
     }
+
+    console.log(`🎯 Error Detection: Completed with ${segments.length} total segments of interest`);
+    console.log(`📊 Breakdown: ${lowConfidenceCount} low conf, ${nbestVarianceCount} N-best var, ${segments.filter(s => s.reason === 'ner_issue').length} NER, ${segments.filter(s => s.reason === 'semantic_anomaly').length} semantic`);
 
     return segments;
   }
@@ -395,50 +441,65 @@ class LLMErrorDetection {
   private async detectSemanticIssues(transcript: string): Promise<SegmentOfInterest[]> {
     // If OpenRouter is not available, return empty array
     if (!openai) {
-      console.log('OpenRouter not available, skipping semantic analysis');
+      console.log('⚠️ Semantic Analysis: OpenRouter not available, skipping semantic analysis');
       return [];
     }
 
+    console.log(`🧠 Semantic Analysis: Starting analysis of transcript (length: ${transcript.length} chars)`);
+    console.log(`📝 Transcript preview: "${truncateForLogging(transcript, 200)}"`);
+
     try {
+      const messages = [
+        {
+          role: 'system' as const,
+          content: `You are an expert at analyzing ASR transcripts for potential errors. 
+          Identify segments that may have semantic anomalies, awkward phrasing, or potential factual inaccuracies.
+          Return only a JSON array of problematic segments.`
+        },
+        {
+          role: 'user' as const,
+          content: `Analyze this transcript for potential issues:
+          
+          Transcript: "${transcript}"
+          
+          Return a JSON array with this structure:
+          [
+            {
+              "id": "semantic_1",
+              "text": "problematic text segment",
+              "start": 0,
+              "end": 10,
+              "reason": "semantic_anomaly",
+              "uncertaintyScore": 0.8,
+              "description": "explanation of the issue"
+            }
+          ]
+          
+          Only return valid JSON, no additional text.`
+        }
+      ];
+
+      console.log(`➡️ LLM Prompt (Semantic Analysis):`);
+      console.log(`   Model: ${AGENT_CONFIG.openRouter.model}`);
+      console.log(`   System: ${truncateForLogging(messages[0].content, 300)}`);
+      console.log(`   User: ${truncateForLogging(messages[1].content, 400)}`);
+
       const response = await openai.chat.completions.create({
         model: AGENT_CONFIG.openRouter.model,
-        messages: [
-          {
-            role: 'system',
-            content: `You are an expert at analyzing ASR transcripts for potential errors. 
-            Identify segments that may have semantic anomalies, awkward phrasing, or potential factual inaccuracies.
-            Return only a JSON array of problematic segments.`
-          },
-          {
-            role: 'user',
-            content: `Analyze this transcript for potential issues:
-            
-            Transcript: "${transcript}"
-            
-            Return a JSON array with this structure:
-            [
-              {
-                "id": "semantic_1",
-                "text": "problematic text segment",
-                "start": 0,
-                "end": 10,
-                "reason": "semantic_anomaly",
-                "uncertaintyScore": 0.8,
-                "description": "explanation of the issue"
-              }
-            ]
-            
-            Only return valid JSON, no additional text.`
-          }
-        ],
+        messages,
         temperature: AGENT_CONFIG.openRouter.temperature,
         max_tokens: AGENT_CONFIG.openRouter.maxTokens
       });
 
       const content = response.choices[0]?.message?.content;
+      console.log(`⬅️ LLM Response (Semantic Analysis): ${truncateForLogging(content || '[NO CONTENT]', 600)}`);
+      console.log(`📊 Usage: tokens=${response.usage?.total_tokens || 'unknown'}, model=${response.model || 'unknown'}`);
+
       if (content) {
         try {
           const semanticIssues = JSON.parse(content);
+          console.log(`✅ Semantic Analysis: Successfully parsed ${semanticIssues.length} semantic issues`);
+          
           return semanticIssues.map((issue: any) => ({
             id: issue.id,
             text: issue.text,
@@ -449,14 +510,16 @@ class LLMErrorDetection {
             categorizationReason: issue.description
           }));
         } catch (parseError) {
-          console.error('Failed to parse semantic analysis result:', parseError);
+          console.error('❌ Semantic Analysis: Failed to parse semantic analysis result:', parseError);
+          console.error('Raw content that failed to parse:', truncateForLogging(content, 1000));
           return [];
         }
       }
     } catch (error) {
-      console.error('Error calling OpenRouter for semantic analysis:', error);
+      console.error('❌ Semantic Analysis: Error calling OpenRouter for semantic analysis:', error);
     }
 
+    console.log('🎯 Semantic Analysis: Completed with no results');
     return [];
   }
 }
@@ -470,58 +533,75 @@ class LLMAugmentationController {
   }> {
     // If OpenRouter is not available, use fallback categorization
     if (!openai) {
-      console.log('OpenRouter not available, using fallback categorization');
+      console.log('⚠️ SOI Categorization: OpenRouter not available, using fallback categorization');
       return this.getFallbackCategorization(segment);
     }
 
+    console.log(`🎯 SOI Categorization: Starting categorization for segment "${truncateForLogging(segment.text, 100)}"`);
+    console.log(`📊 Segment details: reason=${segment.reason}, uncertainty=${segment.uncertaintyScore}`);
+
     try {
+      const messages = [
+        {
+          role: 'system' as const,
+          content: `You are an expert at categorizing segments of interest in ASR transcripts. 
+          Analyze each segment and decide the best approach for correction.`
+        },
+        {
+          role: 'user' as const,
+          content: `Analyze this segment of interest and categorize it:
+          
+          Segment: ${JSON.stringify(segment)}
+          Context: "${context}"
+          
+          Categorize this SOI and recommend the next action:
+          1. "web_search" - High uncertainty, factual query, or named entity verification needed
+          2. "user_dialogue" - Moderate uncertainty, ambiguity, or multiple valid interpretations  
+          3. "direct_correction" - Low uncertainty, likely simple fix
+          
+          Return JSON:
+          {
+            "action": "web_search|user_dialogue|direct_correction",
+            "reason": "explanation of the decision",
+            "priority": 1-5
+          }
+          
+          Only return valid JSON, no additional text.`
+        }
+      ];
+
+      console.log(`➡️ LLM Prompt (SOI Categorization):`);
+      console.log(`   Model: ${AGENT_CONFIG.openRouter.model}`);
+      console.log(`   System: ${truncateForLogging(messages[0].content, 300)}`);
+      console.log(`   User: ${truncateForLogging(messages[1].content, 500)}`);
+
       const response = await openai.chat.completions.create({
         model: AGENT_CONFIG.openRouter.model,
-        messages: [
-          {
-            role: 'system',
-            content: `You are an expert at categorizing segments of interest in ASR transcripts. 
-            Analyze each segment and decide the best approach for correction.`
-          },
-          {
-            role: 'user',
-            content: `Analyze this segment of interest and categorize it:
-            
-            Segment: ${JSON.stringify(segment)}
-            Context: "${context}"
-            
-            Categorize this SOI and recommend the next action:
-            1. "web_search" - High uncertainty, factual query, or named entity verification needed
-            2. "user_dialogue" - Moderate uncertainty, ambiguity, or multiple valid interpretations  
-            3. "direct_correction" - Low uncertainty, likely simple fix
-            
-            Return JSON:
-            {
-              "action": "web_search|user_dialogue|direct_correction",
-              "reason": "explanation of the decision",
-              "priority": 1-5
-            }
-            
-            Only return valid JSON, no additional text.`
-          }
-        ],
+        messages,
         temperature: AGENT_CONFIG.openRouter.temperature,
         max_tokens: 500
       });
 
       const content = response.choices[0]?.message?.content;
+      console.log(`⬅️ LLM Response (SOI Categorization): ${truncateForLogging(content || '[NO CONTENT]', 400)}`);
+      console.log(`📊 Usage: tokens=${response.usage?.total_tokens || 'unknown'}, model=${response.model || 'unknown'}`);
+
       if (content) {
         try {
-          return JSON.parse(content);
+          const result = JSON.parse(content);
+          console.log(`✅ SOI Categorization: Successfully parsed categorization - action: ${result.action}, priority: ${result.priority}`);
+          return result;
         } catch (parseError) {
-          console.error('Failed to parse categorization result:', parseError);
+          console.error('❌ SOI Categorization: Failed to parse categorization result:', parseError);
+          console.error('Raw content that failed to parse:', truncateForLogging(content, 1000));
           return this.getFallbackCategorization(segment);
         }
       }
     } catch (error) {
-      console.error('Error calling OpenRouter for categorization:', error);
+      console.error('❌ SOI Categorization: Error calling OpenRouter for categorization:', error);
     }
 
+    console.log('🎯 SOI Categorization: Using fallback categorization');
     return this.getFallbackCategorization(segment);
   }
 
@@ -570,28 +650,55 @@ export class SimpleASRAgent {
     segmentsOfInterest: SegmentOfInterest[];
     processingSteps: string[];
   }> {
+    const startTime = Date.now();
+    console.log(`🚀 SimpleASRAgent: Starting audio processing for file: ${audioFilePath}`);
     const processingSteps: string[] = [];
     
     try {
       // Step 1: ASR Transcription
+      console.log(`🎙️ SimpleASRAgent: Step 1 - Starting ASR transcription`);
       processingSteps.push('Starting ASR transcription...');
+      const asrStartTime = Date.now();
+      
       const asrOutput = await this.asrTool.transcribe(audioFilePath);
-      processingSteps.push('ASR transcription completed');
+      const asrDuration = Date.now() - asrStartTime;
+      
+      console.log(`✅ SimpleASRAgent: ASR completed in ${asrDuration}ms`);
+      console.log(`📝 ASR Results: transcript=${asrOutput.transcript.length} chars, ${asrOutput.wordTimings.length} words, ${asrOutput.nBestList.length} alternatives`);
+      console.log(`📄 Transcript preview: "${truncateForLogging(asrOutput.transcript, 300)}"`);
+      processingSteps.push(`ASR transcription completed in ${asrDuration}ms`);
 
       // Step 2: Error Detection
+      console.log(`🔍 SimpleASRAgent: Step 2 - Starting error detection`);
       processingSteps.push('Analyzing transcript for potential errors...');
+      const errorDetectionStartTime = Date.now();
+      
       const segmentsOfInterest = await this.errorDetection.detectErrors(asrOutput);
-      processingSteps.push(`Found ${segmentsOfInterest.length} segments of interest`);
+      const errorDetectionDuration = Date.now() - errorDetectionStartTime;
+      
+      console.log(`✅ SimpleASRAgent: Error detection completed in ${errorDetectionDuration}ms`);
+      console.log(`🎯 Found ${segmentsOfInterest.length} segments of interest`);
+      processingSteps.push(`Found ${segmentsOfInterest.length} segments of interest in ${errorDetectionDuration}ms`);
 
       // Step 3: Categorize and prioritize SOIs
+      console.log(`🏷️ SimpleASRAgent: Step 3 - Starting SOI categorization (${segmentsOfInterest.length} segments)`);
       processingSteps.push('Categorizing segments for processing...');
+      const categorizationStartTime = Date.now();
       const categorizedSOIs: SegmentOfInterest[] = [];
       
-      for (const segment of segmentsOfInterest) {
+      for (let i = 0; i < segmentsOfInterest.length; i++) {
+        const segment = segmentsOfInterest[i];
+        console.log(`🏷️ SimpleASRAgent: Categorizing segment ${i + 1}/${segmentsOfInterest.length}: "${truncateForLogging(segment.text, 80)}"`);
+        
+        const segmentCategorizationStart = Date.now();
         const categorization = await this.augmentationController.categorizeSOI(
           segment,
           asrOutput.transcript
         );
+        const segmentCategorizationDuration = Date.now() - segmentCategorizationStart;
+        
+        console.log(`✅ SimpleASRAgent: Segment categorized in ${segmentCategorizationDuration}ms - action: ${categorization.action}, priority: ${categorization.priority}`);
+        
         categorizedSOIs.push({
           ...segment,
           action: categorization.action,
@@ -600,8 +707,27 @@ export class SimpleASRAgent {
         });
       }
 
+      const categorizationDuration = Date.now() - categorizationStartTime;
+      console.log(`✅ SimpleASRAgent: All segments categorized in ${categorizationDuration}ms`);
+
       // Sort by priority
+      console.log(`📊 SimpleASRAgent: Sorting segments by priority`);
       categorizedSOIs.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+      
+      // Log final results
+      const totalDuration = Date.now() - startTime;
+      console.log(`🎉 SimpleASRAgent: Processing completed successfully in ${totalDuration}ms`);
+      console.log(`📊 Final Results Summary:`);
+      console.log(`   - Transcript: ${asrOutput.transcript.length} characters`);
+      console.log(`   - Segments of Interest: ${categorizedSOIs.length}`);
+      console.log(`   - Timing: ASR ${asrDuration}ms, Error Detection ${errorDetectionDuration}ms, Categorization ${categorizationDuration}ms`);
+      
+      const actionCounts = {
+        web_search: categorizedSOIs.filter(s => s.action === 'web_search').length,
+        user_dialogue: categorizedSOIs.filter(s => s.action === 'user_dialogue').length,
+        direct_correction: categorizedSOIs.filter(s => s.action === 'direct_correction').length
+      };
+      console.log(`   - Actions: ${actionCounts.web_search} web_search, ${actionCounts.user_dialogue} user_dialogue, ${actionCounts.direct_correction} direct_correction`);
 
       return {
         transcript: asrOutput.transcript,
@@ -610,15 +736,19 @@ export class SimpleASRAgent {
       };
 
     } catch (error) {
-      console.error('Error in ASR agent processing:', error);
+      const errorDuration = Date.now() - startTime;
+      console.error(`❌ SimpleASRAgent: Error in processing after ${errorDuration}ms:`, error);
       processingSteps.push(`Error: ${error.message}`);
       throw error;
     }
   }
 
   async initialize(): Promise<void> {
-    console.log('Initializing Simple ASR Agent...');
+    console.log('🔧 SimpleASRAgent: Initializing Simple ASR Agent...');
+    console.log(`🔧 Configuration: OpenRouter available: ${isOpenRouterAvailable()}`);
+    console.log(`🔧 Thresholds: lowConf=${AGENT_CONFIG.thresholds.lowConfidence}, modUnc=${AGENT_CONFIG.thresholds.moderateUncertainty}, highUnc=${AGENT_CONFIG.thresholds.highUncertainty}`);
     // Add any initialization logic here
+    console.log('✅ SimpleASRAgent: Initialization completed');
   }
 }
 
@@ -627,8 +757,11 @@ let agentInstance: SimpleASRAgent | null = null;
 
 export async function getSimpleASRAgent(): Promise<SimpleASRAgent> {
   if (!agentInstance) {
+    console.log('🏗️ SimpleASRAgent: Creating new agent instance (singleton)');
     agentInstance = new SimpleASRAgent();
     await agentInstance.initialize();
+  } else {
+    console.log('♻️ SimpleASRAgent: Returning existing agent instance');
   }
   return agentInstance;
 } 
