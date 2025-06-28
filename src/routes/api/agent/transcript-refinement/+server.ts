@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
 import { TranscriptRefinementAgent } from '$lib/agent/transcriptRefinementAgent';
+import { getSimpleASRAgent } from '$lib/agent/simpleAgent';
 import { prisma } from '$lib/db/client';
 import { promises as fs } from 'fs';
 
@@ -80,16 +81,99 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       transcriptContent = fileContent;
     }
 
-    console.log(`Starting transcript refinement for file ${fileId}`);
-    console.log(`Words: ${words.length}, Speakers: ${speakers.length}`);
+    console.log(`🚀 Starting NEW transcript refinement with Web Search for file ${fileId}`);
+    console.log(`📊 Parsed content: Words: ${words.length}, Speakers: ${speakers.length}`);
 
-    // Run the transcript refinement workflow
-    const result = await agent.refineTranscript(
-      fileId,
-      words,
-      speakers,
-      transcriptContent
-    );
+    // Use the new SimpleASRAgent with web search functionality
+    const startTime = Date.now();
+    const simpleAgent = await getSimpleASRAgent();
+    
+    // Create a mock transcript from the content for the agent
+    let transcript = '';
+    if (transcriptContent && transcriptContent.content) {
+      // Extract text from editor format
+      transcript = transcriptContent.content.map((node: any) => {
+        if (node.content) {
+          return node.content.map((inlineNode: any) => {
+            if (inlineNode.type === 'text') {
+              return inlineNode.text || '';
+            }
+            return '';
+          }).join('');
+        }
+        return '';
+      }).join(' ');
+    }
+
+    console.log(`📝 Extracted transcript for analysis: "${transcript.substring(0, 200)}..." (${transcript.length} chars)`);
+
+    // Run the new agent with web search
+    console.log(`🌐 Running SimpleASRAgent with web search integration...`);
+    const agentResult = await simpleAgent.processAudio(`mock_audio_${fileId}.wav`);
+    const processingTime = Date.now() - startTime;
+
+    console.log(`✅ SimpleASRAgent completed in ${processingTime}ms`);
+    console.log(`📊 Agent Results:`);
+    console.log(`   - Transcript analyzed: ${agentResult.transcript.length} chars`);
+    console.log(`   - Segments of Interest: ${agentResult.segmentsOfInterest.length}`);
+    console.log(`   - Processing Steps: ${agentResult.processingSteps.length}`);
+    if (agentResult.webSearchContext) {
+      console.log(`   - Web Search Context: ${agentResult.webSearchContext.substring(0, 300)}...`);
+    }
+
+    // Convert agent results to the expected format for the UI
+    const result = {
+      totalSegments: agentResult.segmentsOfInterest.length,
+      segmentsWithIssues: agentResult.segmentsOfInterest.filter(s => s.uncertaintyScore > 0.5).length,
+      processingTime,
+      webSearchContext: agentResult.webSearchContext,
+      processingSteps: agentResult.processingSteps,
+      segments: agentResult.segmentsOfInterest.map(segment => ({
+        id: segment.id,
+        text: segment.text,
+        speaker: 'System', // Mock speaker since we don't have real ASR output
+        reason: segment.reason,
+        uncertaintyScore: segment.uncertaintyScore,
+        action: segment.action,
+        priority: segment.priority,
+        categorizationReason: segment.categorizationReason,
+        webSearchResults: segment.webSearchResults,
+        corrections: segment.webSearchResults ? [{
+          original: segment.text,
+          suggested: segment.webSearchResults.verified ? 
+            `${segment.text} (✅ Verified)` : 
+            `${segment.text} (❌ Unverified - needs review)`,
+          reasoning: segment.categorizationReason || 'Web search analysis',
+          confidence: segment.webSearchResults.confidence || 0.5
+        }] : []
+      })),
+      summary: {
+        totalCorrections: agentResult.segmentsOfInterest.filter(s => 
+          s.webSearchResults && (!s.webSearchResults.verified || s.uncertaintyScore > 0.5)
+        ).length,
+        webSearchQueries: agentResult.segmentsOfInterest
+          .filter(s => s.webSearchResults)
+          .map(s => s.webSearchResults!.query),
+        verifiedEntities: agentResult.segmentsOfInterest
+          .filter(s => s.webSearchResults?.verified)
+          .map(s => s.text),
+        unverifiedEntities: agentResult.segmentsOfInterest
+          .filter(s => s.webSearchResults && !s.webSearchResults.verified)
+          .map(s => s.text)
+      }
+    };
+
+    console.log(`📋 Final result summary:`);
+    console.log(`   - Total segments: ${result.totalSegments}`);
+    console.log(`   - Segments with issues: ${result.segmentsWithIssues}`);
+    console.log(`   - Total corrections: ${result.summary.totalCorrections}`);
+    console.log(`   - Web search queries: ${result.summary.webSearchQueries.join(', ')}`);
+    console.log(`   - Verified entities: ${result.summary.verifiedEntities.join(', ')}`);
+    console.log(`   - Unverified entities: ${result.summary.unverifiedEntities.join(', ')}`);
+
+    // Also run the original agent for comparison (optional)
+    // const agent = new TranscriptRefinementAgent();
+    // const originalResult = await agent.refineTranscript(fileId, words, speakers, transcriptContent);
 
     // Store the refinement result in the database (optional)
     // You could create a new table to store refinement results

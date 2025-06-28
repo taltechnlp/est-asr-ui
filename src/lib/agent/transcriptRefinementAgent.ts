@@ -1,4 +1,4 @@
-import { analyzeSegmentWithOpenRouter, suggestCorrectionsWithOpenRouter } from './llmUtils';
+import { analyzeSegmentWithOpenRouter, suggestCorrectionsWithOpenRouter, parseJsonFromLLM } from './llmUtils';
 import { NERTool } from './nerTool';
 import type { Word, Speaker } from '$lib/helpers/converters/types';
 import { promises as fs } from 'fs';
@@ -81,7 +81,7 @@ export class TranscriptRefinementAgent {
       let issues: string[] = [];
 
       try {
-        const parsedCorrections = JSON.parse(correctionText);
+        const parsedCorrections = parseJsonFromLLM(correctionText);
         corrections = parsedCorrections.corrections || [];
         // Extract issues from NER results
         if (nerResults.entities) {

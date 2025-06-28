@@ -32,6 +32,7 @@
 	let refinementResult = $state<any>(null);
 	let refinementError = $state<string>('');
 	let showCorrections = $state(false);
+	let showProcessingSteps = $state(false);
 
 	// First time transcription from the Estonian JSON format.
 	if (json && !json.type) {
@@ -160,6 +161,19 @@
 					<p><strong>Summary:</strong> {refinementResult.totalSegments} segments analyzed, {refinementResult.segmentsWithIssues} with issues found</p>
 					<p><strong>Processing time:</strong> {(refinementResult.processingTime / 1000).toFixed(1)}s</p>
 					
+					{#if refinementResult.summary.webSearchQueries && refinementResult.summary.webSearchQueries.length > 0}
+						<div class="mt-2 bg-blue-50 border border-blue-200 rounded p-2">
+							<p class="font-medium text-blue-800">🌐 Web Search Analysis:</p>
+							<p class="text-blue-700"><strong>Searched:</strong> {refinementResult.summary.webSearchQueries.join(', ')}</p>
+							{#if refinementResult.summary.verifiedEntities && refinementResult.summary.verifiedEntities.length > 0}
+								<p class="text-green-700"><strong>✅ Verified:</strong> {refinementResult.summary.verifiedEntities.join(', ')}</p>
+							{/if}
+							{#if refinementResult.summary.unverifiedEntities && refinementResult.summary.unverifiedEntities.length > 0}
+								<p class="text-red-700"><strong>❌ Unverified:</strong> {refinementResult.summary.unverifiedEntities.join(', ')}</p>
+							{/if}
+						</div>
+					{/if}
+					
 					{#if refinementResult.summary.totalCorrections > 0}
 						<div class="mt-2">
 							<button 
@@ -170,7 +184,37 @@
 							</button>
 						</div>
 					{/if}
+					
+					{#if refinementResult.processingSteps && refinementResult.processingSteps.length > 0}
+						<div class="mt-2">
+							<button 
+								onclick={() => showProcessingSteps = !showProcessingSteps}
+								class="text-green-600 hover:text-green-800 text-sm underline"
+							>
+								{showProcessingSteps ? 'Hide' : 'View'} processing steps ({refinementResult.processingSteps.length})
+							</button>
+						</div>
+					{/if}
 				</div>
+
+				<!-- Processing Steps Panel -->
+				{#if showProcessingSteps && refinementResult.processingSteps}
+					<div class="mt-4 border-t border-green-200 pt-4">
+						<h4 class="font-medium text-green-800 mb-3">🔄 Processing Pipeline:</h4>
+						<div class="space-y-2 max-h-48 overflow-y-auto">
+							{#each refinementResult.processingSteps as step, index}
+								<div class="bg-gray-50 rounded border border-gray-200 p-2">
+									<div class="flex items-center">
+										<span class="text-xs font-mono bg-gray-200 text-gray-700 px-2 py-1 rounded mr-2">
+											{index + 1}
+										</span>
+										<span class="text-sm text-gray-800">{step}</span>
+									</div>
+								</div>
+							{/each}
+						</div>
+					</div>
+				{/if}
 
 				<!-- Corrections Panel -->
 				{#if showCorrections && refinementResult.segments}

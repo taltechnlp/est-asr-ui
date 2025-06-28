@@ -1,6 +1,25 @@
 import OpenAI from 'openai';
 import { AGENT_CONFIG, isOpenRouterAvailable } from './config';
 
+// Helper function to clean and parse JSON from LLM responses
+export function parseJsonFromLLM(content: string): any {
+  // Strip markdown code blocks if present
+  let cleanContent = content.trim();
+  
+  // Remove ```json or ``` blocks
+  if (cleanContent.startsWith('```json')) {
+    cleanContent = cleanContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+  } else if (cleanContent.startsWith('```')) {
+    cleanContent = cleanContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+  }
+  
+  // Remove any leading/trailing whitespace
+  cleanContent = cleanContent.trim();
+  
+  // Parse the cleaned JSON
+  return JSON.parse(cleanContent);
+}
+
 let openai: OpenAI | null = null;
 if (isOpenRouterAvailable()) {
   openai = new OpenAI({

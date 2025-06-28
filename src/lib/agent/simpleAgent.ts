@@ -2,7 +2,9 @@
 // This version focuses on the core logic without complex LangChain dependencies
 import OpenAI from 'openai';
 import { AGENT_CONFIG, isOpenRouterAvailable } from './config';
+import { parseJsonFromLLM } from './llmUtils';
 import { NERTool } from './nerTool';
+import { WebSearchTool } from './webSearchTool';
 import type { TextSegment, ExtractionStrategy, ExtractionOptions } from '$lib/components/editor/api/segmentExtraction';
 
 // Helper function to truncate long content for logging
@@ -20,6 +22,8 @@ function safeStringify(obj: any, maxLength: number = 1000): string {
     return '[UNABLE TO STRINGIFY]';
   }
 }
+
+
 
 // Initialize OpenAI client for OpenRouter (only if API key is available)
 let openai: OpenAI | null = null;
@@ -52,7 +56,7 @@ export interface SegmentOfInterest {
   text: string;
   start: number;
   end: number;
-  reason: 'low_confidence' | 'semantic_anomaly' | 'ner_issue' | 'nbest_variance';
+  reason: 'low_confidence' | 'semantic_anomaly' | 'ner_issue' | 'nbest_variance' | 'web_search_verified';
   uncertaintyScore: number;
   confidenceScore?: number;
   nBestAlternatives?: string[];
@@ -66,6 +70,13 @@ export interface SegmentOfInterest {
     potentialIssues: string[];
     suggestions: string[];
   }>;
+  webSearchResults?: {
+    query: string;
+    verified: boolean;
+    confidence: number;
+    evidence: string[];
+    summary: string;
+  };
 }
 
 export interface CorrectionSuggestion {
@@ -106,6 +117,326 @@ class MockASRTool {
         { word: "Akadeemias", start: 7.3, end: 8.0, confidence: 0.9 }
       ]
     };
+  }
+}
+
+// Web Search Analysis for contextual verification
+class WebSearchAnalysis {
+  private webSearchTool: WebSearchTool;
+  private contextCache: Map<string, string> = new Map();
+
+  constructor() {
+    this.webSearchTool = new WebSearchTool();
+  }
+
+  /**
+   * Perform contextual web search to gather background information about the transcript
+   */
+  async performContextualSearch(transcript: string, language: string = 'et'): Promise<{
+    searchResults: Array<{
+      query: string;
+      verified: boolean;
+      confidence: number;
+      evidence: string[];
+      summary: string;
+    }>;
+    contextualInfo: string;
+    verifiedEntities: string[];
+  }> {
+    console.log(`🌐 Web Search: Starting contextual search for transcript (length: ${transcript.length} chars)`);
+    
+    const searchResults: Array<{
+      query: string;
+      verified: boolean;
+      confidence: number;
+      evidence: string[];
+      summary: string;
+    }> = [];
+    
+    try {
+      // Extract key entities and phrases for search
+      const searchQueries = this.generateSearchQueries(transcript);
+      console.log(`🔍 Web Search: Generated ${searchQueries.length} search queries: ${searchQueries.join(', ')}`);
+
+      // Perform searches in parallel (limit to avoid rate limiting)
+      const maxParallelSearches = 3;
+      for (let i = 0; i < searchQueries.length; i += maxParallelSearches) {
+        const batch = searchQueries.slice(i, i + maxParallelSearches);
+        console.log(`🌐 Web Search: Processing batch ${Math.floor(i / maxParallelSearches) + 1}: ${batch.join(', ')}`);
+        
+        const batchPromises = batch.map(async (query) => {
+          try {
+            const searchStartTime = Date.now();
+            const context = await this.generateSearchContext(query, language);
+            const searchInput = JSON.stringify({
+              query,
+              context,
+              maxResults: 3
+            });
+            
+            console.log(`➡️ Web Search Query: ${query}`);
+            const result = await this.webSearchTool.call(searchInput);
+            const searchDuration = Date.now() - searchStartTime;
+            console.log(`⬅️ Web Search Result (${searchDuration}ms): ${truncateForLogging(result, 300)}`);
+            
+            // Parse the result to extract verification info
+            const verified = result.includes('✅') && !result.includes('❌');
+            const confidenceMatch = result.match(/Entity verification: (\d+)\/(\d+) entities verified/);
+            const confidence = confidenceMatch ? parseInt(confidenceMatch[1]) / parseInt(confidenceMatch[2]) : 0.5;
+            
+            // Extract evidence and summary
+            const evidence = this.extractEvidence(result);
+            const summary = this.extractSummary(result);
+            
+            return {
+              query,
+              verified,
+              confidence,
+              evidence,
+              summary
+            };
+          } catch (error) {
+            console.error(`❌ Web Search: Error searching for "${query}":`, error);
+            return {
+              query,
+              verified: false,
+              confidence: 0,
+              evidence: [],
+              summary: `Search failed: ${error.message}`
+            };
+          }
+        });
+        
+        const batchResults = await Promise.all(batchPromises);
+        searchResults.push(...batchResults);
+        
+        // Add delay between batches to avoid rate limiting
+        if (i + maxParallelSearches < searchQueries.length) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+
+      // Generate contextual information summary
+      const verifiedQueries = searchResults.filter(r => r.verified).map(r => r.query);
+      const contextualInfo = this.generateContextualSummary(searchResults);
+      
+      console.log(`✅ Web Search: Completed contextual search with ${searchResults.length} results`);
+      console.log(`📊 Web Search Summary: ${verifiedQueries.length}/${searchResults.length} queries verified`);
+      
+      return {
+        searchResults,
+        contextualInfo,
+        verifiedEntities: verifiedQueries
+      };
+
+    } catch (error) {
+      console.error('❌ Web Search: Error in contextual search:', error);
+      return {
+        searchResults: [],
+        contextualInfo: `Web search failed: ${error.message}`,
+        verifiedEntities: []
+      };
+    }
+  }
+
+  /**
+   * Generate intelligent search context for a query using LLM
+   */
+  private async generateSearchContext(query: string, language: string): Promise<string> {
+    // Skip LLM call for very short queries or if no LLM available
+    if (query.length < 3 || !openai) {
+      console.log(`🔍 WebSearchAnalysis: No context for short query or no LLM: "${query}"`);
+      return '';
+    }
+
+    // Check cache first
+    const cacheKey = `${query.toLowerCase()}_${language}`;
+    if (this.contextCache.has(cacheKey)) {
+      const cachedContext = this.contextCache.get(cacheKey)!;
+      console.log(`💾 WebSearchAnalysis: Using cached context for "${query}": "${cachedContext}"`);
+      return cachedContext;
+    }
+
+    try {
+      console.log(`🧠 WebSearchAnalysis: Using LLM to determine context for: "${query}"`);
+      
+      const prompt = `Analyze this search query and determine if it needs geographical/language context for web search:
+
+Query: "${query}"
+Source language: ${language === 'et' ? 'Estonian' : language}
+
+Determine if this query would benefit from adding geographical or language context (like "Estonia" or "Estonian") to get more relevant search results.
+
+Consider:
+- Is this query already location-specific? (e.g., "Tartu Ülikool" is already clearly Estonian)
+- Is this a person with a clear local title? (e.g., "rektor Tiit Land" is clearly Estonian context)
+- Is this an organization that's obviously local? (e.g., "Eesti Teaduste Akadeemia")
+- Would the query be ambiguous without context? (e.g., "Land" might need "Estonia" context)
+
+Respond with JSON:
+{
+  "needsContext": true/false,
+  "suggestedContext": "Estonia" or "Estonian" or "",
+  "reasoning": "brief explanation"
+}`;
+
+             const response = await openai.chat.completions.create({
+         model: AGENT_CONFIG.openRouter.model,
+         messages: [
+           { 
+             role: 'system', 
+             content: 'You are an expert at optimizing web search queries. Respond only with valid JSON.' 
+           },
+           { 
+             role: 'user', 
+             content: prompt 
+           }
+         ],
+         temperature: 0.1,
+         max_tokens: 150
+       });
+
+             const content = response.choices[0]?.message?.content;
+       if (content) {
+         const result = parseJsonFromLLM(content);
+         const context = result.needsContext ? (result.suggestedContext || '') : '';
+         
+         // Cache the result
+         this.contextCache.set(cacheKey, context);
+         
+         console.log(`🎯 LLM Context Decision for "${query}": ${result.needsContext ? `"${context}"` : 'no context'} - ${result.reasoning}`);
+         return context;
+       }
+
+         } catch (error) {
+       console.error(`❌ WebSearchAnalysis: LLM context generation failed for "${query}":`, error.message);
+     }
+
+     // Fallback to no context if LLM fails and cache the fallback
+     const fallbackContext = '';
+     this.contextCache.set(cacheKey, fallbackContext);
+     console.log(`🔍 WebSearchAnalysis: Fallback - no context for: "${query}"`);
+     return fallbackContext;
+  }
+
+  /**
+   * Generate search queries from transcript
+   */
+  private generateSearchQueries(transcript: string): string[] {
+    console.log(`🔍 WebSearchAnalysis: Generating search queries from transcript (${transcript.length} chars)`);
+    console.log(`📝 Transcript excerpt: "${transcript.substring(0, 200)}..."`);
+    
+    const queries: string[] = [];
+    
+    // Extract named entities (capitalized words/phrases)
+    const entityRegex = /\b[A-ZÄÖÜÕŠŽ][a-zäöüõšž]+(?:\s+[A-ZÄÖÜÕŠŽ][a-zäöüõšž]+)*\b/g;
+    const entities = transcript.match(entityRegex) || [];
+    console.log(`🏷️ WebSearchAnalysis: Found ${entities.length} potential entities: ${entities.join(', ')}`);
+    
+    // Add unique entities as search queries
+    const uniqueEntities = [...new Set(entities)].filter(entity => 
+      entity.length > 3 && 
+      !['Eesti', 'Estonia', 'Estonian'].includes(entity) // Exclude very common terms
+    );
+    console.log(`✅ WebSearchAnalysis: Filtered to ${uniqueEntities.length} unique entities: ${uniqueEntities.join(', ')}`);
+    
+    queries.push(...uniqueEntities.slice(0, 5)); // Limit to top 5 entities
+    
+    // Extract potential organizations/institutions
+    const orgRegex = /\b([A-ZÄÖÜÕŠŽ][a-zäöüõšž]+\s+)?(?:Ülikool|University|Akadeemia|Academy|Instituut|Institute|Ettevõte|Company)\b/g;
+    const orgs = transcript.match(orgRegex) || [];
+    if (orgs.length > 0) {
+      console.log(`🏛️ WebSearchAnalysis: Found ${orgs.length} organizations: ${orgs.join(', ')}`);
+      queries.push(...orgs.slice(0, 2));
+    }
+    
+    // Extract potential titles/positions
+    const titleRegex = /\b(?:rektor|professor|direktor|minister|president|juhataja)\s+[A-ZÄÖÜÕŠŽ][a-zäöüõšž]+\s+[A-ZÄÖÜÕŠŽ][a-zäöüõšž]+/gi;
+    const titles = transcript.match(titleRegex) || [];
+    if (titles.length > 0) {
+      console.log(`👨‍💼 WebSearchAnalysis: Found ${titles.length} titles/positions: ${titles.join(', ')}`);
+      queries.push(...titles.slice(0, 2));
+    }
+    
+    const finalQueries = [...new Set(queries)].slice(0, 8); // Limit total queries and remove duplicates
+    console.log(`📋 WebSearchAnalysis: Final search queries (${finalQueries.length}): ${finalQueries.join(', ')}`);
+    
+    return finalQueries;
+  }
+
+  /**
+   * Extract evidence from search result
+   */
+  private extractEvidence(result: string): string[] {
+    const evidence: string[] = [];
+    
+    // Extract snippets from search results
+    const snippetRegex = /📝 ([^🔗]+)/g;
+    let match;
+    while ((match = snippetRegex.exec(result)) !== null) {
+      if (match[1] && match[1].trim()) {
+        evidence.push(match[1].trim().substring(0, 200));
+      }
+    }
+    
+    // Extract evidence lines
+    const evidenceRegex = /Evidence: ([^\.]+)/g;
+    while ((match = evidenceRegex.exec(result)) !== null) {
+      if (match[1] && match[1].trim()) {
+        evidence.push(match[1].trim());
+      }
+    }
+    
+    return evidence.slice(0, 3); // Limit to top 3 pieces of evidence
+  }
+
+  /**
+   * Extract summary from search result
+   */
+  private extractSummary(result: string): string {
+    const consensusMatch = result.match(/Consensus: ([^\\n]+)/);
+    if (consensusMatch && consensusMatch[1]) {
+      return consensusMatch[1].trim().substring(0, 300);
+    }
+    
+    // Fallback to first search result snippet
+    const snippetMatch = result.match(/📝 ([^🔗]+)/);
+    if (snippetMatch && snippetMatch[1]) {
+      return snippetMatch[1].trim().substring(0, 200) + '...';
+    }
+    
+    return 'No summary available';
+  }
+
+  /**
+   * Generate contextual summary from all search results
+   */
+  private generateContextualSummary(searchResults: Array<{
+    query: string;
+    verified: boolean;
+    confidence: number;
+    evidence: string[];
+    summary: string;
+  }>): string {
+    const verifiedResults = searchResults.filter(r => r.verified);
+    const totalConfidence = searchResults.reduce((sum, r) => sum + r.confidence, 0) / searchResults.length;
+    
+    let summary = `Web search context analysis:\n`;
+    summary += `- Searched ${searchResults.length} entities/queries\n`;
+    summary += `- ${verifiedResults.length} verified with web sources\n`;
+    summary += `- Average confidence: ${(totalConfidence * 100).toFixed(1)}%\n\n`;
+    
+    if (verifiedResults.length > 0) {
+      summary += `Verified entities: ${verifiedResults.map(r => r.query).join(', ')}\n\n`;
+      summary += `Key findings:\n`;
+      verifiedResults.slice(0, 3).forEach((result, i) => {
+        summary += `${i + 1}. ${result.query}: ${result.summary.substring(0, 150)}...\n`;
+      });
+    } else {
+      summary += `No entities could be verified with web sources.\n`;
+    }
+    
+    return summary;
   }
 }
 
@@ -359,16 +690,36 @@ class SegmentNERAnalysis {
 // LLM-based Error Detection
 class LLMErrorDetection {
   private nerAnalysis: SegmentNERAnalysis;
+  private webSearchAnalysis: WebSearchAnalysis;
 
   constructor() {
     this.nerAnalysis = new SegmentNERAnalysis();
+    this.webSearchAnalysis = new WebSearchAnalysis();
   }
 
-  async detectErrors(asrOutput: ASROutput): Promise<SegmentOfInterest[]> {
+  async detectErrors(asrOutput: ASROutput, webSearchContext?: {
+    searchResults: Array<{
+      query: string;
+      verified: boolean;
+      confidence: number;
+      evidence: string[];
+      summary: string;
+    }>;
+    contextualInfo: string;
+    verifiedEntities: string[];
+  }): Promise<SegmentOfInterest[]> {
     console.log(`🔍 Error Detection: Starting error detection on transcript (${asrOutput.transcript.length} chars, ${asrOutput.wordTimings.length} words)`);
     const segments: SegmentOfInterest[] = [];
     
-    // First, detect low confidence words (rule-based)
+    // First, analyze with web search context if available
+    if (webSearchContext) {
+      console.log(`🌐 Error Detection: Analyzing with web search context (${webSearchContext.verifiedEntities.length} verified entities)`);
+      const webSearchSegments = await this.analyzeWithWebSearchContext(asrOutput, webSearchContext);
+      segments.push(...webSearchSegments);
+      console.log(`✅ Error Detection: Web search analysis added ${webSearchSegments.length} segments`);
+    }
+
+    // Second, detect low confidence words (rule-based)
     console.log(`📊 Error Detection: Checking for low confidence words (threshold: ${AGENT_CONFIG.thresholds.lowConfidence})`);
     let lowConfidenceCount = 0;
     asrOutput.wordTimings.forEach((word, index) => {
@@ -438,6 +789,91 @@ class LLMErrorDetection {
     return segments;
   }
 
+  /**
+   * Analyze transcript against web search context to identify potential issues
+   */
+  private async analyzeWithWebSearchContext(asrOutput: ASROutput, webSearchContext: {
+    searchResults: Array<{
+      query: string;
+      verified: boolean;
+      confidence: number;
+      evidence: string[];
+      summary: string;
+    }>;
+    contextualInfo: string;
+    verifiedEntities: string[];
+  }): Promise<SegmentOfInterest[]> {
+    const segments: SegmentOfInterest[] = [];
+    
+    try {
+      // Find entities in transcript that were NOT verified by web search
+      const transcript = asrOutput.transcript;
+      const entityRegex = /\b[A-ZÄÖÜÕŠŽ][a-zäöüõšž]+(?:\s+[A-ZÄÖÜÕŠŽ][a-zäöüõšž]+)*\b/g;
+      const entities = transcript.match(entityRegex) || [];
+      
+      for (const entity of entities) {
+        // Check if this entity was verified
+        const wasVerified = webSearchContext.verifiedEntities.includes(entity);
+        const searchResult = webSearchContext.searchResults.find(r => r.query === entity);
+        
+        if (!wasVerified && entity.length > 3) {
+          // Entity was not verified - flag as potentially problematic
+          const entityStart = transcript.indexOf(entity);
+          const entityEnd = entityStart + entity.length;
+          
+          segments.push({
+            id: `web_unverified_${entity.replace(/\s/g, '_')}`,
+            text: entity,
+            start: entityStart,
+            end: entityEnd,
+            reason: 'web_search_verified',
+            uncertaintyScore: 0.7,
+            action: 'web_search',
+            priority: 4,
+            categorizationReason: 'Entity not verified by web search',
+            webSearchResults: searchResult ? {
+              query: searchResult.query,
+              verified: searchResult.verified,
+              confidence: searchResult.confidence,
+              evidence: searchResult.evidence,
+              summary: searchResult.summary
+            } : undefined
+          });
+        } else if (wasVerified && searchResult) {
+          // Entity was verified - add as positive signal but lower priority
+          const entityStart = transcript.indexOf(entity);
+          const entityEnd = entityStart + entity.length;
+          
+          segments.push({
+            id: `web_verified_${entity.replace(/\s/g, '_')}`,
+            text: entity,
+            start: entityStart,
+            end: entityEnd,
+            reason: 'web_search_verified',
+            uncertaintyScore: 1 - searchResult.confidence,
+            action: 'direct_correction',
+            priority: 1,
+            categorizationReason: 'Entity verified by web search',
+            webSearchResults: {
+              query: searchResult.query,
+              verified: searchResult.verified,
+              confidence: searchResult.confidence,
+              evidence: searchResult.evidence,
+              summary: searchResult.summary
+            }
+          });
+        }
+      }
+      
+      console.log(`🌐 Web Search Analysis: Processed ${entities.length} entities, flagged ${segments.filter(s => !s.webSearchResults?.verified).length} unverified`);
+      
+    } catch (error) {
+      console.error('❌ Web Search Analysis: Error analyzing with web search context:', error);
+    }
+    
+    return segments;
+  }
+
   private async detectSemanticIssues(transcript: string): Promise<SegmentOfInterest[]> {
     // If OpenRouter is not available, return empty array
     if (!openai) {
@@ -497,7 +933,7 @@ class LLMErrorDetection {
 
       if (content) {
         try {
-          const semanticIssues = JSON.parse(content);
+          const semanticIssues = parseJsonFromLLM(content);
           console.log(`✅ Semantic Analysis: Successfully parsed ${semanticIssues.length} semantic issues`);
           
           return semanticIssues.map((issue: any) => ({
@@ -588,7 +1024,7 @@ class LLMAugmentationController {
 
       if (content) {
         try {
-          const result = JSON.parse(content);
+          const result = parseJsonFromLLM(content);
           console.log(`✅ SOI Categorization: Successfully parsed categorization - action: ${result.action}, priority: ${result.priority}`);
           return result;
         } catch (parseError) {
@@ -638,17 +1074,20 @@ export class SimpleASRAgent {
   private errorDetection: LLMErrorDetection;
   private augmentationController: LLMAugmentationController;
   private asrTool: MockASRTool;
+  private webSearchAnalysis: WebSearchAnalysis;
 
   constructor() {
     this.errorDetection = new LLMErrorDetection();
     this.augmentationController = new LLMAugmentationController();
     this.asrTool = new MockASRTool();
+    this.webSearchAnalysis = new WebSearchAnalysis();
   }
 
   async processAudio(audioFilePath: string): Promise<{
     transcript: string;
     segmentsOfInterest: SegmentOfInterest[];
     processingSteps: string[];
+    webSearchContext?: string;
   }> {
     const startTime = Date.now();
     console.log(`🚀 SimpleASRAgent: Starting audio processing for file: ${audioFilePath}`);
@@ -668,20 +1107,32 @@ export class SimpleASRAgent {
       console.log(`📄 Transcript preview: "${truncateForLogging(asrOutput.transcript, 300)}"`);
       processingSteps.push(`ASR transcription completed in ${asrDuration}ms`);
 
-      // Step 2: Error Detection
-      console.log(`🔍 SimpleASRAgent: Step 2 - Starting error detection`);
-      processingSteps.push('Analyzing transcript for potential errors...');
+      // Step 2: Web Search Contextual Analysis (NEW FIRST STEP)
+      console.log(`🌐 SimpleASRAgent: Step 2 - Starting web search contextual analysis`);
+      processingSteps.push('Performing web search for contextual verification...');
+      const webSearchStartTime = Date.now();
+      
+      const webSearchContext = await this.webSearchAnalysis.performContextualSearch(asrOutput.transcript, 'et');
+      const webSearchDuration = Date.now() - webSearchStartTime;
+      
+      console.log(`✅ SimpleASRAgent: Web search analysis completed in ${webSearchDuration}ms`);
+      console.log(`🌐 Web Search Results: ${webSearchContext.searchResults.length} searches, ${webSearchContext.verifiedEntities.length} verified entities`);
+      processingSteps.push(`Web search completed: ${webSearchContext.verifiedEntities.length}/${webSearchContext.searchResults.length} entities verified in ${webSearchDuration}ms`);
+
+      // Step 3: Error Detection (Enhanced with Web Search Context)
+      console.log(`🔍 SimpleASRAgent: Step 3 - Starting error detection with web search context`);
+      processingSteps.push('Analyzing transcript for potential errors with web search context...');
       const errorDetectionStartTime = Date.now();
       
-      const segmentsOfInterest = await this.errorDetection.detectErrors(asrOutput);
+      const segmentsOfInterest = await this.errorDetection.detectErrors(asrOutput, webSearchContext);
       const errorDetectionDuration = Date.now() - errorDetectionStartTime;
       
       console.log(`✅ SimpleASRAgent: Error detection completed in ${errorDetectionDuration}ms`);
       console.log(`🎯 Found ${segmentsOfInterest.length} segments of interest`);
       processingSteps.push(`Found ${segmentsOfInterest.length} segments of interest in ${errorDetectionDuration}ms`);
 
-      // Step 3: Categorize and prioritize SOIs
-      console.log(`🏷️ SimpleASRAgent: Step 3 - Starting SOI categorization (${segmentsOfInterest.length} segments)`);
+      // Step 4: Categorize and prioritize SOIs
+      console.log(`🏷️ SimpleASRAgent: Step 4 - Starting SOI categorization (${segmentsOfInterest.length} segments)`);
       processingSteps.push('Categorizing segments for processing...');
       const categorizationStartTime = Date.now();
       const categorizedSOIs: SegmentOfInterest[] = [];
@@ -720,7 +1171,7 @@ export class SimpleASRAgent {
       console.log(`📊 Final Results Summary:`);
       console.log(`   - Transcript: ${asrOutput.transcript.length} characters`);
       console.log(`   - Segments of Interest: ${categorizedSOIs.length}`);
-      console.log(`   - Timing: ASR ${asrDuration}ms, Error Detection ${errorDetectionDuration}ms, Categorization ${categorizationDuration}ms`);
+      console.log(`   - Timing: ASR ${asrDuration}ms, Web Search ${webSearchDuration}ms, Error Detection ${errorDetectionDuration}ms, Categorization ${categorizationDuration}ms`);
       
       const actionCounts = {
         web_search: categorizedSOIs.filter(s => s.action === 'web_search').length,
@@ -728,11 +1179,13 @@ export class SimpleASRAgent {
         direct_correction: categorizedSOIs.filter(s => s.action === 'direct_correction').length
       };
       console.log(`   - Actions: ${actionCounts.web_search} web_search, ${actionCounts.user_dialogue} user_dialogue, ${actionCounts.direct_correction} direct_correction`);
+      console.log(`   - Web Search: ${webSearchContext.verifiedEntities.length} verified entities, ${webSearchContext.searchResults.length} total searches`);
 
       return {
         transcript: asrOutput.transcript,
         segmentsOfInterest: categorizedSOIs,
-        processingSteps
+        processingSteps,
+        webSearchContext: webSearchContext.contextualInfo
       };
 
     } catch (error) {
@@ -744,9 +1197,11 @@ export class SimpleASRAgent {
   }
 
   async initialize(): Promise<void> {
-    console.log('🔧 SimpleASRAgent: Initializing Simple ASR Agent...');
+    console.log('🔧 SimpleASRAgent: Initializing Simple ASR Agent with Web Search...');
     console.log(`🔧 Configuration: OpenRouter available: ${isOpenRouterAvailable()}`);
     console.log(`🔧 Thresholds: lowConf=${AGENT_CONFIG.thresholds.lowConfidence}, modUnc=${AGENT_CONFIG.thresholds.moderateUncertainty}, highUnc=${AGENT_CONFIG.thresholds.highUncertainty}`);
+    console.log(`🌐 Web Search: Integrated as first analysis step for contextual verification`);
+    console.log(`🔄 Processing Pipeline: ASR → Web Search → Error Detection → Categorization`);
     // Add any initialization logic here
     console.log('✅ SimpleASRAgent: Initialization completed');
   }
