@@ -13,6 +13,7 @@
 		waveform
 	} from '$lib/stores.svelte';
 	import Peaks, { type PeaksInstance, type PeaksOptions } from 'peaks.js';
+	import { highlightWord } from '$lib/components/editor/highlightPlugin';
 	let { url } = $props();
 
 	let peaksInstance: PeaksInstance;
@@ -224,19 +225,8 @@
 				playingTime.set(progress);
 				// console.log("entered segment");
 				if ($editor) {
-					// Apply word color decoration change to state without adding this state change to the history stack.
-					let newState = $editor.view.state.apply(
-						$editor.view.state.tr
-							.setMeta('wordColor', {
-								id: event.segment.id,
-	/* 							start: region.start,
-								end: region.end, */
-								event: 'in'
-							})
-							.setMeta('addToHistory', false)
-					);
-					// console.log("entered segment", event.segment.id)
-					$editor.view.updateState(newState);
+					// Use the highlight function for ProseMirror
+					highlightWord($editor, event.segment.id);
 				}
 			});
 			peaksInstance.on('segments.click', function(event) {
@@ -260,20 +250,8 @@
 				if ($waveform && $waveform.player) progress = Math.round($waveform.player.getCurrentTime() * 100) / 100;
 				playingTime.set(progress);
 				if ($editor) {
-					// Apply word color decoration change to state without adding this state change to the history stack.
-					let newState = $editor.view.state.apply(
-						$editor.view.state.tr
-							// TODO: pass ID instead of progress
-							// TODO: fire at region start, end and player seek events
-							.setMeta('wordColor', {
-								id: lastHighlighedWord.id,
-								start: lastHighlighedWord.start,
-								end: lastHighlighedWord.end,
-								event: 'out'
-							})
-							.setMeta('addToHistory', false)
-					);
-					$editor.view.updateState(newState);
+					// Clear highlight when word ends
+					highlightWord($editor, null);
 				}
 				if (lastHighlighedWord.highlight) lastHighlighedWord.highlight = false;
 			}
@@ -281,18 +259,8 @@
 				const progress = Math.round($waveform.player.getCurrentTime() * 100) / 100;
 				playingTime.set(progress);
 				if ($editor) {
-				// Apply word color decoration change to state without adding this state change to the history stack.
-					let newState = $editor.view.state.apply(
-						$editor.view.state.tr
-						.setMeta('wordColor', {
-							id: currentWord.id,
-							start: currentWord.start,
-							end: currentWord.end,
-							event: 'in'
-						})
-						.setMeta('addToHistory', false)
-					);
-					$editor.view.updateState(newState);
+					// Highlight current word
+					highlightWord($editor, currentWord.id);
 				}
 				lastHighlighedWord.id = currentWord.id;
 				lastHighlighedWord.start = currentWord.start;
