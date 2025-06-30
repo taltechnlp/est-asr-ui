@@ -14,3 +14,14 @@ combined.log
 error.log
 exception.log
 rejections.log
+# Output
+.output
+.vercel
+.netlify
+.wrangler
+/.svelte-kit
+/build
+
+# OS
+.DS_Store
+Thumbs.db

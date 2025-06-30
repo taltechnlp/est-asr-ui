@@ -1,0 +1,23 @@
+nohup: ignoring input
+✔ Started running a deployment locally at http://127.0.0.1:3212 and saved its name as CONVEX_DEPLOYMENT to .env.local
+Run `npx convex login` at any time to create an account and link this deployment.
+
+Write your Convex functions in convex/
+Give us feedback at https://convex.dev/community or support@convex.dev
+View the Convex dashboard at http://127.0.0.1:6790/?a=6792&d=anonymous-svelte-ui
+
+- Preparing Convex functions...
+
+✔ 15:31:08 Convex functions ready! (98.46ms)
+6/29/2025, 3:40:53 PM [CONVEX Q(transcripts:getWords)] ArgumentValidationError: Value does not match validator.
+Path: .transcriptId
+Value: "test"
+Validator: v.id("transcripts")
+
+
+6/29/2025, 3:43:06 PM [CONVEX Q(transcripts:getWords)] ArgumentValidationError: Value does not match validator.
+Path: .transcriptId
+Value: "demo-transcript-1"
+Validator: v.id("transcripts")
+
+

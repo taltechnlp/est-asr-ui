@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
 import { TranscriptRefinementAgent } from '$lib/agent/transcriptRefinementAgent';
 import { getSimpleASRAgent } from '$lib/agent/simpleAgent';
+import { processAudioWithLangGraph } from '$lib/agent/langGraphAgent';
 import { prisma } from '$lib/db/client';
 import { promises as fs } from 'fs';
 
@@ -81,13 +82,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       transcriptContent = fileContent;
     }
 
-    console.log(`🚀 Starting NEW transcript refinement with Web Search for file ${fileId}`);
+    console.log(`🚀 Starting LangGraph ASR Agent with Web Search for file ${fileId}`);
     console.log(`📊 Parsed content: Words: ${words.length}, Speakers: ${speakers.length}`);
 
-    // Use the new SimpleASRAgent with web search functionality
-    const startTime = Date.now();
-    const simpleAgent = await getSimpleASRAgent();
-    
     // Create a mock transcript from the content for the agent
     let transcript = '';
     if (transcriptContent && transcriptContent.content) {
@@ -107,12 +104,26 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
     console.log(`📝 Extracted transcript for analysis: "${transcript.substring(0, 200)}..." (${transcript.length} chars)`);
 
-    // Run the new agent with web search
-    console.log(`🌐 Running SimpleASRAgent with web search integration...`);
-    const agentResult = await simpleAgent.processAudio(`mock_audio_${fileId}.wav`);
-    const processingTime = Date.now() - startTime;
+    // Prepare word data for the agent
+    const wordData = words.map((word, index) => ({
+      start: word.start || index,
+      end: word.end || index + 1,
+      id: word.id || `word_${index}`,
+      text: `word_${index}` // We don't have the actual word text in the current format
+    }));
 
-    console.log(`✅ SimpleASRAgent completed in ${processingTime}ms`);
+    // Run the new LangGraph agent with REAL content
+    console.log(`🔗 Running LangGraph ASR Agent with REAL transcript content (${transcript.length} chars)...`);
+    const agentResult = await processAudioWithLangGraph(
+      `real_content_${fileId}.wav`, 
+      'et', 
+      transcript, // Pass the real transcript
+      wordData, // Pass real word timings
+      speakers // Pass real speaker data
+    );
+    const processingTime = agentResult.processingTime;
+
+    console.log(`✅ LangGraph ASR Agent completed in ${processingTime}ms`);
     console.log(`📊 Agent Results:`);
     console.log(`   - Transcript analyzed: ${agentResult.transcript.length} chars`);
     console.log(`   - Segments of Interest: ${agentResult.segmentsOfInterest.length}`);
