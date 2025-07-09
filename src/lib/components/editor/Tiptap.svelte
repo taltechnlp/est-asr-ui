@@ -50,6 +50,7 @@
 		fileId: any;
 		uploadedAt: any;
 		demo: any;
+		onSync?: (content: any, fileId: any) => Promise<void>;
 	}
 
 	let {
@@ -57,7 +58,8 @@
 		fileName,
 		fileId,
 		uploadedAt,
-		demo
+		demo,
+		onSync
 	}: Props = $props();
 
 	let element: HTMLDivElement | undefined;
@@ -325,6 +327,39 @@
 		return true;
 	}
 
+	async function handleSync() {
+		console.log('🔘 [TIPTAP] Sync button clicked!');
+		console.log('🔘 [TIPTAP] Current editor:', !!$editor);
+		console.log('🔘 [TIPTAP] Current fileId:', currentFileId);
+		console.log('🔘 [TIPTAP] onSync handler:', !!onSync);
+		
+		if (!$editor || !currentFileId) {
+			console.error('❌ [TIPTAP] Cannot sync: missing editor or fileId');
+			return false;
+		}
+
+		try {
+			const editorContent = $editor.getJSON();
+			console.log('📄 [TIPTAP] Got editor content:', {
+				type: editorContent.type,
+				contentLength: editorContent.content?.length || 0
+			});
+			
+			if (onSync) {
+				console.log('🔄 [TIPTAP] Calling onSync handler...');
+				await onSync(editorContent, currentFileId);
+				console.log('✅ [TIPTAP] Successfully synced to Convex for fileId:', currentFileId);
+				return true;
+			} else {
+				console.warn('⚠️ [TIPTAP] No sync handler provided');
+				return false;
+			}
+		} catch (error) {
+			console.error('❌ [TIPTAP] Failed to sync to Convex:', error);
+			return false;
+		}
+	}
+
 	let isActive = $derived((name, attrs = {}) => $editor.isActive(name, attrs));
 	let fontSize: string = $state(localStorage.getItem('fontSize') || "16");
 	$effect(() => {
@@ -430,6 +465,17 @@
 						<Icon data={download} scale={1} />
 						<span class="ml-1 leading-3 hidden sm:block"> {$_('file.toolbarDownload')} </span>
 					</label>
+				</div>
+				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
+				<div class="flex items-center">
+					<button
+						onclick={handleSync}
+						class="btn btn-primary btn-sm flex"
+						title="Sync to Convex"
+					>
+						<Icon data={download} scale={1} />
+						<span class="ml-1 leading-3 hidden sm:block">Sync to Convex</span>
+					</button>
 				</div>
 				
 			</div>

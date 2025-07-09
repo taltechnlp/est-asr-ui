@@ -268,6 +268,85 @@ export const updateTranscriptStatus = mutation({
   },
 });
 
+export const updateTranscript = mutation({
+  args: { 
+    transcriptId: v.id("transcripts"), 
+    title: v.string(),
+    status: v.union(
+      v.literal("processing"),
+      v.literal("reviewing"),
+      v.literal("completed")
+    )
+  },
+  handler: async (ctx, args) => {
+    console.log(`🔄 [CONVEX] Updating transcript:`, {
+      transcriptId: args.transcriptId,
+      title: args.title,
+      status: args.status,
+      timestamp: new Date().toISOString()
+    });
+    
+    await ctx.db.patch(args.transcriptId, { 
+      title: args.title,
+      status: args.status 
+    });
+    
+    console.log(`✅ [CONVEX] Successfully updated transcript: ${args.transcriptId}`);
+  },
+});
+
+export const clearWordsForTranscript = mutation({
+  args: { transcriptId: v.id("transcripts") },
+  handler: async (ctx, args) => {
+    console.log(`🗑️ [CONVEX] Clearing words for transcript: ${args.transcriptId}`);
+    
+    // Get all words for this transcript
+    const words = await ctx.db
+      .query("words")
+      .withIndex("by_transcript", (q) => q.eq("transcriptId", args.transcriptId))
+      .collect();
+    
+    console.log(`📊 [CONVEX] Found ${words.length} words to delete`);
+    
+    // Delete all words
+    for (const word of words) {
+      await ctx.db.delete(word._id);
+    }
+    
+    console.log(`✅ [CONVEX] Successfully deleted ${words.length} words from transcript: ${args.transcriptId}`);
+    
+    return { deletedCount: words.length };
+  },
+});
+
+export const addWord = mutation({
+  args: {
+    transcriptId: v.id("transcripts"),
+    text: v.string(),
+    start: v.number(),
+    end: v.number(),
+    speakerTag: v.string(),
+    wordIndex: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const wordId = await ctx.db.insert("words", {
+      transcriptId: args.transcriptId,
+      text: args.text,
+      start: args.start,
+      end: args.end,
+      speakerTag: args.speakerTag,
+      wordIndex: args.wordIndex,
+    });
+    
+    // Log every 100th word to avoid spam
+    if (args.wordIndex % 100 === 0) {
+      console.log(`📝 [CONVEX] Added word ${args.wordIndex}: "${args.text}" to transcript: ${args.transcriptId}`);
+    }
+    
+    return wordId;
+  },
+});
+
 export const deleteSummary = mutation({
   args: { transcriptId: v.string() },
   handler: async (ctx, args) => {
