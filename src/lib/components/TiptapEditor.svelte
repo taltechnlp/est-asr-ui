@@ -6,16 +6,19 @@
   import { Suggestion } from './nodes/suggestion';
   import { applyCorrection } from '../agent/correctionService';
   import { ConvexClient } from 'convex/browser';
+  import { api } from '../../../convex/_generated/api';
 
   export let documentId: string;
+  export let convexDocumentId: string | null = null;
+  export let editor: Editor | undefined = undefined;
 
   let element: HTMLDivElement;
-  let editor: Editor;
+  let editorInstance: Editor;
 
-  const client = new ConvexClient(import.meta.env.VITE_CONVEX_URL);
+  const client = new ConvexClient(import.meta.env.VITE_CONVEX_URL || "http://localhost:3210");
 
   onMount(() => {
-    editor = new Editor({
+    editorInstance = new Editor({
       element: element,
       extensions: [
         StarterKit,
@@ -24,24 +27,33 @@
       content: '<p>Hello World!</p>',
     });
 
-    const unsubscribe = client.onUpdate(
-      "correctionJobs",
-      { documentId: documentId, status: "completed" },
-      (job) => {
-        applyCorrection(editor, job);
-      }
-    );
+    // Bind the editor instance to the parent component
+    editor = editorInstance;
+
+    if (convexDocumentId) {
+      const unsubscribe = client.onUpdate(
+        api.correctionJobs.getByDocumentAndStatus,
+        { documentId: convexDocumentId as any, status: "completed" },
+        (job) => {
+          applyCorrection(editorInstance, job);
+        }
+      );
+
+      return () => {
+        editorInstance.destroy();
+        unsubscribe();
+      };
+    }
 
     return () => {
-      editor.destroy();
-      unsubscribe();
+      editorInstance.destroy();
     };
   });
 </script>
 
 <div class="editor-container">
-    {#if editor}
-    <CorrectionControls {editor} {documentId} />
+    {#if editor && convexDocumentId}
+    <CorrectionControls {editor} {convexDocumentId} />
   {/if}
   <div bind:this={element}></div>
 </div>

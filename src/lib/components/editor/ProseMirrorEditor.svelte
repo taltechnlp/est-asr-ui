@@ -418,6 +418,22 @@
     }
   }
 
+  async function handleSaveToDb() {
+    if (view) {
+      const editorState = view.state.doc.toJSON();
+      const convexId = await initiateCorrection(currentFileId, editorState);
+      alert(`Document saved with Convex ID: ${convexId}`);
+    }
+  }
+
+  async function handleSaveToDb() {
+    if (view) {
+      const editorState = view.state.doc.toJSON();
+      const convexId = await initiateCorrection(currentFileId, editorState);
+      alert(`Document saved with Convex ID: ${convexId}`);
+    }
+  }
+
   let fontSize: string = $state(localStorage.getItem('fontSize') || "16");
   $effect(() => {
     fontSizeStore.set(fontSize)

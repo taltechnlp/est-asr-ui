@@ -410,4 +410,27 @@ export const getAllSummaries = query({
   handler: async (ctx: QueryCtx): Promise<Doc<"transcriptSummaries">[]> => {
     return await ctx.db.query("transcriptSummaries").collect();
   },
+});
+
+export const getCorrectionJobs = query({
+  args: {
+    documentId: v.id("documents"),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("in_progress"),
+      v.literal("completed"),
+      v.literal("error")
+    )
+  },
+  handler: async (
+    ctx: QueryCtx,
+    args: { documentId: Id<"documents">; status: "pending" | "in_progress" | "completed" | "error" }
+  ): Promise<Doc<"correctionJobs">[]> => {
+    return await ctx.db
+      .query("correctionJobs")
+      .withIndex("by_document_and_status", (q) =>
+        q.eq("documentId", args.documentId).eq("status", args.status)
+      )
+      .collect();
+  },
 }); 

@@ -28,6 +28,7 @@ export default defineSchema({
     originalText: v.string(),
     // The corrected TipTap JSON from the agent
     correctedText: v.optional(v.string()),
+    speaker: v.optional(v.string()),
     status: v.union(
       v.literal("pending"),
       v.literal("in_progress"),

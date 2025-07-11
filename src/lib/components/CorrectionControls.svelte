@@ -3,14 +3,14 @@
   import { sendSegmentForCorrection } from '../agent/correctionService';
 
   export let editor: Editor;
-  export let documentId: string;
+  export let convexDocumentId: string;
 
   let isLoading = false;
 
   async function handleSendToAgent() {
     isLoading = true;
     try {
-      await sendSegmentForCorrection(documentId, editor);
+      await sendSegmentForCorrection(convexDocumentId, editor);
     } catch (error) {
       console.error('Error sending segment for correction:', error);
     } finally {
