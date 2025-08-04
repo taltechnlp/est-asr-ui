@@ -57,23 +57,32 @@ export class ASRNBestServerNodeTool {
       const url = `${this.asrEndpoint}?n_best=${nBest}`;
       console.log(`Making ASR request using curl to: ${url}`);
       
-      const curlCommand = `curl -X POST "${url}" -F "file=@${sliceResult.tempFilePath}" -H "Accept: application/json"`;
+      // Add -L to follow redirects and -v for verbose output to debug
+      const curlCommand = `curl -L -X POST "${url}" -F "file=@${sliceResult.tempFilePath}" -H "Accept: application/json" 2>&1`;
       console.log(`Curl command: ${curlCommand}`);
       
       const { stdout, stderr } = await execAsync(curlCommand);
       
-      if (stderr && !stderr.includes('% Total')) { // Ignore curl progress output
-        console.error(`Curl stderr: ${stderr}`);
+      // Since we're using 2>&1, all output including verbose info will be in stdout
+      console.log(`Curl full output: ${stdout}`);
+      
+      // Extract JSON response from curl output
+      // Look for the actual JSON response after the headers
+      const jsonMatch = stdout.match(/\{[\s\S]*\}(?!.*\{)/);
+      if (!jsonMatch) {
+        console.error('No JSON found in curl output');
+        throw new Error(`No JSON response found in curl output: ${stdout}`);
       }
       
-      console.log(`ASR API raw response: ${stdout}`);
+      const jsonResponse = jsonMatch[0];
+      console.log(`ASR API raw response: ${jsonResponse}`);
       
       let asrResult;
       try {
-        asrResult = JSON.parse(stdout);
+        asrResult = JSON.parse(jsonResponse);
       } catch (e) {
         console.error('Failed to parse ASR response as JSON:', e);
-        throw new Error(`Invalid ASR response format: ${stdout}`);
+        throw new Error(`Invalid ASR response format: ${jsonResponse}`);
       }
 
       // Check if we got the service metadata instead of transcription result
