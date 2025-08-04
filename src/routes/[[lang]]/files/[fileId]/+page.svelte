@@ -10,11 +10,14 @@
 	} from '$lib/stores.svelte.js';
 	import type { Word, Speaker } from '$lib/helpers/converters/types';
 	import TranscriptChat from '$lib/components/transcript-chat/TranscriptChat.svelte';
+	import SummaryAccordion from '$lib/components/transcript-summary/SummaryAccordion.svelte';
+	import type { TranscriptSummary } from '@prisma/client';
 	let { data } = $props();
-	let words: Array<Word> = [];
-	let speakers: Array<Speaker> = [];
+	let words = $state<Array<Word>>([]);
+	let speakers = $state<Array<Speaker>>([]);
 	let transcription = $state('');
 	let json = JSON.parse(data.file && data.file.content);
+	let summary = $state<TranscriptSummary | null>(null);
 	let content;
 	// First time transcription from the Estonian JSON format.
 	if (json && !json.type) {
@@ -55,6 +58,10 @@
 	editorMounted.set(false);
 	speakerNamesStore.set(speakers);
 	wordsStore.set(words);
+	
+	function handleSummaryGenerated(newSummary: TranscriptSummary) {
+		summary = newSummary;
+	}
 </script>
 
 <main class="grid grid-rows-[1fr_auto] content-between">
@@ -65,6 +72,8 @@
 			demo={false}
 			fileName={data.file.name}
 			uploadedAt={data.file.uploadedAt}
+			{summary}
+			onSummaryGenerated={handleSummaryGenerated}
 		/>
 		<Player url={`${data.url}/uploaded/${data.file.id}`} />
 	</div>
@@ -84,6 +93,8 @@
 		{words}
 		{speakers}
 		language={data.file.language || 'et'}
+		{summary}
+		onSummaryGenerated={handleSummaryGenerated}
 		onSuggestionApply={(suggestion) => {
 			// Handle suggestion application
 			console.log('Apply suggestion:', suggestion);

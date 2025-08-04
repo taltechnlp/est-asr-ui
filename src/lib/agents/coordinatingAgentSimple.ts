@@ -81,9 +81,9 @@ export class CoordinatingAgentSimple {
       maxTokens: 2000,
     });
 
-    // The service is mounted at /asr and the upload endpoint is /asr within the service
-    // So the full URL is /asr/asr
-    this.asrTool = createASRNBestServerNodeTool("https://tekstiks.ee/asr/asr");
+    // The service is mounted at /asr and the endpoint is /transcribe/alternatives
+    // So the full URL is /asr/transcribe/alternatives
+    this.asrTool = createASRNBestServerNodeTool("https://tekstiks.ee/asr/transcribe/alternatives/");
     this.webSearchTool = createWebSearchTool();
   }
 

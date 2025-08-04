@@ -5,7 +5,6 @@
   import type { TranscriptSummary } from '@prisma/client';
   import SuggestionCard from './SuggestionCard.svelte';
   import AnalysisPanel from './AnalysisPanel.svelte';
-  import SummaryAccordion from '../transcript-summary/SummaryAccordion.svelte';
   import SegmentControl from '../transcript-analysis/SegmentControl.svelte';
   import Icon from 'svelte-awesome/components/Icon.svelte';
   import comment from 'svelte-awesome/icons/comment';
@@ -24,6 +23,8 @@
     words = [],
     speakers = [],
     language = 'et',
+    summary = null as TranscriptSummary | null,
+    onSummaryGenerated = (summary: TranscriptSummary) => {},
     onSuggestionApply = (suggestion: ImprovementSuggestion) => {}
   } = $props();
 
@@ -34,8 +35,7 @@
   let selectedModel = $state('anthropic/claude-3.5-sonnet');
   let analysisType = $state<'full' | 'grammar' | 'punctuation' | 'speaker_diarization' | 'confidence' | 'context'>('full');
   let feedbackMessage = $state<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
-  let summary = $state<TranscriptSummary | null>(null);
-  let activeTab = $state<'summary' | 'analysis' | 'legacy'>('summary');
+  let activeTab = $state<'analysis' | 'legacy'>('analysis');
 
   const availableModels = [
     { value: 'anthropic/claude-3.5-sonnet', label: 'Claude 3.5 Sonnet' },
@@ -103,10 +103,6 @@
 
   function toggleChat() {
     isOpen = !isOpen;
-  }
-
-  function handleSummaryGenerated(newSummary: TranscriptSummary) {
-    summary = newSummary;
   }
 
   function handleSegmentAnalyzed(result: any) {
@@ -191,12 +187,6 @@
 
       <div class="chat-tabs">
         <button
-          class="tab-btn {activeTab === 'summary' ? 'active' : ''}"
-          onclick={() => activeTab = 'summary'}
-        >
-          {$_('transcript.tabs.summary')}
-        </button>
-        <button
           class="tab-btn {activeTab === 'analysis' ? 'active' : ''}"
           onclick={() => activeTab = 'analysis'}
         >
@@ -262,12 +252,7 @@
           </div>
         {/if}
 
-        {#if activeTab === 'summary'}
-          <SummaryAccordion
-            {fileId}
-            onSummaryGenerated={handleSummaryGenerated}
-          />
-        {:else if activeTab === 'analysis'}
+        {#if activeTab === 'analysis'}
           <SegmentControl
             {fileId}
             {editorContent}

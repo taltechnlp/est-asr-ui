@@ -46,6 +46,8 @@
 	import Hotkeys from './toolbar/Hotkeys.svelte';
 	import Settings from './toolbar/Settings.svelte';
 	import hotkeys from 'hotkeys-js';
+	import SummaryAccordion from '../transcript-summary/SummaryAccordion.svelte';
+	import type { TranscriptSummary } from '@prisma/client';
 	
 
 	interface Props {
@@ -54,6 +56,8 @@
 		fileId: any;
 		uploadedAt: any;
 		demo: any;
+		summary?: TranscriptSummary | null;
+		onSummaryGenerated?: (summary: TranscriptSummary) => void;
 	}
 
 	let {
@@ -61,7 +65,9 @@
 		fileName,
 		fileId,
 		uploadedAt,
-		demo
+		demo,
+		summary = null,
+		onSummaryGenerated = () => {}
 	}: Props = $props();
 
 	let element: HTMLDivElement | undefined;
@@ -318,31 +324,41 @@
 
 <div class="w-full fixed top-2 left-0 right-0 flex justify-center z-20"></div>
 <div class="grid w-full mb-12 justify-center">
-	<div class="stats stats-horizontal shadow mb-4">
-		<div class="stat">
-			<div class="stat-title">{fileName}</div>
-			<div class="flex justify-between text-">
-				<div class="w-1/2 stat-desc mr-3">{$_('file.duration')} {durationSeconds}</div>
-				<div class="w-1/2 stat-desc">{$_('file.uploaded')} {uploadedAtFormatted}</div>
+	<div class="max-w-5xl w-full">
+		<div class="stats stats-horizontal shadow mb-4 w-full">
+			<div class="stat">
+				<div class="stat-title">{fileName}</div>
+				<div class="flex justify-between text-">
+					<div class="w-1/2 stat-desc mr-3">{$_('file.duration')} {durationSeconds}</div>
+					<div class="w-1/2 stat-desc">{$_('file.uploaded')} {uploadedAtFormatted}</div>
+				</div>
+			</div>
+
+			<div class="stat">
+				<fieldset>
+					<legend class="stat-title">{$_('file.editingMode')}</legend>
+					<div class="stat-desc flex flex-col">
+						<label for="">
+							<input type="radio" name="mode" value={1} bind:group={$editorMode} />
+							{$_('file.editingModeRegular')}
+						</label>
+						<label for="">
+							<input type="radio" name="mode" value={2} bind:group={$editorMode} />
+							{$_('file.editingModeAnnotation')}
+						</label>
+					</div>
+				</fieldset>
 			</div>
 		</div>
-
-		<div class="stat">
-			<fieldset>
-				<legend class="stat-title">{$_('file.editingMode')}</legend>
-				<div class="stat-desc flex flex-col">
-					<label for="">
-						<input type="radio" name="mode" value={1} bind:group={$editorMode} />
-						{$_('file.editingModeRegular')}
-					</label>
-					<label for="">
-						<input type="radio" name="mode" value={2} bind:group={$editorMode} />
-						{$_('file.editingModeAnnotation')}
-					</label>
-				</div>
-			</fieldset>
-		</div>
+		
+		{#if !demo}
+			<SummaryAccordion
+				{fileId}
+				onSummaryGenerated={onSummaryGenerated}
+			/>
+		{/if}
 	</div>
+	
 	<div class="editor max-w-5xl">
 		{#if $editor}
 			<div class="toolbar sticky top-0 z-10 pt-1 pb-1 bg-base-200">
