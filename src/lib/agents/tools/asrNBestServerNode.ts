@@ -30,7 +30,7 @@ export class ASRNBestServerNodeTool {
   private audioSlicer;
   private asrEndpoint: string;
 
-  constructor(asrEndpoint: string = "https://tekstiks.ee/asr/asr") {
+  constructor(asrEndpoint: string = "https://tekstiks.ee/asr") {
     this.audioSlicer = getAudioSlicer();
     this.asrEndpoint = asrEndpoint;
     console.log(`ASRNBestServerNodeTool initialized with endpoint: ${this.asrEndpoint}`);

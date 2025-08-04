@@ -75,8 +75,8 @@ export class CoordinatingAgentSimple {
       maxTokens: 2000,
     });
 
-    // The nginx proxy maps /asr/ to the backend root, so we need /asr/asr for the transcription endpoint
-    this.asrTool = createASRNBestServerNodeTool("https://tekstiks.ee/asr/asr");
+    // Use the fixed ASR endpoint - now just /asr without duplication
+    this.asrTool = createASRNBestServerNodeTool("https://tekstiks.ee/asr");
     this.webSearchTool = createWebSearchTool();
   }
 
