@@ -24,7 +24,7 @@ export const runNextflow = (
       "-name",
       workflowName,
       "-with-weblog",
-      estAsrUrl + '/api/process',
+      `${estAsrUrl}/api/process`,
       "--in",
       filePath,
       "--out_dir",
