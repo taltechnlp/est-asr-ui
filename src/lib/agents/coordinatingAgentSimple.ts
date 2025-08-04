@@ -75,6 +75,45 @@ Provide a detailed analysis with actionable suggestions in the following JSON fo
   ]
 }`;
 
+const ENHANCED_ANALYSIS_PROMPT = `You are an expert transcript analyst. You have already performed an initial analysis of a transcript segment.
+Now you have access to additional ASR (Automatic Speech Recognition) alternative transcriptions from a specialized model that excels at recognizing English and mixed-language content.
+
+Original transcript segment:
+{originalText}
+
+Your initial analysis identified these potential issues:
+{initialAnalysis}
+
+Alternative transcriptions from ASR (ranked by confidence):
+{asrAlternatives}
+
+CRITICAL INSIGHTS ABOUT THE ASR MODEL:
+- This specialized ASR model is particularly good at recognizing English words and phrases
+- It handles code-switching (mixing languages) better than the primary model
+- It's more accurate with technical terms, brand names, and proper nouns
+- The primary model that produced the original transcript has limited English capability
+
+Based on these ASR alternatives, please:
+1. ACTIVELY LOOK for places where the ASR alternatives contain English words that make more sense
+   Example: If original has "haud Hazdić vahe" and ASR has "how does it work", the ASR is likely correct
+2. Check for misrecognized English phrases that appear as nonsensical Estonian/Finnish
+3. Identify technical terms or proper nouns that ASR recognized better
+4. Replace any garbled or unclear segments with clearer ASR alternatives
+5. When ASR shows English text with high confidence, strongly consider using it
+
+Create new suggestions that incorporate the best ASR alternatives. For each suggestion:
+- Set originalText to the problematic segment from the original
+- Set suggestedText to the better alternative from ASR (if applicable)
+- Explain why the ASR alternative is better (e.g., "ASR correctly identified English phrase")
+- Set high confidence (0.8+) when ASR clearly shows English or technical terms
+
+IMPORTANT: 
+- The ASR alternatives often reveal English content that was misrecognized as Estonian/Finnish
+- Provide your updated analysis and suggestions in {responseLanguage} language
+- Be aggressive in suggesting ASR alternatives when they contain sensible English text
+
+Provide your enhanced analysis in the same JSON format as before.`;
+
 export class CoordinatingAgentSimple {
 	private model;
 	private asrTool;
@@ -161,6 +200,44 @@ export class CoordinatingAgentSimple {
 				console.error('ASR N-best tool error:', e);
 			}
 			// }
+
+			// If we have ASR results, perform enhanced analysis
+			if (nBestResults && nBestResults.alternatives && nBestResults.alternatives.length > 0) {
+				try {
+					// Format ASR alternatives for the prompt
+					const asrAlternativesText = nBestResults.alternatives
+						.map((alt: any, idx: number) => `${idx + 1}. ${alt.text} (confidence: ${alt.confidence || 'N/A'})`)
+						.join('\n');
+
+					// Create enhanced analysis prompt
+					const enhancedPrompt = ENHANCED_ANALYSIS_PROMPT
+						.replace('{originalText}', segment.text)
+						.replace('{initialAnalysis}', JSON.stringify(analysisData.suggestions || []))
+						.replace('{asrAlternatives}', asrAlternativesText)
+						.replace('{responseLanguage}', responseLanguage);
+
+					// Get enhanced analysis
+					const enhancedResponse = await this.model.invoke([new HumanMessage({ content: enhancedPrompt })]);
+					
+					// Parse enhanced response
+					try {
+						const enhancedContent = enhancedResponse.content as string;
+						const enhancedJsonMatch = enhancedContent.match(/\{[\s\S]*\}/);
+						if (enhancedJsonMatch) {
+							const enhancedData = JSON.parse(enhancedJsonMatch[0]);
+							// Update analysis data with enhanced suggestions
+							if (enhancedData.suggestions) {
+								analysisData.suggestions = enhancedData.suggestions;
+								analysisData.analysis = enhancedData.analysis || analysisData.analysis;
+							}
+						}
+					} catch (e) {
+						console.error('Failed to parse enhanced analysis:', e);
+					}
+				} catch (e) {
+					console.error('Enhanced analysis error:', e);
+				}
+			}
 
 			// Use web search for unfamiliar terms
 			if (analysisData.needsWebSearch && analysisData.needsWebSearch.length > 0) {
