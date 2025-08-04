@@ -1,4 +1,4 @@
-import type { Word } from '$lib/helpers/converters/types';
+import type { TipTapEditorContent } from '../../types';
 
 export interface ExtractedWord {
   text: string;
@@ -7,13 +7,36 @@ export interface ExtractedWord {
   speakerTag: string;
 }
 
-export function extractWordsFromEditor(content: any): ExtractedWord[] {
+interface EditorNode {
+  type: string;
+  attrs?: {
+    "data-name"?: string;
+    id?: string;
+    topic?: string | null;
+  };
+  content?: EditorNode[];
+  text?: string;
+  marks?: EditorMark[];
+}
+
+interface EditorMark {
+  type: string;
+  attrs?: {
+    start?: number;
+    end?: number;
+    id?: string;
+    lang?: string;
+    spellcheck?: string;
+  };
+}
+
+export function extractWordsFromEditor(content: TipTapEditorContent): ExtractedWord[] {
   const words: ExtractedWord[] = [];
   
-  function traverseNode(node: any, currentSpeaker: string = '') {
+  function traverseNode(node: EditorNode, currentSpeaker: string = '') {
     if (node.type === 'speaker') {
       // Extract speaker name from speaker node
-      const speakerName = node.attrs?.['data-name'] || node.attrs?.name || 'Unknown Speaker';
+      const speakerName = node.attrs?.['data-name'] || 'Unknown Speaker';
       currentSpeaker = speakerName;
     }
     
@@ -26,12 +49,15 @@ export function extractWordsFromEditor(content: any): ExtractedWord[] {
     
     if (node.type === 'text' && node.marks) {
       // Find word mark with timing information
-      const wordMark = node.marks.find((mark: any) => mark.type === 'word');
+      const wordMark = node.marks.find((mark: EditorMark) => mark.type === 'word');
       if (wordMark && wordMark.attrs) {
+        const start = wordMark.attrs.start || 0;
+        const end = wordMark.attrs.end || 0;
+        
         words.push({
-          text: node.text,
-          start: wordMark.attrs.start || 0,
-          end: wordMark.attrs.end || 0,
+          text: node.text || '',
+          start,
+          end,
           speakerTag: currentSpeaker
         });
       }
@@ -39,22 +65,55 @@ export function extractWordsFromEditor(content: any): ExtractedWord[] {
   }
   
   if (content && content.content) {
-    traverseNode(content);
+    traverseNode(content as EditorNode);
   }
   
   return words;
 }
 
-export function extractTranscriptTitle(content: any): string {
+export function extractFullTextWithSpeakers(content: TipTapEditorContent): string {
+  const paragraphs: string[] = [];
+  
+  if (content && content.content) {
+    for (const speakerNode of content.content) {
+      if (speakerNode.type === 'speaker') {
+        const speakerName = speakerNode.attrs?.['data-name'] || 'Unknown Speaker';
+        let paragraphText = '';
+        
+        // Collect all text from this speaker
+        const collectText = (node: EditorNode) => {
+          if (node.type === 'text' && node.text) {
+            paragraphText += node.text;
+          }
+          if (node.content && Array.isArray(node.content)) {
+            for (const child of node.content) {
+              collectText(child);
+            }
+          }
+        };
+        
+        collectText(speakerNode);
+        
+        if (paragraphText.trim()) {
+          paragraphs.push(`${speakerName}: ${paragraphText.trim()}`);
+        }
+      }
+    }
+  }
+  
+  return paragraphs.join('\n\n');
+}
+
+export function extractTranscriptTitle(content: TipTapEditorContent): string {
   // Try to extract a meaningful title from the content
   if (content && content.content && content.content.length > 0) {
     // Look for the first speaker node and get some text from it
-    const firstSpeaker = content.content.find((node: any) => node.type === 'speaker');
+    const firstSpeaker = content.content.find((node: EditorNode) => node.type === 'speaker');
     if (firstSpeaker && firstSpeaker.content) {
       // Get the first few words as a title
       const words: string[] = [];
-      const traverseForWords = (node: any) => {
-        if (node.type === 'text') {
+      const traverseForWords = (node: EditorNode) => {
+        if (node.type === 'text' && node.text) {
           words.push(node.text);
         }
         if (node.content && Array.isArray(node.content)) {

@@ -29,3 +29,29 @@ declare module "@auth/core/jwt" {
 		picture: string
   }
 }
+
+export type TipTapEditorContent = {
+  type: string;
+  content: {
+      type: string;
+      attrs: {
+          "data-name": string;
+          id?: string;
+          topic?: string | null;
+      };
+      content: {
+          type: string;
+          marks: {
+              type: string;
+              attrs: {
+                  start: number;
+                  end: number;
+                  id?: string;
+                  lang?: string;
+                  spellcheck?: string;
+              };
+          }[];
+          text: string;
+      }[];
+  }[];
+}

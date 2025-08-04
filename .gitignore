@@ -14,6 +14,7 @@ combined.log
 error.log
 exception.log
 rejections.log
+tmp/
 # Output
 .output
 .vercel
