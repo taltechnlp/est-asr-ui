@@ -28,8 +28,9 @@ export class ASRNBestServerTool {
 
   constructor(asrEndpoint: string = "https://tekstiks.ee/asr/asr") {
     this.audioSlicer = getAudioSlicer();
-    // Ensure we're using the correct endpoint path
-    this.asrEndpoint = asrEndpoint.endsWith('/asr') ? asrEndpoint : asrEndpoint + '/asr';
+    // Use the endpoint as provided - don't modify it
+    this.asrEndpoint = asrEndpoint;
+    console.log(`ASRNBestServerTool initialized with endpoint: ${this.asrEndpoint}`);
   }
 
   async _call(input: z.infer<typeof ASRNBestSchema>): Promise<string> {
@@ -69,16 +70,25 @@ export class ASRNBestServerTool {
       console.log(`Form data headers:`, formData.getHeaders());
       
       // Make request to ASR API with proper headers
+      // Add redirect: 'error' to prevent automatic redirects
       const response = await fetch(url, {
         method: 'POST',
         body: formData as any,
         headers: {
           ...formData.getHeaders(),
         },
+        redirect: 'manual', // Don't follow redirects automatically
       });
       
       console.log(`ASR response status: ${response.status}`);
       console.log(`ASR response headers:`, response.headers);
+      
+      // Check if we got redirected
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get('location');
+        console.error(`ASR API redirected to: ${location}`);
+        throw new Error(`ASR API redirected to: ${location}. This suggests the endpoint configuration is incorrect.`);
+      }
 
       if (!response.ok) {
         const errorText = await response.text();
