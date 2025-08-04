@@ -1,4 +1,12 @@
-import { OPENROUTER_API_KEY } from "$env/static/private";
+// Conditionally import API key to avoid client-side leakage
+let OPENROUTER_API_KEY: string = '';
+if (typeof window === 'undefined') {
+  try {
+    OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
+  } catch (e) {
+    console.warn('OPENROUTER_API_KEY not available in client context');
+  }
+}
 
 export interface OpenRouterConfig {
   modelName?: string;
@@ -32,7 +40,8 @@ export class OpenRouterChat {
   private maxTokens: number;
 
   constructor(config: OpenRouterConfig = {}) {
-    if (!OPENROUTER_API_KEY) {
+    // Only check for API key on server side
+    if (typeof window === 'undefined' && !OPENROUTER_API_KEY) {
       throw new Error(
         "OPENROUTER_API_KEY environment variable is not set. " +
         "Please add it to your .env file. " +
@@ -47,6 +56,11 @@ export class OpenRouterChat {
   }
 
   async invoke(messages: Array<{ role: string; content: string }>): Promise<{ content: string }> {
+    // Check if running in client-side context
+    if (typeof window !== 'undefined') {
+      throw new Error('OpenRouter API calls can only be made from server-side code');
+    }
+
     try {
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
@@ -92,6 +106,11 @@ export function createOpenRouterChat(config: OpenRouterConfig = {}) {
   // Create a wrapper that mimics LangChain's ChatOpenAI interface
   return {
     async invoke(messages: any[]): Promise<any> {
+      // Check if running in client-side context
+      if (typeof window !== 'undefined') {
+        throw new Error('OpenRouter API calls can only be made from server-side code');
+      }
+
       // Convert LangChain message format to OpenRouter format
       const formattedMessages = messages.map(msg => {
         if (msg.content) {

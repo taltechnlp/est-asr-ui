@@ -2,13 +2,14 @@ import { StateGraph, END, START } from "@langchain/langgraph";
 import { BaseMessage, HumanMessage, AIMessage, ToolMessage } from "@langchain/core/messages";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
 import { createOpenRouterChat, OPENROUTER_MODELS } from "$lib/llm/openrouter-direct";
-import {
-  GrammarCheckerTool,
-  PunctuationFixerTool,
-  SpeakerDiarizationTool,
-  ConfidenceAnalyzerTool,
-  ContextValidatorTool,
-} from "./tools";
+// Note: Using simplified imports for now - these tools are not currently implemented
+// import {
+//   GrammarCheckerTool,
+//   PunctuationFixerTool,
+//   SpeakerDiarizationTool,
+//   ConfidenceAnalyzerTool,
+//   ContextValidatorTool,
+// } from "./tools";
 import {
   TRANSCRIPT_ANALYSIS_SYSTEM_PROMPT,
   TRANSCRIPT_IMPROVEMENT_PROMPT,
@@ -37,13 +38,13 @@ export class TranscriptAnalyzer {
   private compiledGraph;
 
   constructor(modelName: string = OPENROUTER_MODELS.CLAUDE_3_5_SONNET) {
-    // Initialize model with tools
+    // Initialize model with tools (temporarily disabled - using coordinating agent instead)
     this.tools = [
-      new GrammarCheckerTool(),
-      new PunctuationFixerTool(),
-      new SpeakerDiarizationTool(),
-      new ConfidenceAnalyzerTool(),
-      new ContextValidatorTool(),
+      // new GrammarCheckerTool(),
+      // new PunctuationFixerTool(),
+      // new SpeakerDiarizationTool(),
+      // new ConfidenceAnalyzerTool(),
+      // new ContextValidatorTool(),
     ];
 
     this.model = createOpenRouterChat({

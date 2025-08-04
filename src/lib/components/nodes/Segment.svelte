@@ -344,96 +344,97 @@
 </script>
 
 <NodeViewWrapper class="svelte-component speaker {selected}">
-	<div class="top-container flex">
-		<details class="dropdown speaker-name-container" bind:open={isListOpen} contentEditable={false}>
-			<summary class="m-1 speaker-name flex group cursor-pointer w-auto hover:bg-accent">
-				<Icon name="user" class="" />
-				<span class="text-primary font-bold font-sans">{selectedVal.name}</span>
-				<Icon name="dropdown-arrow" class="invisible group-hover:visible" />
-			</summary>
-			<div class="absolute z-10 m-2 shadow drop-shadow-lg menu bg-base-100 border-2" use:clickOutside
-			onoutclick={() => {
-				isListOpen = false;
-			}}>
-				<div class="p-1 flex">
-					<input
-						placeholder={$_('speakerSelect.addNew')}
-						bind:value={newSpeaker}
-						onkeypress={(e) => handleKeypress(e, newSpeaker)}
-					/>
-					<button
-						class="btn btn-outline btn-xs w-min ml-1 hover:text-primary"
-						onclick={() => handleNewSpeakerSave(newSpeaker, time)}
-						>{$_('speakerSelect.save')}</button
-					>
-				</div>
-				<ul class="filter drop-shadow-lg">
-					{#each names as speaker}
-						<li
-							class="rounded-md hover:bg-accent {speaker.id == selectedVal.id
-								? 'flex justify-between flex-row p-1 bg-info'
-								: 'flex justify-between flex-row p-1'}"
+	<div class="top-container flex justify-between items-center">
+		<div class="left-section flex items-center">
+			<details class="dropdown speaker-name-container" bind:open={isListOpen} contentEditable={false}>
+				<summary class="m-1 speaker-name flex group cursor-pointer w-auto hover:bg-accent">
+					<Icon name="user" class="" />
+					<span class="text-primary font-bold font-sans">{selectedVal.name}</span>
+					<Icon name="dropdown-arrow" class="invisible group-hover:visible" />
+				</summary>
+				<div class="absolute z-10 m-2 shadow drop-shadow-lg menu bg-base-100 border-2" use:clickOutside
+				onoutclick={() => {
+					isListOpen = false;
+				}}>
+					<div class="p-1 flex">
+						<input
+							placeholder={$_('speakerSelect.addNew')}
+							bind:value={newSpeaker}
+							onkeypress={(e) => handleKeypress(e, newSpeaker)}
+						/>
+						<button
+							class="btn btn-outline btn-xs w-min ml-1 hover:text-primary"
+							onclick={() => handleNewSpeakerSave(newSpeaker, time)}
+							>{$_('speakerSelect.save')}</button
 						>
-							{#if speaker.id === editSpeakerId}
-								<input class="w-48 flex-grow border-2 hover:bg-accent" bind:value={editingValue} />
-								<div class="flex">
+					</div>
+					<ul class="filter drop-shadow-lg">
+						{#each names as speaker}
+							<li
+								class="rounded-md hover:bg-accent {speaker.id == selectedVal.id
+									? 'flex justify-between flex-row p-1 bg-info'
+									: 'flex justify-between flex-row p-1'}"
+							>
+								{#if speaker.id === editSpeakerId}
+									<input class="w-48 flex-grow border-2 hover:bg-accent" bind:value={editingValue} />
+									<div class="flex">
+										<button
+											class="btn btn-xs btn-outline w-min hover:text-primary"
+											onclick={() => {
+												handleRenameAll(speaker);
+											}}>{$_('speakerSelect.save')}</button
+										>
+									</div>
+								{:else}
 									<button
-										class="btn btn-xs btn-outline w-min hover:text-primary"
 										onclick={() => {
-											handleRenameAll(speaker);
-										}}>{$_('speakerSelect.save')}</button
+											selectSpeaker(speaker.id);
+											isListOpen = false;
+										}}
+										class="cursor-pointer inline flex-grow text-left"
 									>
-								</div>
-							{:else}
-								<button
-									onclick={() => {
-										selectSpeaker(speaker.id);
-										isListOpen = false;
-									}}
-									class="cursor-pointer inline flex-grow text-left"
-								>
-									{speaker.name}
-								</button>
-								<div>
-									<button class="btn btn-xs btn-outline w-min hover:text-primary" onclick={() => handleStartEdit(speaker)}
-										>{$_('speakerSelect.edit')}</button
-									>
-								</div>
-							{/if}
-						</li>
-					{/each}
-				</ul>
+										{speaker.name}
+									</button>
+									<div>
+										<button class="btn btn-xs btn-outline w-min hover:text-primary" onclick={() => handleStartEdit(speaker)}
+											>{$_('speakerSelect.edit')}</button
+										>
+									</div>
+								{/if}
+							</li>
+						{/each}
+					</ul>
+				</div>
+			</details>
+			<div class="flex items-center speaker-time-container" contentEditable={false} >
+				<p class="speaker-time">{numberToTime(time)}</p>
+				{#if $editorMode === 2}
+					<input
+						type="text"
+						name="topic"
+						id=""
+						placeholder={$_('speakerSelect.topicPlaceholder')}
+						class="input input-bordered input-accent input-xs w-full max-w-xs ml-5"
+						bind:value={topic}
+						onblur={saveTopic}
+					/>
+				{/if}
 			</div>
-		</details>
-		<div class="flex items-center speaker-time-container" contentEditable={false} >
-			<p class="speaker-time">{numberToTime(time)}</p>
-			{#if $editorMode === 2}
-				<input
-					type="text"
-					name="topic"
-					id=""
-					placeholder={$_('speakerSelect.topicPlaceholder')}
-					class="input input-bordered input-accent input-xs w-full max-w-xs ml-5"
-					bind:value={topic}
-					onblur={saveTopic}
-				/>
-			{/if}
 		</div>
+		{#if fileId && segmentWithTiming.words.length > 0}
+			<div class="inline-analysis-container">
+				<SegmentAnalysisButton
+					{fileId}
+					segment={segmentWithTiming}
+					{audioFilePath}
+					onAnalysisComplete={(result) => {
+						console.log('Segment analysis completed:', result);
+					}}
+				/>
+			</div>
+		{/if}
 	</div>
 	<NodeViewContent class="content editable" style={cssVarStyles}></NodeViewContent>
-	
-	{#if fileId && segmentWithTiming.words.length > 0}
-		<div class="analysis-button-container">
-			<SegmentAnalysisButton
-				{fileId}
-				segment={segmentWithTiming}
-				{audioFilePath}
-				onAnalysisComplete={(result) => {
-					console.log('Segment analysis completed:', result);
-				}}
-			/>
-		</div>
-	{/if}
 </NodeViewWrapper>
 
 <style>
@@ -468,20 +469,14 @@
 		}	
 	}
 	
-	.analysis-button-container {
-		grid-column: 1 / -1;
-		grid-row: 3;
+	.inline-analysis-container {
 		display: flex;
-		justify-content: flex-end;
 		align-items: center;
-		padding-top: 0.5rem;
-		margin-top: 0.5rem;
-		border-top: 1px solid #e5e7eb;
-		opacity: 0.7;
+		opacity: 0.8;
 		transition: opacity 0.2s;
 	}
 
-	:global(.speaker:hover) .analysis-button-container {
+	:global(.speaker:hover) .inline-analysis-container {
 		opacity: 1;
 	}
 

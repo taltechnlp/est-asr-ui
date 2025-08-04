@@ -16,6 +16,7 @@
 	import TextStyle from '@tiptap/extension-text-style';
 	import History from '@tiptap/extension-history';
 	import { Speaker } from '../nodes/speaker';
+	import { Diff } from '../nodes/diff';
 	import { Word } from '../marks/word';
 	import { WordColor } from '../plugins/wordColor';
 	import { Annotation } from '../plugins/annotation';
@@ -48,6 +49,7 @@
 	import hotkeys from 'hotkeys-js';
 	import SummaryAccordion from '../transcript-summary/SummaryAccordion.svelte';
 	import type { TranscriptSummary } from '@prisma/client';
+	import { getCoordinatingAgentClient } from '$lib/agents/coordinatingAgentClient';
 	
 
 	interface Props {
@@ -132,6 +134,7 @@
 				Word,
 				WordColor,
 				Speaker,
+				Diff,
 				LabelHighlight.configure({
 					HTMLAttributes: {
 						class: 'lang-label',
@@ -189,6 +192,14 @@
 		editorMounted.set(true);
 		let prevEditorDoc: Node = $editor.state.doc;
 		const schema = $editor.schema;
+
+		// Set the editor in the coordinating agent for transaction support
+		try {
+			const agent = getCoordinatingAgentClient();
+			agent.setEditor($editor);
+		} catch (error) {
+			console.warn('Failed to set editor in coordinating agent:', error);
+		}
 		
 
 		hotkeys('tab', function(event, handler){

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { readFile, writeFile, mkdir } from "fs/promises";
 import { join, dirname, basename } from "path";
-import { getAudioSlicer } from "$lib/services/audioSlicer";
+// AudioSlicer will be loaded conditionally to avoid client-side import issues
 import { exec } from "child_process";
 import { promisify } from "util";
 
@@ -27,13 +27,28 @@ export interface ASRNBestResult {
 }
 
 export class ASRNBestServerNodeTool {
-  private audioSlicer;
+  private audioSlicer: any = null;
   private asrEndpoint: string;
 
   constructor(asrEndpoint: string = "https://tekstiks.ee/asr/transcribe/alternatives") {
-    this.audioSlicer = getAudioSlicer();
     this.asrEndpoint = asrEndpoint;
     console.log(`ASRNBestServerNodeTool initialized with endpoint: ${this.asrEndpoint}`);
+  }
+
+  private async initializeAudioSlicer() {
+    if (this.audioSlicer) return; // Already initialized
+    
+    if (typeof window === 'undefined') {
+      try {
+        const module = await import("$lib/services/audioSlicer");
+        this.audioSlicer = module.getAudioSlicer();
+      } catch (e) {
+        console.warn('Failed to load AudioSlicer:', e);
+        throw new Error('AudioSlicer not available - this tool can only be used server-side');
+      }
+    } else {
+      throw new Error('AudioSlicer not available in client-side context');
+    }
   }
 
   async _call(input: z.infer<typeof ASRNBestSchema>): Promise<string> {
@@ -77,6 +92,9 @@ export class ASRNBestServerNodeTool {
     try {
       console.log(`Slicing audio from ${startTime.toFixed(3)}s to ${endTime.toFixed(3)}s (duration: ${duration.toFixed(3)}s)`);
       
+      // Initialize audioSlicer if needed
+      await this.initializeAudioSlicer();
+
       // Slice the audio file
       sliceResult = await this.audioSlicer.sliceAudio(audioFilePath, {
         startTime,

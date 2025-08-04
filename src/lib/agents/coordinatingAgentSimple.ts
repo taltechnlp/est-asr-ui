@@ -1,24 +1,26 @@
-import { createOpenRouterChat, OPENROUTER_MODELS } from "$lib/llm/openrouter-direct";
-import { HumanMessage } from "@langchain/core/messages";
-import { createWebSearchTool } from "./tools";
-import { createASRNBestServerNodeTool } from "./tools/asrNBestServerNode";
-import type { TranscriptSummary, AnalysisSegment } from "@prisma/client";
-import { prisma } from "$lib/db/client";
-import type { SegmentWithTiming } from "$lib/utils/extractWordsFromEditor";
+import { createOpenRouterChat, OPENROUTER_MODELS } from '$lib/llm/openrouter-direct';
+import { HumanMessage } from '@langchain/core/messages';
+import { createWebSearchTool } from './tools';
+import { createASRNBestServerNodeTool } from './tools/asrNBestServerNode';
+import { TipTapTransactionToolDirect } from './tools/tiptapTransaction';
+import type { TranscriptSummary, AnalysisSegment } from '@prisma/client';
+import { prisma } from '$lib/db/client';
+import type { SegmentWithTiming } from '$lib/utils/extractWordsFromEditor';
+import type { Editor } from '@tiptap/core';
 
 export interface SegmentAnalysisRequest {
-  fileId: string;
-  segment: SegmentWithTiming;
-  summary: TranscriptSummary;
-  audioFilePath: string;
+	fileId: string;
+	segment: SegmentWithTiming;
+	summary: TranscriptSummary;
+	audioFilePath: string;
 }
 
 export interface SegmentAnalysisResult {
-  segmentIndex: number;
-  analysis: string;
-  suggestions: any[];
-  nBestResults?: any;
-  confidence: number;
+	segmentIndex: number;
+	analysis: string;
+	suggestions: any[];
+	nBestResults?: any;
+	confidence: number;
 }
 
 const SEGMENT_ANALYSIS_PROMPT = `You are an expert transcript analyst specializing in Estonian and Finnish languages.
@@ -40,7 +42,7 @@ Your task:
 3. Identify potential transcription errors or unclear passages within this speaker's utterance
 4. Check if the speaker boundaries are appropriate (does it seem like one coherent turn?)
 5. Note if you would need alternative transcriptions or additional context
-6. Provide specific improvement suggestions for this speaker's turn
+6. Provide specific improvement suggestions for this speaker's turn. Do not suggest speaker labeling changes
 
 Focus on:
 - Grammar and language correctness throughout the speaker's turn
@@ -70,158 +72,243 @@ Provide a detailed analysis with actionable suggestions in the following JSON fo
 }`;
 
 export class CoordinatingAgentSimple {
-  private model;
-  private asrTool;
-  private webSearchTool;
+	private model;
+	private asrTool;
+	private webSearchTool;
+	private tiptapTool: TipTapTransactionToolDirect;
 
-  constructor(modelName: string = OPENROUTER_MODELS.CLAUDE_3_5_SONNET) {
-    this.model = createOpenRouterChat({
-      modelName,
-      temperature: 0.3,
-      maxTokens: 2000,
-    });
+	constructor(modelName: string = OPENROUTER_MODELS.CLAUDE_3_5_SONNET) {
+		this.model = createOpenRouterChat({
+			modelName,
+			temperature: 0.3,
+			maxTokens: 2000
+		});
 
-    // The ASR service endpoint for alternatives is /transcribe/alternatives
-    this.asrTool = createASRNBestServerNodeTool("https://tekstiks.ee/asr/transcribe/alternatives");
-    this.webSearchTool = createWebSearchTool();
-  }
+		// The ASR service endpoint for alternatives is /transcribe/alternatives
+		this.asrTool = createASRNBestServerNodeTool('https://tekstiks.ee/asr/transcribe/alternatives');
+		this.webSearchTool = createWebSearchTool();
+		this.tiptapTool = new TipTapTransactionToolDirect();
+	}
 
-  async analyzeSegment(request: SegmentAnalysisRequest): Promise<SegmentAnalysisResult> {
-    try {
-      const { segment, summary, audioFilePath, fileId } = request;
+	setEditor(editor: Editor) {
+		this.tiptapTool.setEditor(editor);
+	}
 
-      // Build the analysis prompt
-      const prompt = SEGMENT_ANALYSIS_PROMPT
-        .replace("{summary}", summary.summary)
-        .replace("{segmentIndex}", (segment.index + 1).toString())
-        .replace("{totalSegments}", "TBD")
-        .replace(/\{speaker\}/g, segment.speakerName || segment.speakerTag) // Replace all occurrences
-        .replace("{text}", segment.text)
-        .replace("{duration}", (segment.endTime - segment.startTime).toFixed(2))
-        .replace("{wordCount}", segment.words.length.toString());
+	async analyzeSegment(request: SegmentAnalysisRequest): Promise<SegmentAnalysisResult> {
+		try {
+			const { segment, summary, audioFilePath, fileId } = request;
 
-      // Get initial analysis
-      const response = await this.model.invoke([
-        new HumanMessage({ content: prompt }),
-      ]);
+			// Build the analysis prompt
+			const prompt = SEGMENT_ANALYSIS_PROMPT.replace('{summary}', summary.summary)
+				.replace('{segmentIndex}', (segment.index + 1).toString())
+				.replace('{totalSegments}', 'TBD')
+				.replace(/\{speaker\}/g, segment.speakerName || segment.speakerTag) // Replace all occurrences
+				.replace('{text}', segment.text)
+				.replace('{duration}', (segment.endTime - segment.startTime).toFixed(2))
+				.replace('{wordCount}', segment.words.length.toString());
 
-      // Parse the response
-      let analysisData;
-      try {
-        const content = response.content as string;
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-          throw new Error("No JSON found in response");
-        }
-        analysisData = JSON.parse(jsonMatch[0]);
-      } catch (e) {
-        console.error("Failed to parse analysis response:", e);
-        analysisData = {
-          analysis: response.content,
-          confidence: 0.7,
-          needsAlternatives: false,
-          needsWebSearch: [],
-          suggestions: [],
-        };
-      }
+			// Get initial analysis
+			const response = await this.model.invoke([new HumanMessage({ content: prompt })]);
 
-      let nBestResults = null;
+			// Parse the response
+			let analysisData;
+			try {
+				const content = response.content as string;
+				const jsonMatch = content.match(/\{[\s\S]*\}/);
+				if (!jsonMatch) {
+					throw new Error('No JSON found in response');
+				}
+				analysisData = JSON.parse(jsonMatch[0]);
+			} catch (e) {
+				console.error('Failed to parse analysis response:', e);
+				analysisData = {
+					analysis: response.content,
+					confidence: 0.7,
+					needsAlternatives: false,
+					needsWebSearch: [],
+					suggestions: []
+				};
+			}
 
-      // TEMPORARY: Always use ASR N-best tool for testing
-      // if (analysisData.needsAlternatives) {
-      try {
-        console.log("Calling ASR N-best tool for segment:", {
-          audioFilePath,
-          startTime: segment.startTime,
-          endTime: segment.endTime,
-        });
-        const asrResult = await this.asrTool._call({
-          audioFilePath,
-          startTime: segment.startTime,
-          endTime: segment.endTime,
-          nBest: 5,
-        });
-        nBestResults = JSON.parse(asrResult);
-        console.log("ASR N-best results received:", nBestResults);
-      } catch (e) {
-        console.error("ASR N-best tool error:", e);
-      }
-      // }
+			let nBestResults = null;
 
-      // Use web search for unfamiliar terms
-      if (analysisData.needsWebSearch && analysisData.needsWebSearch.length > 0) {
-        for (const term of analysisData.needsWebSearch) {
-          try {
-            const searchResult = await this.webSearchTool._call({
-              query: term,
-              language: summary.language,
-            });
-            // Could enhance analysis with search results
-            console.log(`Web search for "${term}":`, searchResult);
-          } catch (e) {
-            console.error(`Web search error for "${term}":`, e);
-          }
-        }
-      }
+			// TEMPORARY: Always use ASR N-best tool for testing
+			// if (analysisData.needsAlternatives) {
+			try {
+				console.log('Calling ASR N-best tool for segment:', {
+					audioFilePath,
+					startTime: segment.startTime,
+					endTime: segment.endTime
+				});
+				const asrResult = await this.asrTool._call({
+					audioFilePath,
+					startTime: segment.startTime,
+					endTime: segment.endTime,
+					nBest: 5
+				});
+				nBestResults = JSON.parse(asrResult);
+				console.log('ASR N-best results received:', nBestResults);
+			} catch (e) {
+				console.error('ASR N-best tool error:', e);
+			}
+			// }
 
-      // Save to database
-      await prisma.analysisSegment.upsert({
-        where: {
-          fileId_segmentIndex: {
-            fileId,
-            segmentIndex: segment.index,
-          },
-        },
-        create: {
-          fileId,
-          segmentIndex: segment.index,
-          startTime: segment.startTime,
-          endTime: segment.endTime,
-          startWord: segment.startWord,
-          endWord: segment.endWord,
-          originalText: segment.text,
-          speakerName: segment.speakerName || segment.speakerTag,
-          analysis: analysisData.analysis,
-          suggestions: analysisData.suggestions,
-          nBestResults,
-          status: "analyzed",
-        },
-        update: {
-          speakerName: segment.speakerName || segment.speakerTag,
-          analysis: analysisData.analysis,
-          suggestions: analysisData.suggestions,
-          nBestResults,
-          status: "analyzed",
-        },
-      });
+			// Use web search for unfamiliar terms
+			if (analysisData.needsWebSearch && analysisData.needsWebSearch.length > 0) {
+				for (const term of analysisData.needsWebSearch) {
+					try {
+						const searchResult = await this.webSearchTool._call({
+							query: term,
+							language: summary.language
+						});
+						// Could enhance analysis with search results
+						console.log(`Web search for "${term}":`, searchResult);
+					} catch (e) {
+						console.error(`Web search error for "${term}":`, e);
+					}
+				}
+			}
 
-      return {
-        segmentIndex: segment.index,
-        analysis: analysisData.analysis,
-        suggestions: analysisData.suggestions,
-        nBestResults,
-        confidence: analysisData.confidence,
-      };
-    } catch (error) {
-      console.error("Segment analysis error:", error);
-      throw new Error(`Failed to analyze segment: ${error instanceof Error ? error.message : "Unknown error"}`);
-    }
-  }
+			// Apply high-confidence suggestions automatically
+			const appliedSuggestions = [];
+			if (analysisData.suggestions && Array.isArray(analysisData.suggestions)) {
+				for (const suggestion of analysisData.suggestions) {
+					if (suggestion.confidence >= 0.7 && suggestion.originalText && suggestion.suggestedText) {
+						try {
+							const result = await this.tiptapTool.applyTransaction({
+								originalText: suggestion.originalText,
+								suggestedText: suggestion.suggestedText,
+								segmentId: segment.speakerName || segment.speakerTag,
+								changeType: suggestion.type || 'text_replacement',
+								confidence: suggestion.confidence,
+								context: suggestion.text || suggestion.explanation || ''
+							});
 
-  async getAnalyzedSegments(fileId: string): Promise<AnalysisSegment[]> {
-    return prisma.analysisSegment.findMany({
-      where: { fileId },
-      orderBy: { segmentIndex: "asc" },
-    });
-  }
+							const transactionResult = JSON.parse(result);
+							if (transactionResult.success) {
+								appliedSuggestions.push({
+									...suggestion,
+									applied: true,
+									appliedAt: transactionResult.appliedAt,
+									transactionId: transactionResult.transactionId
+								});
+							} else {
+								console.warn('Failed to apply suggestion:', transactionResult.error);
+								appliedSuggestions.push({
+									...suggestion,
+									applied: false,
+									error: transactionResult.error
+								});
+							}
+						} catch (error) {
+							console.error('Error applying suggestion:', error);
+							appliedSuggestions.push({
+								...suggestion,
+								applied: false,
+								error: error instanceof Error ? error.message : 'Unknown error'
+							});
+						}
+					} else {
+						// Low confidence suggestions remain unapplied for manual review
+						appliedSuggestions.push({
+							...suggestion,
+							applied: false,
+							requiresManualReview: true
+						});
+					}
+				}
+			}
+
+			// Save to database
+			await prisma.analysisSegment.upsert({
+				where: {
+					fileId_segmentIndex: {
+						fileId,
+						segmentIndex: segment.index
+					}
+				},
+				create: {
+					fileId,
+					segmentIndex: segment.index,
+					startTime: segment.startTime,
+					endTime: segment.endTime,
+					startWord: segment.startWord,
+					endWord: segment.endWord,
+					originalText: segment.text,
+					speakerName: segment.speakerName || segment.speakerTag,
+					analysis: analysisData.analysis,
+					suggestions:
+						appliedSuggestions.length > 0 ? appliedSuggestions : analysisData.suggestions,
+					nBestResults,
+					status: 'analyzed'
+				},
+				update: {
+					speakerName: segment.speakerName || segment.speakerTag,
+					analysis: analysisData.analysis,
+					suggestions:
+						appliedSuggestions.length > 0 ? appliedSuggestions : analysisData.suggestions,
+					nBestResults,
+					status: 'analyzed'
+				}
+			});
+
+			return {
+				segmentIndex: segment.index,
+				analysis: analysisData.analysis,
+				suggestions: appliedSuggestions.length > 0 ? appliedSuggestions : analysisData.suggestions,
+				nBestResults,
+				confidence: analysisData.confidence
+			};
+		} catch (error) {
+			console.error('Segment analysis error:', error);
+			throw new Error(
+				`Failed to analyze segment: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
+	}
+
+	async getAnalyzedSegments(fileId: string): Promise<AnalysisSegment[]> {
+		return prisma.analysisSegment.findMany({
+			where: { fileId },
+			orderBy: { segmentIndex: 'asc' }
+		});
+	}
+
+	async applySuggestionManually(
+		suggestion: any,
+		segmentId?: string
+	): Promise<{ success: boolean; error?: string }> {
+		try {
+			if (!suggestion.originalText || !suggestion.suggestedText) {
+				return { success: false, error: 'Missing original or suggested text' };
+			}
+
+			const result = await this.tiptapTool.applyTransaction({
+				originalText: suggestion.originalText,
+				suggestedText: suggestion.suggestedText,
+				segmentId: segmentId,
+				changeType: suggestion.type || 'text_replacement',
+				confidence: suggestion.confidence || 0.5,
+				context: suggestion.text || suggestion.explanation || ''
+			});
+
+			const transactionResult = JSON.parse(result);
+			return transactionResult;
+		} catch (error) {
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : 'Unknown error'
+			};
+		}
+	}
 }
 
 // Singleton instance
 let coordinatingAgentInstance: CoordinatingAgentSimple | null = null;
 
 export function getCoordinatingAgent(modelName?: string): CoordinatingAgentSimple {
-  if (!coordinatingAgentInstance || modelName) {
-    coordinatingAgentInstance = new CoordinatingAgentSimple(modelName);
-  }
-  return coordinatingAgentInstance;
+	if (!coordinatingAgentInstance || modelName) {
+		coordinatingAgentInstance = new CoordinatingAgentSimple(modelName);
+	}
+	return coordinatingAgentInstance;
 }
