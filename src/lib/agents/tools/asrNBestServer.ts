@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { readFile } from "fs/promises";
+import { readFile, writeFile, mkdir } from "fs/promises";
+import { join, dirname, basename } from "path";
 import { getAudioSlicer } from "$lib/services/audioSlicer";
 
 const ASRNBestSchema = z.object({
@@ -91,11 +92,47 @@ export class ASRNBestServerTool {
         });
       }
 
-      return {
+      const result = {
         alternatives,
         primaryText: asrResult.text || originalText,
         duration: sliceResult.duration,
       };
+
+      // Save the result to a file for debugging and future reference
+      try {
+        // Create directory structure based on audio file path
+        const audioFileBase = basename(audioFilePath, '.wav').replace(/\.[^/.]+$/, '');
+        const nbestDir = join(dirname(audioFilePath), 'asr-nbest', audioFileBase);
+        await mkdir(nbestDir, { recursive: true });
+
+        // Create filename with timestamp and segment info
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const segmentInfo = `${startTime.toFixed(1)}-${endTime.toFixed(1)}s`;
+        const filename = `nbest_${segmentInfo}_${timestamp}.json`;
+        const filepath = join(nbestDir, filename);
+
+        // Save the full ASR response and formatted result
+        const dataToSave = {
+          request: {
+            audioFilePath,
+            startTime,
+            endTime,
+            originalText,
+            nBest,
+          },
+          rawResponse: asrResult,
+          formattedResult: result,
+          timestamp: new Date().toISOString(),
+        };
+
+        await writeFile(filepath, JSON.stringify(dataToSave, null, 2));
+        console.log(`ASR N-best results saved to: ${filepath}`);
+      } catch (saveError) {
+        console.error('Failed to save ASR N-best results to file:', saveError);
+        // Don't throw - this is just for debugging, shouldn't break the main flow
+      }
+
+      return result;
 
     } catch (error) {
       console.error('ASR N-best error:', error);
