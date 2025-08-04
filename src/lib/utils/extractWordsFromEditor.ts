@@ -142,6 +142,7 @@ export interface SegmentWithTiming {
 	endWord: number;
 	text: string;
 	speakerTag: string;
+	speakerName?: string; // Added to distinguish from speakerTag
 	words: ExtractedWord[];
 }
 
@@ -186,4 +187,91 @@ export function getSegmentByIndex(
 ): SegmentWithTiming | null {
 	const segments = extractSegmentsWithTiming(content, wordsPerSegment);
 	return segments[segmentIndex] || null;
+}
+
+/**
+ * Extract segments based on speaker blocks instead of word count
+ * Each segment represents one complete speaker turn
+ */
+export function extractSpeakerSegments(content: TipTapEditorContent): SegmentWithTiming[] {
+	const segments: SegmentWithTiming[] = [];
+	let segmentIndex = 0;
+	let globalWordIndex = 0;
+
+	if (!content || !content.content) {
+		return segments;
+	}
+
+	// Process each speaker node
+	for (const speakerNode of content.content) {
+		if (speakerNode.type !== 'speaker') {
+			continue;
+		}
+
+		const speakerName = speakerNode.attrs?.['data-name'] || 'Unknown Speaker';
+		const speakerWords: ExtractedWord[] = [];
+
+		// Extract all words from this speaker block
+		function extractWordsFromNode(node: EditorNode) {
+			if (node.type === 'text' && node.marks) {
+				const wordMark = node.marks.find((mark: EditorMark) => mark.type === 'word');
+				if (wordMark && wordMark.attrs && node.text) {
+					const start = wordMark.attrs.start || 0;
+					const end = wordMark.attrs.end || 0;
+
+					speakerWords.push({
+						text: node.text,
+						start,
+						end,
+						speakerTag: speakerName
+					});
+				}
+			}
+
+			if (node.content && Array.isArray(node.content)) {
+				for (const child of node.content) {
+					extractWordsFromNode(child);
+				}
+			}
+		}
+
+		// Extract words from the speaker node
+		extractWordsFromNode(speakerNode);
+
+		// Only create a segment if there are words
+		if (speakerWords.length > 0) {
+			const startTime = speakerWords[0].start;
+			let endTime = speakerWords[speakerWords.length - 1].end;
+
+			// Validate timing
+			if (endTime <= startTime) {
+				console.warn(`Invalid timing for speaker ${speakerName}: start=${startTime}, end=${endTime}`);
+				// Try to fix by using the maximum end time from all words
+				const maxEnd = Math.max(...speakerWords.map(w => w.end));
+				if (maxEnd > startTime) {
+					endTime = maxEnd;
+				}
+			}
+
+			// Log timing information for debugging
+			console.log(`Speaker segment ${segmentIndex}: ${speakerName} - ${startTime.toFixed(2)}s to ${endTime.toFixed(2)}s (${speakerWords.length} words)`);
+
+			segments.push({
+				index: segmentIndex,
+				startTime,
+				endTime,
+				startWord: globalWordIndex,
+				endWord: globalWordIndex + speakerWords.length - 1,
+				text: speakerWords.map(w => w.text).join(' '),
+				speakerTag: speakerName,
+				speakerName: speakerName,
+				words: speakerWords
+			});
+
+			segmentIndex++;
+			globalWordIndex += speakerWords.length;
+		}
+	}
+
+	return segments;
 }

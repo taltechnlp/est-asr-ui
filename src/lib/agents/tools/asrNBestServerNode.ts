@@ -44,13 +44,51 @@ export class ASRNBestServerNodeTool {
   async getAlternativeTranscriptions(input: z.infer<typeof ASRNBestSchema>): Promise<ASRNBestResult> {
     const { audioFilePath, startTime, endTime, originalText = "", nBest } = input;
     
+    // Validate timing parameters
+    console.log(`ASR N-best timing validation:`, {
+      audioFilePath,
+      startTime: startTime.toFixed(3),
+      endTime: endTime.toFixed(3),
+      duration: (endTime - startTime).toFixed(3),
+      originalText: originalText.substring(0, 50) + (originalText.length > 50 ? '...' : ''),
+    });
+
+    // Validate timing bounds
+    if (startTime < 0) {
+      console.error(`Invalid startTime: ${startTime} (must be >= 0)`);
+      throw new Error(`Invalid startTime: ${startTime} seconds (must be >= 0)`);
+    }
+
+    if (endTime <= startTime) {
+      console.error(`Invalid time range: startTime=${startTime}, endTime=${endTime}`);
+      throw new Error(`Invalid time range: endTime (${endTime}s) must be greater than startTime (${startTime}s)`);
+    }
+
+    const duration = endTime - startTime;
+    if (duration < 0.1) {
+      console.warn(`Very short segment duration: ${duration}s - ASR may not produce meaningful results`);
+    }
+
+    if (duration > 120) {
+      console.warn(`Long segment duration: ${duration}s - consider splitting into smaller segments for better ASR accuracy`);
+    }
+
     let sliceResult;
     try {
+      console.log(`Slicing audio from ${startTime.toFixed(3)}s to ${endTime.toFixed(3)}s (duration: ${duration.toFixed(3)}s)`);
+      
       // Slice the audio file
       sliceResult = await this.audioSlicer.sliceAudio(audioFilePath, {
         startTime,
         endTime,
         format: 'wav', // Use WAV for better ASR compatibility
+      });
+
+      console.log(`Audio slice successful:`, {
+        tempFilePath: sliceResult.tempFilePath,
+        sliceDuration: sliceResult.duration,
+        expectedDuration: duration,
+        durationDiff: Math.abs(sliceResult.duration - duration),
       });
 
       // Use curl to upload the file - this is more reliable for multipart uploads

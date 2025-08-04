@@ -54,7 +54,11 @@
             "analysis": "Analüüs",
             "suggestions": "Ettepanekud",
             "alternatives": "Alternatiivsed transkriptsioonid",
-            "noSegments": "Segmente pole saadaval. Palun veenduge, et transkriptsioon on laaditud."
+            "noSegments": "Segmente pole saadaval. Palun veenduge, et transkriptsioon on laaditud.",
+            "viewAnalysis": "Vaata analüüsi tulemusi",
+            "error": "Analüüsi viga",
+            "analyzed": "Analüüsitud",
+            "analyze": "Analüüsi"
         },
         "quality": {
             "excellent": "Suurepärane",

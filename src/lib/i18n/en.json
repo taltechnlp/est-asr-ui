@@ -52,7 +52,11 @@
       "analysis": "Analysis",
       "suggestions": "Suggestions",
       "alternatives": "Alternative Transcriptions",
-      "noSegments": "No segments available. Please ensure the transcript is loaded."
+      "noSegments": "No segments available. Please ensure the transcript is loaded.",
+      "viewAnalysis": "View analysis results",
+      "error": "Analysis error",
+      "analyzed": "Analyzed",
+      "analyze": "Analyze"
     },
     "quality": {
       "excellent": "Excellent",

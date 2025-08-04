@@ -41,25 +41,54 @@ export class AudioSlicer {
     const { startTime, endTime, format = 'mp3' } = options;
     const duration = endTime - startTime;
     
+    // Log slicing parameters
+    console.log(`AudioSlicer: Slicing audio file`, {
+      inputPath,
+      startTime: startTime.toFixed(3),
+      endTime: endTime.toFixed(3),
+      duration: duration.toFixed(3),
+      format,
+    });
+
+    // Validate parameters
+    if (duration <= 0) {
+      throw new Error(`Invalid duration: ${duration}s (endTime must be greater than startTime)`);
+    }
+
     // Generate unique filename for temp file
     const tempFileName = `slice_${uuidv4()}.${format}`;
     const tempFilePath = path.join(this.tempDir, tempFileName);
 
+    const startTimeMs = Date.now();
+
     return new Promise((resolve, reject) => {
       // Build ffmpeg command
-      // -ss: start time
+      // -ss: start time (before -i for faster seeking)
       // -t: duration
       // -i: input file
-      // -c copy: copy codec (fast, no re-encoding)
+      // For WAV format, use PCM codec explicitly for better compatibility
       // -y: overwrite output file
-      const args = [
-        '-ss', startTime.toString(),
-        '-t', duration.toString(),
-        '-i', inputPath,
-        '-c', 'copy',
-        '-y',
-        tempFilePath
-      ];
+      const args = format === 'wav' 
+        ? [
+            '-ss', startTime.toString(),
+            '-t', duration.toString(),
+            '-i', inputPath,
+            '-acodec', 'pcm_s16le',  // 16-bit PCM for WAV
+            '-ar', '16000',           // 16kHz sample rate for ASR
+            '-ac', '1',               // Mono
+            '-y',
+            tempFilePath
+          ]
+        : [
+            '-ss', startTime.toString(),
+            '-t', duration.toString(),
+            '-i', inputPath,
+            '-c', 'copy',
+            '-y',
+            tempFilePath
+          ];
+
+      console.log(`AudioSlicer: Running ffmpeg with args:`, args.join(' '));
 
       const ffmpeg = spawn('ffmpeg', args);
       
@@ -74,10 +103,21 @@ export class AudioSlicer {
       });
 
       ffmpeg.on('exit', async (code) => {
+        const elapsedMs = Date.now() - startTimeMs;
+        
         if (code === 0) {
           // Verify file was created
           try {
             await fs.access(tempFilePath);
+            const stats = await fs.stat(tempFilePath);
+            
+            console.log(`AudioSlicer: Slice completed successfully`, {
+              tempFilePath,
+              fileSize: stats.size,
+              duration: duration.toFixed(3),
+              elapsedMs,
+              elapsedSeconds: (elapsedMs / 1000).toFixed(3),
+            });
             
             resolve({
               tempFilePath,
@@ -85,15 +125,22 @@ export class AudioSlicer {
               cleanup: async () => {
                 try {
                   await fs.unlink(tempFilePath);
+                  console.log(`AudioSlicer: Cleaned up temp file: ${tempFilePath}`);
                 } catch (error) {
                   console.error('Failed to cleanup temp file:', error);
                 }
               }
             });
           } catch (error) {
+            console.error(`AudioSlicer: Output file verification failed`, { tempFilePath, error });
             reject(new Error('Output file was not created'));
           }
         } else {
+          console.error(`AudioSlicer: FFmpeg failed`, {
+            exitCode: code,
+            elapsedMs,
+            stderr: stderr.substring(stderr.length - 1000), // Last 1000 chars of stderr
+          });
           reject(new Error(`FFmpeg exited with code ${code}: ${stderr}`));
         }
       });

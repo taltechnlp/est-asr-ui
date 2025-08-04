@@ -3,7 +3,7 @@
   import type { AnalysisSegment, TranscriptSummary } from '@prisma/client';
   import type { SegmentWithTiming } from '$lib/utils/extractWordsFromEditor';
   import type { TipTapEditorContent } from '../../../types';
-  import { extractSegmentsWithTiming } from '$lib/utils/extractWordsFromEditor';
+  import { extractSpeakerSegments } from '$lib/utils/extractWordsFromEditor';
   import Icon from 'svelte-awesome/components/Icon.svelte';
   import play from 'svelte-awesome/icons/play';
   import chevronLeft from 'svelte-awesome/icons/chevronLeft';
@@ -17,7 +17,6 @@
     editorContent = null as TipTapEditorContent | null,
     audioFilePath = '',
     summary = null as TranscriptSummary | null,
-    wordsPerSegment = 200,
     onSegmentAnalyzed = (result: any) => {},
   } = $props();
 
@@ -33,7 +32,7 @@
 
   $effect(() => {
     if (editorContent && !isInitialized) {
-      const newSegments = extractSegmentsWithTiming(editorContent, wordsPerSegment);
+      const newSegments = extractSpeakerSegments(editorContent);
       segments = newSegments;
       if (newSegments.length > 0) {
         currentSegment = newSegments[0];
@@ -173,11 +172,14 @@
     <div class="segment-content">
       <div class="segment-metadata">
         <div class="metadata-item">
+          <span class="speaker-tag">{currentSegment.speakerName || currentSegment.speakerTag}</span>
+        </div>
+        <div class="metadata-item">
           <Icon data={play} />
           <span>{formatTime(currentSegment.startTime)} - {formatTime(currentSegment.endTime)}</span>
         </div>
         <div class="metadata-item">
-          <span class="speaker-tag">{currentSegment.speakerTag}</span>
+          <span>{$_('transcript.metadata.duration')}: {formatTime(currentSegment.endTime - currentSegment.startTime)}</span>
         </div>
         <div class="metadata-item">
           <span>{currentSegment.words.length} {$_('transcript.analysis.words')}</span>

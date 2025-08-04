@@ -18,6 +18,9 @@
 	// import { Transform } from 'prosemirror-transform';
 
 	import { _ } from 'svelte-i18n';
+	import SegmentAnalysisButton from './SegmentAnalysisButton.svelte';
+	import type { SegmentWithTiming, ExtractedWord } from '$lib/utils/extractWordsFromEditor';
+	import { page } from '$app/stores';
 	interface Props {
 		node: NodeViewProps['node'];
 		decorations: NodeViewProps['decorations'];
@@ -102,6 +105,77 @@
 	};
 	let cssVarStyles = $derived(`font-size:${$fontSizeStore}px`)
 	let time = $derived(findTimeStamps(getPos() + 1, editor.state));
+	
+	// Extract file info from page store
+	let fileId = $derived($page.params.fileId || '');
+	let audioFilePath = $derived($page.data?.file?.path || '');
+	
+	// Create SegmentWithTiming object for analysis
+	let segmentWithTiming = $derived.by(() => {
+		const words: ExtractedWord[] = [];
+		let startTime = Infinity;
+		let endTime = -Infinity;
+		let text = '';
+		
+		// Extract words using ProseMirror node API
+		if (node && node.content) {
+			// ProseMirror nodes have a forEach method to iterate over child nodes
+			node.forEach((child: any, offset: number, index: number) => {
+				if (child.isText && child.marks && child.marks.length > 0) {
+					// Find word mark
+					const wordMark = child.marks.find((mark: any) => mark.type.name === 'word');
+					if (wordMark && wordMark.attrs) {
+						const word: ExtractedWord = {
+							text: child.text || '',
+							start: wordMark.attrs.start || 0,
+							end: wordMark.attrs.end || 0,
+							speakerTag: selectedVal.name
+						};
+						words.push(word);
+						text += (text ? ' ' : '') + word.text;
+						startTime = Math.min(startTime, word.start);
+						endTime = Math.max(endTime, word.end);
+					}
+				} else if (child.content && child.content.size > 0) {
+					// Recursively process child nodes
+					child.forEach((grandchild: any) => {
+						if (grandchild.isText && grandchild.marks && grandchild.marks.length > 0) {
+							const wordMark = grandchild.marks.find((mark: any) => mark.type.name === 'word');
+							if (wordMark && wordMark.attrs) {
+								const word: ExtractedWord = {
+									text: grandchild.text || '',
+									start: wordMark.attrs.start || 0,
+									end: wordMark.attrs.end || 0,
+									speakerTag: selectedVal.name
+								};
+								words.push(word);
+								text += (text ? ' ' : '') + word.text;
+								startTime = Math.min(startTime, word.start);
+								endTime = Math.max(endTime, word.end);
+							}
+						}
+					});
+				}
+			});
+		}
+		
+		// Get segment index based on position in document
+		const allSpeakerNodes = findBlockNodes(editor.state.doc, false)
+			.filter(el => el.node.type.name === 'speaker');
+		const segmentIndex = allSpeakerNodes.findIndex(el => el.pos === getPos());
+		
+		return {
+			index: segmentIndex >= 0 ? segmentIndex : 0,
+			startTime: startTime === Infinity ? 0 : startTime,
+			endTime: endTime === -Infinity ? 0 : endTime,
+			startWord: 0, // These would need global word indexing
+			endWord: words.length - 1,
+			text,
+			speakerTag: selectedVal.name,
+			speakerName: selectedVal.name,
+			words
+		} as SegmentWithTiming;
+	});
 	
 
 	const handleClick = () => {
@@ -347,6 +421,19 @@
 		</div>
 	</div>
 	<NodeViewContent class="content editable" style={cssVarStyles}></NodeViewContent>
+	
+	{#if fileId && segmentWithTiming.words.length > 0}
+		<div class="analysis-button-container">
+			<SegmentAnalysisButton
+				{fileId}
+				segment={segmentWithTiming}
+				{audioFilePath}
+				onAnalysisComplete={(result) => {
+					console.log('Segment analysis completed:', result);
+				}}
+			/>
+		</div>
+	{/if}
 </NodeViewWrapper>
 
 <style>
@@ -381,6 +468,26 @@
 		}	
 	}
 	
+	.analysis-button-container {
+		grid-column: 1 / -1;
+		grid-row: 3;
+		display: flex;
+		justify-content: flex-end;
+		align-items: center;
+		padding-top: 0.5rem;
+		margin-top: 0.5rem;
+		border-top: 1px solid #e5e7eb;
+		opacity: 0.7;
+		transition: opacity 0.2s;
+	}
 
+	:global(.speaker:hover) .analysis-button-container {
+		opacity: 1;
+	}
+
+	:global(.content.editable) {
+		grid-column: 1 / -1;
+		grid-row: 2;
+	}
 	
 </style>

@@ -206,6 +206,7 @@ model AnalysisSegment {
   startWord    Int
   endWord      Int
   originalText String   @db.Text
+  speakerName  String?  // Speaker name for this segment
   analysis     String   @db.Text
   suggestions  Json     // Store improvement suggestions
   nBestResults Json?    // Store N-best ASR alternatives
