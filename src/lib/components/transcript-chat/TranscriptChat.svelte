@@ -1,8 +1,12 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import type { TranscriptAnalysisRequest, TranscriptAnalysisResult, ImprovementSuggestion } from '$lib/agents/schemas/transcript';
+  import type { TipTapEditorContent } from '../../../types';
+  import type { TranscriptSummary } from '@prisma/client';
   import SuggestionCard from './SuggestionCard.svelte';
   import AnalysisPanel from './AnalysisPanel.svelte';
+  import SummaryAccordion from '../transcript-summary/SummaryAccordion.svelte';
+  import SegmentControl from '../transcript-analysis/SegmentControl.svelte';
   import Icon from 'svelte-awesome/components/Icon.svelte';
   import comment from 'svelte-awesome/icons/comment';
   import times from 'svelte-awesome/icons/times';
@@ -12,7 +16,10 @@
   import ReplacementFeedback from './ReplacementFeedback.svelte';
 
   let { 
+    fileId = '',
     transcript = '',
+    editorContent = null as TipTapEditorContent | null,
+    audioFilePath = '',
     segments = [],
     words = [],
     speakers = [],
@@ -27,6 +34,8 @@
   let selectedModel = $state('anthropic/claude-3.5-sonnet');
   let analysisType = $state<'full' | 'grammar' | 'punctuation' | 'speaker_diarization' | 'confidence' | 'context'>('full');
   let feedbackMessage = $state<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
+  let summary = $state<TranscriptSummary | null>(null);
+  let activeTab = $state<'summary' | 'analysis' | 'legacy'>('summary');
 
   const availableModels = [
     { value: 'anthropic/claude-3.5-sonnet', label: 'Claude 3.5 Sonnet' },
@@ -94,6 +103,15 @@
 
   function toggleChat() {
     isOpen = !isOpen;
+  }
+
+  function handleSummaryGenerated(newSummary: TranscriptSummary) {
+    summary = newSummary;
+  }
+
+  function handleSegmentAnalyzed(result: any) {
+    // Handle segment analysis results if needed
+    console.log('Segment analyzed:', result);
   }
 
   async function handleApplySuggestion(suggestion: ImprovementSuggestion) {
@@ -171,40 +189,63 @@
         </button>
       </div>
 
-      <div class="chat-controls">
-        <select
-          bind:value={selectedModel}
-          disabled={isAnalyzing}
-          class="model-select"
-        >
-          {#each availableModels as model}
-            <option value={model.value}>{model.label}</option>
-          {/each}
-        </select>
-
-        <select
-          bind:value={analysisType}
-          disabled={isAnalyzing}
-          class="analysis-type-select"
-        >
-          {#each analysisTypes as type}
-            <option value={type.value}>{type.label}</option>
-          {/each}
-        </select>
-
+      <div class="chat-tabs">
         <button
-          class="analyze-btn"
-          onclick={analyzeTranscript}
-          disabled={isAnalyzing || !transcript}
+          class="tab-btn {activeTab === 'summary' ? 'active' : ''}"
+          onclick={() => activeTab = 'summary'}
         >
-          {#if isAnalyzing}
-            <Icon data={spinner} spin />
-            {$_('transcript.chat.analyzing')}
-          {:else}
-            {$_('transcript.chat.analyze')}
-          {/if}
+          {$_('transcript.tabs.summary')}
+        </button>
+        <button
+          class="tab-btn {activeTab === 'analysis' ? 'active' : ''}"
+          onclick={() => activeTab = 'analysis'}
+        >
+          {$_('transcript.tabs.analysis')}
+        </button>
+        <button
+          class="tab-btn {activeTab === 'legacy' ? 'active' : ''}"
+          onclick={() => activeTab = 'legacy'}
+        >
+          {$_('transcript.tabs.legacy')}
         </button>
       </div>
+
+      {#if activeTab === 'legacy'}
+        <div class="chat-controls">
+          <select
+            bind:value={selectedModel}
+            disabled={isAnalyzing}
+            class="model-select"
+          >
+            {#each availableModels as model}
+              <option value={model.value}>{model.label}</option>
+            {/each}
+          </select>
+
+          <select
+            bind:value={analysisType}
+            disabled={isAnalyzing}
+            class="analysis-type-select"
+          >
+            {#each analysisTypes as type}
+              <option value={type.value}>{type.label}</option>
+            {/each}
+          </select>
+
+          <button
+            class="analyze-btn"
+            onclick={analyzeTranscript}
+            disabled={isAnalyzing || !transcript}
+          >
+            {#if isAnalyzing}
+              <Icon data={spinner} spin />
+              {$_('transcript.chat.analyzing')}
+            {:else}
+              {$_('transcript.chat.analyze')}
+            {/if}
+          </button>
+        </div>
+      {/if}
 
       <div class="chat-content">
         {#if feedbackMessage}
@@ -221,23 +262,38 @@
           </div>
         {/if}
 
-        {#if analysisResult}
-          <AnalysisPanel {analysisResult} />
-          
-          <div class="suggestions-list">
-            <h4>{$_('transcript.chat.suggestions')} ({analysisResult.suggestions.length})</h4>
-            {#each analysisResult.suggestions as suggestion}
-              <SuggestionCard
-                {suggestion}
-                onApply={() => handleApplySuggestion(suggestion)}
-              />
-            {/each}
-          </div>
-        {:else if !isAnalyzing && !error}
-          <div class="empty-state">
-            <p>{$_('transcript.chat.emptyState')}</p>
-            <p class="hint">{$_('transcript.chat.hint')}</p>
-          </div>
+        {#if activeTab === 'summary'}
+          <SummaryAccordion
+            {fileId}
+            onSummaryGenerated={handleSummaryGenerated}
+          />
+        {:else if activeTab === 'analysis'}
+          <SegmentControl
+            {fileId}
+            {editorContent}
+            {audioFilePath}
+            {summary}
+            onSegmentAnalyzed={handleSegmentAnalyzed}
+          />
+        {:else if activeTab === 'legacy'}
+          {#if analysisResult}
+            <AnalysisPanel {analysisResult} />
+            
+            <div class="suggestions-list">
+              <h4>{$_('transcript.chat.suggestions')} ({analysisResult.suggestions.length})</h4>
+              {#each analysisResult.suggestions as suggestion}
+                <SuggestionCard
+                  {suggestion}
+                  onApply={() => handleApplySuggestion(suggestion)}
+                />
+              {/each}
+            </div>
+          {:else if !isAnalyzing && !error}
+            <div class="empty-state">
+              <p>{$_('transcript.chat.emptyState')}</p>
+              <p class="hint">{$_('transcript.chat.hint')}</p>
+            </div>
+          {/if}
         {/if}
       </div>
     </div>
@@ -276,7 +332,7 @@
     position: absolute;
     bottom: 4.5rem;
     right: 0;
-    width: 400px;
+    width: 500px;
     max-width: 90vw;
     height: 600px;
     max-height: 80vh;
@@ -286,6 +342,7 @@
     display: flex;
     flex-direction: column;
     animation: slideUp 0.3s ease-out;
+    z-index: 1001;
   }
 
   @keyframes slideUp {
@@ -324,6 +381,36 @@
 
   .close-btn:hover {
     color: #374151;
+  }
+
+  .chat-tabs {
+    display: flex;
+    gap: 0;
+    padding: 0 1rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #6b7280;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .tab-btn:hover {
+    color: #374151;
+    background: #f9fafb;
+  }
+
+  .tab-btn.active {
+    color: var(--primary-color, #3b82f6);
+    border-bottom-color: var(--primary-color, #3b82f6);
   }
 
   .chat-controls {
@@ -373,6 +460,7 @@
     flex: 1;
     overflow-y: auto;
     padding: 1rem;
+    min-height: 0;
   }
 
   .error-message {
@@ -408,10 +496,17 @@
 
   @media (max-width: 640px) {
     .chat-panel {
-      width: 100vw;
-      right: -2rem;
+      width: calc(100vw - 2rem);
+      right: 1rem;
+      left: 1rem;
       bottom: 3.5rem;
-      border-radius: 12px 12px 0 0;
+      border-radius: 12px;
+      max-width: none;
+    }
+    
+    .tab-btn {
+      font-size: 0.75rem;
+      padding: 0.5rem 0.75rem;
     }
   }
 </style>

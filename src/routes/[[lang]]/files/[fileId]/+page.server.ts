@@ -100,7 +100,9 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
                 content: content,
                 path: file.path,
                 name: file.filename,
-                uploadedAt: file.uploadedAt
+                uploadedAt: file.uploadedAt,
+                text: file.text,
+                language: file.language
             },
             url: url.origin,
         }

@@ -1,13 +1,12 @@
-import { Editor } from '@tiptap/core'; 
-import { Session } from "@auth/core/types";
-import type Peaks from "peaks.js";
+import { Editor } from '@tiptap/core';
+import { Session } from '@auth/core/types';
+import type Peaks from 'peaks.js';
 
 declare global {
-  interface Window {
-    myEditor: Editor | undefined;
-    myPlayer: Peaks | undefined;
-  }
-  
+	interface Window {
+		myEditor: Editor | undefined;
+		myPlayer: Peaks | undefined;
+	}
 }
 /* interface Sess extends Session {
   user: {
@@ -20,12 +19,38 @@ export {
   Sess
 }; */
 
-declare module "@auth/core/jwt" {
-  /** Returned by the `jwt` callback and `auth`, when using JWT sessions */
-  interface JWT {
-    id: string
-		email: string
-		name: string
-		picture: string
-  }
+declare module '@auth/core/jwt' {
+	/** Returned by the `jwt` callback and `auth`, when using JWT sessions */
+	interface JWT {
+		id: string;
+		email: string;
+		name: string;
+		picture: string;
+	}
 }
+
+export type TipTapEditorContent = {
+	type: string;
+	content: {
+		type: string;
+		attrs: {
+			'data-name': string;
+			id?: string;
+			topic?: string | null;
+		};
+		content: {
+			type: string;
+			marks: {
+				type: string;
+				attrs: {
+					start: number;
+					end: number;
+					id?: string;
+					lang?: string;
+					spellcheck?: string;
+				};
+			}[];
+			text: string;
+		}[];
+	}[];
+};

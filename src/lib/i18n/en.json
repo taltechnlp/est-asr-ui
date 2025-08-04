@@ -17,6 +17,22 @@
       "emptyState": "Click 'Analyze' to start analyzing the transcript.",
       "hint": "Ctrl+/ to toggle this panel"
     },
+    "tabs": {
+      "summary": "Summary",
+      "analysis": "Segment Analysis",
+      "legacy": "Full Analysis"
+    },
+    "summary": {
+      "title": "Transcript Summary",
+      "generate": "Generate Summary",
+      "generating": "Generating summary...",
+      "regenerate": "Regenerate summary",
+      "overview": "Overview",
+      "language": "Language",
+      "speakers": "Speakers",
+      "keyTopics": "Key Topics",
+      "generatedAt": "Generated at"
+    },
     "analysis": {
       "full": "Full analysis",
       "grammar": "Grammar check",
@@ -25,7 +41,18 @@
       "confidence": "Confidence analysis",
       "context": "Context validation",
       "overallQuality": "Overall Quality",
-      "summary": "Summary"
+      "summary": "Summary",
+      "segmentControl": "Segment Analysis",
+      "segment": "Segment",
+      "words": "words",
+      "analyzeSegment": "Analyze Segment",
+      "analyzing": "Analyzing...",
+      "reanalyze": "Re-analyze",
+      "results": "Analysis Results",
+      "analysis": "Analysis",
+      "suggestions": "Suggestions",
+      "alternatives": "Alternative Transcriptions",
+      "noSegments": "No segments available. Please ensure the transcript is loaded."
     },
     "quality": {
       "excellent": "Excellent",

@@ -5,7 +5,9 @@
         "close": "Sulge",
         "apply": "Rakenda",
         "reject": "Lükka tagasi",
-        "error": "Viga"
+        "error": "Viga",
+        "previous": "Eelmine",
+        "next": "Järgmine"
     },
     "transcript": {
         "chat": {
@@ -17,6 +19,22 @@
             "emptyState": "Klõpsake 'Analüüsi', et alustada transkriptsiooni analüüsimist.",
             "hint": "Ctrl+/ paneeli avamiseks"
         },
+        "tabs": {
+            "summary": "Kokkuvõte",
+            "analysis": "Segmentide analüüs",
+            "legacy": "Täisanalüüs"
+        },
+        "summary": {
+            "title": "Transkriptsiooni kokkuvõte",
+            "generate": "Genereeri kokkuvõte",
+            "generating": "Genereerin kokkuvõtet...",
+            "regenerate": "Genereeri uuesti",
+            "overview": "Ülevaade",
+            "language": "Keel",
+            "speakers": "Kõnelejad",
+            "keyTopics": "Põhiteemad",
+            "generatedAt": "Genereeritud"
+        },
         "analysis": {
             "full": "Täisanalüüs",
             "grammar": "Grammatika kontroll",
@@ -25,7 +43,18 @@
             "confidence": "Usaldusväärsuse analüüs",
             "context": "Konteksti valideerimine",
             "overallQuality": "Üldine kvaliteet",
-            "summary": "Kokkuvõte"
+            "summary": "Kokkuvõte",
+            "segmentControl": "Segmentide analüüs",
+            "segment": "Segment",
+            "words": "sõna",
+            "analyzeSegment": "Analüüsi segmenti",
+            "analyzing": "Analüüsin...",
+            "reanalyze": "Analüüsi uuesti",
+            "results": "Analüüsi tulemused",
+            "analysis": "Analüüs",
+            "suggestions": "Ettepanekud",
+            "alternatives": "Alternatiivsed transkriptsioonid",
+            "noSegments": "Segmente pole saadaval. Palun veenduge, et transkriptsioon on laaditud."
         },
         "quality": {
             "excellent": "Suurepärane",

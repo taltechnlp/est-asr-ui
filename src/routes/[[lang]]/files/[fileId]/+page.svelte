@@ -70,7 +70,10 @@
 	</div>
 	
 	<TranscriptChat
+		fileId={data.file.id}
 		transcript={data.file.text || ''}
+		editorContent={json}
+		audioFilePath={data.file.path}
 		segments={speakers.map((s, i) => ({
 			id: s.id,
 			text: s.name,

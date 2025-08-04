@@ -2,7 +2,7 @@ import type { RequestHandler } from "./$types";
 import { json } from "@sveltejs/kit";
 import { TranscriptAnalyzer } from "$lib/agents/transcriptAnalyzer";
 import { TranscriptAnalysisRequestSchema } from "$lib/agents/schemas/transcript";
-import { OPENROUTER_MODELS } from "$lib/llm/openrouter";
+import { OPENROUTER_MODELS } from "$lib/llm/openrouter-direct";
 import { z } from "zod";
 
 // Keep analyzer instances in memory to avoid recreating

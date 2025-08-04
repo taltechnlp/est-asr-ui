@@ -1,7 +1,7 @@
 import { StateGraph, END, START } from "@langchain/langgraph";
 import { BaseMessage, HumanMessage, AIMessage, ToolMessage } from "@langchain/core/messages";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
-import { createOpenRouterChat, OPENROUTER_MODELS } from "$lib/llm/openrouter";
+import { createOpenRouterChat, OPENROUTER_MODELS } from "$lib/llm/openrouter-direct";
 import {
   GrammarCheckerTool,
   PunctuationFixerTool,

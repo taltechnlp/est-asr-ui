@@ -1,8 +1,7 @@
 import { ChatOpenAI } from "@langchain/openai";
-import type { ChatOpenAIFields } from "@langchain/openai";
 import { OPENROUTER_API_KEY } from "$env/static/private";
 
-export interface OpenRouterConfig extends Partial<ChatOpenAIFields> {
+export interface OpenRouterConfig {
   modelName?: string;
   temperature?: number;
   maxTokens?: number;
@@ -10,31 +9,41 @@ export interface OpenRouterConfig extends Partial<ChatOpenAIFields> {
 
 /**
  * Create a ChatOpenAI instance configured for OpenRouter
- * @param config Configuration options
- * @returns ChatOpenAI instance configured for OpenRouter
+ * Using the configuration options available in the current LangChain version
  */
 export function createOpenRouterChat(config: OpenRouterConfig = {}) {
+  if (!OPENROUTER_API_KEY) {
+    throw new Error(
+      "OPENROUTER_API_KEY environment variable is not set. " +
+      "Please add it to your .env file. " +
+      "Get your API key from https://openrouter.ai/"
+    );
+  }
+
   const {
     modelName = "anthropic/claude-3.5-sonnet",
     temperature = 0.7,
     maxTokens = 4096,
-    ...rest
   } = config;
 
-  return new ChatOpenAI({
-    modelName,
+  // For LangChain's OpenAI client, we need to pass configuration differently
+  const chat = new ChatOpenAI({
+    modelName: modelName,
     temperature,
     maxTokens,
     openAIApiKey: OPENROUTER_API_KEY,
-    configuration: {
+    // Pass base URL and other config through clientOptions
+    clientOptions: {
       baseURL: "https://openrouter.ai/api/v1",
       defaultHeaders: {
+        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
         "HTTP-Referer": "https://tekstiks.ee",
         "X-Title": "EST-ASR Transcript Analyzer",
       },
     },
-    ...rest,
-  });
+  } as any);
+
+  return chat;
 }
 
 /**
