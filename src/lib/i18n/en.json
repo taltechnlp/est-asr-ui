@@ -48,9 +48,12 @@
       "analyzeSegment": "Analyze Segment",
       "analyzing": "Analyzing...",
       "reanalyze": "Re-analyze",
+      "reanalyzing": "Re-analyzing...",
       "results": "Analysis Results",
       "analysis": "Analysis",
       "suggestions": "Suggestions",
+      "suggestionCount": "suggestions",
+      "noSuggestions": "No suggestions",
       "alternatives": "Alternative Transcriptions",
       "noSegments": "No segments available. Please ensure the transcript is loaded.",
       "viewAnalysis": "View analysis results",
@@ -81,6 +84,19 @@
       "suggested": "Suggested",
       "applied": "Applied",
       "rejected": "Rejected"
+    },
+    "diff": {
+      "original": "Original",
+      "suggested": "Suggested",
+      "approve": "Approve",
+      "reject": "Reject",
+      "context": "Context",
+      "changeType": {
+        "grammar": "Grammar",
+        "punctuation": "Punctuation",
+        "speaker": "Speaker Change",
+        "textReplacement": "Text Replacement"
+      }
     }
   },
   "newAccount": {
