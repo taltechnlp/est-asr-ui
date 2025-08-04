@@ -42,6 +42,10 @@
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",
     "@auth/sveltekit": "^1.7.4",
+    "@langchain/community": "^0.3.49",
+    "@langchain/core": "^0.3.66",
+    "@langchain/langgraph": "^0.4.2",
+    "@langchain/openai": "^0.6.3",
     "@prisma/client": "^5.22.0",
     "@sendgrid/mail": "^8.1.4",
     "@sveltejs/adapter-node": "^5.2.12",
@@ -97,6 +101,7 @@
     "vite": "^6.0.0",
     "waveform-data": "^4.5.0",
     "wavesurfer.js": "^7.1.5",
-    "winston": "^3.10.0"
+    "winston": "^3.10.0",
+    "zod": "^3.25.76"
   }
 }

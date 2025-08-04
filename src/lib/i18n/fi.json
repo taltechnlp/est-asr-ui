@@ -1,6 +1,57 @@
 {
     "sign_in": "Kirjaudu sisään",
     "sign_up": "Luo käyttäjätili",
+    "common": {
+        "close": "Sulje",
+        "apply": "Käytä",
+        "reject": "Hylkää",
+        "error": "Virhe"
+    },
+    "transcript": {
+        "chat": {
+            "toggle": "Vaihda litteroinnin analyysi",
+            "title": "Litteroinnin analyysi",
+            "analyze": "Analysoi",
+            "analyzing": "Analysoidaan...",
+            "suggestions": "Ehdotukset",
+            "emptyState": "Napsauta 'Analysoi' aloittaaksesi litteroinnin analysoinnin.",
+            "hint": "Ctrl+/ paneelin avaamiseksi"
+        },
+        "analysis": {
+            "full": "Täydellinen analyysi",
+            "grammar": "Kieliopin tarkistus",
+            "punctuation": "Välimerkit",
+            "speakers": "Puhujien tunnistus",
+            "confidence": "Luotettavuusanalyysi",
+            "context": "Kontekstin validointi",
+            "overallQuality": "Kokonaislaatu",
+            "summary": "Yhteenveto"
+        },
+        "quality": {
+            "excellent": "Erinomainen",
+            "good": "Hyvä",
+            "fair": "Tyydyttävä",
+            "poor": "Heikko"
+        },
+        "metadata": {
+            "words": "Sanoja",
+            "speakers": "Puhujia",
+            "duration": "Kesto",
+            "suggestions": "Ongelmia"
+        },
+        "suggestion": {
+            "grammar": "Kielioppi",
+            "punctuation": "Välimerkit",
+            "speaker": "Puhuja",
+            "confidence": "Luotettavuus",
+            "context": "Konteksti",
+            "formatting": "Muotoilu",
+            "original": "Alkuperäinen",
+            "suggested": "Ehdotettu",
+            "applied": "Sovellettu",
+            "rejected": "Hylätty"
+        }
+    },
     "newAccount": {
         "notConnectedHeading": "Tiliä ei ole yhdistetty",
         "notConnected": "Tätä tiliä ei ole vielä liitetty tekstiks.ee-tiliin. Valitse miten haluat jatkaa:",

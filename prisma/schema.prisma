@@ -26,6 +26,7 @@ model File {
   uploader                 String?   @db.VarChar(30)
   User                     User?     @relation(fields: [uploader], references: [id], onUpdate: NoAction, onDelete: Cascade)
   workflows                NfWorkflow[]
+  chatSessions             ChatSession[]
   notify                   Boolean?
   notified                 Boolean?
 }
@@ -88,6 +89,7 @@ model User {
   files            File[]
   accounts         Account[]
   sessions         Session[]
+  chatSessions     ChatSession[]
 
   @@map("user")
 }
@@ -162,4 +164,19 @@ model NfProcess {
   inv_ctxt    Int?
   workflow_id String
   workflow    NfWorkflow @relation(fields: [workflow_id], references: [run_id], onDelete: Cascade)
+}
+
+// Chat session for transcript analysis
+model ChatSession {
+  id        String   @id @default(cuid())
+  fileId    String
+  userId    String
+  messages  Json     // Array of chat messages with analysis history
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  file      File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([fileId])
+  @@index([userId])
 }

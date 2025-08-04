@@ -9,6 +9,7 @@
 		editorMounted
 	} from '$lib/stores.svelte.js';
 	import type { Word, Speaker } from '$lib/helpers/converters/types';
+	import TranscriptChat from '$lib/components/transcript-chat/TranscriptChat.svelte';
 	let { data } = $props();
 	let words: Array<Word> = [];
 	let speakers: Array<Speaker> = [];
@@ -67,4 +68,22 @@
 		/>
 		<Player url={`${data.url}/uploaded/${data.file.id}`} />
 	</div>
+	
+	<TranscriptChat
+		transcript={data.file.text || ''}
+		segments={speakers.map((s, i) => ({
+			id: s.id,
+			text: s.name,
+			speaker: s.name,
+			start: s.start,
+			end: s.end
+		}))}
+		{words}
+		{speakers}
+		language={data.file.language || 'et'}
+		onSuggestionApply={(suggestion) => {
+			// Handle suggestion application
+			console.log('Apply suggestion:', suggestion);
+		}}
+	/>
 </main>

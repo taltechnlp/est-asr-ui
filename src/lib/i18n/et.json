@@ -1,6 +1,57 @@
 {
     "sign_in": "Logi sisse",
     "sign_up": "Logi välja",
+    "common": {
+        "close": "Sulge",
+        "apply": "Rakenda",
+        "reject": "Lükka tagasi",
+        "error": "Viga"
+    },
+    "transcript": {
+        "chat": {
+            "toggle": "Lülita transkriptsiooni analüüs",
+            "title": "Transkriptsiooni analüüs",
+            "analyze": "Analüüsi",
+            "analyzing": "Analüüsin...",
+            "suggestions": "Ettepanekud",
+            "emptyState": "Klõpsake 'Analüüsi', et alustada transkriptsiooni analüüsimist.",
+            "hint": "Ctrl+/ paneeli avamiseks"
+        },
+        "analysis": {
+            "full": "Täisanalüüs",
+            "grammar": "Grammatika kontroll",
+            "punctuation": "Kirjavahemärgid",
+            "speakers": "Kõnelejate tuvastamine",
+            "confidence": "Usaldusväärsuse analüüs",
+            "context": "Konteksti valideerimine",
+            "overallQuality": "Üldine kvaliteet",
+            "summary": "Kokkuvõte"
+        },
+        "quality": {
+            "excellent": "Suurepärane",
+            "good": "Hea",
+            "fair": "Rahuldav",
+            "poor": "Kehv"
+        },
+        "metadata": {
+            "words": "Sõnu",
+            "speakers": "Kõnelejaid",
+            "duration": "Kestus",
+            "suggestions": "Probleeme"
+        },
+        "suggestion": {
+            "grammar": "Grammatika",
+            "punctuation": "Kirjavahemärgid",
+            "speaker": "Kõneleja",
+            "confidence": "Usaldusväärsus",
+            "context": "Kontekst",
+            "formatting": "Vormindus",
+            "original": "Algne",
+            "suggested": "Soovitatud",
+            "applied": "Rakendatud",
+            "rejected": "Tagasi lükatud"
+        }
+    },
     "newAccount": {
         "notConnectedHeading": "Konto pole ühendatud",
         "notConnected": "Seda kontot pole veel ühendatud tekstiks.ee kontoga. Valige, kuidas jätkata:",

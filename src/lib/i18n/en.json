@@ -1,6 +1,57 @@
 {
   "sign_in": "Sign in",
   "sign_up": "Sign up",
+  "common": {
+    "close": "Close",
+    "apply": "Apply",
+    "reject": "Reject",
+    "error": "Error"
+  },
+  "transcript": {
+    "chat": {
+      "toggle": "Toggle transcript analysis",
+      "title": "Transcript Analysis",
+      "analyze": "Analyze",
+      "analyzing": "Analyzing...",
+      "suggestions": "Suggestions",
+      "emptyState": "Click 'Analyze' to start analyzing the transcript.",
+      "hint": "Ctrl+/ to toggle this panel"
+    },
+    "analysis": {
+      "full": "Full analysis",
+      "grammar": "Grammar check",
+      "punctuation": "Punctuation",
+      "speakers": "Speaker identification",
+      "confidence": "Confidence analysis",
+      "context": "Context validation",
+      "overallQuality": "Overall Quality",
+      "summary": "Summary"
+    },
+    "quality": {
+      "excellent": "Excellent",
+      "good": "Good",
+      "fair": "Fair",
+      "poor": "Poor"
+    },
+    "metadata": {
+      "words": "Words",
+      "speakers": "Speakers",
+      "duration": "Duration",
+      "suggestions": "Issues"
+    },
+    "suggestion": {
+      "grammar": "Grammar",
+      "punctuation": "Punctuation",
+      "speaker": "Speaker",
+      "confidence": "Confidence",
+      "context": "Context",
+      "formatting": "Formatting",
+      "original": "Original",
+      "suggested": "Suggested",
+      "applied": "Applied",
+      "rejected": "Rejected"
+    }
+  },
   "newAccount": {
     "notConnectedHeading": "Account not connected",
     "notConnected": "This account has not yet been connected to a tekstiks.ee account. Choose how to proceed:",
