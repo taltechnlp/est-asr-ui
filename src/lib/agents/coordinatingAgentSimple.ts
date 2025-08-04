@@ -1,7 +1,7 @@
 import { createOpenRouterChat, OPENROUTER_MODELS } from "$lib/llm/openrouter-direct";
 import { HumanMessage } from "@langchain/core/messages";
 import { createWebSearchTool } from "./tools";
-import { createASRNBestServerTool } from "./tools/asrNBestServer";
+import { createASRNBestServerNodeTool } from "./tools/asrNBestServerNode";
 import type { TranscriptSummary, AnalysisSegment } from "@prisma/client";
 import { prisma } from "$lib/db/client";
 import type { SegmentWithTiming } from "$lib/utils/extractWordsFromEditor";
@@ -76,7 +76,7 @@ export class CoordinatingAgentSimple {
     });
 
     // The nginx proxy maps /asr/ to the backend root, so we need /asr/asr for the transcription endpoint
-    this.asrTool = createASRNBestServerTool("https://tekstiks.ee/asr/asr");
+    this.asrTool = createASRNBestServerNodeTool("https://tekstiks.ee/asr/asr");
     this.webSearchTool = createWebSearchTool();
   }
 
