@@ -4,6 +4,7 @@ import { getCoordinatingAgent } from "$lib/agents/coordinatingAgentSimple";
 import { prisma } from "$lib/db/client";
 import { z } from "zod";
 import type { SegmentWithTiming } from "$lib/utils/extractWordsFromEditor";
+import { isSupportedLanguage } from "$lib/utils/language";
 
 const AnalyzeSegmentSchema = z.object({
   fileId: z.string(),
@@ -24,6 +25,7 @@ const AnalyzeSegmentSchema = z.object({
   }),
   summaryId: z.string(),
   audioFilePath: z.string(),
+  uiLanguage: z.string().optional(),
 });
 
 export const POST: RequestHandler = async ({ request, locals }) => {
@@ -36,7 +38,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
     // Parse and validate request
     const body = await request.json();
-    const { fileId, segment, summaryId, audioFilePath } = AnalyzeSegmentSchema.parse(body);
+    const { fileId, segment, summaryId, audioFilePath, uiLanguage } = AnalyzeSegmentSchema.parse(body);
+    
+    // Validate UI language if provided
+    if (uiLanguage && !isSupportedLanguage(uiLanguage)) {
+      return json({ error: "Unsupported UI language" }, { status: 400 });
+    }
 
     // Verify file ownership
     const file = await prisma.file.findUnique({
@@ -74,6 +81,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       segment: segment as SegmentWithTiming,
       summary,
       audioFilePath: actualAudioPath,
+      uiLanguage,
     });
 
     // Get the saved analysis segment

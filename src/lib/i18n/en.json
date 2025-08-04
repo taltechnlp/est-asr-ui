@@ -80,10 +80,22 @@
       "confidence": "Confidence",
       "context": "Context",
       "formatting": "Formatting",
+      "clarity": "Clarity",
+      "consistency": "Consistency",
+      "boundary": "Boundary",
       "original": "Original",
       "suggested": "Suggested",
       "applied": "Applied",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "apply": "Apply",
+      "applying": "Applying...",
+      "noDescription": "No description",
+      "unknown": "Unknown"
+    },
+    "severity": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
     },
     "diff": {
       "original": "Original",

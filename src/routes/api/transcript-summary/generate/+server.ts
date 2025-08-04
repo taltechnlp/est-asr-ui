@@ -5,10 +5,12 @@ import { extractFullTextWithSpeakers } from "$lib/utils/extractWordsFromEditor";
 import { prisma } from "$lib/db/client";
 import { z } from "zod";
 import { promises as fs } from "fs";
+import { isSupportedLanguage } from "$lib/utils/language";
 
 const GenerateSummarySchema = z.object({
   fileId: z.string(),
   forceRegenerate: z.boolean().default(false),
+  uiLanguage: z.string().optional(),
 });
 
 export const POST: RequestHandler = async ({ request, locals }) => {
@@ -21,7 +23,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
     // Parse and validate request
     const body = await request.json();
-    const { fileId, forceRegenerate } = GenerateSummarySchema.parse(body);
+    const { fileId, forceRegenerate, uiLanguage } = GenerateSummarySchema.parse(body);
+    
+    // Validate UI language if provided
+    if (uiLanguage && !isSupportedLanguage(uiLanguage)) {
+      return json({ error: "Unsupported UI language" }, { status: 400 });
+    }
 
     // Get file and verify ownership
     const file = await prisma.file.findUnique({
@@ -107,7 +114,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     const summary = await summaryGenerator.generateSummary(
       fileId,
       transcriptText,
-      { forceRegenerate }
+      { forceRegenerate, uiLanguage }
     );
 
     return json(summary);

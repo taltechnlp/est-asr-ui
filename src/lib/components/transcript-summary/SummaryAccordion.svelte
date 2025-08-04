@@ -6,7 +6,8 @@
   import chevronUp from 'svelte-awesome/icons/chevronUp';
   import refresh from 'svelte-awesome/icons/refresh';
   import spinner from 'svelte-awesome/icons/spinner';
-  import { _ } from 'svelte-i18n';
+  import { _, locale } from 'svelte-i18n';
+  import { normalizeLanguageCode } from '$lib/utils/language';
 
   let {
     fileId = '',
@@ -57,6 +58,7 @@
     error = null;
 
     try {
+      const currentLocale = normalizeLanguageCode($locale);
       const response = await fetch('/api/transcript-summary/generate', {
         method: 'POST',
         headers: {
@@ -65,6 +67,7 @@
         body: JSON.stringify({
           fileId,
           forceRegenerate,
+          uiLanguage: currentLocale,
         }),
       });
 
@@ -83,6 +86,47 @@
     }
   }
 
+  // Get the appropriate summary text to display
+  function getDisplaySummary(): string {
+    if (!summary) return '';
+    
+    const currentLocale = normalizeLanguageCode($locale);
+    
+    // If we have a display summary in the current language, use it
+    if (summary.displaySummary && summary.uiLanguage === currentLocale) {
+      return summary.displaySummary;
+    }
+    
+    // If current language is English or no display summary available, use main summary
+    if (currentLocale === 'en' || !summary.displaySummary) {
+      return summary.summary;
+    }
+    
+    // If display summary exists but in different language, regenerate
+    if (summary.uiLanguage && summary.uiLanguage !== currentLocale) {
+      // Trigger regeneration in the background
+      generateSummary(true);
+    }
+    
+    // Fall back to main summary
+    return summary.summary;
+  }
+
+  // Get the appropriate key topics to display
+  function getDisplayKeyTopics(): string[] {
+    if (!summary) return [];
+    
+    const currentLocale = normalizeLanguageCode($locale);
+    
+    // If we have display key topics in the current language and they're not empty, use them
+    if (summary.displayKeyTopics && summary.displayKeyTopics.length > 0 && summary.uiLanguage === currentLocale) {
+      return summary.displayKeyTopics;
+    }
+    
+    // Fall back to original key topics
+    return summary.keyTopics || [];
+  }
+
   function toggleAccordion() {
     isOpen = !isOpen;
   }
@@ -97,7 +141,7 @@
   }
 </script>
 
-<div class="summary-accordion">
+<div class="summary-accordion w-full">
   <div class="accordion-header">
     <button
       class="accordion-toggle"
@@ -141,7 +185,7 @@
     <div class="accordion-content">
       <div class="summary-section">
         <h4>{$_('transcript.summary.overview')}</h4>
-        <p class="summary-text">{summary.summary}</p>
+        <p class="summary-text">{getDisplaySummary()}</p>
       </div>
 
       <div class="metadata-section">
@@ -158,7 +202,7 @@
       <div class="topics-section">
         <h4>{$_('transcript.summary.keyTopics')}</h4>
         <div class="topics-list">
-          {#each summary.keyTopics as topic}
+          {#each getDisplayKeyTopics() as topic}
             <span class="topic-tag">{topic}</span>
           {/each}
         </div>
@@ -186,7 +230,8 @@
     border: 1px solid #e5e7eb;
     border-radius: 8px;
     margin-bottom: 1rem;
-    overflow: hidden;
+    overflow: visible;
+    width: 100%;
   }
 
   .accordion-header {
@@ -196,6 +241,9 @@
     padding: 1rem;
     background: #f9fafb;
     border-bottom: 1px solid #e5e7eb;
+    border-radius: 8px 8px 0 0;
+    flex-wrap: wrap;
+    gap: 0.5rem;
   }
 
   .accordion-toggle {
@@ -209,6 +257,8 @@
     font-size: 1rem;
     color: #374151;
     transition: color 0.2s;
+    flex: 1;
+    min-width: 0;
   }
 
   .accordion-toggle:hover:not(:disabled) {
@@ -224,12 +274,16 @@
     margin: 0;
     font-size: 1.125rem;
     font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .header-actions {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    flex-shrink: 0;
   }
 
   .generate-btn,
@@ -279,6 +333,8 @@
   .accordion-content {
     padding: 1.5rem;
     animation: slideDown 0.3s ease-out;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   @keyframes slideDown {
@@ -309,6 +365,10 @@
     margin: 0;
     line-height: 1.6;
     color: #4b5563;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    max-width: 100%;
   }
 
   .metadata-section {
@@ -378,5 +438,26 @@
 
   .error-message p {
     margin: 0;
+  }
+
+  /* Responsive improvements */
+  @media (max-width: 768px) {
+    .accordion-header {
+      padding: 0.75rem;
+    }
+    
+    .accordion-content {
+      padding: 1rem;
+    }
+    
+    .metadata-section {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    .generate-btn {
+      font-size: 0.75rem;
+      padding: 0.375rem 0.75rem;
+    }
   }
 </style>

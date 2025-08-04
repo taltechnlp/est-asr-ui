@@ -188,7 +188,10 @@ model TranscriptSummary {
   id           String   @id @default(cuid())
   fileId       String   @unique
   summary      String   @db.Text
+  displaySummary String? @db.Text // Summary in user's UI language
+  uiLanguage   String?  // Language code for the display summary
   keyTopics    String[] // JSON array of main topics
+  displayKeyTopics String[] @default([]) // Key topics in user's UI language
   speakerCount Int
   language     String
   createdAt    DateTime @default(now())

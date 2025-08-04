@@ -64,10 +64,22 @@
             "confidence": "Luotettavuus",
             "context": "Konteksti",
             "formatting": "Muotoilu",
+            "clarity": "Selkeys",
+            "consistency": "Johdonmukaisuus",
+            "boundary": "Raja",
             "original": "Alkuperäinen",
             "suggested": "Ehdotettu",
             "applied": "Sovellettu",
-            "rejected": "Hylätty"
+            "rejected": "Hylätty",
+            "apply": "Käytä",
+            "applying": "Käytetään...",
+            "noDescription": "Ei kuvausta",
+            "unknown": "Tuntematon"
+        },
+        "severity": {
+            "low": "Matala",
+            "medium": "Keskitaso",
+            "high": "Korkea"
         }
     },
     "newAccount": {

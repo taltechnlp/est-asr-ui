@@ -7,12 +7,14 @@ import type { TranscriptSummary, AnalysisSegment } from '@prisma/client';
 import { prisma } from '$lib/db/client';
 import type { SegmentWithTiming } from '$lib/utils/extractWordsFromEditor';
 import type { Editor } from '@tiptap/core';
+import { getLanguageName, normalizeLanguageCode } from '$lib/utils/language';
 
 export interface SegmentAnalysisRequest {
 	fileId: string;
 	segment: SegmentWithTiming;
 	summary: TranscriptSummary;
 	audioFilePath: string;
+	uiLanguage?: string;
 }
 
 export interface SegmentAnalysisResult {
@@ -52,6 +54,8 @@ Focus on:
 - Speaker attribution accuracy (is this all from the same speaker?)
 - Natural speech patterns and turn-taking
 - Punctuation and formatting
+
+IMPORTANT: Provide your analysis and all suggestions in {responseLanguage} language.
 
 Provide a detailed analysis with actionable suggestions in the following JSON format:
 {
@@ -96,7 +100,11 @@ export class CoordinatingAgentSimple {
 
 	async analyzeSegment(request: SegmentAnalysisRequest): Promise<SegmentAnalysisResult> {
 		try {
-			const { segment, summary, audioFilePath, fileId } = request;
+			const { segment, summary, audioFilePath, fileId, uiLanguage } = request;
+			
+			// Normalize UI language and get language name
+			const normalizedLanguage = normalizeLanguageCode(uiLanguage);
+			const responseLanguage = getLanguageName(normalizedLanguage);
 
 			// Build the analysis prompt
 			const prompt = SEGMENT_ANALYSIS_PROMPT.replace('{summary}', summary.summary)
@@ -105,7 +113,8 @@ export class CoordinatingAgentSimple {
 				.replace(/\{speaker\}/g, segment.speakerName || segment.speakerTag) // Replace all occurrences
 				.replace('{text}', segment.text)
 				.replace('{duration}', (segment.endTime - segment.startTime).toFixed(2))
-				.replace('{wordCount}', segment.words.length.toString());
+				.replace('{wordCount}', segment.words.length.toString())
+				.replace('{responseLanguage}', responseLanguage);
 
 			// Get initial analysis
 			const response = await this.model.invoke([new HumanMessage({ content: prompt })]);

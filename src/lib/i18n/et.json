@@ -82,10 +82,22 @@
             "confidence": "Usaldusväärsus",
             "context": "Kontekst",
             "formatting": "Vormindus",
+            "clarity": "Selgus",
+            "consistency": "Järjepidevus",
+            "boundary": "Piir",
             "original": "Algne",
             "suggested": "Soovitatud",
             "applied": "Rakendatud",
-            "rejected": "Tagasi lükatud"
+            "rejected": "Tagasi lükatud",
+            "apply": "Rakenda",
+            "applying": "Rakendan...",
+            "noDescription": "Kirjeldus puudub",
+            "unknown": "Teadmata"
+        },
+        "severity": {
+            "low": "Madal",
+            "medium": "Keskmine",
+            "high": "Kõrge"
         }
     },
     "newAccount": {

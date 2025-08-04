@@ -10,10 +10,11 @@
 	import refresh from 'svelte-awesome/icons/refresh';
 	import type { AnalysisSegment, TranscriptSummary } from '@prisma/client';
 	import type { SegmentWithTiming } from '$lib/utils/extractWordsFromEditor';
-	import { _ } from 'svelte-i18n';
+	import { _, locale } from 'svelte-i18n';
 	import { clickOutside } from '../clickOutside';
 	import Portal from '../Portal.svelte';
 	import { getCoordinatingAgentClient } from '$lib/agents/coordinatingAgentClient';
+	import { normalizeLanguageCode } from '$lib/utils/language';
 
 	interface Props {
 		fileId: string;
@@ -103,37 +104,40 @@
 				const popupHeight = 400; // max-height of popup
 				const margin = 20; // margin from viewport edges
 				
-				let left = rect.left + window.scrollX;
-				let top = rect.bottom + window.scrollY + 8;
+				// Start with position relative to viewport
+				let left = rect.left;
+				let top = rect.bottom + 8;
 				
 				// Check if popup would go beyond viewport bottom
-				const popupBottom = rect.bottom + 8 + popupHeight;
-				const viewportBottom = window.innerHeight;
+				const viewportHeight = window.innerHeight;
+				const availableBelow = viewportHeight - rect.bottom - margin;
+				const availableAbove = rect.top - margin;
 				
-				if (popupBottom > viewportBottom - margin) {
-					// Try to position above the button
-					const popupTop = rect.top - popupHeight - 8;
-					
-					if (popupTop >= margin) {
-						// Enough space above
-						top = rect.top + window.scrollY - popupHeight - 8;
+				if (availableBelow < popupHeight) {
+					// Not enough space below
+					if (availableAbove >= popupHeight) {
+						// Enough space above - position above the button
+						top = rect.top - popupHeight - 8;
 						popupMaxHeight = popupHeight;
+					} else if (availableAbove > availableBelow) {
+						// More space above than below - position above with constrained height
+						top = margin;
+						popupMaxHeight = rect.top - margin - 8;
 					} else {
-						// Not enough space above either, position at top of viewport with margin
-						top = window.scrollY + margin;
-						// Calculate available height from top position to bottom of viewport
-						const availableHeight = viewportBottom - margin - (top - window.scrollY);
-						popupMaxHeight = Math.min(popupHeight, availableHeight);
+						// More space below - position below with constrained height
+						top = rect.bottom + 8;
+						popupMaxHeight = availableBelow;
 					}
 				} else {
-					// Enough space below, but still check if we need to limit height
-					const availableHeight = viewportBottom - margin - rect.bottom - 8;
-					popupMaxHeight = Math.min(popupHeight, availableHeight);
+					// Enough space below
+					popupMaxHeight = Math.min(popupHeight, availableBelow);
 				}
 				
-				// Check right boundary
-				if (left + popupWidth > window.innerWidth - margin) {
-					left = Math.max(margin, window.innerWidth - popupWidth - margin);
+				// Check horizontal boundaries
+				const viewportWidth = window.innerWidth;
+				if (left + popupWidth > viewportWidth - margin) {
+					// Adjust to fit within right boundary
+					left = Math.max(margin, viewportWidth - popupWidth - margin);
 				}
 				
 				// Ensure minimum left position
@@ -141,7 +145,11 @@
 					left = margin;
 				}
 				
-				popupPosition = { top, left };
+				// Keep viewport coordinates for fixed positioning
+				popupPosition = { 
+					top: top, 
+					left: left 
+				};
 			}
 			// Toggle showing results
 			showResults = !showResults;
@@ -162,6 +170,7 @@
 		error = null;
 
 		try {
+			const currentLocale = normalizeLanguageCode($locale);
 			const response = await fetch('/api/transcript-analysis/segment', {
 				method: 'POST',
 				headers: {
@@ -172,6 +181,7 @@
 					segment,
 					summaryId: summary.id,
 					audioFilePath,
+					uiLanguage: currentLocale,
 				}),
 			});
 
@@ -250,6 +260,7 @@
 			}
 
 			// Perform fresh analysis
+			const currentLocale = normalizeLanguageCode($locale);
 			const response = await fetch('/api/transcript-analysis/segment', {
 				method: 'POST',
 				headers: {
@@ -260,6 +271,7 @@
 					segment,
 					summaryId: summary.id,
 					audioFilePath,
+					uiLanguage: currentLocale,
 				}),
 			});
 
@@ -403,16 +415,16 @@
 						{#each (analysisResult.suggestions as any[]) as suggestion, index}
 							<div class="suggestion-item">
 								<div class="suggestion-header">
-									<span class="suggestion-type">{suggestion?.type || 'Unknown'}</span>
+									<span class="suggestion-type">{suggestion?.type ? $_(`transcript.suggestion.${suggestion.type}`) : $_('transcript.suggestion.unknown')}</span>
 									<div class="suggestion-header-right">
 										<span 
 											class="suggestion-severity" 
 											style="color: {getSeverityColor(suggestion?.severity || 'low')}"
 										>
-											{suggestion?.severity || 'low'}
+											{$_(`transcript.severity.${suggestion?.severity || 'low'}`)}
 										</span>
 										{#if suggestion?.applied}
-											<span class="applied-badge">Applied</span>
+											<span class="applied-badge">{$_('transcript.suggestion.applied')}</span>
 										{:else if suggestion?.originalText && suggestion?.suggestedText}
 											<button 
 												class="apply-suggestion-btn"
@@ -424,12 +436,12 @@
 												{:else}
 													<Icon data={wrench} scale={0.7} />
 												{/if}
-												<span>{applyingStates[index] ? 'Applying...' : 'Apply'}</span>
+												<span>{applyingStates[index] ? $_('transcript.suggestion.applying') : $_('transcript.suggestion.apply')}</span>
 											</button>
 										{/if}
 									</div>
 								</div>
-								<p class="suggestion-text">{suggestion?.text || suggestion?.explanation || 'No description'}</p>
+								<p class="suggestion-text">{suggestion?.text || suggestion?.explanation || $_('transcript.suggestion.noDescription')}</p>
 								{#if suggestion?.originalText && suggestion?.suggestedText}
 									<div class="suggestion-changes">
 										<div class="original">
