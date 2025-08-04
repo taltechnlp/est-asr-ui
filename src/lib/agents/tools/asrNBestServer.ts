@@ -26,7 +26,7 @@ export class ASRNBestServerTool {
   private audioSlicer;
   private asrEndpoint: string;
 
-  constructor(asrEndpoint: string = "https://tekstiks.ee/asr/transcribe/alternatives/") {
+  constructor(asrEndpoint: string = "https://tekstiks.ee/asr/transcribe/alternatives") {
     this.audioSlicer = getAudioSlicer();
     // Use the endpoint as provided - don't modify it
     this.asrEndpoint = asrEndpoint;

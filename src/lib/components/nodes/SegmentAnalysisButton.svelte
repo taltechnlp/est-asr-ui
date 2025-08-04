@@ -34,6 +34,7 @@
 	let showResults = $state(false);
 	let buttonElement = $state<HTMLButtonElement | null>(null);
 	let popupPosition = $state({ top: 0, left: 0 });
+	let popupMaxHeight = $state(400);
 
 	// Handle escape key
 	$effect(() => {
@@ -95,24 +96,44 @@
 				const rect = buttonElement.getBoundingClientRect();
 				const popupWidth = 400; // min-width of popup
 				const popupHeight = 400; // max-height of popup
+				const margin = 20; // margin from viewport edges
 				
 				let left = rect.left + window.scrollX;
 				let top = rect.bottom + window.scrollY + 8;
 				
-				// Check right boundary
-				if (left + popupWidth > window.innerWidth) {
-					left = window.innerWidth - popupWidth - 20;
+				// Check if popup would go beyond viewport bottom
+				const popupBottom = rect.bottom + 8 + popupHeight;
+				const viewportBottom = window.innerHeight;
+				
+				if (popupBottom > viewportBottom - margin) {
+					// Try to position above the button
+					const popupTop = rect.top - popupHeight - 8;
+					
+					if (popupTop >= margin) {
+						// Enough space above
+						top = rect.top + window.scrollY - popupHeight - 8;
+						popupMaxHeight = popupHeight;
+					} else {
+						// Not enough space above either, position at top of viewport with margin
+						top = window.scrollY + margin;
+						// Calculate available height from top position to bottom of viewport
+						const availableHeight = viewportBottom - margin - (top - window.scrollY);
+						popupMaxHeight = Math.min(popupHeight, availableHeight);
+					}
+				} else {
+					// Enough space below, but still check if we need to limit height
+					const availableHeight = viewportBottom - margin - rect.bottom - 8;
+					popupMaxHeight = Math.min(popupHeight, availableHeight);
 				}
 				
-				// Check bottom boundary
-				if (top + popupHeight > window.innerHeight + window.scrollY) {
-					// Show above the button if not enough space below
-					top = rect.top + window.scrollY - popupHeight - 8;
+				// Check right boundary
+				if (left + popupWidth > window.innerWidth - margin) {
+					left = Math.max(margin, window.innerWidth - popupWidth - margin);
 				}
 				
 				// Ensure minimum left position
-				if (left < 10) {
-					left = 10;
+				if (left < margin) {
+					left = margin;
 				}
 				
 				popupPosition = { top, left };
@@ -252,7 +273,7 @@
 	<Portal>
 		<div 
 			class="analysis-results-popup" 
-			style="top: {popupPosition.top}px; left: {popupPosition.left}px;"
+			style="top: {popupPosition.top}px; left: {popupPosition.left}px; max-height: {popupMaxHeight}px;"
 			use:clickOutside
 			onoutclick={() => showResults = false}
 		>

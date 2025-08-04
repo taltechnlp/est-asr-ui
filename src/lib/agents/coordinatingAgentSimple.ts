@@ -81,9 +81,8 @@ export class CoordinatingAgentSimple {
       maxTokens: 2000,
     });
 
-    // The service is mounted at /asr and the endpoint is /transcribe/alternatives
-    // So the full URL is /asr/transcribe/alternatives
-    this.asrTool = createASRNBestServerNodeTool("https://tekstiks.ee/asr/transcribe/alternatives/");
+    // The ASR service endpoint for alternatives is /transcribe/alternatives
+    this.asrTool = createASRNBestServerNodeTool("https://tekstiks.ee/asr/transcribe/alternatives");
     this.webSearchTool = createWebSearchTool();
   }
 
@@ -128,20 +127,26 @@ export class CoordinatingAgentSimple {
 
       let nBestResults = null;
 
-      // Use ASR N-best tool if needed
-      if (analysisData.needsAlternatives) {
-        try {
-          const asrResult = await this.asrTool._call({
-            audioFilePath,
-            startTime: segment.startTime,
-            endTime: segment.endTime,
-            nBest: 5,
-          });
-          nBestResults = JSON.parse(asrResult);
-        } catch (e) {
-          console.error("ASR N-best tool error:", e);
-        }
+      // TEMPORARY: Always use ASR N-best tool for testing
+      // if (analysisData.needsAlternatives) {
+      try {
+        console.log("Calling ASR N-best tool for segment:", {
+          audioFilePath,
+          startTime: segment.startTime,
+          endTime: segment.endTime,
+        });
+        const asrResult = await this.asrTool._call({
+          audioFilePath,
+          startTime: segment.startTime,
+          endTime: segment.endTime,
+          nBest: 5,
+        });
+        nBestResults = JSON.parse(asrResult);
+        console.log("ASR N-best results received:", nBestResults);
+      } catch (e) {
+        console.error("ASR N-best tool error:", e);
       }
+      // }
 
       // Use web search for unfamiliar terms
       if (analysisData.needsWebSearch && analysisData.needsWebSearch.length > 0) {
