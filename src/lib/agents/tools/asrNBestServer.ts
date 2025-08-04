@@ -28,7 +28,8 @@ export class ASRNBestServerTool {
 
   constructor(asrEndpoint: string = "https://tekstiks.ee/asr/asr") {
     this.audioSlicer = getAudioSlicer();
-    this.asrEndpoint = asrEndpoint;
+    // Ensure we're using the correct endpoint path
+    this.asrEndpoint = asrEndpoint.endsWith('/asr') ? asrEndpoint : asrEndpoint + '/asr';
   }
 
   async _call(input: z.infer<typeof ASRNBestSchema>): Promise<string> {
@@ -88,32 +89,44 @@ export class ASRNBestServerTool {
         throw new Error(`Invalid ASR response format: ${responseText}`);
       }
 
+      // Check if we got the service metadata instead of transcription result
+      if (asrResult.service && asrResult.version && asrResult.endpoints) {
+        throw new Error(`ASR API returned service metadata instead of transcription. This usually means the request was redirected or the endpoint is incorrect. Response: ${JSON.stringify(asrResult)}`);
+      }
+
       // Format the response
       const alternatives: ASRAlternative[] = [];
       
-      // Add primary transcription
-      if (asrResult.text) {
+      // The ASR API returns alternatives as an array of objects with text property
+      if (asrResult.alternatives && Array.isArray(asrResult.alternatives)) {
+        asrResult.alternatives.forEach((alt: any) => {
+          alternatives.push({
+            text: alt.text || alt,
+            confidence: alt.confidence || (alt.beam_size ? 1.0 - (alt.beam_size - 5) * 0.02 : 0.9),
+          });
+        });
+      } else if (asrResult.text) {
+        // If no alternatives but there's a main text, use it
         alternatives.push({
           text: asrResult.text,
-          confidence: 1.0, // Primary result has highest confidence
-        });
-      }
-
-      // Add alternatives
-      if (asrResult.alternatives && Array.isArray(asrResult.alternatives)) {
-        asrResult.alternatives.forEach((alt: any, index: number) => {
-          alternatives.push({
-            text: typeof alt === 'string' ? alt : alt.text,
-            confidence: 0.9 - (index * 0.1), // Decreasing confidence for alternatives
-          });
+          confidence: 1.0,
         });
       }
 
       const result = {
         alternatives,
-        primaryText: asrResult.text || originalText,
-        duration: sliceResult.duration,
+        primaryText: asrResult.text || (alternatives.length > 0 ? alternatives[0].text : originalText),
+        duration: asrResult.duration || sliceResult.duration,
       };
+
+      // Log the actual ASR response for debugging
+      console.log('ASR API response structure:', {
+        hasText: !!asrResult.text,
+        hasAlternatives: !!asrResult.alternatives,
+        alternativesCount: asrResult.alternatives?.length || 0,
+        hasError: !!asrResult.error,
+        keys: Object.keys(asrResult),
+      });
 
       // Save the result to a file for debugging and future reference
       try {
