@@ -75,8 +75,9 @@ export class CoordinatingAgentSimple {
       maxTokens: 2000,
     });
 
-    // Use the fixed ASR endpoint - now just /asr without duplication
-    this.asrTool = createASRNBestServerNodeTool("https://tekstiks.ee/asr");
+    // The service is mounted at /asr and the upload endpoint is /asr within the service
+    // So the full URL is /asr/asr
+    this.asrTool = createASRNBestServerNodeTool("https://tekstiks.ee/asr/asr");
     this.webSearchTool = createWebSearchTool();
   }
 
