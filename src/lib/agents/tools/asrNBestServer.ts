@@ -48,28 +48,45 @@ export class ASRNBestServerTool {
         format: 'wav', // Use WAV for better ASR compatibility
       });
 
-      // Read the file as a buffer
+      // For server-side file upload, we need to use a different approach
+      // Using node-fetch or undici for proper file upload from Node.js
       const fileBuffer = await readFile(sliceResult.tempFilePath);
       
-      // Convert Buffer to Uint8Array for Blob compatibility
-      const uint8Array = new Uint8Array(fileBuffer);
-      
-      // Create form data for file upload
+      // Dynamic import to use form-data package for Node.js
+      const FormData = (await import('form-data')).default;
       const formData = new FormData();
-      const blob = new Blob([uint8Array], { type: 'audio/wav' });
-      formData.append('file', blob, 'segment.wav');
+      
+      // Append the file buffer directly
+      formData.append('file', fileBuffer, {
+        filename: 'segment.wav',
+        contentType: 'audio/wav',
+      });
 
-      // Make request to ASR API
+      // Make request to ASR API with proper headers
       const response = await fetch(`${this.asrEndpoint}?n_best=${nBest}`, {
         method: 'POST',
-        body: formData,
+        body: formData as any,
+        headers: {
+          ...formData.getHeaders(),
+        },
       });
 
       if (!response.ok) {
-        throw new Error(`ASR API error: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        console.error(`ASR API error response: ${errorText}`);
+        throw new Error(`ASR API error: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
-      const asrResult = await response.json();
+      const responseText = await response.text();
+      console.log(`ASR API raw response: ${responseText}`);
+      
+      let asrResult;
+      try {
+        asrResult = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Failed to parse ASR response as JSON:', e);
+        throw new Error(`Invalid ASR response format: ${responseText}`);
+      }
 
       // Format the response
       const alternatives: ASRAlternative[] = [];
