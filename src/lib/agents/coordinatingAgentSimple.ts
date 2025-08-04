@@ -75,7 +75,8 @@ export class CoordinatingAgentSimple {
       maxTokens: 2000,
     });
 
-    this.asrTool = createASRNBestServerTool();
+    // Use the correct ASR endpoint - the service is mounted at /asr, not /asr/asr
+    this.asrTool = createASRNBestServerTool("https://tekstiks.ee/asr");
     this.webSearchTool = createWebSearchTool();
   }
 

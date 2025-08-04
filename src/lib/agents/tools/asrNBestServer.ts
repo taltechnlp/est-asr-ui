@@ -63,14 +63,22 @@ export class ASRNBestServerTool {
         contentType: 'audio/wav',
       });
 
+      // Log the exact URL we're using
+      const url = `${this.asrEndpoint}?n_best=${nBest}`;
+      console.log(`Making ASR request to: ${url}`);
+      console.log(`Form data headers:`, formData.getHeaders());
+      
       // Make request to ASR API with proper headers
-      const response = await fetch(`${this.asrEndpoint}?n_best=${nBest}`, {
+      const response = await fetch(url, {
         method: 'POST',
         body: formData as any,
         headers: {
           ...formData.getHeaders(),
         },
       });
+      
+      console.log(`ASR response status: ${response.status}`);
+      console.log(`ASR response headers:`, response.headers);
 
       if (!response.ok) {
         const errorText = await response.text();
