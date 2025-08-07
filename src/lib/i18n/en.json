@@ -59,6 +59,10 @@
       "viewAnalysis": "View analysis results",
       "error": "Analysis error",
       "analyzed": "Analyzed",
+      "networkError": "Network connection error. Please check your internet connection and try again.",
+      "apiKeyMissing": "API key not configured. Please contact the administrator.",
+      "unauthorized": "Unauthorized. Please log in again.",
+      "genericError": "An error occurred during analysis. Please try again.",
       "analyze": "Analyze"
     },
     "quality": {
@@ -90,7 +94,11 @@
       "apply": "Apply",
       "applying": "Applying...",
       "noDescription": "No description",
-      "unknown": "Unknown"
+      "unknown": "Unknown",
+      "editorNotAvailable": "Editor not available. Please refresh the page and try again.",
+      "multipleMatches": "Multiple matches found. Please be more specific.",
+      "textNotFound": "Text not found in the transcript.",
+      "applyFailed": "Failed to apply suggestion. Please try again."
     },
     "severity": {
       "low": "Low",

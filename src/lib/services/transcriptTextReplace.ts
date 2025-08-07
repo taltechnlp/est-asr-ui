@@ -9,6 +9,11 @@ export interface TextMatch {
   context: string;
   nodeType: string;
   speakerId?: string;
+  debugInfo?: {
+    wordNodes?: Array<{ text: string; from: number; to: number; }>;
+    searchMethod?: string;
+    normalizedSearch?: string;
+  };
 }
 
 export interface ReplacementResult {
@@ -428,6 +433,308 @@ function findCrossNodeMatches(
 }
 
 /**
+ * Calculate Levenshtein distance between two strings
+ */
+function levenshteinDistance(str1: string, str2: string): number {
+  const m = str1.length;
+  const n = str2.length;
+  const dp: number[][] = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+  
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (str1[i - 1] === str2[j - 1]) {
+        dp[i][j] = dp[i - 1][j - 1];
+      } else {
+        dp[i][j] = Math.min(
+          dp[i - 1][j] + 1,    // deletion
+          dp[i][j - 1] + 1,    // insertion
+          dp[i - 1][j - 1] + 1 // substitution
+        );
+      }
+    }
+  }
+  
+  return dp[m][n];
+}
+
+/**
+ * Find text using fuzzy matching on word sequences
+ */
+function findTextUsingFuzzyWordMatch(
+  doc: ProseMirrorNode,
+  searchText: string,
+  options: {
+    caseSensitive?: boolean;
+    wholeWord?: boolean;
+    segmentId?: string;
+  } = {}
+): TextMatch[] {
+  const { caseSensitive = false, segmentId } = options;
+  const matches: TextMatch[] = [];
+  
+  console.log('Starting fuzzy word matching for:', JSON.stringify(searchText));
+  
+  // Build word map
+  const wordNodes = buildWordMap(doc, segmentId);
+  const searchWords = searchText.split(/\s+/).filter(w => w.length > 0);
+  
+  if (searchWords.length === 0) return matches;
+  
+  console.log('Search words:', searchWords);
+  
+  // Try to find sequences of words that match with some tolerance
+  for (let i = 0; i <= wordNodes.length - searchWords.length; i++) {
+    let totalDistance = 0;
+    let matchedWords: typeof wordNodes = [];
+    
+    for (let j = 0; j < searchWords.length; j++) {
+      if (i + j >= wordNodes.length) break;
+      
+      const wordNode = wordNodes[i + j];
+      const searchWord = caseSensitive ? searchWords[j] : searchWords[j].toLowerCase();
+      const nodeWord = caseSensitive ? wordNode.text.trim() : wordNode.text.trim().toLowerCase();
+      
+      // Calculate similarity
+      const distance = levenshteinDistance(searchWord, nodeWord);
+      const maxLen = Math.max(searchWord.length, nodeWord.length);
+      const similarity = maxLen > 0 ? 1 - (distance / maxLen) : 0;
+      
+      // Accept if similarity is above threshold (70%)
+      if (similarity >= 0.7) {
+        totalDistance += distance;
+        matchedWords.push(wordNode);
+      } else {
+        // Not similar enough, break this sequence
+        break;
+      }
+    }
+    
+    // If we matched all words with reasonable similarity
+    if (matchedWords.length === searchWords.length) {
+      const avgDistance = totalDistance / searchWords.length;
+      const maxAvgDistance = Math.max(...searchWords.map(w => w.length)) * 0.3; // 30% of average word length
+      
+      if (avgDistance <= maxAvgDistance) {
+        console.log(`Fuzzy match found at word index ${i} with avg distance ${avgDistance.toFixed(2)}`);
+        
+        // Create match from first to last word
+        const firstWord = matchedWords[0];
+        const lastWord = matchedWords[matchedWords.length - 1];
+        
+        const matchedText = matchedWords.map(w => w.text).join('');
+        const from = firstWord.from;
+        const to = lastWord.to;
+        
+        matches.push({
+          from,
+          to,
+          text: matchedText,
+          context: matchedText,
+          nodeType: 'text',
+          speakerId: firstWord.speakerId,
+          debugInfo: {
+            wordNodes: matchedWords.map(w => ({ text: w.text, from: w.from, to: w.to })),
+            searchMethod: 'fuzzy-word-match',
+            normalizedSearch: searchWords.join(' ')
+          }
+        });
+        
+        console.log(`Created fuzzy match: ${from}-${to}`);
+      }
+    }
+  }
+  
+  console.log(`Fuzzy matching found ${matches.length} matches`);
+  return matches;
+}
+
+/**
+ * Build a map of word nodes with their positions and text
+ */
+function buildWordMap(doc: ProseMirrorNode, segmentId?: string) {
+  const wordNodes: Array<{
+    text: string;
+    from: number;
+    to: number;
+    marks: any[];
+    speakerId?: string;
+  }> = [];
+  
+  console.log('=== Building Word Map ===');
+  
+  doc.descendants((node, pos) => {
+    // Skip if we're filtering by segment and this isn't the right segment
+    if (segmentId && node.type.name === 'speaker' && node.attrs.id !== segmentId) {
+      return false;
+    }
+    
+    if (node.isText && node.text) {
+      // Check if this text node has word marks
+      const wordMark = node.marks?.find(mark => mark.type.name === 'word');
+      
+      const wordInfo = {
+        text: node.text,
+        from: pos,
+        to: pos + node.text.length,
+        marks: [...(node.marks || [])], // Convert readonly array to mutable
+        speakerId: undefined as string | undefined
+      };
+      
+      // Find parent speaker if exists
+      let currentPos = pos;
+      doc.nodesBetween(Math.max(0, pos - 100), pos + 1, (n, p) => {
+        if (n.type.name === 'speaker') {
+          wordInfo.speakerId = n.attrs.id;
+          return false;
+        }
+      });
+      
+      wordNodes.push(wordInfo);
+      
+      if (wordMark) {
+        console.log(`  Word node: "${node.text}" at ${pos}-${pos + node.text.length}, marks: word(${wordMark.attrs.start}-${wordMark.attrs.end})`);
+      } else {
+        console.log(`  Text node (no word mark): "${node.text}" at ${pos}-${pos + node.text.length}`);
+      }
+    }
+  });
+  
+  console.log(`Total word nodes: ${wordNodes.length}`);
+  return wordNodes;
+}
+
+/**
+ * Find text using word-aware search
+ */
+function findTextUsingWordMap(
+  doc: ProseMirrorNode,
+  searchText: string,
+  options: {
+    caseSensitive?: boolean;
+    segmentId?: string;
+  } = {}
+): TextMatch[] {
+  const { caseSensitive = false, segmentId } = options;
+  const matches: TextMatch[] = [];
+  
+  console.log('\n=== Word-Aware Search ===');
+  console.log('Searching for:', JSON.stringify(searchText));
+  
+  // Build word map
+  const wordNodes = buildWordMap(doc, segmentId);
+  
+  // Build continuous text from word nodes
+  let continuousText = '';
+  const positionMap: Array<{ wordIndex: number; textStart: number; textEnd: number; }> = [];
+  
+  wordNodes.forEach((word, index) => {
+    const textStart = continuousText.length;
+    continuousText += word.text;
+    const textEnd = continuousText.length;
+    
+    positionMap.push({
+      wordIndex: index,
+      textStart,
+      textEnd
+    });
+    
+    // Add space between words if not already present
+    if (index < wordNodes.length - 1 && !word.text.endsWith(' ')) {
+      continuousText += ' ';
+    }
+  });
+  
+  console.log('Continuous text built from words:', JSON.stringify(continuousText.substring(0, 200)));
+  
+  // Search in continuous text
+  const searchLower = caseSensitive ? searchText : searchText.toLowerCase();
+  const textLower = caseSensitive ? continuousText : continuousText.toLowerCase();
+  
+  let searchIndex = 0;
+  while (searchIndex < textLower.length) {
+    const matchIndex = textLower.indexOf(searchLower, searchIndex);
+    if (matchIndex === -1) break;
+    
+    console.log(`\nFound match at text position ${matchIndex}`);
+    
+    // Find which word nodes this match spans
+    const matchEnd = matchIndex + searchText.length;
+    let startWordIndex = -1;
+    let endWordIndex = -1;
+    let startOffset = 0;
+    let endOffset = 0;
+    
+    for (const pos of positionMap) {
+      if (startWordIndex === -1 && matchIndex >= pos.textStart && matchIndex < pos.textEnd) {
+        startWordIndex = pos.wordIndex;
+        startOffset = matchIndex - pos.textStart;
+        console.log(`  Match starts in word ${startWordIndex}: "${wordNodes[startWordIndex].text}" at offset ${startOffset}`);
+      }
+      
+      if (matchEnd > pos.textStart && matchEnd <= pos.textEnd) {
+        endWordIndex = pos.wordIndex;
+        endOffset = matchEnd - pos.textStart;
+        console.log(`  Match ends in word ${endWordIndex}: "${wordNodes[endWordIndex].text}" at offset ${endOffset}`);
+        break;
+      }
+    }
+    
+    if (startWordIndex !== -1 && endWordIndex !== -1) {
+      const startWord = wordNodes[startWordIndex];
+      const endWord = wordNodes[endWordIndex];
+      
+      // Calculate ProseMirror positions
+      const from = startWord.from + startOffset;
+      const to = endWord.from + endOffset;
+      
+      console.log(`  Mapped to ProseMirror positions: ${from}-${to}`);
+      
+      // Extract matched text and context
+      const matchedText = continuousText.substring(matchIndex, matchEnd);
+      const contextStart = Math.max(0, matchIndex - 50);
+      const contextEnd = Math.min(continuousText.length, matchEnd + 50);
+      const context = continuousText.substring(contextStart, contextEnd);
+      
+      // Collect word nodes involved in the match
+      const involvedWords = [];
+      for (let i = startWordIndex; i <= endWordIndex; i++) {
+        involvedWords.push({
+          text: wordNodes[i].text,
+          from: wordNodes[i].from,
+          to: wordNodes[i].to
+        });
+      }
+      
+      matches.push({
+        from,
+        to,
+        text: matchedText,
+        context,
+        nodeType: 'text',
+        speakerId: startWord.speakerId,
+        debugInfo: {
+          wordNodes: involvedWords,
+          searchMethod: 'word-aware',
+          normalizedSearch: searchLower
+        }
+      });
+      
+      console.log(`  Successfully created match with ${involvedWords.length} word nodes`);
+    } else {
+      console.log(`  Failed to map match to word nodes: startWord=${startWordIndex}, endWord=${endWordIndex}`);
+    }
+    
+    searchIndex = matchIndex + searchText.length;
+  }
+  
+  console.log(`\nWord-aware search found ${matches.length} matches`);
+  return matches;
+}
+
+/**
  * Find all occurrences of text in the document
  */
 export function findTextPositions(
@@ -442,6 +749,21 @@ export function findTextPositions(
   const matches: TextMatch[] = [];
   const { caseSensitive = false, wholeWord = false, segmentId } = options;
   
+  console.log('\n========================================');
+  console.log('=== STARTING TEXT SEARCH ===');
+  console.log('Search text:', JSON.stringify(searchText));
+  console.log('Options:', { caseSensitive, wholeWord, segmentId });
+  console.log('========================================\n');
+  
+  // Try word-aware search first (most reliable for word-marked documents)
+  const wordAwareMatches = findTextUsingWordMap(doc, searchText, { caseSensitive, segmentId });
+  if (wordAwareMatches.length > 0) {
+    console.log(`✅ Word-aware search successful: ${wordAwareMatches.length} matches found`);
+    return wordAwareMatches;
+  }
+  
+  console.log('⚠️ Word-aware search found no matches, trying fallback methods...\n');
+  
   // Normalize whitespace in search text (replace multiple spaces with single space)
   const normalizedSearchText = searchText.replace(/\s+/g, ' ').trim();
   const normalizedSearch = caseSensitive ? normalizedSearchText : normalizedSearchText.toLowerCase();
@@ -454,7 +776,7 @@ export function findTextPositions(
     }
   });
   
-  // First try searching within individual nodes
+  // Try searching within individual nodes
   doc.descendants((node, pos) => {
     // If segmentId is specified, only search within that speaker segment
     if (segmentId && node.type.name === 'speaker' && node.attrs.id !== segmentId) {
@@ -558,8 +880,25 @@ export function findTextPositions(
       if (foundWords.length > 0) {
         console.log('Partial match - found words:', foundWords);
         console.log('Missing words:', words.filter(word => !docTextForSearch.includes(word.toLowerCase())));
+        
+        // Try fuzzy matching as last resort
+        console.log('\n=== Attempting Fuzzy Word Matching ===');
+        const fuzzyMatches = findTextUsingFuzzyWordMatch(doc, searchText, options);
+        if (fuzzyMatches.length > 0) {
+          console.log(`✅ Fuzzy matching found ${fuzzyMatches.length} matches`);
+          return fuzzyMatches;
+        }
       }
     }
+  }
+  
+  // Final debug output
+  if (matches.length === 0) {
+    console.log('\n❌ NO MATCHES FOUND - Debug Summary:');
+    console.log('  - Original search text:', JSON.stringify(searchText));
+    console.log('  - Normalized search text:', JSON.stringify(normalizedSearchText));
+    console.log('  - Document text sample (first 500 chars):', JSON.stringify(allDocumentText.substring(0, 500)));
+    console.log('  - Search methods tried: word-aware, individual nodes, cross-node, ProseMirror search, fuzzy');
   }
   
   return matches;

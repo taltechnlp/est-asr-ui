@@ -1,6 +1,8 @@
 import type { Editor } from '@tiptap/core';
 import type { ImprovementSuggestion } from '$lib/agents/schemas/transcript';
 import { applySuggestionToEditor, type ReplacementResult } from '$lib/services/transcriptTextReplace';
+import { findAndReplaceText } from '$lib/services/transcriptTextReplaceProseMirror';
+import { findAndReplaceTextSimple } from '$lib/services/transcriptTextReplaceProseMirrorSimple';
 import { get } from 'svelte/store';
 import { editor as editorStore } from '$lib/stores.svelte';
 
@@ -41,7 +43,39 @@ export async function applySuggestion(
   }
   
   try {
-    // Apply the suggestion
+    // First try the simple approach
+    const simpleResult = findAndReplaceTextSimple(
+      editor,
+      suggestion.originalText,
+      suggestion.suggestedText,
+      { caseSensitive: false }
+    );
+    
+    if (simpleResult.success) {
+      return {
+        success: true,
+        message: `Successfully applied ${suggestion.type} suggestion.`,
+      };
+    }
+    
+    // Try ProseMirror utils approach
+    console.log('Simple approach failed, trying ProseMirror utils...');
+    const pmResult = findAndReplaceText(
+      editor,
+      suggestion.originalText,
+      suggestion.suggestedText,
+      { caseSensitive: false }
+    );
+    
+    if (pmResult.success) {
+      return {
+        success: true,
+        message: `Successfully applied ${suggestion.type} suggestion.`,
+      };
+    }
+    
+    // Fallback to the old approach
+    console.log('ProseMirror utils approach failed, trying original fallback...');
     const result = await applySuggestionToEditor(editor, suggestion);
     
     if (result.success) {

@@ -43,7 +43,11 @@
             "viewAnalysis": "Katso analyysin tulokset",
             "error": "Analyysivirhe",
             "analyzed": "Analysoitu",
-            "analyze": "Analysoi"
+            "analyze": "Analysoi",
+            "networkError": "Verkkoyhteysvirhe. Tarkista internetyhteytesi ja yritä uudelleen.",
+            "apiKeyMissing": "API-avainta ei ole määritetty. Ota yhteyttä ylläpitäjään.",
+            "unauthorized": "Ei valtuutusta. Kirjaudu sisään uudelleen.",
+            "genericError": "Analysoinnissa tapahtui virhe. Yritä uudelleen."
         },
         "quality": {
             "excellent": "Erinomainen",
@@ -74,7 +78,11 @@
             "apply": "Käytä",
             "applying": "Käytetään...",
             "noDescription": "Ei kuvausta",
-            "unknown": "Tuntematon"
+            "unknown": "Tuntematon",
+            "editorNotAvailable": "Tekstieditori ei ole käytettävissä. Päivitä sivu ja yritä uudelleen.",
+            "multipleMatches": "Löytyi useita osumia. Ole tarkempi.",
+            "textNotFound": "Tekstiä ei löytynyt transkriptiosta.",
+            "applyFailed": "Ehdotuksen käyttäminen epäonnistui. Yritä uudelleen."
         },
         "severity": {
             "low": "Matala",

@@ -195,8 +195,17 @@
 			analysisStatus = 'analyzed';
 			
 			onAnalysisComplete(result);
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to analyze segment';
+		} catch (err: any) {
+			// Provide user-friendly error messages
+			if (err?.message?.includes('Request timed out') || err?.message?.includes('Network connectivity')) {
+				error = $_('transcript.analysis.networkError');
+			} else if (err?.message?.includes('OPENROUTER_API_KEY')) {
+				error = $_('transcript.analysis.apiKeyMissing');
+			} else if (err?.message?.includes('401') || err?.message?.includes('Unauthorized')) {
+				error = $_('transcript.analysis.unauthorized');
+			} else {
+				error = err instanceof Error ? err.message : $_('transcript.analysis.genericError');
+			}
 			analysisStatus = 'error';
 			console.error('Segment analysis error:', err);
 		} finally {
@@ -288,8 +297,17 @@
 			applyingStates = {};
 			
 			onAnalysisComplete(result);
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to re-analyze segment';
+		} catch (err: any) {
+			// Provide user-friendly error messages
+			if (err?.message?.includes('Request timed out') || err?.message?.includes('Network connectivity')) {
+				error = $_('transcript.analysis.networkError');
+			} else if (err?.message?.includes('OPENROUTER_API_KEY')) {
+				error = $_('transcript.analysis.apiKeyMissing');
+			} else if (err?.message?.includes('401') || err?.message?.includes('Unauthorized')) {
+				error = $_('transcript.analysis.unauthorized');
+			} else {
+				error = err instanceof Error ? err.message : $_('transcript.analysis.genericError');
+			}
 			console.error('Segment re-analysis error:', err);
 		} finally {
 			isReanalyzing = false;
@@ -323,7 +341,18 @@
 				}
 			} else {
 				console.error('Failed to apply suggestion:', result.error);
-				alert(`Failed to apply suggestion: ${result.error}`);
+				// Provide user-friendly error messages for suggestion application
+				let errorMsg = '';
+				if (result.error?.includes('TipTap editor not available')) {
+					errorMsg = $_('transcript.suggestion.editorNotAvailable');
+				} else if (result.error?.includes('Multiple matches found')) {
+					errorMsg = $_('transcript.suggestion.multipleMatches');
+				} else if (result.error?.includes('not found')) {
+					errorMsg = $_('transcript.suggestion.textNotFound');
+				} else {
+					errorMsg = result.error || $_('transcript.suggestion.applyFailed');
+				}
+				alert(errorMsg);
 			}
 		} catch (error) {
 			console.error('Error applying suggestion:', error);

@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { TranscriptAnalysisTool } from "./base";
 import { findTextPositions, type TextMatch } from '$lib/services/transcriptTextReplace';
+import { findAndReplaceText } from '$lib/services/transcriptTextReplaceProseMirror';
+import { findAndReplaceTextSimple } from '$lib/services/transcriptTextReplaceProseMirrorSimple';
 import type { Editor } from '@tiptap/core';
 import type { Node as ProseMirrorNode } from 'prosemirror-model';
 
@@ -65,7 +67,62 @@ All suggestions are shown as inline diffs that require user approval.`,
     const { originalText, suggestedText, segmentId, changeType, confidence, context } = input;
 
     try {
-      // Find text positions using existing utility
+      // First try the simple, reliable approach
+      console.log('Attempting text replacement using Simple approach...');
+      const simpleResult = findAndReplaceTextSimple(this.editor, originalText, suggestedText, {
+        caseSensitive: false,
+        segmentId
+      });
+      
+      if (simpleResult.success) {
+        const successResult: TipTapTransactionResult = {
+          success: true,
+          matchCount: 1,
+          appliedAt: simpleResult.replacedAt,
+          transactionId: `transaction_${Date.now()}`
+        };
+        return JSON.stringify(successResult);
+      }
+      
+      // If simple approach failed with a clear error, return it
+      if (simpleResult.error && !simpleResult.error.includes('not found')) {
+        const errorResult: TipTapTransactionResult = {
+          success: false,
+          error: simpleResult.error,
+          matchCount: simpleResult.matchCount || 0
+        };
+        return JSON.stringify(errorResult);
+      }
+      
+      // Try the prosemirror-utils based approach as fallback
+      console.log('Simple approach failed, trying ProseMirror Utils approach...');
+      const result = findAndReplaceText(this.editor, originalText, suggestedText, {
+        caseSensitive: false,
+        segmentId
+      });
+      
+      if (result.success) {
+        const successResult: TipTapTransactionResult = {
+          success: true,
+          matchCount: 1,
+          appliedAt: result.replacedAt,
+          transactionId: `transaction_${Date.now()}`
+        };
+        return JSON.stringify(successResult);
+      }
+      
+      // If the new approach failed, return its error (it has good error messages)
+      if (result.error) {
+        const errorResult: TipTapTransactionResult = {
+          success: false,
+          error: result.error,
+          matchCount: result.matchCount || 0
+        };
+        return JSON.stringify(errorResult);
+      }
+      
+      // Fallback to the old approach if needed
+      console.log('ProseMirror Utils approach failed, trying original fallback...');
       const matches: TextMatch[] = findTextPositions(this.editor.state.doc, originalText, {
         caseSensitive: false,
         segmentId,
@@ -92,12 +149,18 @@ All suggestions are shown as inline diffs that require user approval.`,
         const foundWords = words.filter(word => normalizedDocText.includes(word));
         const missingWords = words.filter(word => !normalizedDocText.includes(word));
         
-        let errorMsg = `Text "${originalText}" not found in document. Normalized search: "${normalizedOriginal}".`;
+        let errorMsg = `Text "${originalText}" not found in document.`;
         
         if (foundWords.length > 0) {
           errorMsg += ` Found ${foundWords.length}/${words.length} words: [${foundWords.join(', ')}].`;
           if (missingWords.length > 0) {
             errorMsg += ` Missing words: [${missingWords.join(', ')}].`;
+            
+            // Check if missing words might be garbled/misspelled
+            const garbledHint = missingWords.some(word => word.length > 8 && /[a-z]{3,}/.test(word.toLowerCase()));
+            if (garbledHint) {
+              errorMsg += ` HINT: Some words appear garbled/misspelled. The search uses fuzzy matching but the text may be too different.`;
+            }
           }
         } else {
           errorMsg += ` None of the search words were found in the document.`;
@@ -105,8 +168,12 @@ All suggestions are shown as inline diffs that require user approval.`,
         
         // Check if text might span across nodes
         if (normalizedDocText.includes(searchLower)) {
-          errorMsg += ` NOTE: Text found in full document text - attempted cross-node matching but failed. Text may span complex node structures or contain non-text elements.`;
+          errorMsg += ` NOTE: Text found in document - this is likely a bug in position mapping. Please report this issue.`;
         }
+        
+        console.log('Search failed - Full debug info:');
+        console.log('  Original text:', JSON.stringify(originalText));
+        console.log('  Document sample:', JSON.stringify(allDocText.substring(0, 200)));
         
         const result: TipTapTransactionResult = {
           success: false,

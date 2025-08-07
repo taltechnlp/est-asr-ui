@@ -80,13 +80,9 @@ export class WebSearchTool extends TranscriptAnalysisTool {
         count++;
       }
 
-      // If DuckDuckGo parsing fails, try a fallback search using a different approach
+      // If DuckDuckGo parsing fails, return empty results instead of generic message
       if (results.length === 0) {
-        results.push({
-          title: `Information about: ${query}`,
-          snippet: `No specific results found. Consider searching for "${query}" in ${language === 'et' ? 'Estonian' : language === 'fi' ? 'Finnish' : 'English'} resources.`,
-          url: `https://www.google.com/search?q=${encodeURIComponent(query)}`,
-        });
+        console.log(`No search results found for query: "${query}"`);
       }
 
       return {

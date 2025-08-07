@@ -61,39 +61,81 @@ export class OpenRouterChat {
       throw new Error('OpenRouter API calls can only be made from server-side code');
     }
 
-    try {
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": "https://tekstiks.ee",
-          "X-Title": "EST-ASR Transcript Analyzer",
-        },
-        body: JSON.stringify({
-          model: this.modelName,
-          messages,
-          temperature: this.temperature,
-          max_tokens: this.maxTokens,
-        }),
-      });
+    // Retry configuration
+    const maxRetries = 3;
+    const baseDelay = 1000; // 1 second
+    const timeout = 30000; // 30 seconds
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        // Create AbortController for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${this.apiKey}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://tekstiks.ee",
+            "X-Title": "EST-ASR Transcript Analyzer",
+          },
+          body: JSON.stringify({
+            model: this.modelName,
+            messages,
+            temperature: this.temperature,
+            max_tokens: this.maxTokens,
+          }),
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
+        }
+
+        const data: OpenRouterResponse = await response.json();
+        
+        if (!data.choices || data.choices.length === 0) {
+          throw new Error("No response from OpenRouter");
+        }
+
+        return { content: data.choices[0].message.content };
+      } catch (error: any) {
+        const isLastAttempt = attempt === maxRetries - 1;
+        const isTimeout = error?.name === 'AbortError' || error?.code === 'ETIMEDOUT';
+        const isNetworkError = error?.cause?.code === 'ETIMEDOUT' || error?.message?.includes('fetch failed');
+        
+        if (isTimeout || isNetworkError) {
+          console.error(`OpenRouter API attempt ${attempt + 1}/${maxRetries} failed:`, 
+            isTimeout ? 'Request timeout' : 'Network error');
+          
+          if (!isLastAttempt) {
+            // Exponential backoff with jitter
+            const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
+            console.log(`Retrying in ${Math.round(delay)}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+          
+          // Final attempt failed
+          throw new Error(
+            `OpenRouter API failed after ${maxRetries} attempts. ` +
+            `${isTimeout ? 'Request timed out' : 'Network connectivity issue'}. ` +
+            `Please check your internet connection and try again.`
+          );
+        }
+        
+        // Non-retryable error
+        console.error("OpenRouter API error:", error);
+        throw error;
       }
-
-      const data: OpenRouterResponse = await response.json();
-      
-      if (!data.choices || data.choices.length === 0) {
-        throw new Error("No response from OpenRouter");
-      }
-
-      return { content: data.choices[0].message.content };
-    } catch (error) {
-      console.error("OpenRouter API error:", error);
-      throw error;
     }
+    
+    // Should never reach here
+    throw new Error("OpenRouter API failed unexpectedly");
   }
 }
 
