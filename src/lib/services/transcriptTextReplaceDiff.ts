@@ -1,6 +1,7 @@
 import type { Editor } from '@tiptap/core';
 import type { Node as ProseMirrorNode, Mark } from 'prosemirror-model';
 import { findTextWithNodesBetween, type TextMatch } from './transcriptTextReplaceNodesBetween';
+import { findTextFlexible } from './transcriptTextReplaceFlexible';
 
 export interface DiffReplacementResult {
   success: boolean;
@@ -109,7 +110,22 @@ export function findAndCreateDiff(
   const { doc } = state;
   
   // Find matches using the robust nodesBetween approach
-  const matches = findTextWithNodesBetween(doc, searchText, options);
+  let matches = findTextWithNodesBetween(doc, searchText, options);
+  
+  // If nodesBetween didn't find it, try flexible whitespace matching
+  if (matches.length === 0) {
+    console.log('NodesBetween found no matches, trying flexible search...');
+    const flexibleMatches = findTextFlexible(doc, searchText, { caseSensitive: options.caseSensitive });
+    
+    // Convert flexible matches to the expected format
+    if (flexibleMatches.length > 0) {
+      matches = flexibleMatches.map(m => ({
+        ...m,
+        marks: new Set<Mark>() // Flexible search doesn't collect marks, but diff nodes don't need them
+      }));
+      console.log(`Flexible search found ${matches.length} matches`);
+    }
+  }
   
   if (matches.length === 0) {
     return {

@@ -19,8 +19,12 @@ export interface ReplacementResult {
  * Normalize text for comparison - handles punctuation and whitespace
  */
 function normalizeForSearch(text: string): string {
-  // Normalize whitespace but preserve word boundaries
-  return text.replace(/\s+/g, ' ').trim().toLowerCase();
+  // Normalize all whitespace (including multiple spaces) to single space
+  // Also normalize non-breaking spaces and other Unicode spaces
+  return text
+    .replace(/[\s\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+/g, ' ')
+    .trim()
+    .toLowerCase();
 }
 
 /**
@@ -48,6 +52,7 @@ export function findTextWithNodesBetween(
   
   console.log('\n=== NodesBetween Search ===');
   console.log('Searching for:', JSON.stringify(searchText));
+  console.log('Normalized search:', JSON.stringify(searchNormalized));
   console.log('Search range:', from, 'to', to);
   
   // Build a buffer of text content as we traverse
@@ -76,7 +81,6 @@ export function findTextWithNodesBetween(
   for (let i = 0; i < textSegments.length; i++) {
     // Build a string starting from this segment
     let accumulatedText = '';
-    let accumulatedNormalized = '';
     const segmentStart = i;
     
     // Accumulate text from consecutive segments
@@ -93,7 +97,6 @@ export function findTextWithNodesBetween(
           // Add a space for the gap if it's reasonable
           if (gap <= 5) {
             accumulatedText += ' ';
-            accumulatedNormalized += ' ';
           } else {
             // Gap too large, stop accumulating
             break;
@@ -102,18 +105,58 @@ export function findTextWithNodesBetween(
       }
       
       accumulatedText += segment.text;
-      accumulatedNormalized += caseSensitive ? segment.text : normalizeForSearch(segment.text);
       
       // Check if we have enough text to potentially match
       if (accumulatedText.length >= searchLength) {
-        // Try to find the search text in the accumulated text
-        const searchIn = caseSensitive ? accumulatedText : accumulatedNormalized;
+        // Normalize accumulated text for searching
+        const searchIn = caseSensitive ? accumulatedText : normalizeForSearch(accumulatedText);
         const matchIndex = searchIn.indexOf(searchNormalized);
         
         if (matchIndex !== -1) {
-          console.log(`Found match at accumulated position ${matchIndex}`);
+          console.log(`Found match at normalized position ${matchIndex}`);
+          console.log(`  Search text: "${searchText}"`);
+          console.log(`  Accumulated text: "${accumulatedText}"`);
           
-          // Calculate the actual document positions
+          // Since we're matching on normalized text, we need to map back to original positions
+          // This is tricky because normalization can change character positions
+          // We'll use a simpler approach: find the match in the original accumulated text
+          
+          // Try to find the match in the original (non-normalized) accumulated text
+          // by looking for each word of the search text
+          const searchWords = searchText.trim().split(/\s+/);
+          let matchStart = -1;
+          let matchEnd = -1;
+          
+          // Find where the match actually starts in the original text
+          const originalLower = accumulatedText.toLowerCase();
+          const searchLower = searchText.toLowerCase();
+          
+          // Try different normalization strategies
+          // 1. Direct search with normalized spaces
+          let testIndex = originalLower.indexOf(searchLower.replace(/\s+/g, ' '));
+          if (testIndex === -1) {
+            // 2. Try matching with flexible whitespace
+            const flexiblePattern = searchWords.map(w => w.toLowerCase()).join('\\s+');
+            const regex = new RegExp(flexiblePattern);
+            const regexMatch = originalLower.match(regex);
+            if (regexMatch) {
+              testIndex = regexMatch.index || -1;
+              if (testIndex !== -1) {
+                matchStart = testIndex;
+                matchEnd = testIndex + regexMatch[0].length;
+              }
+            }
+          } else {
+            matchStart = testIndex;
+            matchEnd = testIndex + searchLower.replace(/\s+/g, ' ').length;
+          }
+          
+          if (matchStart === -1) {
+            console.log('  Warning: Found in normalized text but not in original');
+            continue;
+          }
+          
+          // Now map these positions back to document positions
           let charCount = 0;
           let matchFrom = -1;
           let matchTo = -1;
@@ -134,13 +177,13 @@ export function findTextWithNodesBetween(
             }
             
             // Check if match starts in this segment
-            if (matchFrom === -1 && matchIndex < charCount + segmentLength) {
-              matchFrom = seg.pos + Math.max(0, matchIndex - charCount);
+            if (matchFrom === -1 && matchStart < charCount + segmentLength) {
+              matchFrom = seg.pos + Math.max(0, matchStart - charCount);
             }
             
             // Check if match ends in this segment
-            if (matchIndex + searchLength <= charCount + segmentLength) {
-              matchTo = seg.pos + (matchIndex + searchLength - charCount);
+            if (matchEnd <= charCount + segmentLength) {
+              matchTo = seg.pos + (matchEnd - charCount);
               
               // Collect marks from all segments in the match
               for (let m = segmentStart; m <= k; m++) {
