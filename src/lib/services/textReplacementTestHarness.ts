@@ -2,6 +2,7 @@ import type { Editor } from '@tiptap/core';
 import { createEditorSnapshot, searchInSnapshot, logEditorSnapshot, type EditorSnapshot } from './editorDebugger';
 import { findAndReplaceTextSimple } from './transcriptTextReplaceProseMirrorSimple';
 import { findAndReplaceText } from './transcriptTextReplaceProseMirror';
+import { findAndReplaceWithNodesBetween } from './transcriptTextReplaceNodesBetween';
 
 export interface TestCase {
   id: string;
@@ -16,7 +17,7 @@ export interface TestCase {
 export interface TestResult {
   testId: string;
   passed: boolean;
-  method: 'simple' | 'prosemirror' | 'none';
+  method: 'nodesBetween' | 'simple' | 'prosemirror' | 'none';
   error?: string;
   snapshot?: EditorSnapshot;
   searchResults?: ReturnType<typeof searchInSnapshot>;
@@ -63,35 +64,34 @@ export class TextReplacementTestHarness {
       });
     }
     
-    // Try simple method first
-    const simpleResult = findAndReplaceTextSimple(
+    // Try nodesBetween method first (most robust)
+    const nodesBetweenResult = findAndReplaceWithNodesBetween(
       this.editor,
       testCase.searchText,
       testCase.replacementText,
       {
-        caseSensitive: false,
-        segmentId: testCase.segmentId
+        caseSensitive: false
       }
     );
     
     let result: TestResult;
     
-    if (simpleResult.success) {
+    if (nodesBetweenResult.success) {
       result = {
         testId: testCase.id,
         passed: testCase.expectedToFind,
-        method: 'simple',
+        method: 'nodesBetween',
         snapshot,
         searchResults,
         executionTime: performance.now() - startTime
       };
       
       if (this.verbose) {
-        console.log('✅ Simple method succeeded');
+        console.log('✅ NodesBetween method succeeded');
       }
     } else {
-      // Try prosemirror utils method
-      const pmResult = findAndReplaceText(
+      // Try simple method as fallback
+      const simpleResult = findAndReplaceTextSimple(
         this.editor,
         testCase.searchText,
         testCase.replacementText,
@@ -101,34 +101,61 @@ export class TextReplacementTestHarness {
         }
       );
       
-      if (pmResult.success) {
+      if (simpleResult.success) {
         result = {
           testId: testCase.id,
           passed: testCase.expectedToFind,
-          method: 'prosemirror',
+          method: 'simple',
           snapshot,
           searchResults,
           executionTime: performance.now() - startTime
         };
         
         if (this.verbose) {
-          console.log('✅ ProseMirror utils method succeeded');
+          console.log('✅ Simple method succeeded');
         }
       } else {
-        result = {
-          testId: testCase.id,
-          passed: !testCase.expectedToFind, // Pass if we expected not to find
-          method: 'none',
-          error: pmResult.error || simpleResult.error,
-          snapshot,
-          searchResults,
-          executionTime: performance.now() - startTime
-        };
+        // Try prosemirror utils method as final fallback
+        const pmResult = findAndReplaceText(
+          this.editor,
+          testCase.searchText,
+          testCase.replacementText,
+          {
+            caseSensitive: false,
+            segmentId: testCase.segmentId
+          }
+        );
         
-        if (this.verbose) {
-          console.log('❌ Both methods failed');
-          console.log('Simple error:', simpleResult.error);
-          console.log('PM error:', pmResult.error);
+        if (pmResult.success) {
+          result = {
+            testId: testCase.id,
+            passed: testCase.expectedToFind,
+            method: 'prosemirror',
+            snapshot,
+            searchResults,
+            executionTime: performance.now() - startTime
+          };
+          
+          if (this.verbose) {
+            console.log('✅ ProseMirror utils method succeeded');
+          }
+        } else {
+          result = {
+            testId: testCase.id,
+            passed: !testCase.expectedToFind, // Pass if we expected not to find
+            method: 'none',
+            error: nodesBetweenResult.error || pmResult.error || simpleResult.error,
+            snapshot,
+            searchResults,
+            executionTime: performance.now() - startTime
+          };
+          
+          if (this.verbose) {
+            console.log('❌ All methods failed');
+            console.log('NodesBetween error:', nodesBetweenResult.error);
+            console.log('Simple error:', simpleResult.error);
+            console.log('PM error:', pmResult.error);
+          }
         }
       }
     }
@@ -172,6 +199,7 @@ export class TextReplacementTestHarness {
     const passed = this.results.filter(r => r.passed).length;
     const failed = this.results.filter(r => !r.passed).length;
     const byMethod = {
+      nodesBetween: this.results.filter(r => r.method === 'nodesBetween').length,
       simple: this.results.filter(r => r.method === 'simple').length,
       prosemirror: this.results.filter(r => r.method === 'prosemirror').length,
       none: this.results.filter(r => r.method === 'none').length

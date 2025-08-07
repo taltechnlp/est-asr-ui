@@ -3,6 +3,7 @@ import { TranscriptAnalysisTool } from "./base";
 import { findTextPositions, type TextMatch } from '$lib/services/transcriptTextReplace';
 import { findAndReplaceText } from '$lib/services/transcriptTextReplaceProseMirror';
 import { findAndReplaceTextSimple } from '$lib/services/transcriptTextReplaceProseMirrorSimple';
+import { findAndReplaceWithNodesBetween } from '$lib/services/transcriptTextReplaceNodesBetween';
 import type { Editor } from '@tiptap/core';
 import type { Node as ProseMirrorNode } from 'prosemirror-model';
 
@@ -67,8 +68,34 @@ All suggestions are shown as inline diffs that require user approval.`,
     const { originalText, suggestedText, segmentId, changeType, confidence, context } = input;
 
     try {
-      // First try the simple, reliable approach
-      console.log('Attempting text replacement using Simple approach...');
+      // First try the robust nodesBetween approach
+      console.log('Attempting text replacement using nodesBetween approach...');
+      const nodesBetweenResult = findAndReplaceWithNodesBetween(this.editor, originalText, suggestedText, {
+        caseSensitive: false
+      });
+      
+      if (nodesBetweenResult.success) {
+        const successResult: TipTapTransactionResult = {
+          success: true,
+          matchCount: nodesBetweenResult.matchCount || 1,
+          appliedAt: nodesBetweenResult.replacedAt,
+          transactionId: `transaction_${Date.now()}`
+        };
+        return JSON.stringify(successResult);
+      }
+      
+      // If nodesBetween failed with multiple matches, return that error
+      if (nodesBetweenResult.error && nodesBetweenResult.error.includes('Multiple matches')) {
+        const errorResult: TipTapTransactionResult = {
+          success: false,
+          error: nodesBetweenResult.error,
+          matchCount: nodesBetweenResult.matchCount || 0
+        };
+        return JSON.stringify(errorResult);
+      }
+      
+      // Try the simple approach as second fallback
+      console.log('NodesBetween approach failed, trying Simple approach...');
       const simpleResult = findAndReplaceTextSimple(this.editor, originalText, suggestedText, {
         caseSensitive: false,
         segmentId
@@ -84,17 +111,7 @@ All suggestions are shown as inline diffs that require user approval.`,
         return JSON.stringify(successResult);
       }
       
-      // If simple approach failed with a clear error, return it
-      if (simpleResult.error && !simpleResult.error.includes('not found')) {
-        const errorResult: TipTapTransactionResult = {
-          success: false,
-          error: simpleResult.error,
-          matchCount: simpleResult.matchCount || 0
-        };
-        return JSON.stringify(errorResult);
-      }
-      
-      // Try the prosemirror-utils based approach as fallback
+      // Try the prosemirror-utils based approach as final fallback
       console.log('Simple approach failed, trying ProseMirror Utils approach...');
       const result = findAndReplaceText(this.editor, originalText, suggestedText, {
         caseSensitive: false,

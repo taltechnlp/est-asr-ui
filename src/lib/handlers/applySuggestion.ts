@@ -3,6 +3,7 @@ import type { ImprovementSuggestion } from '$lib/agents/schemas/transcript';
 import { applySuggestionToEditor, type ReplacementResult } from '$lib/services/transcriptTextReplace';
 import { findAndReplaceText } from '$lib/services/transcriptTextReplaceProseMirror';
 import { findAndReplaceTextSimple } from '$lib/services/transcriptTextReplaceProseMirrorSimple';
+import { findAndReplaceWithNodesBetween } from '$lib/services/transcriptTextReplaceNodesBetween';
 import { get } from 'svelte/store';
 import { editor as editorStore } from '$lib/stores.svelte';
 
@@ -43,7 +44,23 @@ export async function applySuggestion(
   }
   
   try {
-    // First try the simple approach
+    // First try the robust nodesBetween approach
+    const nodesBetweenResult = findAndReplaceWithNodesBetween(
+      editor,
+      suggestion.originalText,
+      suggestion.suggestedText,
+      { caseSensitive: false }
+    );
+    
+    if (nodesBetweenResult.success) {
+      return {
+        success: true,
+        message: `Successfully applied ${suggestion.type} suggestion.`,
+      };
+    }
+    
+    // Try the simple approach as fallback
+    console.log('NodesBetween approach failed, trying simple approach...');
     const simpleResult = findAndReplaceTextSimple(
       editor,
       suggestion.originalText,
