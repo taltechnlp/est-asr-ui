@@ -2,6 +2,7 @@ import type { Editor } from '@tiptap/core';
 import type { Node as ProseMirrorNode, Mark } from 'prosemirror-model';
 import { findTextWithNodesBetween, type TextMatch } from './transcriptTextReplaceNodesBetween';
 import { findTextFlexible } from './transcriptTextReplaceFlexible';
+import { findTextSmart } from './transcriptTextReplaceSmart';
 
 export interface DiffReplacementResult {
   success: boolean;
@@ -127,10 +128,46 @@ export function findAndCreateDiff(
     }
   }
   
+  // If still no matches, try smart search that handles punctuation differences
   if (matches.length === 0) {
+    console.log('Flexible search found no matches, trying smart search...');
+    const smartMatches = findTextSmart(doc, searchText, { 
+      caseSensitive: options.caseSensitive,
+      allowPartialMatch: true 
+    });
+    
+    if (smartMatches.length > 0) {
+      matches = smartMatches.map(m => ({
+        ...m,
+        marks: new Set<Mark>()
+      }));
+      console.log(`Smart search found ${matches.length} matches`);
+    }
+  }
+  
+  if (matches.length === 0) {
+    // Provide more helpful error message
+    const fullText = doc.textBetween(0, doc.content.size, ' ');
+    const searchCore = searchText.replace(/^[,.\s;:!?]+/, '').replace(/[,.\s;:!?]+$/, '');
+    const coreInDoc = fullText.toLowerCase().includes(searchCore.toLowerCase());
+    
+    let errorMsg = `Text "${searchText}" not found in document.`;
+    if (coreInDoc) {
+      errorMsg += ` The core phrase exists but with different punctuation/context.`;
+      
+      // Try to show the actual context
+      const idx = fullText.toLowerCase().indexOf(searchCore.toLowerCase());
+      if (idx !== -1) {
+        const start = Math.max(0, idx - 10);
+        const end = Math.min(fullText.length, idx + searchCore.length + 10);
+        const context = fullText.substring(start, end);
+        errorMsg += ` Found as: "...${context}..."`;
+      }
+    }
+    
     return {
       success: false,
-      error: `Text "${searchText}" not found in document.`,
+      error: errorMsg,
       matchCount: 0
     };
   }
