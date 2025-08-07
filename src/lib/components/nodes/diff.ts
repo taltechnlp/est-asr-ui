@@ -30,6 +30,8 @@ export const Diff = Node.create<DiffOptions>({
   group: 'inline',
   inline: true,
   atom: true,
+  selectable: true,
+  draggable: false,
   
   addOptions() {
     return {
