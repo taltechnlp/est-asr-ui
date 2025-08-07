@@ -340,6 +340,19 @@
             "taltech": "TalTechin puheentunnistus",
             "browser": "Selaimen puheentunnistus (vain Chrome, Safari!)"
         },
-        "recognizers": "Puheentunnistuspalvelut"
+        "recognizers": "Puheentunnistuspalvelut",
+        "diff": {
+            "original": "Alkuperäinen",
+            "suggested": "Ehdotettu",
+            "approve": "Hyväksy",
+            "reject": "Hylkää",
+            "context": "Konteksti",
+            "changeType": {
+                "grammar": "Kielioppi",
+                "punctuation": "Välimerkit",
+                "speaker": "Puhujan vaihto",
+                "textReplacement": "Tekstin korvaus"
+            }
+        }
     }
 }

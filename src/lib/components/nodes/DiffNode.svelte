@@ -3,21 +3,18 @@
 	import Icon from 'svelte-awesome/components/Icon.svelte';
 	import check from 'svelte-awesome/icons/check';
 	import times from 'svelte-awesome/icons/times';
+	import { _ } from 'svelte-i18n';
 	
-	interface Props {
-		node: any;
-		editor: any;
-		getPos?: () => number | undefined;
-	}
+	export let node: any;
+	export let editor: any;
+	export let getPos: (() => number | undefined) | undefined = undefined;
 
-	let { node, editor }: Props = $props();
+	$: attrs = node.attrs;
+	$: diffId = attrs.id;
+	$: originalText = attrs.originalText;
+	$: suggestedText = attrs.suggestedText;
 
-	let attrs = $derived(node.attrs);
-	let diffId = $derived(attrs.id);
-	let originalText = $derived(attrs.originalText);
-	let suggestedText = $derived(attrs.suggestedText);
-
-	let showActions = $state(false);
+	let showActions = false;
 
 	function approveDiff(e: Event) {
 		e.preventDefault();
@@ -45,29 +42,31 @@
 		role="group"
 		tabindex="-1"
 	>
-		<!-- Inline diff content with embedded actions -->
-		<span class="original-text">{originalText}</span>
-		<span class="suggested-text">{suggestedText}</span>
+		<!-- Position actions above while keeping inline flow -->
 		{#if showActions}
-			<span class="inline-actions">
+			<span class="actions-container">
 				<button 
 					class="action-btn approve" 
 					onclick={approveDiff}
-					title="Approve change"
+					title={$_('common.apply')}
 					type="button"
 				>
-					<Icon data={check} scale={0.5} />
+					<Icon data={check} scale={0.8} />
 				</button>
 				<button 
 					class="action-btn reject" 
 					onclick={rejectDiff}
-					title="Reject change"
+					title={$_('common.reject')}
 					type="button"
 				>
-					<Icon data={times} scale={0.5} />
+					<Icon data={times} scale={0.8} />
 				</button>
 			</span>
 		{/if}
+		
+		<!-- Inline diff content -->
+		<span class="original-text">{originalText}</span>
+		<span class="suggested-text">{suggestedText}</span>
 	</span>
 </NodeViewWrapper>
 
@@ -79,11 +78,12 @@
 	
 	:global(.inline-diff-wrapper) {
 		display: inline !important;
-		/* Remove all positioning to maintain inline flow */
+		position: relative;
 	}
 
 	.inline-diff-container {
 		display: inline;
+		position: relative;
 		background: rgba(255, 248, 220, 0.6);
 		border-radius: 3px;
 		padding: 2px 3px;
@@ -123,29 +123,45 @@
 		vertical-align: baseline;
 	}
 
-	.inline-actions {
-		/* Keep actions inline */
-		display: inline-flex;
-		align-items: center;
-		gap: 2px;
-		margin-left: 4px;
-		vertical-align: middle;
+	.actions-container {
+		position: absolute;
+		top: -36px;
+		left: 50%;
+		transform: translateX(-50%);
+		display: flex;
+		gap: 6px;
+		z-index: 10;
+		pointer-events: auto;
+		background: white;
+		padding: 4px 6px 12px 6px;
+		border-radius: 6px;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+		white-space: nowrap;
+	}
+	
+	/* Create a larger invisible bridge between text and buttons */
+	.actions-container::before {
+		content: '';
+		position: absolute;
+		bottom: -12px;
+		left: -20px;
+		right: -20px;
+		height: 20px;
+		background: transparent;
 	}
 
 	.action-btn {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 16px;
-		height: 16px;
+		width: 24px;
+		height: 24px;
 		padding: 0;
 		border-radius: 50%;
 		cursor: pointer;
 		transition: all 0.15s ease;
-		border: 1px solid;
-		font-size: 10px;
-		/* Ensure inline positioning */
-		vertical-align: middle;
+		border: 1.5px solid;
+		font-size: 12px;
 		background: transparent;
 	}
 
@@ -157,7 +173,7 @@
 
 	.action-btn.approve:hover {
 		background: #dcfce7;
-		transform: scale(1.15);
+		transform: scale(1.1);
 	}
 
 	.action-btn.reject {
@@ -168,7 +184,7 @@
 
 	.action-btn.reject:hover {
 		background: #fee2e2;
-		transform: scale(1.15);
+		transform: scale(1.1);
 	}
 
 	/* Ensure proper spacing */
@@ -179,8 +195,14 @@
 	/* Mobile responsive */
 	@media (max-width: 640px) {
 		.action-btn {
-			width: 18px;
-			height: 18px;
+			width: 26px;
+			height: 26px;
+		}
+		
+		.actions-container {
+			top: -38px;
+			gap: 8px;
+			padding: 5px 7px 14px 7px;
 		}
 	}
 
@@ -198,6 +220,11 @@
 		
 		.inline-diff-container {
 			border: 2px solid #f59e0b;
+		}
+		
+		.actions-container {
+			background: white;
+			border: 1px solid #333;
 		}
 	}
 </style>

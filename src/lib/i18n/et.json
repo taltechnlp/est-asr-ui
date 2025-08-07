@@ -358,6 +358,19 @@
             "taltech": "TalTech kõnetuvastus",
             "browser": "Veebilehitseja kõnetuvastus (ainult Chrome, Safari!)"
         },
-        "recognizers": "Kõnetuvastuse teenus"
+        "recognizers": "Kõnetuvastuse teenus",
+        "diff": {
+            "original": "Algne",
+            "suggested": "Soovitatud",
+            "approve": "Kinnita",
+            "reject": "Lükka tagasi",
+            "context": "Kontekst",
+            "changeType": {
+                "grammar": "Grammatika",
+                "punctuation": "Kirjavahemärgid",
+                "speaker": "Kõneleja vahetus",
+                "textReplacement": "Teksti asendus"
+            }
+        }
     }
 }
