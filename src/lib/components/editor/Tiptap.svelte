@@ -6,9 +6,7 @@
 	import { getDebugJSON } from '@tiptap/core';
 	import type { Node, Schema } from 'prosemirror-model';
 	import Document from '@tiptap/extension-document';
-	import { LabelHighlight } from '../marks/labelHighlight';
-	import { PronHighlight } from '../marks/pronHighlight';
-	import { Editor, EditorContent, /* FloatingMenu,  */BubbleMenu, createEditor } from 'svelte-tiptap';
+	import { Editor, EditorContent, /* FloatingMenu,  */ createEditor } from 'svelte-tiptap';
 	import type { Readable } from 'svelte/store';
 	import Text from '@tiptap/extension-text';
 	import DropCursor from '@tiptap/extension-dropcursor';
@@ -27,13 +25,11 @@
 	import keyboard from 'svelte-awesome/icons/keyboardO';
 	import settings from 'svelte-awesome/icons/cog';
 	import pencil from 'svelte-awesome/icons/pencilSquareO';
-	import LanguageLabel from './toolbar/LanguageLabel.svelte';
 	import debounce from 'lodash/debounce';
 	import {
 		editorMounted,
 		duration,
 		editor as editorStore,
-		editorMode,
 		waveform, 
 		fontSize as fontSizeStore,
 		player
@@ -42,7 +38,6 @@
 	import { _, locale } from 'svelte-i18n';
 	import { transactionsHaveChange } from '$lib/components/editor/api/transaction';
 	import LanguageSelection from './toolbar/LanguageSelection.svelte';
-	import PronounceLabel from './toolbar/PronLabel.svelte';
 	import Download from './toolbar/Download.svelte';
 	import Hotkeys from './toolbar/Hotkeys.svelte';
 	import Settings from './toolbar/Settings.svelte';
@@ -135,17 +130,6 @@
 				WordColor,
 				Speaker,
 				Diff,
-				LabelHighlight.configure({
-					HTMLAttributes: {
-						class: 'lang-label',
-						multicolor: true
-					}
-				}),
-				PronHighlight.configure({
-					HTMLAttributes: {
-						multicolor: true
-					}
-				})
 			],
 			editorProps: {
 				attributes: {
@@ -345,28 +329,15 @@
 				</div>
 			</div>
 
-			<div class="stat">
-				<fieldset>
-					<legend class="stat-title">{$_('file.editingMode')}</legend>
-					<div class="stat-desc flex flex-col">
-						<label for="">
-							<input type="radio" name="mode" value={1} bind:group={$editorMode} />
-							{$_('file.editingModeRegular')}
-						</label>
-						<label for="">
-							<input type="radio" name="mode" value={2} bind:group={$editorMode} />
-							{$_('file.editingModeAnnotation')}
-						</label>
-					</div>
-				</fieldset>
-			</div>
 		</div>
 		
 		{#if !demo}
-			<SummaryAccordion
-				{fileId}
-				onSummaryGenerated={onSummaryGenerated}
-			/>
+			<div class="mb-4">
+				<SummaryAccordion
+					{fileId}
+					onSummaryGenerated={onSummaryGenerated}
+				/>
+			</div>
 		{/if}
 	</div>
 	
@@ -430,12 +401,6 @@
 					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
 				{/if}
 				
-				{#if $editorMode === 2}
-					<LanguageLabel {editor} />
-					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
-					<PronounceLabel {editor} />
-					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
-				{/if}
 				<div class="flex items-center">
 					<label for="download-modal" class="btn btn-link btn-sm flex">
 						<Icon data={download} scale={1} />
@@ -447,15 +412,6 @@
 		{/if}
 		<EditorContent editor={$editor} />
 	</div>
-	{#if editor && $editorMode === 2}
-		<BubbleMenu editor={$editor}>
-			<div class="flex items-center my-bubble-menu bg-base-200 shadow-md">
-				<LanguageLabel {editor} />
-				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
-				<PronounceLabel {editor} />
-			</div>
-		</BubbleMenu>
-	{/if}
 	<LanguageSelection />
 	<Hotkeys />
 	<Settings bind:fontSize={fontSize}></Settings>

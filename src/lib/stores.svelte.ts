@@ -32,11 +32,6 @@ export const languageAnnotationOptions = writable([{
 	active: true
 }
 ])
-enum EditingMode {
-		Regular = 1,
-		Annotation = 2,
-	}
-export const editorMode: Writable<EditingMode> = writable(1);
 // Editor player
 export const waveform: Writable<PeaksInstance> = writable()
 export const player = writable({

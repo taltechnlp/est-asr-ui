@@ -11,7 +11,6 @@
 		speakerNames,
 		addSpeakerBlock,
 		editorMounted,
-		editorMode,
 		fontSize as fontSizeStore
 	} from '$lib/stores.svelte';
 	import { /* findParentNodeOfTypeClosestToPos, */ findBlockNodes } from 'prosemirror-utils';
@@ -51,7 +50,6 @@
 	let isListOpen = $state(false);
 	let initialName = node.attrs['data-name'];
 	let initialId = node.attrs['id'];
-	let topic = $state(node.attrs['topic']);
 	let selectedVal: Name = $state({
 		name: node.attrs['data-name'],
 		id: node.attrs['id']
@@ -322,7 +320,6 @@
 		} else return '';
 	};
 
-	const saveTopic = (e) => updateAttributes({ topic });
 
 	onMount(async () => {
 		// Update speakers store when after initial editor load speaker is added
@@ -408,17 +405,6 @@
 			</details>
 			<div class="flex items-center speaker-time-container" contentEditable={false} >
 				<p class="speaker-time">{numberToTime(time)}</p>
-				{#if $editorMode === 2}
-					<input
-						type="text"
-						name="topic"
-						id=""
-						placeholder={$_('speakerSelect.topicPlaceholder')}
-						class="input input-bordered input-accent input-xs w-full max-w-xs ml-5"
-						bind:value={topic}
-						onblur={saveTopic}
-					/>
-				{/if}
 			</div>
 		</div>
 		{#if fileId && segmentWithTiming.words.length > 0}

@@ -242,9 +242,6 @@
         "back": "Tagasi"
     },
     "file": {
-        "editingMode": "Muutmise režiim:",
-        "editingModeRegular": "Tavaline (tekstis vigade parandamine)",
-        "editingModeAnnotation": "Märgendamine (teksti ja kõne põhjalik märgendamine)",
         "duration": "Kestus:",
         "uploaded": "Ülesse laetud:",
         "toolbarUndo": "Võta tagasi",
@@ -264,8 +261,7 @@
     "speakerSelect": {
         "addNew": "Lisa uus kõneleja",
         "save": "Salvesta",
-        "edit": "Muuda",
-        "topicPlaceholder": "Sistesta teema"
+        "edit": "Muuda"
     },
     "contact": {
         "title": "Kontaktid | tekstiks.ee",

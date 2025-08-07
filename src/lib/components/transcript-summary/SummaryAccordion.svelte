@@ -230,7 +230,7 @@
     border: 1px solid #e5e7eb;
     border-radius: 8px;
     margin-bottom: 1rem;
-    overflow: visible;
+    overflow: hidden;
     width: 100%;
   }
 
@@ -335,6 +335,10 @@
     animation: slideDown 0.3s ease-out;
     width: 100%;
     box-sizing: border-box;
+    background: white;
+    background-image: none !important;
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
   }
 
   @keyframes slideDown {

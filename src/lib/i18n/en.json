@@ -253,9 +253,6 @@
     "back": "Back"
   },
   "file": {
-    "editingMode": "Editing mode:",
-    "editingModeRegular": "Regular (correct recogniton mistakes)",
-    "editingModeAnnotation": "Labelling (annotate text and speech)",
     "duration": "Duration:",
     "uploaded": "Uploaded:",
     "toolbarUndo": "Undo",
@@ -275,8 +272,7 @@
   "speakerSelect": {
     "addNew": "Add a new speaker",
     "save": "Save",
-    "edit": "Edit",
-    "topicPlaceholder": "Enter segment topic"
+    "edit": "Edit"
   },
   "contact": {
     "title": "Contacts | tekstiks.ee",

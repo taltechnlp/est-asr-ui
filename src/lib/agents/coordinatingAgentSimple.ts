@@ -88,10 +88,10 @@ Alternative transcriptions from ASR (ranked by confidence):
 {asrAlternatives}
 
 CRITICAL INSIGHTS ABOUT THE ASR MODEL:
-- This specialized ASR model is particularly good at recognizing English words and phrases
+- This specialized ASR model is particularly good at recognizing also English words and phrases
 - It handles code-switching (mixing languages) better than the primary model
-- It's more accurate with technical terms, brand names, and proper nouns
-- The primary model that produced the original transcript has limited English capability
+- It can be more accurate with technical terms, brand names, and proper nouns
+- The primary model that produced the original transcript has no English capability
 
 Based on these ASR alternatives, please:
 1. ACTIVELY LOOK for places where the ASR alternatives contain English words that make more sense
@@ -111,6 +111,7 @@ IMPORTANT:
 - The ASR alternatives often reveal English content that was misrecognized as Estonian/Finnish
 - Provide your updated analysis and suggestions in {responseLanguage} language
 - Be aggressive in suggesting ASR alternatives when they contain sensible English text
+- Provide your analysis and all suggestions in {responseLanguage} language.
 
 Provide your enhanced analysis in the same JSON format as before.`;
 
@@ -137,10 +138,20 @@ export class CoordinatingAgentSimple {
 		this.tiptapTool.setEditor(editor);
 	}
 
+	private cleanJsonString(str: string): string {
+		// Remove control characters except for valid JSON whitespace
+		return str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ' ')
+			// Also remove any non-breaking spaces that might cause issues
+			.replace(/\u00A0/g, ' ')
+			// Normalize quotes
+			.replace(/[\u2018\u2019]/g, "'")
+			.replace(/[\u201C\u201D]/g, '"');
+	}
+
 	async analyzeSegment(request: SegmentAnalysisRequest): Promise<SegmentAnalysisResult> {
 		try {
 			const { segment, summary, audioFilePath, fileId, uiLanguage } = request;
-			
+
 			// Normalize UI language and get language name
 			const normalizedLanguage = normalizeLanguageCode(uiLanguage);
 			const responseLanguage = getLanguageName(normalizedLanguage);
@@ -166,7 +177,9 @@ export class CoordinatingAgentSimple {
 				if (!jsonMatch) {
 					throw new Error('No JSON found in response');
 				}
-				analysisData = JSON.parse(jsonMatch[0]);
+				// Clean the JSON string before parsing
+				const cleanedJson = this.cleanJsonString(jsonMatch[0]);
+				analysisData = JSON.parse(cleanedJson);
 			} catch (e) {
 				console.error('Failed to parse analysis response:', e);
 				analysisData = {
@@ -204,27 +217,41 @@ export class CoordinatingAgentSimple {
 			// If we have ASR results, perform enhanced analysis
 			if (nBestResults && nBestResults.alternatives && nBestResults.alternatives.length > 0) {
 				try {
+					console.log(
+						'Performing enhanced analysis with ASR results for segment:',
+						segment.speakerName
+					);
+					console.log('Original text:', segment.text);
+					console.log('ASR alternatives:', nBestResults.alternatives);
+
 					// Format ASR alternatives for the prompt
 					const asrAlternativesText = nBestResults.alternatives
-						.map((alt: any, idx: number) => `${idx + 1}. ${alt.text} (confidence: ${alt.confidence || 'N/A'})`)
+						.map(
+							(alt: any, idx: number) =>
+								`${idx + 1}. ${alt.text} (confidence: ${alt.confidence || 'N/A'})`
+						)
 						.join('\n');
 
 					// Create enhanced analysis prompt
-					const enhancedPrompt = ENHANCED_ANALYSIS_PROMPT
-						.replace('{originalText}', segment.text)
+					const enhancedPrompt = ENHANCED_ANALYSIS_PROMPT.replace('{originalText}', segment.text)
 						.replace('{initialAnalysis}', JSON.stringify(analysisData.suggestions || []))
 						.replace('{asrAlternatives}', asrAlternativesText)
 						.replace('{responseLanguage}', responseLanguage);
 
 					// Get enhanced analysis
-					const enhancedResponse = await this.model.invoke([new HumanMessage({ content: enhancedPrompt })]);
-					
+					const enhancedResponse = await this.model.invoke([
+						new HumanMessage({ content: enhancedPrompt })
+					]);
+
 					// Parse enhanced response
 					try {
 						const enhancedContent = enhancedResponse.content as string;
 						const enhancedJsonMatch = enhancedContent.match(/\{[\s\S]*\}/);
 						if (enhancedJsonMatch) {
-							const enhancedData = JSON.parse(enhancedJsonMatch[0]);
+							// Clean the JSON string before parsing
+							const cleanedJson = this.cleanJsonString(enhancedJsonMatch[0]);
+							const enhancedData = JSON.parse(cleanedJson);
+							console.log('Enhanced analysis suggestions:', enhancedData.suggestions);
 							// Update analysis data with enhanced suggestions
 							if (enhancedData.suggestions) {
 								analysisData.suggestions = enhancedData.suggestions;
@@ -233,10 +260,13 @@ export class CoordinatingAgentSimple {
 						}
 					} catch (e) {
 						console.error('Failed to parse enhanced analysis:', e);
+						console.error('Enhanced response content:', enhancedResponse.content);
 					}
 				} catch (e) {
 					console.error('Enhanced analysis error:', e);
 				}
+			} else {
+				console.log('No ASR results available for enhanced analysis');
 			}
 
 			// Use web search for unfamiliar terms
@@ -259,7 +289,7 @@ export class CoordinatingAgentSimple {
 			const appliedSuggestions = [];
 			if (analysisData.suggestions && Array.isArray(analysisData.suggestions)) {
 				for (const suggestion of analysisData.suggestions) {
-					if (suggestion.confidence >= 0.7 && suggestion.originalText && suggestion.suggestedText) {
+					if (suggestion.confidence >= 0.5 && suggestion.originalText && suggestion.suggestedText) {
 						try {
 							const result = await this.tiptapTool.applyTransaction({
 								originalText: suggestion.originalText,

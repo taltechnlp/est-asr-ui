@@ -93,50 +93,6 @@
 	z-index: 5;
 }
 
-.lang-label {
-	position: relative;
-	line-height: 2.5;
-}
-    
-.lang-label::before {
-	position: absolute;
-	text-align: center;
-    top: -20px;
-	font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
-	font-weight: bold;
-	font-size: small;
-	box-sizing: border-box;
-	content: attr(annovalue);
-	color: inherit;
-}
-
-.pron-label {
-	display: inline-flex;
-	align-items: center;
-	position: relative;
-	border-width: 2px;
-	border-color: blue;
-	border-style: dotted;
-	background-color: white;
-}
-
-.pron-label::after {
-	font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
-	font-size: small;
-	content: attr(annovalue);
-	color: inherit;
-	margin-left: 2px;
-	margin-right: 2px;
-}
-
-mark > .lang-label {
-	line-height: normal;
-	margin-top: 10px;
-	margin-bottom: 10px;
-}
-mark > .lang-label::before {
-	top: -11px;
-}
 
 #waveform ::part(region-handle) {
 	border-left: 0px solid;

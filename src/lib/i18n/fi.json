@@ -224,9 +224,6 @@
         "back": "Takaisin"
     },
     "file": {
-        "editingMode": "Muokkaustila:",
-        "editingModeRegular": "Tavallinen (korjaa tunnistusvirheet)",
-        "editingModeAnnotation": "Merkinnät (teksti ja puhe)",
         "duration": "Kesto:",
         "uploaded": "Ladattu:",
         "toolbarUndo": "Kumoa",
@@ -246,8 +243,7 @@
     "speakerSelect": {
         "addNew": "Lisää uusi puhuja",
         "save": "Tallenna",
-        "edit": "Muokkaa",
-        "topicPlaceholder": "Anna segmentin aihe"
+        "edit": "Muokkaa"
     },
     "contact": {
         "title": "Yhteystiedot | tekstiks.ee",
