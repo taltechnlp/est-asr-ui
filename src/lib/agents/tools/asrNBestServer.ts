@@ -1,7 +1,5 @@
 import { z } from "zod";
-import { readFile, writeFile, mkdir } from "fs/promises";
-import { join, dirname, basename } from "path";
-// AudioSlicer will be loaded conditionally to avoid client-side import issues
+// Server-only imports will be loaded conditionally to avoid client-side import issues
 
 const ASRNBestSchema = z.object({
   audioFilePath: z.string().describe("Path to the full audio file"),
@@ -70,6 +68,7 @@ export class ASRNBestServerTool {
 
       // For server-side file upload, we need to use a different approach
       // Using node-fetch or undici for proper file upload from Node.js
+      const { readFile } = await import('fs/promises');
       const fileBuffer = await readFile(sliceResult.tempFilePath);
       
       // Dynamic import to use form-data package for Node.js
@@ -166,6 +165,10 @@ export class ASRNBestServerTool {
 
       // Save the result to a file for debugging and future reference
       try {
+        // Dynamically import Node.js modules
+        const { writeFile, mkdir } = await import('fs/promises');
+        const { join, dirname, basename } = await import('path');
+        
         // Create directory structure based on audio file path
         const audioFileBase = basename(audioFilePath, '.wav').replace(/\.[^/.]+$/, '');
         const nbestDir = join(dirname(audioFilePath), 'asr-nbest', audioFileBase);

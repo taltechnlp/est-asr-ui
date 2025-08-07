@@ -1,7 +1,7 @@
 import { createOpenRouterChat, OPENROUTER_MODELS } from '$lib/llm/openrouter-direct';
 import { HumanMessage } from '@langchain/core/messages';
 import { createWebSearchTool } from './tools';
-import { createASRNBestServerNodeTool } from './tools/asrNBestServerNode';
+// ASR tool will be loaded conditionally to avoid client-side issues
 import { TipTapTransactionToolDirect } from './tools/tiptapTransaction';
 import type { TranscriptSummary, AnalysisSegment } from '@prisma/client';
 import { prisma } from '$lib/db/client';
@@ -119,7 +119,7 @@ Provide your enhanced analysis in the same JSON format as before.`;
 
 export class CoordinatingAgentSimple {
 	private model;
-	private asrTool;
+	private asrTool: any = null;
 	private webSearchTool;
 	private tiptapTool: TipTapTransactionToolDirect;
 	private editor: Editor | null = null;
@@ -132,10 +132,23 @@ export class CoordinatingAgentSimple {
 			maxTokens: 2000
 		});
 
-		// The ASR service endpoint for alternatives is /transcribe/alternatives
-		this.asrTool = createASRNBestServerNodeTool('https://tekstiks.ee/asr/transcribe/alternatives');
+		// The ASR tool will be loaded lazily when needed (server-side only)
 		this.webSearchTool = createWebSearchTool();
 		this.tiptapTool = new TipTapTransactionToolDirect();
+	}
+
+	private async initializeASRTool() {
+		if (this.asrTool) return;
+		
+		// Only load on server side
+		if (typeof window === 'undefined') {
+			try {
+				const { createASRNBestServerNodeTool } = await import('./tools/asrNBestServerNode');
+				this.asrTool = createASRNBestServerNodeTool('https://tekstiks.ee/asr/transcribe/alternatives');
+			} catch (e) {
+				console.error('Failed to load ASR tool:', e);
+			}
+		}
 	}
 
 	setEditor(editor: Editor) {
@@ -239,19 +252,26 @@ export class CoordinatingAgentSimple {
 			// TEMPORARY: Always use ASR N-best tool for testing
 			// if (analysisData.needsAlternatives) {
 			try {
-				console.log('Calling ASR N-best tool for segment:', {
-					audioFilePath,
-					startTime: segment.startTime,
-					endTime: segment.endTime
-				});
-				const asrResult = await this.asrTool._call({
-					audioFilePath,
-					startTime: segment.startTime,
-					endTime: segment.endTime,
-					nBest: 5
-				});
-				nBestResults = JSON.parse(asrResult);
-				console.log('ASR N-best results received:', nBestResults);
+				// Initialize ASR tool if not already done
+				await this.initializeASRTool();
+				
+				if (this.asrTool) {
+					console.log('Calling ASR N-best tool for segment:', {
+						audioFilePath,
+						startTime: segment.startTime,
+						endTime: segment.endTime
+					});
+					const asrResult = await this.asrTool._call({
+						audioFilePath,
+						startTime: segment.startTime,
+						endTime: segment.endTime,
+						nBest: 5
+					});
+					nBestResults = JSON.parse(asrResult);
+					console.log('ASR N-best results received:', nBestResults);
+				} else {
+					console.log('ASR tool not available (client-side context)');
+				}
 			} catch (e) {
 				console.error('ASR N-best tool error:', e);
 			}
