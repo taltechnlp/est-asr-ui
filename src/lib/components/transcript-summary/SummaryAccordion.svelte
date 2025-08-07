@@ -8,6 +8,7 @@
   import spinner from 'svelte-awesome/icons/spinner';
   import { _, locale } from 'svelte-i18n';
   import { normalizeLanguageCode } from '$lib/utils/language';
+  import DebugPanel from '$lib/components/transcript-analysis/DebugPanel.svelte';
 
   let {
     fileId = '',
@@ -220,6 +221,13 @@
   {#if error}
     <div class="error-message">
       <p>{error}</p>
+    </div>
+  {/if}
+  
+  <!-- Debug Panel (only in development) -->
+  {#if import.meta.env.DEV}
+    <div class="mt-4">
+      <DebugPanel />
     </div>
   {/if}
 </div>

@@ -8,6 +8,8 @@ import { prisma } from '$lib/db/client';
 import type { SegmentWithTiming } from '$lib/utils/extractWordsFromEditor';
 import type { Editor } from '@tiptap/core';
 import { getLanguageName, normalizeLanguageCode } from '$lib/utils/language';
+import { logEditorSnapshot, createEditorSnapshot, searchInSnapshot } from '$lib/services/editorDebugger';
+import { runAutomatedTestSuite } from '$lib/services/textReplacementTestHarness';
 
 export interface SegmentAnalysisRequest {
 	fileId: string;
@@ -120,6 +122,8 @@ export class CoordinatingAgentSimple {
 	private asrTool;
 	private webSearchTool;
 	private tiptapTool: TipTapTransactionToolDirect;
+	private editor: Editor | null = null;
+	private debugMode: boolean = false;
 
 	constructor(modelName: string = OPENROUTER_MODELS.CLAUDE_3_5_SONNET) {
 		this.model = createOpenRouterChat({
@@ -135,7 +139,46 @@ export class CoordinatingAgentSimple {
 	}
 
 	setEditor(editor: Editor) {
+		this.editor = editor;
 		this.tiptapTool.setEditor(editor);
+	}
+
+	setDebugMode(enabled: boolean) {
+		this.debugMode = enabled;
+	}
+
+	async runTests() {
+		if (!this.editor) {
+			throw new Error('Editor not set');
+		}
+		await runAutomatedTestSuite(this.editor);
+	}
+
+	debugSearchText(searchText: string) {
+		if (!this.editor) {
+			console.error('Editor not set');
+			return;
+		}
+		
+		const snapshot = createEditorSnapshot(this.editor);
+		const results = searchInSnapshot(snapshot, searchText);
+		
+		console.group(`🔍 Debug Search: "${searchText}"`);
+		console.log('Results:', results);
+		
+		if (results.exactMatch) {
+			console.log('✅ Exact match found at positions:', results.locations.map(l => l.position));
+		} else if (results.found) {
+			console.log('⚠️ All words found but not as exact phrase');
+			console.log('Found words:', results.wordAnalysis.foundWords);
+			console.log('Word positions:', Array.from(results.wordAnalysis.wordPositions.entries()));
+		} else {
+			console.log('❌ Not found');
+			console.log('Missing words:', results.wordAnalysis.missingWords);
+		}
+		
+		console.groupEnd();
+		return results;
 	}
 
 	private cleanJsonString(str: string): string {
@@ -288,9 +331,22 @@ export class CoordinatingAgentSimple {
 			// Apply high-confidence suggestions automatically
 			const appliedSuggestions = [];
 			if (analysisData.suggestions && Array.isArray(analysisData.suggestions)) {
+				// Log editor state before applying suggestions if in debug mode
+				if (this.debugMode && this.editor) {
+					logEditorSnapshot(this.editor, 'Before applying suggestions');
+				}
+				
 				for (const suggestion of analysisData.suggestions) {
 					if (suggestion.confidence >= 0.5 && suggestion.originalText && suggestion.suggestedText) {
 						try {
+							// Debug search before applying
+							if (this.debugMode) {
+								console.log(`\n📝 Attempting to apply suggestion:`);
+								console.log(`  Original: "${suggestion.originalText}"`);
+								console.log(`  Suggested: "${suggestion.suggestedText}"`);
+								this.debugSearchText(suggestion.originalText);
+							}
+							
 							const result = await this.tiptapTool.applyTransaction({
 								originalText: suggestion.originalText,
 								suggestedText: suggestion.suggestedText,
