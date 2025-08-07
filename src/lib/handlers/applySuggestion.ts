@@ -1,9 +1,6 @@
 import type { Editor } from '@tiptap/core';
 import type { ImprovementSuggestion } from '$lib/agents/schemas/transcript';
-import { applySuggestionToEditor, type ReplacementResult } from '$lib/services/transcriptTextReplace';
-import { findAndReplaceText } from '$lib/services/transcriptTextReplaceProseMirror';
-import { findAndReplaceTextSimple } from '$lib/services/transcriptTextReplaceProseMirrorSimple';
-import { findAndReplaceWithNodesBetween } from '$lib/services/transcriptTextReplaceNodesBetween';
+import { findAndCreateDiff } from '$lib/services/transcriptTextReplaceDiff';
 import { get } from 'svelte/store';
 import { editor as editorStore } from '$lib/stores.svelte';
 
@@ -44,76 +41,38 @@ export async function applySuggestion(
   }
   
   try {
-    // First try the robust nodesBetween approach
-    const nodesBetweenResult = findAndReplaceWithNodesBetween(
+    // Create a diff node for user review instead of directly replacing text
+    const diffResult = findAndCreateDiff(
       editor,
       suggestion.originalText,
       suggestion.suggestedText,
-      { caseSensitive: false }
+      {
+        caseSensitive: false,
+        changeType: suggestion.type,
+        confidence: suggestion.confidence || 0.5,
+        context: suggestion.explanation || suggestion.text
+      }
     );
     
-    if (nodesBetweenResult.success) {
+    if (diffResult.success) {
       return {
         success: true,
-        message: `Successfully applied ${suggestion.type} suggestion.`,
-      };
-    }
-    
-    // Try the simple approach as fallback
-    console.log('NodesBetween approach failed, trying simple approach...');
-    const simpleResult = findAndReplaceTextSimple(
-      editor,
-      suggestion.originalText,
-      suggestion.suggestedText,
-      { caseSensitive: false }
-    );
-    
-    if (simpleResult.success) {
-      return {
-        success: true,
-        message: `Successfully applied ${suggestion.type} suggestion.`,
-      };
-    }
-    
-    // Try ProseMirror utils approach
-    console.log('Simple approach failed, trying ProseMirror utils...');
-    const pmResult = findAndReplaceText(
-      editor,
-      suggestion.originalText,
-      suggestion.suggestedText,
-      { caseSensitive: false }
-    );
-    
-    if (pmResult.success) {
-      return {
-        success: true,
-        message: `Successfully applied ${suggestion.type} suggestion.`,
-      };
-    }
-    
-    // Fallback to the old approach
-    console.log('ProseMirror utils approach failed, trying original fallback...');
-    const result = await applySuggestionToEditor(editor, suggestion);
-    
-    if (result.success) {
-      return {
-        success: true,
-        message: `Successfully applied ${suggestion.type} suggestion.`,
+        message: `Created diff for ${suggestion.type} suggestion. Please review and approve/reject.`,
+        requiresUserInput: true
       };
     } else {
       // Handle specific error cases
-      if (result.error?.includes('Multiple matches found')) {
-        // In a future enhancement, we could return the matches for user selection
+      if (diffResult.error?.includes('Multiple matches found')) {
         return {
           success: false,
-          message: result.error,
+          message: diffResult.error,
           requiresUserInput: true,
         };
       }
       
       return {
         success: false,
-        message: result.error || 'Failed to apply suggestion.',
+        message: diffResult.error || 'Failed to create diff for suggestion.',
       };
     }
   } catch (error) {

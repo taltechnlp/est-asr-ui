@@ -1,11 +1,7 @@
 import { z } from "zod";
 import { TranscriptAnalysisTool } from "./base";
-import { findTextPositions, type TextMatch } from '$lib/services/transcriptTextReplace';
-import { findAndReplaceText } from '$lib/services/transcriptTextReplaceProseMirror';
-import { findAndReplaceTextSimple } from '$lib/services/transcriptTextReplaceProseMirrorSimple';
-import { findAndReplaceWithNodesBetween } from '$lib/services/transcriptTextReplaceNodesBetween';
+import { findAndCreateDiff } from '$lib/services/transcriptTextReplaceDiff';
 import type { Editor } from '@tiptap/core';
-import type { Node as ProseMirrorNode } from 'prosemirror-model';
 
 // Schema for the tool input
 const TipTapTransactionSchema = z.object({
@@ -40,13 +36,12 @@ export class TipTapTransactionTool extends TranscriptAnalysisTool {
       
 This tool can:
 - Locate text within the editor document
-- Create transactions to modify text while preserving marks
+- Create diff nodes to show proposed changes
 - Handle different types of changes (text replacement, speaker changes, etc.)
-- Always create inline diff nodes for user approval before applying changes
+- Always create inline diff nodes for user approval - never directly replaces text
 - Return errors if multiple matches are found (requires more specific text)
 
-The tool will return an error if more than one match is found for the original text, as requested.
-All suggestions are shown as inline diffs that require user approval.`,
+The tool creates diff nodes that show both original and suggested text, allowing users to review and approve/reject changes.`,
       TipTapTransactionSchema,
       bindedApplyChange
     );
@@ -68,151 +63,34 @@ All suggestions are shown as inline diffs that require user approval.`,
     const { originalText, suggestedText, segmentId, changeType, confidence, context } = input;
 
     try {
-      // First try the robust nodesBetween approach
-      console.log('Attempting text replacement using nodesBetween approach...');
-      const nodesBetweenResult = findAndReplaceWithNodesBetween(this.editor, originalText, suggestedText, {
-        caseSensitive: false
+      // Always create diff nodes for user review - never directly replace text
+      console.log('Creating diff node for text suggestion...');
+      const diffResult = findAndCreateDiff(this.editor, originalText, suggestedText, {
+        caseSensitive: false,
+        changeType,
+        confidence,
+        context
       });
       
-      if (nodesBetweenResult.success) {
+      if (diffResult.success) {
         const successResult: TipTapTransactionResult = {
           success: true,
-          matchCount: nodesBetweenResult.matchCount || 1,
-          appliedAt: nodesBetweenResult.replacedAt,
-          transactionId: `transaction_${Date.now()}`
+          matchCount: diffResult.matchCount || 1,
+          appliedAt: diffResult.appliedAt,
+          transactionId: diffResult.diffId || `diff_${Date.now()}`,
+          requiresApproval: true
         };
+        console.log(`✅ Created diff node: ${successResult.transactionId}`);
         return JSON.stringify(successResult);
       }
       
-      // If nodesBetween failed with multiple matches, return that error
-      if (nodesBetweenResult.error && nodesBetweenResult.error.includes('Multiple matches')) {
-        const errorResult: TipTapTransactionResult = {
-          success: false,
-          error: nodesBetweenResult.error,
-          matchCount: nodesBetweenResult.matchCount || 0
-        };
-        return JSON.stringify(errorResult);
-      }
-      
-      // Try the simple approach as second fallback
-      console.log('NodesBetween approach failed, trying Simple approach...');
-      const simpleResult = findAndReplaceTextSimple(this.editor, originalText, suggestedText, {
-        caseSensitive: false,
-        segmentId
-      });
-      
-      if (simpleResult.success) {
-        const successResult: TipTapTransactionResult = {
-          success: true,
-          matchCount: 1,
-          appliedAt: simpleResult.replacedAt,
-          transactionId: `transaction_${Date.now()}`
-        };
-        return JSON.stringify(successResult);
-      }
-      
-      // Try the prosemirror-utils based approach as final fallback
-      console.log('Simple approach failed, trying ProseMirror Utils approach...');
-      const result = findAndReplaceText(this.editor, originalText, suggestedText, {
-        caseSensitive: false,
-        segmentId
-      });
-      
-      if (result.success) {
-        const successResult: TipTapTransactionResult = {
-          success: true,
-          matchCount: 1,
-          appliedAt: result.replacedAt,
-          transactionId: `transaction_${Date.now()}`
-        };
-        return JSON.stringify(successResult);
-      }
-      
-      // If the new approach failed, return its error (it has good error messages)
-      if (result.error) {
-        const errorResult: TipTapTransactionResult = {
-          success: false,
-          error: result.error,
-          matchCount: result.matchCount || 0
-        };
-        return JSON.stringify(errorResult);
-      }
-      
-      // Fallback to the old approach if needed
-      console.log('ProseMirror Utils approach failed, trying original fallback...');
-      const matches: TextMatch[] = findTextPositions(this.editor.state.doc, originalText, {
-        caseSensitive: false,
-        segmentId,
-      });
-
-      // Check for multiple matches - return error as requested
-      if (matches.length === 0) {
-        // Provide more helpful debugging information
-        const normalizedOriginal = originalText.replace(/\s+/g, ' ').trim();
-        
-        // Try to find similar text for better error reporting
-        let allDocText = '';
-        this.editor.state.doc.descendants((node) => {
-          if (node.isText && node.text) {
-            allDocText += node.text;
-          }
-        });
-        
-        const normalizedDocText = allDocText.replace(/\s+/g, ' ').trim().toLowerCase();
-        const searchLower = normalizedOriginal.toLowerCase();
-        
-        // Check for partial matches
-        const words = searchLower.split(' ');
-        const foundWords = words.filter(word => normalizedDocText.includes(word));
-        const missingWords = words.filter(word => !normalizedDocText.includes(word));
-        
-        let errorMsg = `Text "${originalText}" not found in document.`;
-        
-        if (foundWords.length > 0) {
-          errorMsg += ` Found ${foundWords.length}/${words.length} words: [${foundWords.join(', ')}].`;
-          if (missingWords.length > 0) {
-            errorMsg += ` Missing words: [${missingWords.join(', ')}].`;
-            
-            // Check if missing words might be garbled/misspelled
-            const garbledHint = missingWords.some(word => word.length > 8 && /[a-z]{3,}/.test(word.toLowerCase()));
-            if (garbledHint) {
-              errorMsg += ` HINT: Some words appear garbled/misspelled. The search uses fuzzy matching but the text may be too different.`;
-            }
-          }
-        } else {
-          errorMsg += ` None of the search words were found in the document.`;
-        }
-        
-        // Check if text might span across nodes
-        if (normalizedDocText.includes(searchLower)) {
-          errorMsg += ` NOTE: Text found in document - this is likely a bug in position mapping. Please report this issue.`;
-        }
-        
-        console.log('Search failed - Full debug info:');
-        console.log('  Original text:', JSON.stringify(originalText));
-        console.log('  Document sample:', JSON.stringify(allDocText.substring(0, 200)));
-        
-        const result: TipTapTransactionResult = {
-          success: false,
-          error: errorMsg,
-          matchCount: 0
-        };
-        return JSON.stringify(result);
-      }
-
-      if (matches.length > 1) {
-        const result: TipTapTransactionResult = {
-          success: false,
-          error: `Multiple matches found for "${originalText}". Found ${matches.length} occurrences. Please be more specific with the text to avoid ambiguity.`,
-          matchCount: matches.length
-        };
-        return JSON.stringify(result);
-      }
-
-      const match = matches[0];
-
-      // Always create diff node for user approval (removed auto-application)
-      return await this.createDiffNode(match, suggestedText, changeType, confidence, context);
+      // Return the error from diff creation
+      const errorResult: TipTapTransactionResult = {
+        success: false,
+        error: diffResult.error || 'Failed to create diff node',
+        matchCount: diffResult.matchCount || 0
+      };
+      return JSON.stringify(errorResult);
 
     } catch (error) {
       const result: TipTapTransactionResult = {
@@ -224,185 +102,6 @@ All suggestions are shown as inline diffs that require user approval.`,
   }
 
 
-  private applyCrossNodeReplacement(
-    tr: any,
-    state: any,
-    match: TextMatch,
-    suggestedText: string
-  ): boolean {
-    try {
-      // Get the range we're replacing
-      const from = match.from;
-      const to = match.to;
-      
-      // Collect marks from the start of the selection to preserve formatting
-      const $from = state.doc.resolve(from);
-      const startMarks = $from.marks();
-      
-      // For cross-node replacements, we need to be more careful about marks
-      // Let's collect all unique marks within the range
-      const allMarks = new Set();
-      let currentPos = from;
-      
-      // Walk through the range and collect marks
-      state.doc.nodesBetween(from, to, (node: any, pos: number) => {
-        if (node.isText) {
-          // Add marks from this text node
-          node.marks.forEach((mark: any) => allMarks.add(mark));
-        }
-      });
-      
-      // Convert Set back to array, prefer startMarks if available
-      const marksToUse = startMarks.length > 0 ? startMarks : Array.from(allMarks);
-      
-      // Check if replacement spans multiple nodes by examining the content
-      let spansMultipleNodes = false;
-      let nodeCount = 0;
-      
-      state.doc.nodesBetween(from, to, (node: any, pos: number) => {
-        if (node.isText) {
-          nodeCount++;
-        }
-      });
-      
-      spansMultipleNodes = nodeCount > 1;
-      
-      if (spansMultipleNodes) {
-        // For multi-node replacement, we need to:
-        // 1. Delete the entire range
-        // 2. Insert the new text with appropriate marks
-        
-        // First, delete the range
-        tr.delete(from, to);
-        
-        // Then insert the new text with preserved marks
-        const newTextNode = state.schema.text(suggestedText, marksToUse);
-        tr.insert(from, newTextNode);
-        
-        console.log(`Applied cross-node replacement: "${match.text}" -> "${suggestedText}" at ${from}-${to}`);
-      } else {
-        // Single node replacement (fallback to simple replacement)
-        tr.replaceWith(from, to, state.schema.text(suggestedText, marksToUse));
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Cross-node replacement failed:', error);
-      
-      // Fallback: try simple replacement
-      try {
-        const $from = state.doc.resolve(match.from);
-        const marks = $from.marks();
-        tr.replaceWith(match.from, match.to, state.schema.text(suggestedText, marks));
-        console.log('Fallback simple replacement succeeded');
-        return true;
-      } catch (fallbackError) {
-        console.error('Fallback replacement also failed:', fallbackError);
-        return false;
-      }
-    }
-  }
-
-
-  private async createDiffNode(
-    match: TextMatch,
-    suggestedText: string,
-    changeType: string,
-    confidence: number,
-    context?: string
-  ): Promise<string> {
-    try {
-      // Insert a diff node at the match position
-      const diffId = `diff_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      const success = this.editor!.chain().focus().command(({ tr, state }) => {
-        // Create diff node with original and suggested text
-        const diffNode = state.schema.nodes.diff?.create({
-          id: diffId,
-          originalText: match.text,
-          suggestedText,
-          changeType,
-          confidence,
-          context: context || '',
-          from: match.from,
-          to: match.to
-        });
-
-        if (diffNode) {
-          // Use cross-node replacement logic for diff nodes too
-          return this.applyCrossNodeDiffReplacement(tr, state, match, diffNode);
-        }
-        return false;
-      }).run();
-
-      const result: TipTapTransactionResult = {
-        success,
-        requiresApproval: true,
-        transactionId: diffId,
-        appliedAt: match.from
-      };
-
-      return JSON.stringify(result);
-    } catch (error) {
-      // Fallback: if diff node creation fails, create a simple replacement
-      // This ensures the tool doesn't fail completely if diff node isn't available yet
-      const result: TipTapTransactionResult = {
-        success: false,
-        error: `Diff node creation not yet implemented. Suggestion requires manual review: "${match.text}" -> "${suggestedText}"`,
-        requiresApproval: true
-      };
-      return JSON.stringify(result);
-    }
-  }
-
-  private applyCrossNodeDiffReplacement(
-    tr: any,
-    state: any,
-    match: TextMatch,
-    diffNode: any
-  ): boolean {
-    try {
-      const from = match.from;
-      const to = match.to;
-      
-      // Check if replacement spans multiple nodes
-      let nodeCount = 0;
-      state.doc.nodesBetween(from, to, (node: any, pos: number) => {
-        if (node.isText) {
-          nodeCount++;
-        }
-      });
-      
-      const spansMultipleNodes = nodeCount > 1;
-      
-      if (spansMultipleNodes) {
-        // For multi-node diff replacement:
-        // 1. Delete the entire range
-        // 2. Insert the diff node
-        tr.delete(from, to);
-        tr.insert(from, diffNode);
-        
-        console.log(`Applied cross-node diff replacement at ${from}-${to}`);
-      } else {
-        // Single node replacement
-        tr.replaceWith(from, to, diffNode);
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Cross-node diff replacement failed:', error);
-      
-      // Fallback: try simple replacement
-      try {
-        tr.replaceWith(match.from, match.to, diffNode);
-        console.log('Fallback diff replacement succeeded');
-        return true;
-      } catch (fallbackError) {
-        console.error('Fallback diff replacement also failed:', fallbackError);
-        return false;
-      }
-    }
-  }
 }
 
 export function createTipTapTransactionTool(): TipTapTransactionTool {
