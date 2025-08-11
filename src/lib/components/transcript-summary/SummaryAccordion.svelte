@@ -148,11 +148,11 @@
     <button
       class="accordion-toggle"
       onclick={toggleAccordion}
-      disabled={!summary && !isGenerating}
+      disabled={!summary && !isGenerating && !isLoading}
       aria-expanded={isOpen}
     >
       <Icon data={isOpen ? chevronUp : chevronDown} />
-      <h3>{$_('transcript.summary.title')}</h3>
+      <span class="accordion-title">{$_('transcript.summary.title')}</span>
     </button>
 
     <div class="header-actions">
@@ -238,20 +238,17 @@
     border: 1px solid #e5e7eb;
     border-radius: 8px;
     margin-bottom: 1rem;
-    overflow: hidden;
     width: 100%;
+    overflow: visible;
   }
 
   .accordion-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     background: #f9fafb;
-    border-bottom: 1px solid #e5e7eb;
-    border-radius: 8px 8px 0 0;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+    min-height: 48px;
   }
 
   .accordion-toggle {
@@ -265,8 +262,7 @@
     font-size: 1rem;
     color: #374151;
     transition: color 0.2s;
-    flex: 1;
-    min-width: 0;
+    text-align: left;
   }
 
   .accordion-toggle:hover:not(:disabled) {
@@ -278,13 +274,11 @@
     opacity: 0.5;
   }
 
-  .accordion-toggle h3 {
+  .accordion-title {
     margin: 0;
-    font-size: 1.125rem;
+    font-size: 1rem;
     font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    line-height: 1.5;
   }
 
   .header-actions {
@@ -339,14 +333,10 @@
   }
 
   .accordion-content {
-    padding: 1.5rem;
+    padding: 1rem;
     animation: slideDown 0.3s ease-out;
-    width: 100%;
-    box-sizing: border-box;
     background: white;
-    background-image: none !important;
-    -webkit-mask-image: none !important;
-    mask-image: none !important;
+    border-top: 1px solid #e5e7eb;
   }
 
   @keyframes slideDown {
@@ -458,10 +448,6 @@
       padding: 0.75rem;
     }
     
-    .accordion-content {
-      padding: 1rem;
-    }
-    
     .metadata-section {
       flex-direction: column;
       gap: 0.5rem;
@@ -470,6 +456,10 @@
     .generate-btn {
       font-size: 0.75rem;
       padding: 0.375rem 0.75rem;
+    }
+    
+    .accordion-title {
+      font-size: 0.875rem;
     }
   }
 </style>
