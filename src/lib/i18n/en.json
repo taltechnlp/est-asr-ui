@@ -129,6 +129,14 @@
         "speaker": "Speaker Change",
         "textReplacement": "Text Replacement"
       }
+    },
+    "sidebar": {
+      "title": "Segment Analysis",
+      "expand": "Expand sidebar",
+      "collapse": "Collapse sidebar",
+      "segmentText": "Segment Text",
+      "noSegmentSelected": "No segment selected",
+      "clickToSelect": "Click on a segment in the editor to analyze it"
     }
   },
   "newAccount": {

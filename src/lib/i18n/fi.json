@@ -102,6 +102,14 @@
             "low": "Matala",
             "medium": "Keskitaso",
             "high": "Korkea"
+        },
+        "sidebar": {
+            "title": "Segmenttianalyysi",
+            "expand": "Laajenna sivupalkki",
+            "collapse": "Pienennä sivupalkki",
+            "segmentText": "Segmentin teksti",
+            "noSegmentSelected": "Segmenttiä ei valittu",
+            "clickToSelect": "Napsauta editointiohjelmassa segmenttiä analysoidaksesi sen"
         }
     },
     "newAccount": {

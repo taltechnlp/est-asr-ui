@@ -115,6 +115,14 @@
             "low": "Madal",
             "medium": "Keskmine",
             "high": "Kõrge"
+        },
+        "sidebar": {
+            "title": "Segmendi analüüs",
+            "expand": "Laienda külgriba",
+            "collapse": "Ahenda külgriba",
+            "segmentText": "Segmendi tekst",
+            "noSegmentSelected": "Segment valimata",
+            "clickToSelect": "Klõpsake redaktoris segmendil selle analüüsimiseks"
         }
     },
     "newAccount": {

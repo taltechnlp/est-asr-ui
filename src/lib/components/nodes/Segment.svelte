@@ -6,6 +6,7 @@
 	import { clickOutside } from '../clickOutside';
 	import type { Speaker } from '$lib/helpers/converters/types';
 	import { v4 as uuidv4 } from 'uuid';
+	import { selectedSegmentStore } from '$lib/stores/selectedSegmentStore';
 
 	import {
 		speakerNames,
@@ -57,6 +58,7 @@
 	let newSpeaker = $state('');
 	let editSpeakerId = $state('');
 	let editingValue = $state('');
+	let isSelectedSegment = $state(false);
 	let names = $state();
 	speakerNames.subscribe((ns) => {
 		// Update dropdown list where for each id one name is shown only
@@ -75,6 +77,11 @@
 				id: node.attrs['id']
 			};
 		}
+	});
+	
+	// Subscribe to selected segment changes
+	const unsubscribeSelected = selectedSegmentStore.subscribe(segment => {
+		isSelectedSegment = segment?.id === node.attrs['id'];
 	});
 
 	const findTimeStamps = (startPos, state) => {
@@ -183,6 +190,24 @@
 			editSpeakerId = '';
 			editingValue = '';
 		}
+	};
+	
+	// Handle segment selection
+	const handleSegmentClick = () => {
+		const allSpeakerNodes = findBlockNodes(editor.state.doc, false)
+			.filter(el => el.node.type.name === 'speaker');
+		const segmentIndex = allSpeakerNodes.findIndex(el => el.pos === getPos());
+		
+		selectedSegmentStore.selectSegment({
+			id: node.attrs['id'],
+			index: segmentIndex >= 0 ? segmentIndex : 0,
+			speakerName: selectedVal.name,
+			speakerTag: selectedVal.name,
+			text: segmentWithTiming.text,
+			start: segmentWithTiming.startTime,
+			end: segmentWithTiming.endTime,
+			nodePosition: getPos()
+		});
 	};
 	const getStartTime = (node) => {
 		return node.content.content &&
@@ -337,10 +362,11 @@
 				sps.filter((s) => !(s.id === selectedVal.id && s.start === time))
 			);
 		}
+		unsubscribeSelected();
 	});
 </script>
 
-<NodeViewWrapper class="svelte-component speaker {selected}">
+<NodeViewWrapper class="svelte-component speaker {selected} {isSelectedSegment ? 'segment-selected' : ''}" onclick={handleSegmentClick}>
 	<div class="top-container flex justify-between items-center">
 		<div class="left-section flex items-center">
 			<details class="dropdown speaker-name-container" bind:open={isListOpen} contentEditable={false}>
@@ -431,6 +457,41 @@
 		width: auto;
 		grid-column-gap: 1px;
 		margin-bottom: 10px;
+		padding: 0.5rem;
+		border-radius: 0.375rem;
+		transition: all 0.2s;
+		cursor: pointer;
+		position: relative;
+	}
+	
+	:global(.speaker:hover) {
+		background: rgba(59, 130, 246, 0.05);
+	}
+	
+	:global(.speaker.segment-selected) {
+		background: rgba(59, 130, 246, 0.1);
+		border-left: 3px solid #3b82f6;
+		padding-left: calc(0.5rem - 3px);
+	}
+	
+	:global(.speaker.segment-selected::before) {
+		content: '';
+		position: absolute;
+		left: 0;
+		top: 0;
+		bottom: 0;
+		width: 3px;
+		background: #3b82f6;
+		animation: pulse 2s ease-in-out infinite;
+	}
+	
+	@keyframes pulse {
+		0%, 100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.5;
+		}
 	}
 
 	.speaker-name-container {

@@ -9,7 +9,7 @@
 		editorMounted
 	} from '$lib/stores.svelte.js';
 	import type { Word, Speaker } from '$lib/helpers/converters/types';
-	import TranscriptChat from '$lib/components/transcript-chat/TranscriptChat.svelte';
+	import TranscriptSidebar from '$lib/components/transcript-sidebar/TranscriptSidebar.svelte';
 	import SummaryAccordion from '$lib/components/transcript-summary/SummaryAccordion.svelte';
 	import type { TranscriptSummary } from '@prisma/client';
 	let { data } = $props();
@@ -18,6 +18,7 @@
 	let transcription = $state('');
 	let json = JSON.parse(data.file && data.file.content);
 	let summary = $state<TranscriptSummary | null>(null);
+	let sidebarCollapsed = $state(false);
 	let content;
 	// First time transcription from the Estonian JSON format.
 	if (json && !json.type) {
@@ -64,40 +65,78 @@
 	}
 </script>
 
-<main class="grid grid-rows-[1fr_auto] content-between">
-	<div class="self-stretch h-full mb-96">
-		<Tiptap
-			content={transcription}
-			fileId={data.file.id}
-			demo={false}
-			fileName={data.file.name}
-			uploadedAt={data.file.uploadedAt}
-			{summary}
-			onSummaryGenerated={handleSummaryGenerated}
-		/>
+<main class="transcript-layout {sidebarCollapsed ? 'sidebar-collapsed' : ''}">
+	<div class="editor-pane">
+		<div class="editor-content">
+			<Tiptap
+				content={transcription}
+				fileId={data.file.id}
+				demo={false}
+				fileName={data.file.name}
+				uploadedAt={data.file.uploadedAt}
+				{summary}
+				onSummaryGenerated={handleSummaryGenerated}
+			/>
+		</div>
 		<Player url={`${data.url}/uploaded/${data.file.id}`} />
 	</div>
 	
-	<TranscriptChat
+	<TranscriptSidebar
 		fileId={data.file.id}
-		transcript={data.file.text || ''}
 		editorContent={json}
 		audioFilePath={data.file.path}
-		segments={speakers.map((s, i) => ({
-			id: s.id,
-			text: s.name,
-			speaker: s.name,
-			start: s.start,
-			end: s.end
-		}))}
-		{words}
-		{speakers}
-		language={data.file.language || 'et'}
 		{summary}
-		onSummaryGenerated={handleSummaryGenerated}
-		onSuggestionApply={(suggestion) => {
-			// Handle suggestion application
-			console.log('Apply suggestion:', suggestion);
+		collapsed={sidebarCollapsed}
+		onCollapsedChange={(value) => sidebarCollapsed = value}
+		onSegmentAnalyzed={(result) => {
+			// Handle segment analysis results
+			console.log('Segment analyzed:', result);
 		}}
 	/>
 </main>
+
+<style>
+	.transcript-layout {
+		display: grid;
+		grid-template-columns: 1fr 400px;
+		height: 100vh;
+		width: 100%;
+		overflow: hidden;
+		transition: grid-template-columns 0.3s ease;
+	}
+	
+	.transcript-layout.sidebar-collapsed {
+		grid-template-columns: 1fr 48px;
+	}
+	
+	.editor-pane {
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+		overflow: hidden;
+		position: relative;
+	}
+	
+	.editor-content {
+		flex: 1;
+		overflow-y: auto;
+		padding-bottom: 6rem; /* Space for player */
+	}
+	
+	/* Responsive layout */
+	@media (max-width: 1024px) {
+		.transcript-layout {
+			grid-template-columns: 1fr;
+		}
+		
+		.transcript-layout.sidebar-collapsed {
+			grid-template-columns: 1fr;
+		}
+	}
+	
+	@media (max-width: 768px) {
+		.editor-content {
+			padding-bottom: 8rem; /* More space for player on mobile */
+		}
+	}
+</style>
