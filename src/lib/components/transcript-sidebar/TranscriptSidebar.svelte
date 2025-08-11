@@ -13,6 +13,8 @@
   import SegmentControlPosition from '../transcript-analysis/SegmentControlPosition.svelte';
   import { _ } from 'svelte-i18n';
   import { selectedSegmentStore } from '$lib/stores/selectedSegmentStore';
+  import { analysisStateStore } from '$lib/stores/analysisStateStore';
+  import { onMount } from 'svelte';
   
   let {
     fileId = '',
@@ -24,10 +26,17 @@
     onCollapsedChange = (value: boolean) => {}
   } = $props();
 
-  let isAnalyzing = $state(false);
   let selectedSegment = $state<any>(null);
   let segmentText = $state('');
   let segmentAnalysisResult = $state<any>(null);
+  
+  // Subscribe to shared analysis state
+  let analysisState = $state<any>(null);
+  let isAnalyzing = $derived(
+    analysisState?.isAnalyzing && 
+    selectedSegment && 
+    analysisState?.analyzingSegmentIndex === selectedSegment.index
+  );
   
   // Subscribe to selected segment changes
   const unsubscribe = selectedSegmentStore.subscribe(segment => {
@@ -86,7 +95,14 @@
   async function analyzeSelectedSegment() {
     if (!selectedSegment || !summary) return;
     
-    isAnalyzing = true;
+    // Check if already analyzing
+    if (analysisState?.isAnalyzing) {
+      return;
+    }
+    
+    // Set shared state to analyzing
+    analysisStateStore.startAnalysis(fileId, selectedSegment.index);
+    
     try {
       // Call the position-based analysis for this segment
       const response = await fetch('/api/transcript-analysis/segment-position', {
@@ -109,13 +125,26 @@
       }
 
       segmentAnalysisResult = await response.json();
+      
+      // Mark as completed in shared state
+      analysisStateStore.completeAnalysis(fileId, selectedSegment.index);
       onSegmentAnalyzed(segmentAnalysisResult);
     } catch (err) {
       console.error('Segment analysis error:', err);
-    } finally {
-      isAnalyzing = false;
+      analysisStateStore.setError(fileId, err instanceof Error ? err.message : 'Analysis failed');
     }
   }
+  
+  onMount(() => {
+    // Subscribe to analysis state
+    const unsubscribeAnalysis = analysisStateStore.subscribe(fileId, (state) => {
+      analysisState = state;
+    });
+    
+    return () => {
+      unsubscribeAnalysis();
+    };
+  });
   
   onDestroy(() => {
     unsubscribe();

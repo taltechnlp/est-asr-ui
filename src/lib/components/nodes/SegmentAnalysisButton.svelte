@@ -16,6 +16,7 @@
 	import { getCoordinatingAgentClient } from '$lib/agents/coordinatingAgentClient';
 	import { normalizeLanguageCode } from '$lib/utils/language';
 	import { summaryStore } from '$lib/stores/summaryStore';
+	import { analysisStateStore } from '$lib/stores/analysisStateStore';
 
 	interface Props {
 		fileId: string;
@@ -31,11 +32,19 @@
 		onAnalysisComplete = () => {}
 	}: Props = $props();
 
-	let isAnalyzing = $state(false);
 	let error = $state<string | null>(null);
-	let analysisStatus = $state<'pending' | 'analyzing' | 'analyzed' | 'error'>('pending');
 	let analysisResult = $state<AnalysisSegment | null>(null);
 	let summary = $state<TranscriptSummary | null>(null);
+	
+	// Subscribe to shared analysis state
+	let analysisState = $state<any>(null);
+	let isAnalyzing = $derived(analysisState?.isAnalyzing && analysisState?.analyzingSegmentIndex === segment.index);
+	let analysisStatus = $derived.by(() => {
+		if (analysisState?.isAnalyzing && analysisState?.analyzingSegmentIndex === segment.index) return 'analyzing';
+		if (analysisState?.analyzedSegments?.has(segment.index)) return 'analyzed';
+		if (error) return 'error';
+		return 'pending';
+	});
 	let showResults = $state(false);
 	let buttonElement = $state<HTMLButtonElement | null>(null);
 	let popupPosition = $state({ top: 0, left: 0 });
@@ -62,11 +71,20 @@
 
 	// Check if this segment has been analyzed before
 	onMount(async () => {
+		// Subscribe to shared analysis state
+		const unsubscribe = analysisStateStore.subscribe(fileId, (state) => {
+			analysisState = state;
+		});
+		
 		await checkExistingAnalysis();
 		// Load summary using shared store to avoid multiple requests
 		if (fileId) {
 			summary = await summaryStore.checkAndLoad(fileId);
 		}
+		
+		return () => {
+			unsubscribe();
+		};
 	});
 
 	async function checkExistingAnalysis() {
@@ -80,7 +98,8 @@
 				
 				if (existingAnalysis) {
 					analysisResult = existingAnalysis;
-					analysisStatus = 'analyzed';
+					// Mark as analyzed in shared state
+					analysisStateStore.completeAnalysis(fileId, segment.index);
 				}
 			}
 		} catch (err) {
@@ -200,10 +219,10 @@
 			} else {
 				error = err instanceof Error ? err.message : $_('transcript.analysis.genericError');
 			}
-			analysisStatus = 'error';
+			analysisStateStore.setError(fileId, error);
 			console.error('Segment analysis error:', err);
 		} finally {
-			isAnalyzing = false;
+			// State is managed by the store
 		}
 	}
 
