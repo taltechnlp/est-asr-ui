@@ -69,9 +69,11 @@
     return `${duration.toFixed(1)}s`;
   }
   
-  $: visibleProgress = showCompleted 
-    ? toolProgress 
-    : toolProgress.filter(p => p.status !== 'completed');
+  let visibleProgress = $derived(
+    showCompleted 
+      ? toolProgress 
+      : toolProgress.filter(p => p.status !== 'completed')
+  );
   
   function getToolName(toolId: string): string {
     const translationKey = getToolTranslationKey(toolId);
