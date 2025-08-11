@@ -275,8 +275,16 @@
 			return;
 		}
 
+		// Check if already analyzing
+		if (analysisState?.isAnalyzing) {
+			return;
+		}
+		
 		isReanalyzing = true;
 		error = null;
+		
+		// Set shared state to analyzing
+		analysisStateStore.startAnalysis(fileId, segment.index);
 
 		try {
 			// Delete existing analysis from database first
@@ -311,7 +319,9 @@
 
 			const result = await response.json();
 			analysisResult = result.analysisSegment;
-			analysisStatus = 'analyzed';
+			
+			// Mark as completed in shared state
+			analysisStateStore.completeAnalysis(fileId, segment.index);
 			
 			// Reset applying states since we have new suggestions
 			applyingStates = {};
@@ -333,6 +343,7 @@
 			} else {
 				error = err instanceof Error ? err.message : $_('transcript.analysis.genericError');
 			}
+			analysisStateStore.setError(fileId, error);
 			console.error('Segment re-analysis error:', err);
 		} finally {
 			isReanalyzing = false;
