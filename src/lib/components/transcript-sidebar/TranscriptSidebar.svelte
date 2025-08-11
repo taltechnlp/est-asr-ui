@@ -14,7 +14,6 @@
   import { _ } from 'svelte-i18n';
   import { selectedSegmentStore } from '$lib/stores/selectedSegmentStore';
   import { analysisStateStore } from '$lib/stores/analysisStateStore';
-  import { onMount } from 'svelte';
   
   let {
     fileId = '',
