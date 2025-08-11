@@ -33,12 +33,8 @@ function mapOps(op) {
 				}</span>`;
 		}
 	} else if (op.insert && op.insert.speaker) {
-		let id;
-		if (!nameExists(speakers, op.insert.speaker)) {
-			id = uuidv4().substring(36 - 12);
-		}  else {
-			id = nameExists(speakers, op.insert.speaker.id);
-		}
+		// Always generate a unique ID for each speaker segment
+		const id = uuidv4().substring(36 - 12);
 		speakers.push({ name: op.insert.speaker, start: 0, id })
 		return `<speaker data-name="${op.insert.speaker}" id="${id}">`
 	};

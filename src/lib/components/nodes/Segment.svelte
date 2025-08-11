@@ -51,9 +51,12 @@
 	let isListOpen = $state(false);
 	let initialName = node.attrs['data-name'];
 	let initialId = node.attrs['id'];
+	// ALWAYS generate a unique ID for this segment instance - never reuse existing IDs
+	// This ensures each segment component has its own unique identifier
+	let segmentUniqueId = $state(uuidv4().substring(32 - 12));
 	let selectedVal: Name = $state({
 		name: node.attrs['data-name'],
-		id: node.attrs['id']
+		id: segmentUniqueId
 	});
 	let newSpeaker = $state('');
 	let editSpeakerId = $state('');
@@ -70,18 +73,19 @@
 			}
 		}, [] as Array<Speaker>);
 		// Update selected name of each component instance
-		// Check id defined b.c. update might happen before transaction has finished
-		if (node && node.attrs['data-name'] && node.attrs['id']) {
+		// Keep the unique segment ID, only update the name
+		if (node && node.attrs['data-name']) {
 			selectedVal = {
 				name: node.attrs['data-name'],
-				id: node.attrs['id']
+				id: segmentUniqueId // Keep using the unique segment ID
 			};
 		}
 	});
 	
 	// Subscribe to selected segment changes
 	const unsubscribeSelected = selectedSegmentStore.subscribe(segment => {
-		isSelectedSegment = segment?.id === node.attrs['id'];
+		// Compare using the unique segment ID
+		isSelectedSegment = segment?.id === segmentUniqueId;
 	});
 
 	const findTimeStamps = (startPos, state) => {
@@ -199,7 +203,7 @@
 		const segmentIndex = allSpeakerNodes.findIndex(el => el.pos === getPos());
 		
 		selectedSegmentStore.selectSegment({
-			id: node.attrs['id'],
+			id: segmentUniqueId, // Use the unique segment ID
 			index: segmentIndex >= 0 ? segmentIndex : 0,
 			speakerName: selectedVal.name,
 			speakerTag: selectedVal.name,
@@ -231,12 +235,10 @@
 	};
 	const handleNewSpeakerSave = (newName, start) => {
 		if (newName.length > 0) {
-			let newId;
+			// Always generate a unique ID for each segment
+			let newId = uuidv4().substring(32 - 12);
 			const blockNodesWithPos = findBlockNodes(editor.state.doc, false);
 			const exists = blockNodesWithPos.find((el) => el.node.attrs['data-name'] === newName);
-			if (!exists) {
-				newId = uuidv4().substring(32 - 12);
-			}
 			// Change node attribute transaction
 			let tr = editor.state.tr;
 			tr.setNodeAttribute(getPos(), 'data-name', newName);
@@ -272,7 +274,8 @@
 		// Change node attribute transaction
 		let tr = editor.state.tr;
 		tr.setNodeAttribute(getPos(), 'data-name', exists.node.attrs['data-name']);
-		tr.setNodeAttribute(getPos(), 'id', id);
+		// Keep the current segment's unique ID, don't reuse the selected speaker's ID
+		// tr.setNodeAttribute(getPos(), 'id', id); // Removed - keep existing unique ID
 		let newState = editor.state.apply(tr);
 		const updatedBlockNodesWithPos = findBlockNodes(newState.doc, false);
 		// Update store
@@ -288,7 +291,7 @@
 		speakerNames.set(newSpeakers);
 		selectedVal = {
 			name: exists.node.attrs['data-name'],
-			id: exists.node.attrs.id
+			id: segmentUniqueId // Keep using the unique segment ID
 		};
 		// TODO: reset store from nodes or remove old value.
 		// TODO: change node id attr also
@@ -352,6 +355,10 @@
 			// Cannot use the node passed into this component here (bug or timing issue). Getting by pos works.
 			// This also works const parentNode = findParentNodeOfTypeClosestToPos(editor.state.doc.resolve(getPos()+1), editor.schema.nodes.speaker);
 			const actualNode = editor.state.doc.nodeAt(getPos());
+			
+			// Each segment component instance has its own unique ID for selection tracking
+			// We don't sync with the node's ID to ensure uniqueness
+			
 			const id = addSpeakerBlock(selectedVal.name, getStartTime(actualNode), getEndTime(actualNode));
 		}
 	});
