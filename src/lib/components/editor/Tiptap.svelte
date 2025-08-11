@@ -25,7 +25,6 @@
 	import keyboard from 'svelte-awesome/icons/keyboardO';
 	import settings from 'svelte-awesome/icons/cog';
 	import pencil from 'svelte-awesome/icons/pencilSquareO';
-	import spinner from 'svelte-awesome/icons/spinner';
 	import debounce from 'lodash/debounce';
 	import {
 		editorMounted,
@@ -203,21 +202,45 @@
 			const handleApplySuggestionAsDiff = async (event: CustomEvent) => {
 				const { suggestion, segmentId, callback } = event.detail;
 				try {
-					// Import the diff creation function
-					const { findAndCreateDiff } = await import('$lib/services/transcriptTextReplaceDiff');
+					// Import the diff creation functions
+					const { findAndCreateDiff, createDiffAtPosition } = await import('$lib/services/transcriptTextReplaceDiff');
 					
-					// Create a diff node instead of direct replacement
-					const result = findAndCreateDiff(
-						$editor,
-						suggestion.originalText,
-						suggestion.suggestedText,
-						{
-							caseSensitive: false,
-							changeType: suggestion.type || 'text_replacement',
-							confidence: suggestion.confidence || 0.5,
-							context: suggestion.explanation || suggestion.text || ''
-						}
-					);
+					let result;
+					
+					// Check if we have reconciled positions
+					if (suggestion.from !== undefined && suggestion.to !== undefined) {
+						console.log(`Using reconciled positions [${suggestion.from}, ${suggestion.to}] for diff creation`);
+						
+						// Use position-based creation for reconciled positions
+						result = createDiffAtPosition(
+							$editor,
+							suggestion.from,
+							suggestion.to,
+							suggestion.originalText,
+							suggestion.suggestedText,
+							{
+								changeType: suggestion.type || 'text_replacement',
+								confidence: suggestion.confidence || 0.5,
+								context: suggestion.explanation || suggestion.text || '',
+								validateText: true
+							}
+						);
+					} else {
+						console.log('No positions available, using text search for diff creation');
+						
+						// Fall back to text search
+						result = findAndCreateDiff(
+							$editor,
+							suggestion.originalText,
+							suggestion.suggestedText,
+							{
+								caseSensitive: false,
+								changeType: suggestion.type || 'text_replacement',
+								confidence: suggestion.confidence || 0.5,
+								context: suggestion.explanation || suggestion.text || ''
+							}
+						);
+					}
 					
 					if (callback) callback(result);
 				} catch (error) {
@@ -272,14 +295,6 @@
 	const updateWindowSize = () => windowWidth = window.innerWidth;
 	window.addEventListener("resize", updateWindowSize);
 	let editable = $state(true);
-	let isAnalyzing = $state(false);
-	
-	// Subscribe to editor editability changes to show overlay
-	$effect(() => {
-		if ($editor) {
-			isAnalyzing = !$editor.isEditable;
-		}
-	});
 
 
 	onDestroy(() => {
@@ -474,15 +489,7 @@
 				
 			</div>
 		{/if}
-		<div class="editor-content-wrapper" class:analyzing={isAnalyzing}>
-			{#if isAnalyzing}
-				<div class="analysis-overlay">
-					<div class="analysis-message">
-						<Icon data={spinner} spin scale={1.5} />
-						<span>{$_('transcript.analysis.editorLockedMessage') || 'Analyzing segment... Editor is temporarily locked'}</span>
-					</div>
-				</div>
-			{/if}
+		<div class="editor-content-wrapper">
 			<EditorContent editor={$editor} />
 		</div>
 	</div>
@@ -515,39 +522,6 @@
 
 	.editor-content-wrapper {
 		position: relative;
-	}
-
-	.editor-content-wrapper.analyzing {
-		pointer-events: none;
-		opacity: 0.8;
-	}
-
-	.analysis-overlay {
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background: rgba(255, 255, 255, 0.9);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		z-index: 100;
-		pointer-events: all;
-	}
-
-	.analysis-message {
-		display: flex;
-		align-items: center;
-		gap: 1rem;
-		padding: 1.5rem 2rem;
-		background: white;
-		border: 2px solid #fbbf24;
-		border-radius: 0.5rem;
-		box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-		font-size: 1rem;
-		font-weight: 500;
-		color: #92400e;
 	}
 
 </style>

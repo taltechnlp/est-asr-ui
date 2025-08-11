@@ -19,6 +19,8 @@
   import { analysisStateStore } from '$lib/stores/analysisStateStore';
   import { normalizeLanguageCode } from '$lib/utils/language';
   import { editor as editorStore } from '$lib/stores.svelte';
+  import { getReconciliationService } from '$lib/services/editReconciliation';
+  import { getPositionMapper } from '$lib/services/positionMapper';
   
   let {
     fileId = '',
@@ -35,6 +37,8 @@
   let segmentAnalysisResult = $state<any>(null);
   let isReanalyzing = $state(false);
   let applyingStates = $state<Record<number, boolean>>({});
+  let documentVersionAtAnalysis = $state<any>(null);
+  let reconciliationService = $state<any>(null);
   
   // Subscribe to shared analysis state
   let analysisState = $state<any>(null);
@@ -138,12 +142,17 @@
       return;
     }
     
-    // Lock the editor during analysis
+    // Store document version at analysis time
     const editor = $editorStore;
-    const wasEditable = editor?.isEditable;
     if (editor) {
-      console.log('🔒 Locking editor during analysis');
-      editor.setEditable(false);
+      const mapper = getPositionMapper(editor);
+      documentVersionAtAnalysis = mapper.getVersion();
+      console.log('📸 Captured document version:', documentVersionAtAnalysis);
+      
+      // Initialize reconciliation service if needed
+      if (!reconciliationService) {
+        reconciliationService = getReconciliationService(editor);
+      }
     }
     
     // Set shared state to analyzing
@@ -235,13 +244,6 @@
     } catch (err) {
       console.error('Segment analysis error:', err);
       analysisStateStore.setError(fileId, err instanceof Error ? err.message : 'Analysis failed');
-    } finally {
-      // Unlock the editor after analysis
-      const editor = $editorStore;
-      if (editor && wasEditable !== false) {
-        console.log('🔓 Unlocking editor after analysis');
-        editor.setEditable(true);
-      }
     }
   }
   
@@ -300,14 +302,6 @@
     
     isReanalyzing = true;
     
-    // Lock the editor during reanalysis
-    const editor = $editorStore;
-    const wasEditable = editor?.isEditable;
-    if (editor) {
-      console.log('🔒 Locking editor during reanalysis');
-      editor.setEditable(false);
-    }
-    
     try {
       // First delete the existing analysis from database
       const deleteResponse = await fetch(`/api/transcript-analysis/segments/${fileId}/${selectedSegment.index}`, {
@@ -322,17 +316,10 @@
       segmentAnalysisResult = null;
       applyingStates = {};
       
-      // Perform fresh analysis (it will handle unlocking)
+      // Perform fresh analysis
       await analyzeSelectedSegment();
     } finally {
       isReanalyzing = false;
-      
-      // Ensure editor is unlocked even if analysis fails
-      const editor = $editorStore;
-      if (editor && wasEditable !== false) {
-        console.log('🔓 Ensuring editor is unlocked after reanalysis');
-        editor.setEditable(true);
-      }
     }
   }
   
@@ -363,10 +350,38 @@
     applyingStates[index] = true;
     
     try {
-      // Dispatch event to create diff node (not direct replacement)
+      // If we have position info and reconciliation service, reconcile first
+      let reconciledSuggestion = { ...suggestion };
+      
+      if (suggestion.from !== undefined && suggestion.to !== undefined && reconciliationService) {
+        // Add to reconciliation service for tracking
+        const editId = reconciliationService.addPendingEdit({
+          id: `suggestion_${index}_${Date.now()}`,
+          type: 'suggestion',
+          from: suggestion.from,
+          to: suggestion.to,
+          originalText: suggestion.originalText,
+          suggestedText: suggestion.suggestedText,
+          confidence: suggestion.confidence || 0.5,
+          version: documentVersionAtAnalysis || { id: 'unknown', timestamp: Date.now(), transactionCount: 0 }
+        });
+        
+        // Reconcile to current document state
+        const reconcileResult = await reconciliationService.reconcileEdit(editId);
+        
+        if (reconcileResult.success && reconcileResult.newFrom !== undefined && reconcileResult.newTo !== undefined) {
+          console.log(`📍 Reconciled positions: [${suggestion.from}, ${suggestion.to}] → [${reconcileResult.newFrom}, ${reconcileResult.newTo}]`);
+          reconciledSuggestion.from = reconcileResult.newFrom;
+          reconciledSuggestion.to = reconcileResult.newTo;
+        } else if (!reconcileResult.success) {
+          console.warn('Position reconciliation failed, falling back to text search');
+        }
+      }
+      
+      // Dispatch event to create diff node
       const event = new CustomEvent('applyTranscriptSuggestionAsDiff', {
         detail: {
-          suggestion,
+          suggestion: reconciledSuggestion,
           segmentId: selectedSegment.speakerName || selectedSegment.speakerTag || 'Speaker',
           callback: (result: any) => {
             if (result.success) {
@@ -409,13 +424,9 @@
   onDestroy(() => {
     unsubscribe();
     
-    // Ensure editor is unlocked if component unmounts during analysis
-    if (analysisState?.isAnalyzing) {
-      const editor = $editorStore;
-      if (editor) {
-        console.log('🔓 Unlocking editor on component unmount');
-        editor.setEditable(true);
-      }
+    // Clean up reconciliation service
+    if (reconciliationService) {
+      reconciliationService.stopPeriodicReconciliation();
     }
   });
 </script>
@@ -482,9 +493,9 @@
           
           <!-- Analysis in Progress Notice -->
           {#if isAnalyzing}
-            <div class="analysis-notice">
-              <Icon data={exclamationTriangle} scale={0.9} />
-              <span>{$_('transcript.analysis.editorLocked') || 'Editor is locked during analysis'}</span>
+            <div class="analysis-notice info">
+              <Icon data={spinner} spin scale={0.9} />
+              <span>Analyzing segment... You can continue editing</span>
             </div>
           {/if}
           
@@ -938,6 +949,12 @@
     font-size: 0.875rem;
     font-weight: 500;
     animation: pulse 2s infinite;
+  }
+  
+  .analysis-notice.info {
+    background: #dbeafe;
+    border-color: #60a5fa;
+    color: #1e40af;
   }
   
   @keyframes pulse {

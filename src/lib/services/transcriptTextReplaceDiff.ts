@@ -3,6 +3,8 @@ import type { Node as ProseMirrorNode, Mark } from 'prosemirror-model';
 import { findTextWithNodesBetween, type TextMatch } from './transcriptTextReplaceNodesBetween';
 import { findTextFlexible } from './transcriptTextReplaceFlexible';
 import { findTextSmart } from './transcriptTextReplaceSmart';
+import { getPositionMapper } from './positionMapper';
+import { getReconciliationService } from './editReconciliation';
 
 export interface DiffReplacementResult {
   success: boolean;
@@ -80,6 +82,69 @@ export function createDiffNode(
       error: error instanceof Error ? error.message : 'Unknown error creating diff node'
     };
   }
+}
+
+/**
+ * Create a diff node at specific positions (with validation)
+ * This is useful when positions have been reconciled already
+ */
+export function createDiffAtPosition(
+  editor: Editor,
+  from: number,
+  to: number,
+  originalText: string,
+  suggestedText: string,
+  options: {
+    changeType?: string;
+    confidence?: number;
+    context?: string;
+    validateText?: boolean;
+  } = {}
+): DiffReplacementResult {
+  const { 
+    changeType = 'text_replacement',
+    confidence = 0.5,
+    context,
+    validateText = true
+  } = options;
+  
+  const { state } = editor;
+  const { doc } = state;
+  
+  // Validate positions are within bounds
+  if (from < 0 || to > doc.content.size || from > to) {
+    return {
+      success: false,
+      error: `Invalid positions: [${from}, ${to}]. Document size: ${doc.content.size}`
+    };
+  }
+  
+  // Optionally validate that text at positions matches
+  if (validateText) {
+    const textAtPosition = doc.textBetween(from, to, ' ');
+    const normalizedOriginal = originalText.trim().toLowerCase();
+    const normalizedAtPosition = textAtPosition.trim().toLowerCase();
+    
+    if (normalizedOriginal !== normalizedAtPosition) {
+      console.warn(`Text mismatch at positions [${from}, ${to}]:`, {
+        expected: originalText,
+        found: textAtPosition
+      });
+      
+      // Don't fail, but log the discrepancy
+      // The reconciliation service should have already handled this
+    }
+  }
+  
+  // Create the match object for the diff node
+  const match: TextMatch = {
+    from,
+    to,
+    text: originalText,
+    marks: new Set<Mark>()
+  };
+  
+  return createDiffNode(editor, match, suggestedText, changeType, confidence, context);
 }
 
 /**
