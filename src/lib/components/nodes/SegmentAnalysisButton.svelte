@@ -15,6 +15,7 @@
 	import Portal from '../Portal.svelte';
 	import { getCoordinatingAgentClient } from '$lib/agents/coordinatingAgentClient';
 	import { normalizeLanguageCode } from '$lib/utils/language';
+	import { summaryStore } from '$lib/stores/summaryStore';
 
 	interface Props {
 		fileId: string;
@@ -62,7 +63,10 @@
 	// Check if this segment has been analyzed before
 	onMount(async () => {
 		await checkExistingAnalysis();
-		await loadSummary();
+		// Load summary using shared store to avoid multiple requests
+		if (fileId) {
+			summary = await summaryStore.checkAndLoad(fileId);
+		}
 	});
 
 	async function checkExistingAnalysis() {
@@ -84,16 +88,6 @@
 		}
 	}
 
-	async function loadSummary() {
-		try {
-			const response = await fetch(`/api/transcript-summary/${fileId}`);
-			if (response.ok) {
-				summary = await response.json();
-			}
-		} catch (err) {
-			console.error('Failed to load summary:', err);
-		}
-	}
 
 	async function handleButtonClick() {
 		if (analysisStatus === 'analyzed' && analysisResult) {
@@ -295,6 +289,11 @@
 			
 			// Reset applying states since we have new suggestions
 			applyingStates = {};
+			
+			// Also refresh summary in case it was regenerated
+			if (fileId) {
+				summary = await summaryStore.refresh(fileId);
+			}
 			
 			onAnalysisComplete(result);
 		} catch (err: any) {

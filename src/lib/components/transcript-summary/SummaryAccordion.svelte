@@ -8,7 +8,7 @@
   import spinner from 'svelte-awesome/icons/spinner';
   import { _, locale } from 'svelte-i18n';
   import { normalizeLanguageCode } from '$lib/utils/language';
-  import DebugPanel from '$lib/components/transcript-analysis/DebugPanel.svelte';
+  import { summaryStore } from '$lib/stores/summaryStore';
 
   let {
     fileId = '',
@@ -32,17 +32,16 @@
     error = null;
 
     try {
-      const response = await fetch(`/api/transcript-summary/${fileId}/`);
+      // Use the shared store which handles checking existence first
+      const loadedSummary = await summaryStore.checkAndLoad(fileId);
       
-      if (response.ok) {
-        summary = await response.json();
+      if (loadedSummary) {
+        summary = loadedSummary;
         // Notify parent component about loaded summary
         onSummaryGenerated(summary);
-      } else if (response.status === 404) {
+      } else {
         // Summary doesn't exist yet - that's ok
         summary = null;
-      } else {
-        throw new Error('Failed to load summary');
       }
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to load summary';
@@ -78,6 +77,8 @@
       }
 
       summary = await response.json();
+      // Update the shared store
+      summaryStore.setSummary(fileId, summary);
       onSummaryGenerated(summary);
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to generate summary';
@@ -227,7 +228,6 @@
   <!-- Debug Panel (only in development) -->
   {#if import.meta.env.DEV}
     <div class="mt-4">
-      <DebugPanel />
     </div>
   {/if}
 </div>

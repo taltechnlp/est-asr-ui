@@ -20,7 +20,8 @@
     "tabs": {
       "summary": "Summary",
       "analysis": "Segment Analysis",
-      "legacy": "Full Analysis"
+      "legacy": "Full Analysis",
+      "position": "Position-Based"
     },
     "summary": {
       "title": "Transcript Summary",
@@ -43,6 +44,17 @@
       "overallQuality": "Overall Quality",
       "summary": "Summary",
       "segmentControl": "Segment Analysis",
+      "positionBasedAnalysis": "Position-Based Analysis",
+      "usePositions": "Use Positions",
+      "useText": "Use Text Matching",
+      "positionInfo": "Position-based analysis uses absolute document positions for more reliable text replacement.",
+      "analyzeAll": "Analyze All Segments",
+      "totalSuggestions": "Total Suggestions",
+      "positionBased": "Position-Based",
+      "applied": "Applied",
+      "failed": "Failed",
+      "positionsUsedSuccess": "Successfully used position-based approach for suggestions",
+      "pendingEdits": "Pending Edits",
       "segment": "Segment",
       "words": "words",
       "analyzeSegment": "Analyze Segment",

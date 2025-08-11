@@ -6,6 +6,7 @@
   import SuggestionCard from './SuggestionCard.svelte';
   import AnalysisPanel from './AnalysisPanel.svelte';
   import SegmentControl from '../transcript-analysis/SegmentControl.svelte';
+  import SegmentControlPosition from '../transcript-analysis/SegmentControlPosition.svelte';
   import Icon from 'svelte-awesome/components/Icon.svelte';
   import comment from 'svelte-awesome/icons/comment';
   import times from 'svelte-awesome/icons/times';
@@ -35,7 +36,7 @@
   let selectedModel = $state('anthropic/claude-3.5-sonnet');
   let analysisType = $state<'full' | 'grammar' | 'punctuation' | 'speaker_diarization' | 'confidence' | 'context'>('full');
   let feedbackMessage = $state<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
-  let activeTab = $state<'analysis' | 'legacy'>('analysis');
+  let activeTab = $state<'analysis' | 'legacy' | 'position'>('position');
 
   const availableModels = [
     { value: 'anthropic/claude-3.5-sonnet', label: 'Claude 3.5 Sonnet' },
@@ -198,9 +199,25 @@
         >
           {$_('transcript.tabs.legacy')}
         </button>
+        <button
+          class="tab-btn {activeTab === 'position' ? 'active' : ''}"
+          onclick={() => activeTab = 'position'}
+        >
+          {$_('transcript.tabs.position')}
+        </button>
       </div>
 
-      {#if activeTab === 'legacy'}
+      {#if activeTab === 'position'}
+        <div class="chat-content">
+          <SegmentControlPosition
+            {fileId}
+            {editorContent}
+            {audioFilePath}
+            {summary}
+            onSegmentAnalyzed={handleSegmentAnalyzed}
+          />
+        </div>
+      {:else if activeTab === 'legacy'}
         <div class="chat-controls">
           <select
             bind:value={selectedModel}

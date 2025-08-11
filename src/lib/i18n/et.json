@@ -22,7 +22,8 @@
         "tabs": {
             "summary": "Kokkuvõte",
             "analysis": "Segmentide analüüs",
-            "legacy": "Täisanalüüs"
+            "legacy": "Täisanalüüs",
+            "position": "Positsioonipõhine"
         },
         "summary": {
             "title": "Transkriptsiooni kokkuvõte",
@@ -45,6 +46,14 @@
             "overallQuality": "Üldine kvaliteet",
             "summary": "Kokkuvõte",
             "segmentControl": "Segmentide analüüs",
+            "positionBasedAnalysis": "Positsioonipõhine analüüs",
+            "usePositions": "Kasuta positsioone",
+            "useText": "Kasuta tekstivõrdlust",
+            "positionInfo": "Positsioonipõhine analüüs kasutab absoluutseid dokumendi positsioone usaldusväärsemaks teksti asendamiseks.",
+            "analyzeAll": "Analüüsi kõiki segmente",
+            "totalSuggestions": "Ettepanekuid kokku",
+            "positionBased": "Positsioonipõhine",
+            "pendingEdits": "Ootel muudatused",
             "segment": "Segment",
             "words": "sõna",
             "analyzeSegment": "Analüüsi segmenti",

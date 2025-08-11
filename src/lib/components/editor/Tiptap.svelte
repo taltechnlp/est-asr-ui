@@ -45,6 +45,7 @@
 	import SummaryAccordion from '../transcript-summary/SummaryAccordion.svelte';
 	import type { TranscriptSummary } from '@prisma/client';
 	import { getCoordinatingAgentClient } from '$lib/agents/coordinatingAgentClient';
+	import { getCoordinatingAgentPositionClient } from '$lib/agents/coordinatingAgentPositionClient';
 	
 
 	interface Props {
@@ -177,10 +178,14 @@
 		let prevEditorDoc: Node = $editor.state.doc;
 		const schema = $editor.schema;
 
-		// Set the editor in the coordinating agent for transaction support
+		// Set the editor in the coordinating agents for transaction support
 		try {
 			const agent = getCoordinatingAgentClient();
 			agent.setEditor($editor);
+			
+			// Also set for position-based agent
+			const positionAgent = getCoordinatingAgentPositionClient();
+			positionAgent.setEditor($editor);
 		} catch (error) {
 			console.warn('Failed to set editor in coordinating agent:', error);
 		}

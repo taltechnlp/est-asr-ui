@@ -17,6 +17,12 @@
             "emptyState": "Napsauta 'Analysoi' aloittaaksesi litteroinnin analysoinnin.",
             "hint": "Ctrl+/ paneelin avaamiseksi"
         },
+        "tabs": {
+            "summary": "Yhteenveto",
+            "analysis": "Segmenttianalyysi",
+            "legacy": "Täydellinen analyysi",
+            "position": "Sijaintipohjainen"
+        },
         "analysis": {
             "full": "Täydellinen analyysi",
             "grammar": "Kieliopin tarkistus",
@@ -27,6 +33,14 @@
             "overallQuality": "Kokonaislaatu",
             "summary": "Yhteenveto",
             "segmentControl": "Segmenttien analyysi",
+            "positionBasedAnalysis": "Sijaintipohjainen analyysi",
+            "usePositions": "Käytä sijainteja",
+            "useText": "Käytä tekstin vertailua",
+            "positionInfo": "Sijaintipohjainen analyysi käyttää absoluuttisia asiakirjan sijainteja luotettavampaan tekstin korvaamiseen.",
+            "analyzeAll": "Analysoi kaikki segmentit",
+            "totalSuggestions": "Ehdotuksia yhteensä",
+            "positionBased": "Sijaintipohjainen",
+            "pendingEdits": "Odottavat muutokset",
             "segment": "Segmentti",
             "words": "sanaa",
             "analyzeSegment": "Analysoi segmenttiä",

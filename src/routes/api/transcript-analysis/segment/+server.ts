@@ -1,6 +1,11 @@
 import type { RequestHandler } from "./$types";
 import { json } from "@sveltejs/kit";
 import { getCoordinatingAgent } from "$lib/agents/coordinatingAgentSimple";
+import { getPositionAwareAgent } from "$lib/agents/coordinatingAgentPosition";
+import { extractSpeakerSegmentsWithPositions } from "$lib/services/positionAwareExtractor";
+import { Editor } from "@tiptap/core";
+import Document from '@tiptap/extension-document';
+import Text from '@tiptap/extension-text';
 import { prisma } from "$lib/db/client";
 import { z } from "zod";
 import type { SegmentWithTiming } from "$lib/utils/extractWordsFromEditor";
@@ -26,6 +31,8 @@ const AnalyzeSegmentSchema = z.object({
   summaryId: z.string(),
   audioFilePath: z.string(),
   uiLanguage: z.string().optional(),
+  usePositions: z.boolean().optional().default(false),
+  editorContent: z.any().optional(), // For position-based analysis
 });
 
 export const POST: RequestHandler = async ({ request, locals }) => {
@@ -38,7 +45,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
     // Parse and validate request
     const body = await request.json();
-    const { fileId, segment, summaryId, audioFilePath, uiLanguage } = AnalyzeSegmentSchema.parse(body);
+    const { fileId, segment, summaryId, audioFilePath, uiLanguage, usePositions, editorContent } = AnalyzeSegmentSchema.parse(body);
     
     // Validate UI language if provided
     if (uiLanguage && !isSupportedLanguage(uiLanguage)) {
@@ -74,15 +81,44 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     // Use the actual file path from database if audioFilePath is not provided correctly
     const actualAudioPath = audioFilePath || file.path;
 
-    // Analyze segment using coordinating agent
-    const agent = getCoordinatingAgent();
-    const result = await agent.analyzeSegment({
-      fileId,
-      segment: segment as SegmentWithTiming,
-      summary,
-      audioFilePath: actualAudioPath,
-      uiLanguage,
-    });
+    let result;
+    
+    if (usePositions && editorContent) {
+      // Use position-based approach
+      // Create a minimal editor for position extraction
+      // We don't need all extensions, just the basic structure
+      const editor = new Editor({
+        extensions: [
+          Document,
+          Text,
+        ],
+        content: editorContent,
+      });
+
+      const segments = extractSpeakerSegmentsWithPositions(editor);
+      const positionAgent = getPositionAwareAgent();
+      positionAgent.setEditor(editor);
+      
+      result = await positionAgent.analyzeWithPositions({
+        fileId,
+        segments,
+        summary,
+        audioFilePath: actualAudioPath,
+        uiLanguage,
+      });
+      
+      editor.destroy();
+    } else {
+      // Use text-based approach (default)
+      const agent = getCoordinatingAgent();
+      result = await agent.analyzeSegment({
+        fileId,
+        segment: segment as SegmentWithTiming,
+        summary,
+        audioFilePath: actualAudioPath,
+        uiLanguage,
+      });
+    }
 
     // Get the saved analysis segment
     const analysisSegment = await prisma.analysisSegment.findUnique({
