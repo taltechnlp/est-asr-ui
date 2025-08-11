@@ -76,7 +76,22 @@
             "networkError": "Võrguühenduse viga. Palun kontrollige internetiühendust ja proovige uuesti.",
             "apiKeyMissing": "API võti pole seadistatud. Palun võtke ühendust administraatoriga.",
             "unauthorized": "Volitamata. Palun logige uuesti sisse.",
-            "genericError": "Analüüsi ajal tekkis viga. Palun proovige uuesti."
+            "genericError": "Analüüsi ajal tekkis viga. Palun proovige uuesti.",
+            "analyzingStatus": "Analüüsin segmenti",
+            "analyzingMessage": "Saate jätkata redigeerimist, kuni analüüs töötab taustal",
+            "analysisSteps": "Analüüsi sammud",
+            "tools": {
+                "speechRecognition": "Kõnetuvastuse analüüs",
+                "speechRecognitionDesc": "Alternatiivsete transkriptsioonide eraldamine täiustatud kõnetuvastuse abil",
+                "factChecking": "Faktikontroll",
+                "factCheckingDesc": "Nimede ja tehniliste terminite kontrollimine veebiotsingu kaudu",
+                "languageAnalysis": "Keeleanalüüs",
+                "languageAnalysisDesc": "Grammatika, sidususe ja konteksti analüüsimine",
+                "enhancedAnalysis": "Täiustatud analüüs",
+                "enhancedAnalysisDesc": "Kõnetuvastuse tulemuste kombineerimine keeleanalüüsiga",
+                "positionTracking": "Asukoha jälgimine",
+                "positionTrackingDesc": "Teksti positsioonide kaardistamine täpsete asenduste jaoks"
+            }
         },
         "quality": {
             "excellent": "Suurepärane",

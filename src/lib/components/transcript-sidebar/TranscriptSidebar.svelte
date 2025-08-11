@@ -14,6 +14,7 @@
   import exclamationTriangle from 'svelte-awesome/icons/exclamationTriangle';
   import wrench from 'svelte-awesome/icons/wrench';
   import SegmentControlPosition from '../transcript-analysis/SegmentControlPosition.svelte';
+  import ToolProgressDisplay from '../transcript-analysis/ToolProgressDisplay.svelte';
   import { _, locale } from 'svelte-i18n';
   import { selectedSegmentStore } from '$lib/stores/selectedSegmentStore';
   import { analysisStateStore } from '$lib/stores/analysisStateStore';
@@ -21,6 +22,7 @@
   import { editor as editorStore } from '$lib/stores.svelte';
   import { getReconciliationService } from '$lib/services/editReconciliation';
   import { getPositionMapper } from '$lib/services/positionMapper';
+  import type { ToolProgress } from '$lib/agents/tools/toolMetadata';
   
   let {
     fileId = '',
@@ -39,6 +41,7 @@
   let applyingStates = $state<Record<number, boolean>>({});
   let documentVersionAtAnalysis = $state<any>(null);
   let reconciliationService = $state<any>(null);
+  let toolProgress = $state<ToolProgress[]>([]);
   
   // Subscribe to shared analysis state
   let analysisState = $state<any>(null);
@@ -158,6 +161,13 @@
     // Set shared state to analyzing
     analysisStateStore.startAnalysis(fileId, selectedSegment.index);
     
+    // Initialize tool progress
+    toolProgress = [
+      { toolId: 'llm_analysis', status: 'running', startTime: Date.now() },
+      { toolId: 'asr_nbest', status: 'pending' },
+      { toolId: 'enhanced_analysis', status: 'pending' }
+    ];
+    
     try {
       // Create segment object with required fields
       const segment = {
@@ -173,6 +183,27 @@
       };
       
       console.log('Sending segment to API:', segment);
+      
+      // Simulate tool progress updates after initial delay
+      setTimeout(() => {
+        if (isAnalyzing) {
+          toolProgress = [
+            { toolId: 'llm_analysis', status: 'completed', startTime: toolProgress[0].startTime, endTime: Date.now() },
+            { toolId: 'asr_nbest', status: 'running', startTime: Date.now() },
+            { toolId: 'enhanced_analysis', status: 'pending' }
+          ];
+        }
+      }, 3000);
+      
+      setTimeout(() => {
+        if (isAnalyzing) {
+          toolProgress = [
+            { toolId: 'llm_analysis', status: 'completed', startTime: toolProgress[0].startTime, endTime: toolProgress[0].endTime },
+            { toolId: 'asr_nbest', status: 'completed', startTime: toolProgress[1].startTime, endTime: Date.now() },
+            { toolId: 'enhanced_analysis', status: 'running', startTime: Date.now() }
+          ];
+        }
+      }, 8000);
       
       // Call the same endpoint as the popup component
       const currentLocale = normalizeLanguageCode($locale);
@@ -239,11 +270,30 @@
       analysisStateStore.completeAnalysis(fileId, selectedSegment.index);
       onSegmentAnalyzed(segmentAnalysisResult);
       
+      // Update tool progress to show all completed
+      toolProgress = [
+        { toolId: 'llm_analysis', status: 'completed', startTime: toolProgress[0].startTime, endTime: toolProgress[0].endTime || Date.now() },
+        { toolId: 'asr_nbest', status: 'completed', startTime: toolProgress[1].startTime || Date.now() - 5000, endTime: toolProgress[1].endTime || Date.now() - 2000 },
+        { toolId: 'enhanced_analysis', status: 'completed', startTime: toolProgress[2].startTime || Date.now() - 2000, endTime: Date.now() }
+      ];
+      
       // Automatically apply suggestions marked with shouldAutoApply
       await applyAutoSuggestions(segmentAnalysisResult);
     } catch (err) {
       console.error('Segment analysis error:', err);
       analysisStateStore.setError(fileId, err instanceof Error ? err.message : 'Analysis failed');
+      
+      // Update tool progress to show error
+      const currentTool = toolProgress.find(t => t.status === 'running');
+      if (currentTool) {
+        toolProgress = toolProgress.map(t => 
+          t.toolId === currentTool.toolId 
+            ? { ...t, status: 'error', endTime: Date.now(), error: 'Analysis failed' }
+            : t.status === 'pending' 
+              ? { ...t, status: 'skipped' }
+              : t
+        );
+      }
     }
   }
   
@@ -493,10 +543,16 @@
           
           <!-- Analysis in Progress Notice -->
           {#if isAnalyzing}
-            <div class="analysis-notice info">
-              <Icon data={spinner} spin scale={0.9} />
-              <span>Analyzing segment... You can continue editing</span>
+            <div class="analysis-status">
+              <div class="status-header">
+                <Icon data={spinner} spin scale={0.9} />
+                <span class="status-text">{$_('transcript.analysis.analyzingStatus')}</span>
+              </div>
+              <p class="status-message">{$_('transcript.analysis.analyzingMessage')}</p>
             </div>
+            
+            <!-- Tool Progress Display -->
+            <ToolProgressDisplay {toolProgress} showCompleted={false} />
           {/if}
           
           <!-- Analysis Results -->
@@ -936,34 +992,32 @@
     color: #9ca3af;
   }
   
-  .analysis-notice {
+  .analysis-status {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: #f0f9ff;
+    border-left: 3px solid #3b82f6;
+    border-radius: 0.25rem;
+  }
+  
+  .status-header {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin-top: 0.75rem;
-    padding: 0.75rem;
-    background: #fef3c7;
-    border: 1px solid #fbbf24;
-    border-radius: 0.375rem;
-    color: #92400e;
-    font-size: 0.875rem;
-    font-weight: 500;
-    animation: pulse 2s infinite;
+    margin-bottom: 0.25rem;
   }
   
-  .analysis-notice.info {
-    background: #dbeafe;
-    border-color: #60a5fa;
+  .status-text {
+    font-size: 0.875rem;
+    font-weight: 600;
     color: #1e40af;
   }
   
-  @keyframes pulse {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.8;
-    }
+  .status-message {
+    margin: 0;
+    font-size: 0.75rem;
+    color: #64748b;
+    line-height: 1.4;
   }
   
   /* Mobile responsiveness */

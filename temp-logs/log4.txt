@@ -1,0 +1,116 @@
+🤖 LLM Analysis Request
+  Segment: Hille Hanso
+  Text length: 702
+  Duration: 31.57 seconds
+📝 LLM Response Processing
+  Raw response received, length: 1749
+  🔍 JSON Parsing Attempt
+    Response length: 1749
+    First 200 chars: {
+      "analysis": "This Estonian language segment discusses AI-generated text and appears to be discussing LinkedIn content and conference experiences. The speaker describes attempting to make AI-genera
+    ✅ JSON parsed successfully on first attempt
+  Analysis data extracted successfully
+  Suggestions count: 4
+ASRNBestServerNodeTool initialized with endpoint: https://tekstiks.ee/asr/transcribe/alternatives
+Calling ASR N-best tool for segment: {
+  audioFilePath: '/home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/15a88c2c8d724365872f876a41edc0_intekas.mp4',
+  startTime: 800.16,
+  endTime: 831.73
+}
+ASR N-best timing validation: {
+  audioFilePath: '/home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/15a88c2c8d724365872f876a41edc0_intekas.mp4',
+  startTime: '800.160',
+  endTime: '831.730',
+  duration: '31.570',
+  originalText: ''
+}
+Slicing audio from 800.160s to 831.730s (duration: 31.570s)
+AudioSlicer: Slicing audio file {
+  inputPath: '/home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/15a88c2c8d724365872f876a41edc0_intekas.mp4',
+  startTime: '800.160',
+  endTime: '831.730',
+  duration: '31.570',
+  format: 'wav'
+}
+AudioSlicer: Running ffmpeg with args: -ss 800.16 -t 31.57000000000005 -i /home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/15a88c2c8d724365872f876a41edc0_intekas.mp4 -acodec pcm_s16le -ar 16000 -ac 1 -y /home/aivo/dev/est-asr-ui/uploads/temp/slice_5303b281-89a5-4911-aab2-a315aab3fe8a.wav
+AudioSlicer: Slice completed successfully {
+  tempFilePath: '/home/aivo/dev/est-asr-ui/uploads/temp/slice_5303b281-89a5-4911-aab2-a315aab3fe8a.wav',
+  fileSize: 1010318,
+  duration: '31.570',
+  elapsedMs: 73,
+  elapsedSeconds: '0.073'
+}
+Audio slice successful: {
+  tempFilePath: '/home/aivo/dev/est-asr-ui/uploads/temp/slice_5303b281-89a5-4911-aab2-a315aab3fe8a.wav',
+  sliceDuration: 31.57000000000005,
+  expectedDuration: 31.57000000000005,
+  durationDiff: 0
+}
+Making ASR request using curl to: https://tekstiks.ee/asr/transcribe/alternatives?n_best=5
+Curl command: curl -L -X POST "https://tekstiks.ee/asr/transcribe/alternatives?n_best=5" -F "file=@/home/aivo/dev/est-asr-ui/uploads/temp/slice_5303b281-89a5-4911-aab2-a315aab3fe8a.wav" -H "Accept: application/json" 2>&1
+Curl full output:   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100  988k  100  2038  100  986k     35  17559  0:00:58  0:00:57  0:00:01   561
+{"text":"Aiga genereeritud tekstid siis ära tunda seda AI-d, et ma olen vahel isegi nagu mõne puhul, ma olen mingi teksti kirjutanud, tema abil öelnud, et palun tee see nüüd vähem AIlikuks ja noh, siis ta näeb vaeva, et, et see oleks nagu inimlikum see tekst, sest noh, ma ei tea, see selles, sellest saab päris hästi muidu aru, et, et ongi tänapäeval LinkedIni lähed, siis ma ei tea, minu arust üheksakümmend protsenti sisust on seal õige kirjutatud, et inimesed on kõik. Sa võiks IT-d, ma käisin siin konverentsil, ma kuulsin seda ja siis sa saad aru, et noh, see ei ole see, kuidas nad nagu päriselt räägi","alternatives":[{"text":"Aiga genereeritud tekstid siis ära tunda seda AI-d, et ma olen vahel isegi nagu mõne puhul, ma olen mingi teksti kirjutanud, tema abil öelnud, et palun tee see nüüd vähem AIlikuks ja noh, siis ta näeb vaeva, et, et see oleks nagu inimlikum see tekst, sest noh, ma ei tea, see selles, sellest saab päris hästi muidu aru, et, et ongi tänapäeval LinkedIni lähed, siis ma ei tea, minu arust üheksakümmend protsenti sisust on seal õige kirjutatud, et inimesed on kõik. Sa võiks IT-d, ma käisin siin konverentsil, ma kuulsin seda ja siis sa saad aru, et noh, see ei ole see, kuidas nad nagu päriselt räägi","beam_size":10},{"text":"Aiga genereeritud tekstid siis ära tunda seda AI-d, et ma olen vahel isegi nagu mõne puhul, ma olen mingi teksti kirjutanud, tema abil öelnud, et palun tee see nüüd vähem AIlikuks ja noh, siis ta näeb, näeb vaeva, et, et see oleks nagu inimlikum see tekst, sest noh, ma ei tea, see selles, sellest saab päris hästi muidu aru, et, et ongi tänapäeval LinkedIni lähed, siis ma ei tea, minu arust üheksakümmend protsenti sisust on seal õige kirjutatud, et inimesed on kõik. Sa võiks IT-d, ma käisin siin konverentsil, ma kuulsin seda ja siis sa saad aru, et noh, see ei ole see, kuidas nad nagu päriselt räägi","beam_size":15,"rank":2,"confidence":0.85}],"language":"et","duration":31.57,"is_final":true,"error":null}
+ASR API raw response length: 1974
+ASR API response structure: {
+  hasText: true,
+  hasAlternatives: true,
+  alternativesCount: 2,
+  hasError: false,
+  keys: [
+    'text',
+    'alternatives',
+    'language',
+    'duration',
+    'is_final',
+    'error'
+  ]
+}
+ASR N-best results saved to: /home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/asr-nbest/15a88c2c8d724365872f876a41edc0_intekas/nbest_800.2-831.7s_2025-08-11T12-55-01-304Z.json
+AudioSlicer: Cleaned up temp file: /home/aivo/dev/est-asr-ui/uploads/temp/slice_5303b281-89a5-4911-aab2-a315aab3fe8a.wav
+ASR N-best results received: {
+  alternatives: [
+    {
+      text: 'Aiga genereeritud tekstid siis ära tunda seda AI-d, et ma olen vahel isegi nagu mõne puhul, ma olen mingi teksti kirjutanud, tema abil öelnud, et palun tee see nüüd vähem AIlikuks ja noh, siis ta näeb vaeva, et, et see oleks nagu inimlikum see tekst, sest noh, ma ei tea, see selles, sellest saab päris hästi muidu aru, et, et ongi tänapäeval LinkedIni lähed, siis ma ei tea, minu arust üheksakümmend protsenti sisust on seal õige kirjutatud, et inimesed on kõik. Sa võiks IT-d, ma käisin siin konverentsil, ma kuulsin seda ja siis sa saad aru, et noh, see ei ole see, kuidas nad nagu päriselt räägi',
+      confidence: 0.9
+    },
+    {
+      text: 'Aiga genereeritud tekstid siis ära tunda seda AI-d, et ma olen vahel isegi nagu mõne puhul, ma olen mingi teksti kirjutanud, tema abil öelnud, et palun tee see nüüd vähem AIlikuks ja noh, siis ta näeb, näeb vaeva, et, et see oleks nagu inimlikum see tekst, sest noh, ma ei tea, see selles, sellest saab päris hästi muidu aru, et, et ongi tänapäeval LinkedIni lähed, siis ma ei tea, minu arust üheksakümmend protsenti sisust on seal õige kirjutatud, et inimesed on kõik. Sa võiks IT-d, ma käisin siin konverentsil, ma kuulsin seda ja siis sa saad aru, et noh, see ei ole see, kuidas nad nagu päriselt räägi',
+      confidence: 0.85
+    }
+  ],
+  primaryText: 'Aiga genereeritud tekstid siis ära tunda seda AI-d, et ma olen vahel isegi nagu mõne puhul, ma olen mingi teksti kirjutanud, tema abil öelnud, et palun tee see nüüd vähem AIlikuks ja noh, siis ta näeb vaeva, et, et see oleks nagu inimlikum see tekst, sest noh, ma ei tea, see selles, sellest saab päris hästi muidu aru, et, et ongi tänapäeval LinkedIni lähed, siis ma ei tea, minu arust üheksakümmend protsenti sisust on seal õige kirjutatud, et inimesed on kõik. Sa võiks IT-d, ma käisin siin konverentsil, ma kuulsin seda ja siis sa saad aru, et noh, see ei ole see, kuidas nad nagu päriselt räägi',
+  duration: 31.57
+}
+Performing enhanced analysis with ASR results for segment: undefined
+Original text: Haiga  genereeritud  tekstides  ära  tunda  seda  vaid,  et  ma  olen  vahel  isegi  nagu  mõne  puhul,  noh,  kui  ma  olen  mingi  teksti  kirjutanud,  tema  abil  öelnud,  et  palun  tee  see  nüüd  vähe  maa  iilikuks  ja  noh,  siis  ta  näeb,  näeb  vaeva.  Et,  et  seal  oleks  kui  inimlikum  see  tekst,  sest  noh,  ma  ei  tea,  see  selles,  selles  saab  päris  hästi  muidu  aru,  et  et  ongi  tänapäeval  Linktilin  läheduses,  ma  ei  tea,  190  protsenti  sisust  on  seal  haiga  kirjutatud,  et  inimesed  on  kõik  sooviks  aiti.  Ma  käisin  siin  konverentsil,  ma  kuulsin  seda  ja  siis  sa  saad  aru,  et  no  see  ei  ole  see,  kuidas  nad  nagu  päriselt  räägivad,  et.
+ASR alternatives: [
+  {
+    text: 'Aiga genereeritud tekstid siis ära tunda seda AI-d, et ma olen vahel isegi nagu mõne puhul, ma olen mingi teksti kirjutanud, tema abil öelnud, et palun tee see nüüd vähem AIlikuks ja noh, siis ta näeb vaeva, et, et see oleks nagu inimlikum see tekst, sest noh, ma ei tea, see selles, sellest saab päris hästi muidu aru, et, et ongi tänapäeval LinkedIni lähed, siis ma ei tea, minu arust üheksakümmend protsenti sisust on seal õige kirjutatud, et inimesed on kõik. Sa võiks IT-d, ma käisin siin konverentsil, ma kuulsin seda ja siis sa saad aru, et noh, see ei ole see, kuidas nad nagu päriselt räägi',
+    confidence: 0.9
+  },
+  {
+    text: 'Aiga genereeritud tekstid siis ära tunda seda AI-d, et ma olen vahel isegi nagu mõne puhul, ma olen mingi teksti kirjutanud, tema abil öelnud, et palun tee see nüüd vähem AIlikuks ja noh, siis ta näeb, näeb vaeva, et, et see oleks nagu inimlikum see tekst, sest noh, ma ei tea, see selles, sellest saab päris hästi muidu aru, et, et ongi tänapäeval LinkedIni lähed, siis ma ei tea, minu arust üheksakümmend protsenti sisust on seal õige kirjutatud, et inimesed on kõik. Sa võiks IT-d, ma käisin siin konverentsil, ma kuulsin seda ja siis sa saad aru, et noh, see ei ole see, kuidas nad nagu päriselt räägi',
+    confidence: 0.85
+  }
+]
+🔬 Enhanced Analysis with ASR Results
+  Sending enhanced prompt to LLM
+  Enhanced response received, length: 1915
+  🔍 JSON Parsing Attempt
+    Response length: 1915
+    First 200 chars: {
+      "analysis": "The ASR alternatives reveal several English terms and technical phrases that were incorrectly transcribed as Estonian words. The specialized ASR model better handles mixed-language co
+    ✅ JSON parsed successfully on first attempt
+  ✅ Enhanced analysis produced 5 suggestions
+No search results found for query: "LinkedIn"
+Web search for "LinkedIn": {"query":"LinkedIn","results":[],"totalResults":0}
+✅ Marked for auto-apply: "haiga" → "AI-ga"
+✅ Marked for auto-apply: "Linktilin" → "LinkedIni"
+✅ Marked for auto-apply: "aiti" → "IT-d"
+✅ Marked for auto-apply: "vähe maa iilikuks" → "vähem AIlikuks"
+✅ Marked for auto-apply: "190 protsenti" → "üheksakümmend protsenti"
+📊 Processed 5 suggestions:
+  - 5 marked for auto-apply
+  - 0 require manual review

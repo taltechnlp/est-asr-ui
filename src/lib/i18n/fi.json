@@ -63,7 +63,22 @@
             "networkError": "Verkkoyhteysvirhe. Tarkista internetyhteytesi ja yritä uudelleen.",
             "apiKeyMissing": "API-avainta ei ole määritetty. Ota yhteyttä ylläpitäjään.",
             "unauthorized": "Ei valtuutusta. Kirjaudu sisään uudelleen.",
-            "genericError": "Analysoinnissa tapahtui virhe. Yritä uudelleen."
+            "genericError": "Analysoinnissa tapahtui virhe. Yritä uudelleen.",
+            "analyzingStatus": "Analysoidaan segmenttiä",
+            "analyzingMessage": "Voit jatkaa editointia analyysin aikana taustalla",
+            "analysisSteps": "Analyysin vaiheet",
+            "tools": {
+                "speechRecognition": "Puheentunnistusanalyysi",
+                "speechRecognitionDesc": "Vaihtoehtoisten transkriptioiden poimiminen edistyneellä puheentunnistuksella",
+                "factChecking": "Faktojen tarkistus",
+                "factCheckingDesc": "Nimien ja teknisten termien tarkistaminen verkkohaulla",
+                "languageAnalysis": "Kielianalyysi",
+                "languageAnalysisDesc": "Kieliopin, johdonmukaisuuden ja kontekstin analysointi",
+                "enhancedAnalysis": "Parannettu analyysi",
+                "enhancedAnalysisDesc": "Puheentunnistuksen tulosten yhdistäminen kielianalyysiin",
+                "positionTracking": "Sijainnin seuranta",
+                "positionTrackingDesc": "Tekstin sijaintien kartoitus tarkkoihin korvauksiin"
+            }
         },
         "quality": {
             "excellent": "Erinomainen",

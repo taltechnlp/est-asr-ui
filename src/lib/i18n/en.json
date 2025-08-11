@@ -77,7 +77,22 @@
       "apiKeyMissing": "API key not configured. Please contact the administrator.",
       "unauthorized": "Unauthorized. Please log in again.",
       "genericError": "An error occurred during analysis. Please try again.",
-      "analyze": "Analyze"
+      "analyze": "Analyze",
+      "analyzingStatus": "Analyzing segment",
+      "analyzingMessage": "You can continue editing while analysis runs in the background",
+      "analysisSteps": "Analysis Steps",
+      "tools": {
+        "speechRecognition": "Speech Recognition Analysis",
+        "speechRecognitionDesc": "Extracting alternative transcriptions using advanced speech recognition",
+        "factChecking": "Fact Checking",
+        "factCheckingDesc": "Verifying names and technical terms through web search",
+        "languageAnalysis": "Language Analysis",
+        "languageAnalysisDesc": "Analyzing grammar, coherence, and context",
+        "enhancedAnalysis": "Enhanced Analysis",
+        "enhancedAnalysisDesc": "Combining speech recognition results with language analysis",
+        "positionTracking": "Position Tracking",
+        "positionTrackingDesc": "Mapping text positions for accurate replacements"
+      }
     },
     "quality": {
       "excellent": "Excellent",
