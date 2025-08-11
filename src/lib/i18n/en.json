@@ -19,7 +19,7 @@
     },
     "tabs": {
       "summary": "Summary",
-      "analysis": "Segment Analysis",
+      "analysis": "Text Blocks",
       "legacy": "Full Analysis",
       "position": "Position-Based"
     },
@@ -43,21 +43,21 @@
       "context": "Context validation",
       "overallQuality": "Overall Quality",
       "summary": "Summary",
-      "segmentControl": "Segment Analysis",
+      "segmentControl": "Text Blocks",
       "positionBasedAnalysis": "Position-Based Analysis",
       "usePositions": "Use Positions",
       "useText": "Use Text Matching",
       "positionInfo": "Position-based analysis uses absolute document positions for more reliable text replacement.",
-      "analyzeAll": "Analyze All Segments",
+      "analyzeAll": "Analyze All Text Blocks",
       "totalSuggestions": "Total Suggestions",
       "positionBased": "Position-Based",
       "applied": "Applied",
       "failed": "Failed",
       "positionsUsedSuccess": "Successfully used position-based approach for suggestions",
       "pendingEdits": "Pending Edits",
-      "segment": "Segment",
+      "segment": "Text Block",
       "words": "words",
-      "analyzeSegment": "Analyze Segment",
+      "analyzeSegment": "Analyze Text Block",
       "analyzing": "Analyzing...",
       "reanalyze": "Re-analyze",
       "reanalyzing": "Re-analyzing...",
@@ -67,7 +67,7 @@
       "suggestionCount": "suggestions",
       "noSuggestions": "No suggestions",
       "alternatives": "Alternative Transcriptions",
-      "noSegments": "No segments available. Please ensure the transcript is loaded.",
+      "noSegments": "No text blocks available. Please ensure the transcript is loaded.",
       "viewAnalysis": "View analysis results",
       "error": "Analysis error",
       "analyzed": "Analyzed",
@@ -131,12 +131,12 @@
       }
     },
     "sidebar": {
-      "title": "Segment Analysis",
+      "title": "Text Block Analysis",
       "expand": "Expand sidebar",
       "collapse": "Collapse sidebar",
-      "segmentText": "Segment Text",
-      "noSegmentSelected": "No segment selected",
-      "clickToSelect": "Click on a segment in the editor to analyze it"
+      "segmentText": "Block Text",
+      "noSegmentSelected": "No text block selected",
+      "clickToSelect": "Click on a text block in the editor to analyze it"
     }
   },
   "newAccount": {

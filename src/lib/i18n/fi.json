@@ -19,7 +19,7 @@
         },
         "tabs": {
             "summary": "Yhteenveto",
-            "analysis": "Segmenttianalyysi",
+            "analysis": "Tekstilohkot",
             "legacy": "Täydellinen analyysi",
             "position": "Sijaintipohjainen"
         },
@@ -32,18 +32,18 @@
             "context": "Kontekstin validointi",
             "overallQuality": "Kokonaislaatu",
             "summary": "Yhteenveto",
-            "segmentControl": "Segmenttien analyysi",
+            "segmentControl": "Tekstilohkot",
             "positionBasedAnalysis": "Sijaintipohjainen analyysi",
             "usePositions": "Käytä sijainteja",
             "useText": "Käytä tekstin vertailua",
             "positionInfo": "Sijaintipohjainen analyysi käyttää absoluuttisia asiakirjan sijainteja luotettavampaan tekstin korvaamiseen.",
-            "analyzeAll": "Analysoi kaikki segmentit",
+            "analyzeAll": "Analysoi kaikki tekstilohkot",
             "totalSuggestions": "Ehdotuksia yhteensä",
             "positionBased": "Sijaintipohjainen",
             "pendingEdits": "Odottavat muutokset",
-            "segment": "Segmentti",
+            "segment": "Tekstilohko",
             "words": "sanaa",
-            "analyzeSegment": "Analysoi segmenttiä",
+            "analyzeSegment": "Analysoi tekstilohkoa",
             "analyzing": "Analysoin...",
             "reanalyze": "Analysoi uudelleen",
             "reanalyzing": "Analysoin uudelleen...",
@@ -53,7 +53,7 @@
             "suggestionCount": "ehdotusta",
             "noSuggestions": "Ei ehdotuksia",
             "alternatives": "Vaihtoehtoiset transkriptiot",
-            "noSegments": "Segmenttejä ei ole saatavilla. Varmista, että transkriptio on ladattu.",
+            "noSegments": "Tekstilohkoja ei ole saatavilla. Varmista, että transkriptio on ladattu.",
             "viewAnalysis": "Katso analyysin tulokset",
             "error": "Analyysivirhe",
             "analyzed": "Analysoitu",
@@ -104,12 +104,12 @@
             "high": "Korkea"
         },
         "sidebar": {
-            "title": "Segmenttianalyysi",
+            "title": "Tekstilohkon analyysi",
             "expand": "Laajenna sivupalkki",
             "collapse": "Pienennä sivupalkki",
-            "segmentText": "Segmentin teksti",
-            "noSegmentSelected": "Segmenttiä ei valittu",
-            "clickToSelect": "Napsauta editointiohjelmassa segmenttiä analysoidaksesi sen"
+            "segmentText": "Lohkon teksti",
+            "noSegmentSelected": "Tekstilohkoa ei valittu",
+            "clickToSelect": "Napsauta editointiohjelmassa tekstilohkoa analysoidaksesi sen"
         }
     },
     "newAccount": {

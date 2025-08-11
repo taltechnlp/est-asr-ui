@@ -21,7 +21,7 @@
         },
         "tabs": {
             "summary": "Kokkuvõte",
-            "analysis": "Segmentide analüüs",
+            "analysis": "Lõigud",
             "legacy": "Täisanalüüs",
             "position": "Positsioonipõhine"
         },
@@ -45,18 +45,18 @@
             "context": "Konteksti valideerimine",
             "overallQuality": "Üldine kvaliteet",
             "summary": "Kokkuvõte",
-            "segmentControl": "Segmentide analüüs",
+            "segmentControl": "Lõigud",
             "positionBasedAnalysis": "Positsioonipõhine analüüs",
             "usePositions": "Kasuta positsioone",
             "useText": "Kasuta tekstivõrdlust",
             "positionInfo": "Positsioonipõhine analüüs kasutab absoluutseid dokumendi positsioone usaldusväärsemaks teksti asendamiseks.",
-            "analyzeAll": "Analüüsi kõiki segmente",
+            "analyzeAll": "Analüüsi kõiki lõike",
             "totalSuggestions": "Ettepanekuid kokku",
             "positionBased": "Positsioonipõhine",
             "pendingEdits": "Ootel muudatused",
-            "segment": "Segment",
+            "segment": "Lõik",
             "words": "sõna",
-            "analyzeSegment": "Analüüsi segmenti",
+            "analyzeSegment": "Analüüsi lõiku",
             "analyzing": "Analüüsin...",
             "reanalyze": "Analüüsi uuesti",
             "reanalyzing": "Analüüsin uuesti...",
@@ -66,7 +66,7 @@
             "suggestionCount": "ettepanekut",
             "noSuggestions": "Ettepanekuid pole",
             "alternatives": "Alternatiivsed transkriptsioonid",
-            "noSegments": "Segmente pole saadaval. Palun veenduge, et transkriptsioon on laaditud.",
+            "noSegments": "Lõike pole saadaval. Palun veenduge, et transkriptsioon on laaditud.",
             "viewAnalysis": "Vaata analüüsi tulemusi",
             "error": "Analüüsi viga",
             "analyzed": "Analüüsitud",
@@ -117,12 +117,12 @@
             "high": "Kõrge"
         },
         "sidebar": {
-            "title": "Segmendi analüüs",
+            "title": "Lõigu analüüs",
             "expand": "Laienda külgriba",
             "collapse": "Ahenda külgriba",
-            "segmentText": "Segmendi tekst",
-            "noSegmentSelected": "Segment valimata",
-            "clickToSelect": "Klõpsake redaktoris segmendil selle analüüsimiseks"
+            "segmentText": "Lõigu tekst",
+            "noSegmentSelected": "Lõik valimata",
+            "clickToSelect": "Klõpsake redaktoris lõigul selle analüüsimiseks"
         }
     },
     "newAccount": {
