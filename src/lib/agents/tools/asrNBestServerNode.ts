@@ -123,22 +123,79 @@ export class ASRNBestServerNodeTool {
       console.log(`Curl full output: ${stdout}`);
       
       // Extract JSON response from curl output
-      // Look for the actual JSON response after the headers
-      const jsonMatch = stdout.match(/\{[\s\S]*\}(?!.*\{)/);
-      if (!jsonMatch) {
+      // The response may have progress bars and other output mixed in
+      // First, try to find a complete JSON object by looking for balanced braces
+      let jsonResponse = '';
+      
+      // Try to extract JSON starting from the first { to the last }
+      const firstBrace = stdout.indexOf('{');
+      if (firstBrace === -1) {
         console.error('No JSON found in curl output');
         throw new Error(`No JSON response found in curl output: ${stdout}`);
       }
       
-      const jsonResponse = jsonMatch[0];
-      console.log(`ASR API raw response: ${jsonResponse}`);
+      // Find the matching closing brace by counting brace depth
+      let braceDepth = 0;
+      let inString = false;
+      let escapeNext = false;
+      let lastCloseBrace = -1;
+      
+      for (let i = firstBrace; i < stdout.length; i++) {
+        const char = stdout[i];
+        
+        if (escapeNext) {
+          escapeNext = false;
+          continue;
+        }
+        
+        if (char === '\\') {
+          escapeNext = true;
+          continue;
+        }
+        
+        if (char === '"' && !escapeNext) {
+          inString = !inString;
+          continue;
+        }
+        
+        if (!inString) {
+          if (char === '{') {
+            braceDepth++;
+          } else if (char === '}') {
+            braceDepth--;
+            if (braceDepth === 0) {
+              lastCloseBrace = i;
+              break;
+            }
+          }
+        }
+      }
+      
+      if (lastCloseBrace === -1) {
+        console.error('Could not find matching closing brace for JSON');
+        throw new Error(`Malformed JSON in curl output: ${stdout.substring(firstBrace, Math.min(firstBrace + 500, stdout.length))}...`);
+      }
+      
+      jsonResponse = stdout.substring(firstBrace, lastCloseBrace + 1);
+      
+      // Clean up any control characters that might have been injected
+      jsonResponse = jsonResponse.replace(/[\x00-\x1F\x7F]/g, (match) => {
+        // Preserve valid JSON control characters
+        if (match === '\n' || match === '\r' || match === '\t') {
+          return match;
+        }
+        return '';
+      });
+      
+      console.log(`ASR API raw response length: ${jsonResponse.length}`);
       
       let asrResult;
       try {
         asrResult = JSON.parse(jsonResponse);
       } catch (e) {
         console.error('Failed to parse ASR response as JSON:', e);
-        throw new Error(`Invalid ASR response format: ${jsonResponse}`);
+        console.error('First 500 chars of response:', jsonResponse.substring(0, 500));
+        throw new Error(`Invalid ASR response format: ${e.message}`);
       }
 
       // Check if we got the service metadata instead of transcription result
