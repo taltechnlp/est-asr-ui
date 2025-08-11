@@ -1,0 +1,115 @@
+🤖 LLM Analysis Request
+  Segment: Hille Hanso
+  Text length: 849
+  Duration: 43.27 seconds
+📝 LLM Response Processing
+  Raw response received, length: 1340
+  🔍 JSON Parsing Attempt
+    Response length: 1340
+    First 200 chars: {
+      "analysis": "Kõneleja väljendab oma mõtteid AI kasutamise kohta teenusedisainis. Tekst on üldiselt sidus ja järgib loomulikku kõnekeelt. Esineb mõningaid kordusi ja täitesõnu, mis on suulisele kõn
+    ✅ JSON parsed successfully on first attempt
+  Analysis data extracted successfully
+  Suggestions count: 4
+Calling ASR N-best tool for segment: {
+  audioFilePath: '/home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/15a88c2c8d724365872f876a41edc0_intekas.mp4',
+  startTime: 940.89,
+  endTime: 984.16
+}
+ASR N-best timing validation: {
+  audioFilePath: '/home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/15a88c2c8d724365872f876a41edc0_intekas.mp4',
+  startTime: '940.890',
+  endTime: '984.160',
+  duration: '43.270',
+  originalText: ''
+}
+Slicing audio from 940.890s to 984.160s (duration: 43.270s)
+AudioSlicer: Slicing audio file {
+  inputPath: '/home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/15a88c2c8d724365872f876a41edc0_intekas.mp4',
+  startTime: '940.890',
+  endTime: '984.160',
+  duration: '43.270',
+  format: 'wav'
+}
+AudioSlicer: Running ffmpeg with args: -ss 940.89 -t 43.26999999999998 -i /home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/15a88c2c8d724365872f876a41edc0_intekas.mp4 -acodec pcm_s16le -ar 16000 -ac 1 -y /home/aivo/dev/est-asr-ui/uploads/temp/slice_70a45827-7389-42fb-84df-a349efae6269.wav
+AudioSlicer: Slice completed successfully {
+  tempFilePath: '/home/aivo/dev/est-asr-ui/uploads/temp/slice_70a45827-7389-42fb-84df-a349efae6269.wav',
+  fileSize: 1384718,
+  duration: '43.270',
+  elapsedMs: 89,
+  elapsedSeconds: '0.089'
+}
+Audio slice successful: {
+  tempFilePath: '/home/aivo/dev/est-asr-ui/uploads/temp/slice_70a45827-7389-42fb-84df-a349efae6269.wav',
+  sliceDuration: 43.26999999999998,
+  expectedDuration: 43.26999999999998,
+  durationDiff: 0
+}
+Making ASR request using curl to: https://tekstiks.ee/asr/transcribe/alternatives?n_best=5
+Curl command: curl -L -X POST "https://tekstiks.ee/asr/transcribe/alternatives?n_best=5" -F "file=@/home/aivo/dev/est-asr-ui/uploads/temp/slice_70a45827-7389-42fb-84df-a349efae6269.wav" -H "Accept: application/json" 2>&1
+Curl full output:   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100 1354k  100  2329  100 1352k     38  22697  0:01:01  0:01:01 --:--:--   635
+{"text":"Et, et sa pead nagu, nagu kriitiliselt mõtlema, mida sa nagu saad selle AI-le anda, aga, aga mida ei nagu päris inimesi minu jaoks ta ikkagi ei asenda ja ma loodan, et ei hakkagi asendama. Aga ta võiks olla nagu jah, selline hea mingite protsesside kiirendaja või, või mingisuguse sihukese nagu musta töö ära tegija, nii nagu erinevad, ma ei tea digitaliseerimise tööriistad on. Aga ma arvan, et seda full mõju me veel noh, ma arvan, et see oleneb siin nii ruttu, et mina küll ei oska öelda, mis ta siin viie aasta pärast meile juba hakkab nagu pakkuma. Kuigi ajuteadlased ikkagi ütlevad, et ma ei tea, ajuneuronite ja sünopside arv on nii suur, et selleni ikkagi ei jõua veel, aga no näeme, ta läheb","alternatives":[{"text":"Et, et sa pead nagu, nagu kriitiliselt mõtlema, mida sa nagu saad selle AI-le anda, aga, aga mida ei nagu päris inimesi minu jaoks ta ikkagi ei asenda ja ma loodan, et ei hakkagi asendama. Aga ta võiks olla nagu jah, selline hea mingite protsesside kiirendaja või, või mingisuguse sihukese nagu musta töö ära tegija, nii nagu erinevad, ma ei tea digitaliseerimise tööriistad on. Aga ma arvan, et seda full mõju me veel noh, ma arvan, et see oleneb siin nii ruttu, et mina küll ei oska öelda, mis ta siin viie aasta pärast meile juba hakkab nagu pakkuma. Kuigi ajuteadlased ikkagi ütlevad, et ma ei tea, ajuneuronite ja sünopside arv on nii suur, et selleni ikkagi ei jõua veel, aga no näeme, ta läheb","beam_size":10},{"text":"Et, et sa pead nagu, nagu kriitiliselt mõtlema, mida sa nagu saad selle AI-le anda, aga, aga mida ei nagu päris inimesi minu jaoks ta ikkagi ei asenda ja ma loodan, et ei hakkagi asendama. Aga ta võiks olla nagu jah, selline hea mingite protsesside kiirendaja või, või mingisuguse sihukese nagu musta töö ära tegija, nii nagu erinevad, ma ei tea digitaliseerimise tööriistad on. Aga ma arvan, et seda full mõju me veel, noh, ma arvan, et see oleneb siin nii ruttu, et mina küll ei oska öelda, mis ta siin viie aasta pärast meile juba hakkab nagu pakkuma. Kuigi ajuteadlased ikkagi ütlevad, et ma ei tea, ajuneuronite ja sünopside arv on nii suur, et selleni ikkagi ei jõua veel, aga no näeme, ta läheb","beam_size":20,"rank":2,"confidence":0.85}],"language":"et","duration":43.27,"is_final":true,"error":null}
+ASR API raw response length: 2272
+ASR API response structure: {
+  hasText: true,
+  hasAlternatives: true,
+  alternativesCount: 2,
+  hasError: false,
+  keys: [
+    'text',
+    'alternatives',
+    'language',
+    'duration',
+    'is_final',
+    'error'
+  ]
+}
+ASR N-best results saved to: /home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/asr-nbest/15a88c2c8d724365872f876a41edc0_intekas/nbest_940.9-984.2s_2025-08-11T15-36-33-501Z.json
+AudioSlicer: Cleaned up temp file: /home/aivo/dev/est-asr-ui/uploads/temp/slice_70a45827-7389-42fb-84df-a349efae6269.wav
+ASR N-best results received: {
+  alternatives: [
+    {
+      text: 'Et, et sa pead nagu, nagu kriitiliselt mõtlema, mida sa nagu saad selle AI-le anda, aga, aga mida ei nagu päris inimesi minu jaoks ta ikkagi ei asenda ja ma loodan, et ei hakkagi asendama. Aga ta võiks olla nagu jah, selline hea mingite protsesside kiirendaja või, või mingisuguse sihukese nagu musta töö ära tegija, nii nagu erinevad, ma ei tea digitaliseerimise tööriistad on. Aga ma arvan, et seda full mõju me veel noh, ma arvan, et see oleneb siin nii ruttu, et mina küll ei oska öelda, mis ta siin viie aasta pärast meile juba hakkab nagu pakkuma. Kuigi ajuteadlased ikkagi ütlevad, et ma ei tea, ajuneuronite ja sünopside arv on nii suur, et selleni ikkagi ei jõua veel, aga no näeme, ta läheb',
+      confidence: 0.9
+    },
+    {
+      text: 'Et, et sa pead nagu, nagu kriitiliselt mõtlema, mida sa nagu saad selle AI-le anda, aga, aga mida ei nagu päris inimesi minu jaoks ta ikkagi ei asenda ja ma loodan, et ei hakkagi asendama. Aga ta võiks olla nagu jah, selline hea mingite protsesside kiirendaja või, või mingisuguse sihukese nagu musta töö ära tegija, nii nagu erinevad, ma ei tea digitaliseerimise tööriistad on. Aga ma arvan, et seda full mõju me veel, noh, ma arvan, et see oleneb siin nii ruttu, et mina küll ei oska öelda, mis ta siin viie aasta pärast meile juba hakkab nagu pakkuma. Kuigi ajuteadlased ikkagi ütlevad, et ma ei tea, ajuneuronite ja sünopside arv on nii suur, et selleni ikkagi ei jõua veel, aga no näeme, ta läheb',
+      confidence: 0.85
+    }
+  ],
+  primaryText: 'Et, et sa pead nagu, nagu kriitiliselt mõtlema, mida sa nagu saad selle AI-le anda, aga, aga mida ei nagu päris inimesi minu jaoks ta ikkagi ei asenda ja ma loodan, et ei hakkagi asendama. Aga ta võiks olla nagu jah, selline hea mingite protsesside kiirendaja või, või mingisuguse sihukese nagu musta töö ära tegija, nii nagu erinevad, ma ei tea digitaliseerimise tööriistad on. Aga ma arvan, et seda full mõju me veel noh, ma arvan, et see oleneb siin nii ruttu, et mina küll ei oska öelda, mis ta siin viie aasta pärast meile juba hakkab nagu pakkuma. Kuigi ajuteadlased ikkagi ütlevad, et ma ei tea, ajuneuronite ja sünopside arv on nii suur, et selleni ikkagi ei jõua veel, aga no näeme, ta läheb',
+  duration: 43.27
+}
+Performing enhanced analysis with ASR results for segment: Hille Hanso
+Original text: Et,  et  sa  pead  nagu,  nagu  kriitiliselt  mõtlema,  mida  sa  nagu  saad  selle  Oy-le  anda,  aga,  aga  mida  ei  olnud  nagu  päris  inimesi,  minu  jaoks  ta  ikkagi  ei  asenda  ja  ma  loodan,  et  ei  hakka  asendama.  Aga  ta  võiks  olla  nagu  jah,  selline  hea  mingite  protsesside  kiirendaja  või,  või  mingisuguse  siukse  nagu  musta  töö  ärategija,  nii  nagu  erinevad,  ma  ei  tea,  digitaliseerimise  tööriist.  Ta  ta  on.  Aga  ma  arvan,  et  seda  hull  mõju  me  veel,  noh,  ma  arvan,  et  see  areneb  siin  nii  ruttu,  et  mina  küll  ei  oska  öelda,  mis  ta  siin  viie  aasta  pärast  meile  juba  hakkab  nagu  pakkuma.  Kuigi  ajuteadlased  ikkagi  ütlevad,  et  ma  ei  tea,  aju  neuronite  ja  sünapside  arv  on  nii  suur,  et  selleni  ikkagi  ei  jõua  veel,  aga  no  näeme,  ta  läheb  targemaks.
+ASR alternatives: [
+  {
+    text: 'Et, et sa pead nagu, nagu kriitiliselt mõtlema, mida sa nagu saad selle AI-le anda, aga, aga mida ei nagu päris inimesi minu jaoks ta ikkagi ei asenda ja ma loodan, et ei hakkagi asendama. Aga ta võiks olla nagu jah, selline hea mingite protsesside kiirendaja või, või mingisuguse sihukese nagu musta töö ära tegija, nii nagu erinevad, ma ei tea digitaliseerimise tööriistad on. Aga ma arvan, et seda full mõju me veel noh, ma arvan, et see oleneb siin nii ruttu, et mina küll ei oska öelda, mis ta siin viie aasta pärast meile juba hakkab nagu pakkuma. Kuigi ajuteadlased ikkagi ütlevad, et ma ei tea, ajuneuronite ja sünopside arv on nii suur, et selleni ikkagi ei jõua veel, aga no näeme, ta läheb',
+    confidence: 0.9
+  },
+  {
+    text: 'Et, et sa pead nagu, nagu kriitiliselt mõtlema, mida sa nagu saad selle AI-le anda, aga, aga mida ei nagu päris inimesi minu jaoks ta ikkagi ei asenda ja ma loodan, et ei hakkagi asendama. Aga ta võiks olla nagu jah, selline hea mingite protsesside kiirendaja või, või mingisuguse sihukese nagu musta töö ära tegija, nii nagu erinevad, ma ei tea digitaliseerimise tööriistad on. Aga ma arvan, et seda full mõju me veel, noh, ma arvan, et see oleneb siin nii ruttu, et mina küll ei oska öelda, mis ta siin viie aasta pärast meile juba hakkab nagu pakkuma. Kuigi ajuteadlased ikkagi ütlevad, et ma ei tea, ajuneuronite ja sünopside arv on nii suur, et selleni ikkagi ei jõua veel, aga no näeme, ta läheb',
+    confidence: 0.85
+  }
+]
+🔬 Enhanced Analysis with ASR Results
+  Sending enhanced prompt to LLM
+  Enhanced response received, length: 1822
+  🔍 JSON Parsing Attempt
+    Response length: 1822
+    First 200 chars: {
+      "analysis": "ASR alternatiivid näitavad selgelt ingliskeelsete terminite 'AI' ja 'full' kasutamist, mis originaalis olid valesti tuvastatud. Lisaks on ASR paremini tuvastanud tehnilisi termineid n
+    ✅ JSON parsed successfully on first attempt
+  ✅ Enhanced analysis produced 5 suggestions
+No search results found for query: "Oy"
+Web search for "Oy": {"query":"Oy","results":[],"totalResults":0}
+✅ Marked for auto-apply: "Oy-le" → "AI-le"
+✅ Marked for auto-apply: "hull" → "full"
+✅ Marked for auto-apply: "aju neuronite" → "ajuneuronite"
+✅ Marked for auto-apply: "sünapside" → "sünopside"
+✅ Marked for auto-apply: "mida ei olnud nagu päris inimesi" → "mida ei nagu päris inimesi"
+📊 Processed 5 suggestions:
+  - 5 marked for auto-apply
+  - 0 require manual review

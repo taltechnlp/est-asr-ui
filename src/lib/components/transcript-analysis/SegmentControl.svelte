@@ -3,7 +3,8 @@
   import type { AnalysisSegment, TranscriptSummary } from '@prisma/client';
   import type { SegmentWithTiming } from '$lib/utils/extractWordsFromEditor';
   import type { TipTapEditorContent } from '../../../types';
-  import { extractSpeakerSegments } from '$lib/utils/extractWordsFromEditor';
+  import { extractSpeakerSegments as extractSpeakerSegmentsOriginal } from '$lib/utils/extractWordsFromEditor';
+  import { extractSpeakerSegments as extractSpeakerSegmentsAI } from '$lib/utils/extractWordsFromEditorAI';
   import Icon from 'svelte-awesome/components/Icon.svelte';
   import play from 'svelte-awesome/icons/play';
   import chevronLeft from 'svelte-awesome/icons/chevronLeft';
@@ -32,6 +33,13 @@
 
   $effect(() => {
     if (editorContent && !isInitialized) {
+      // Check if document has Word nodes (AI editor) or word marks (original editor)
+      const hasWordNodes = editorContent.content?.some((node: any) => 
+        node.content?.some((child: any) => child.type === 'wordNode')
+      );
+      
+      // Use appropriate extractor based on document structure
+      const extractSpeakerSegments = hasWordNodes ? extractSpeakerSegmentsAI : extractSpeakerSegmentsOriginal;
       const newSegments = extractSpeakerSegments(editorContent);
       segments = newSegments;
       if (newSegments.length > 0) {

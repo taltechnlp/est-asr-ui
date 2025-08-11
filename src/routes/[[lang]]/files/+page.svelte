@@ -246,6 +246,22 @@
 								</a>
 							{:else if file.state == 'READY'}
 								<button class="btn btn-outline btn-xs">{$_('files.openButton')}</button>
+								<button 
+									class="btn btn-accent btn-xs ml-1"
+									onclick={(e) => {
+										e.stopPropagation();
+										goto(`/files/ai/${file.id}`);
+									}}
+									onkeydown={(e) => {
+										if (e.key === 'Enter') {
+											e.stopPropagation();
+											goto(`/files/ai/${file.id}`);
+										}
+									}}
+									title="Open in AI Editor (Beta) - Uses Word Nodes"
+								>
+									AI Editor
+								</button>
 							{/if}
 							
 							<button

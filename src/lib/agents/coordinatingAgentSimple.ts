@@ -486,11 +486,44 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 			const processedSuggestions = [];
 			if (analysisData.suggestions && Array.isArray(analysisData.suggestions)) {
 				for (const suggestion of analysisData.suggestions) {
+					// Compute positions for the suggestion within the segment text
+					let from: number | undefined;
+					let to: number | undefined;
+					
+					if (suggestion.originalText && segment.text) {
+						// Find the position of the original text in the segment
+						const segmentText = segment.text;
+						const searchText = suggestion.originalText;
+						
+						// Try exact match first
+						let index = segmentText.indexOf(searchText);
+						
+						// If not found, try case-insensitive search
+						if (index === -1) {
+							const lowerSegment = segmentText.toLowerCase();
+							const lowerSearch = searchText.toLowerCase();
+							index = lowerSegment.indexOf(lowerSearch);
+						}
+						
+						if (index !== -1) {
+							// Found the text - compute positions
+							// These are character positions within the segment text
+							from = index;
+							to = index + searchText.length;
+							console.log(`📍 Found position for "${searchText}": [${from}, ${to}] in segment`);
+						} else {
+							console.log(`⚠️ Could not find position for "${searchText}" in segment`);
+						}
+					}
+					
 					// Mark high-confidence suggestions for automatic application
 					// These will be applied as diff nodes on the client-side
 					if (suggestion.confidence >= 0.5 && suggestion.originalText && suggestion.suggestedText) {
 						processedSuggestions.push({
 							...suggestion,
+							from,  // Character position in segment
+							to,    // Character position in segment
+							segmentIndex: segment.index,  // Which segment this belongs to
 							shouldAutoApply: true,
 							applied: false,
 							requiresManualReview: false
@@ -500,6 +533,9 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 						// Low confidence suggestions require manual review
 						processedSuggestions.push({
 							...suggestion,
+							from,
+							to,
+							segmentIndex: segment.index,
 							shouldAutoApply: false,
 							applied: false,
 							requiresManualReview: true

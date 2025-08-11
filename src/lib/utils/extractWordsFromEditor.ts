@@ -253,9 +253,6 @@ export function extractSpeakerSegments(content: TipTapEditorContent): SegmentWit
 				}
 			}
 
-			// Log timing information for debugging
-			console.log(`Speaker segment ${segmentIndex}: ${speakerName} - ${startTime.toFixed(2)}s to ${endTime.toFixed(2)}s (${speakerWords.length} words)`);
-
 			segments.push({
 				index: segmentIndex,
 				startTime,

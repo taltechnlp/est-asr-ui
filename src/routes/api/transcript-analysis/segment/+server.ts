@@ -1,11 +1,6 @@
 import type { RequestHandler } from "./$types";
 import { json } from "@sveltejs/kit";
 import { getCoordinatingAgent } from "$lib/agents/coordinatingAgentSimple";
-import { getPositionAwareAgent } from "$lib/agents/coordinatingAgentPosition";
-import { extractSpeakerSegmentsWithPositions } from "$lib/services/positionAwareExtractor";
-import { Editor } from "@tiptap/core";
-import Document from '@tiptap/extension-document';
-import Text from '@tiptap/extension-text';
 import { prisma } from "$lib/db/client";
 import { z } from "zod";
 import type { SegmentWithTiming } from "$lib/utils/extractWordsFromEditor";
@@ -32,7 +27,7 @@ const AnalyzeSegmentSchema = z.object({
   audioFilePath: z.string(),
   uiLanguage: z.string().optional(),
   usePositions: z.boolean().optional().default(false),
-  editorContent: z.any().optional(), // For position-based analysis
+  extractedSegments: z.array(z.any()).optional(), // Client-extracted segments for position mapping
 });
 
 export const POST: RequestHandler = async ({ request, locals }) => {
@@ -45,7 +40,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
     // Parse and validate request
     const body = await request.json();
-    const { fileId, segment, summaryId, audioFilePath, uiLanguage, usePositions, editorContent } = AnalyzeSegmentSchema.parse(body);
+    const { fileId, segment, summaryId, audioFilePath, uiLanguage, usePositions, extractedSegments } = AnalyzeSegmentSchema.parse(body);
     
     // Validate UI language if provided
     if (uiLanguage && !isSupportedLanguage(uiLanguage)) {
@@ -83,31 +78,45 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
     let result;
     
-    if (usePositions && editorContent) {
-      // Use position-based approach
-      // Create a minimal editor for position extraction
-      // We don't need all extensions, just the basic structure
-      const editor = new Editor({
-        extensions: [
-          Document,
-          Text,
-        ],
-        content: editorContent,
-      });
-
-      const segments = extractSpeakerSegmentsWithPositions(editor);
-      const positionAgent = getPositionAwareAgent();
-      positionAgent.setEditor(editor);
+    if (usePositions && extractedSegments && extractedSegments.length > 0) {
+      // Use position-based approach with client-extracted segments
       
-      result = await positionAgent.analyzeWithPositions({
-        fileId,
-        segments,
-        summary,
-        audioFilePath: actualAudioPath,
-        uiLanguage,
-      });
+      // Find the matching segment from extracted segments
+      const targetSegment = extractedSegments.find((s: any) => s.index === segment.index);
       
-      editor.destroy();
+      if (!targetSegment) {
+        console.warn(`Segment ${segment.index} not found in extracted segments, falling back to text-based`);
+        // Fall back to text-based approach
+        const agent = getCoordinatingAgent();
+        result = await agent.analyzeSegment({
+          fileId,
+          segment: segment as SegmentWithTiming,
+          summary,
+          audioFilePath: actualAudioPath,
+          uiLanguage,
+        });
+      } else {
+        // Create suggestion with position information
+        // The suggestions will be applied client-side using the position-aware client
+        const agent = getCoordinatingAgent();
+        result = await agent.analyzeSegment({
+          fileId,
+          segment: targetSegment as SegmentWithTiming,
+          summary,
+          audioFilePath: actualAudioPath,
+          uiLanguage,
+        });
+        
+        // Enhance suggestions with position hints if available
+        if (result.suggestions && Array.isArray(result.suggestions)) {
+          result.suggestions = result.suggestions.map((suggestion: any) => ({
+            ...suggestion,
+            segmentIndex: segment.index,
+            usePositions: true,
+            // The client will handle position mapping using the reconciliation service
+          }));
+        }
+      }
     } else {
       // Use text-based approach (default)
       const agent = getCoordinatingAgent();

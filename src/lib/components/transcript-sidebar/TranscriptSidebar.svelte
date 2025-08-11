@@ -23,6 +23,9 @@
   import { getReconciliationService } from '$lib/services/editReconciliation';
   import { getPositionMapper } from '$lib/services/positionMapper';
   import type { ToolProgress } from '$lib/agents/tools/toolMetadata';
+  // Use AI version if we're in the AI editor (check by looking for Word nodes)
+  import { extractSpeakerSegments as extractSpeakerSegmentsOriginal } from '$lib/utils/extractWordsFromEditor';
+  import { extractSpeakerSegments as extractSpeakerSegmentsAI } from '$lib/utils/extractWordsFromEditorAI';
   
   let {
     fileId = '',
@@ -40,6 +43,8 @@
   let isReanalyzing = $state(false);
   let applyingStates = $state<Record<number, boolean>>({});
   let documentVersionAtAnalysis = $state<any>(null);
+  let documentStateAtAnalysis = $state<any>(null);
+  let segmentAbsolutePosition = $state<number | null>(null);
   let reconciliationService = $state<any>(null);
   let toolProgress = $state<ToolProgress[]>([]);
   
@@ -100,20 +105,82 @@
       return;
     }
     
-    // Find the segment in the editor content
-    const node = editorContent.content.find((n: any) => 
-      n.attrs && n.attrs.id === segment.id
-    );
+    // The most reliable way is to use the index since segment IDs might not match
+    let node = null;
+    
+    // First try to get by index (most reliable for SegmentControl segments)
+    if (segment.index !== undefined && segment.index >= 0) {
+      const speakerNodes = editorContent.content.filter((n: any) => 
+        n.type === 'speaker'
+      );
+      if (speakerNodes[segment.index]) {
+        node = speakerNodes[segment.index];
+      }
+    }
+    
+    // Fallback: try by speaker name and index
+    if (!node && segment.speakerName) {
+      const speakerNodes = editorContent.content.filter((n: any) => 
+        n.attrs && n.attrs['data-name'] === segment.speakerName
+      );
+      if (speakerNodes.length > 0) {
+        // Use index if available, otherwise use first match
+        const relativeIndex = segment.index !== undefined ? 
+          speakerNodes.findIndex((n: any, i: number) => i === segment.index) : 0;
+        node = speakerNodes[relativeIndex >= 0 ? relativeIndex : 0];
+      }
+    }
     
     if (node && node.content) {
-      // Extract text from the node
-      segmentText = node.content
-        .filter((n: any) => n.type === 'text')
-        .map((n: any) => n.text)
-        .join('');
+      // Extract text from the node (handles both text nodes and Word nodes)
+      let extractedText = '';
+      node.content.forEach((n: any) => {
+        if (n.type === 'text') {
+          // Plain text node (spaces, etc.)
+          extractedText += n.text || '';
+        } else if (n.type === 'wordNode') {
+          // Word node - extract text from its content
+          if (n.content && n.content.length > 0) {
+            n.content.forEach((child: any) => {
+              if (child.type === 'text') {
+                extractedText += child.text || '';
+              }
+            });
+          }
+        }
+      });
+      segmentText = extractedText.trim();
     } else {
       segmentText = segment.text || '';
     }
+  }
+  
+  // Helper function to find text near a position
+  function findTextNearPosition(doc: any, searchText: string, nearPos: number, radius: number = 100): { from: number; to: number } | null {
+    const start = Math.max(0, nearPos - radius);
+    const end = Math.min(doc.content.size, nearPos + radius);
+    
+    try {
+      const searchArea = doc.textBetween(start, end, ' ');
+      const normalizedSearch = searchText.toLowerCase().trim();
+      const normalizedArea = searchArea.toLowerCase();
+      
+      const index = normalizedArea.indexOf(normalizedSearch);
+      if (index !== -1) {
+        const foundFrom = start + index;
+        const foundTo = foundFrom + searchText.length;
+        
+        // Verify the found text
+        const foundText = doc.textBetween(foundFrom, foundTo);
+        if (foundText.toLowerCase().trim() === normalizedSearch) {
+          return { from: foundFrom, to: foundTo };
+        }
+      }
+    } catch (e) {
+      console.error('Error in findTextNearPosition:', e);
+    }
+    
+    return null;
   }
   
   function toggleCollapsed() {
@@ -145,12 +212,90 @@
       return;
     }
     
-    // Store document version at analysis time
+    // Extract all speaker segments from editor content for position tracking
+    let extractedSegments = [];
+    if (editorContent) {
+      try {
+        // Check if document has Word nodes (AI editor) or word marks (original editor)
+        const hasWordNodes = editorContent.content?.some((node: any) => 
+          node.content?.some((child: any) => child.type === 'wordNode')
+        );
+        
+        // Use appropriate extractor based on document structure
+        const extractSpeakerSegments = hasWordNodes ? extractSpeakerSegmentsAI : extractSpeakerSegmentsOriginal;
+        extractedSegments = extractSpeakerSegments(editorContent);
+      } catch (e) {
+        console.error('Failed to extract segments:', e);
+      }
+    }
+    
+    // Store document version and state at analysis time
     const editor = $editorStore;
     if (editor) {
       const mapper = getPositionMapper(editor);
       documentVersionAtAnalysis = mapper.getVersion();
-      console.log('📸 Captured document version:', documentVersionAtAnalysis);
+      documentStateAtAnalysis = editor.state.doc;
+      
+      // Find the absolute position of the selected segment in the document
+      segmentAbsolutePosition = null;
+      
+      // Use the actual segment text that we're analyzing
+      const searchText = segmentText;
+      
+      if (searchText && editor) {
+        const doc = editor.state.doc;
+        
+        console.log(`Looking for segment ${selectedSegment?.index} with text: "${searchText.substring(0, 50)}..."`);
+        
+        // Search for the exact segment text in the document
+        let found = false;
+        let occurrenceCount = 0;
+        
+        doc.nodesBetween(0, doc.content.size, (node, pos) => {
+          if (!found && node.isText && node.text) {
+            // Look for exact match of the segment text
+            const nodeText = node.text;
+            let searchIndex = 0;
+            
+            while (searchIndex < nodeText.length) {
+              const index = nodeText.indexOf(searchText, searchIndex);
+              if (index === -1) break;
+              
+              occurrenceCount++;
+              const absolutePos = pos + index;
+              
+              // Verify we found the complete text
+              try {
+                const foundText = doc.textBetween(
+                  absolutePos, 
+                  Math.min(doc.content.size, absolutePos + searchText.length),
+                  ''  // Don't add separators
+                );
+                
+                if (foundText === searchText) {
+                  segmentAbsolutePosition = absolutePos;
+                  console.log(`📍 Found segment ${selectedSegment?.index} at absolute position: ${segmentAbsolutePosition}`);
+                  console.log(`   First 100 chars: "${foundText.substring(0, 100)}"`);
+                  found = true;
+                  return false; // Stop searching
+                }
+              } catch (e) {
+                console.error('Error verifying text:', e);
+              }
+              
+              searchIndex = index + 1;
+            }
+          }
+        });
+        
+        if (!found) {
+          console.warn(`Could not find exact position for segment ${selectedSegment?.index}. Found ${occurrenceCount} partial matches.`);
+          // Don't use position-based approach if we can't find the segment
+          segmentAbsolutePosition = null;
+        }
+      } else {
+        console.warn('No segment text available for position finding');
+      }
       
       // Initialize reconciliation service if needed
       if (!reconciliationService) {
@@ -169,20 +314,25 @@
     ];
     
     try {
-      // Create segment object with required fields
+      // Create segment object with required fields - use the actual segment text
       const segment = {
         index: selectedSegment.index || 0,
         startTime: typeof selectedSegment.start === 'number' ? selectedSegment.start : 0,
         endTime: typeof selectedSegment.end === 'number' ? selectedSegment.end : 0,
         startWord: 0,  // Required field
         endWord: 0,    // Required field
-        text: segmentText || selectedSegment.text || '',
+        text: segmentText || selectedSegment.text || '',  // Use the actual text from the selected segment
         speakerTag: selectedSegment.speakerTag || selectedSegment.speakerName || 'Speaker',
         speakerName: selectedSegment.speakerName || selectedSegment.speakerTag || 'Speaker',
         words: []
       };
       
       console.log('Sending segment to API:', segment);
+      console.log('Selected segment info:', {
+        index: selectedSegment.index,
+        text: segmentText.substring(0, 100),
+        speakerName: selectedSegment.speakerName
+      });
       
       // Simulate tool progress updates after initial delay
       setTimeout(() => {
@@ -218,6 +368,8 @@
           summaryId: summary.id,
           audioFilePath,
           uiLanguage: currentLocale,
+          usePositions: true,  // Enable position-based analysis
+          extractedSegments,   // Pass extracted segments for position mapping
         }),
       });
 
@@ -226,7 +378,6 @@
       }
 
       const result = await response.json();
-      console.log('Analysis result from API:', result);
       
       // Handle the response structure
       if (result.analysisSegment) {
@@ -260,8 +411,88 @@
         segmentAnalysisResult = result;
       }
       
-      console.log('segmentAnalysisResult set to:', segmentAnalysisResult);
-      console.log('Suggestions:', segmentAnalysisResult?.suggestions);
+      
+      // Check if suggestions have shouldAutoApply flag
+      if (segmentAnalysisResult?.suggestions && Array.isArray(segmentAnalysisResult.suggestions)) {
+        const autoApplyCount = segmentAnalysisResult.suggestions.filter((s: any) => s.shouldAutoApply).length;
+        console.log(`Found ${autoApplyCount} suggestions marked for auto-apply out of ${segmentAnalysisResult.suggestions.length} total`);
+        
+        // Map suggestion positions from segment-relative to absolute, then through the PositionMapper
+        const editor = $editorStore;
+        if (editor) {
+          const mapper = getPositionMapper(editor);
+          
+          // Check if we have a valid segment position
+          if (segmentAbsolutePosition === null) {
+            console.warn('No segment absolute position found, positions will not be available for suggestions');
+          }
+          
+          segmentAnalysisResult.suggestions = segmentAnalysisResult.suggestions.map((suggestion: any) => {
+            // If the suggestion has segment-relative positions AND we know where the segment is
+            if (suggestion.from !== undefined && suggestion.to !== undefined && segmentAbsolutePosition !== null) {
+              // Convert to absolute positions
+              const absoluteFrom = segmentAbsolutePosition + suggestion.from;
+              const absoluteTo = segmentAbsolutePosition + suggestion.to;
+              
+              console.log(`Converting positions for "${suggestion.originalText}": segment [${suggestion.from}, ${suggestion.to}] → absolute [${absoluteFrom}, ${absoluteTo}]`);
+              console.log(`Segment absolute position: ${segmentAbsolutePosition}, analyzing segment index: ${selectedSegment?.index}`);
+              
+              // Verify the text at the calculated position matches what we expect
+              try {
+                const textAtPosition = editor.state.doc.textBetween(
+                  Math.max(0, absoluteFrom),
+                  Math.min(editor.state.doc.content.size, absoluteTo),
+                  ''
+                );
+                
+                if (textAtPosition.toLowerCase() !== suggestion.originalText.toLowerCase()) {
+                  console.warn(`Text mismatch at calculated position [${absoluteFrom}, ${absoluteTo}]:`);
+                  console.warn(`  Expected: "${suggestion.originalText}"`);
+                  console.warn(`  Found: "${textAtPosition}"`);
+                  console.warn(`  Will try to recover...`);
+                }
+              } catch (e) {
+                console.error('Error verifying text at position:', e);
+              }
+              
+              // Map through any transactions that happened since analysis started
+              const mappedRange = mapper.mapRange(absoluteFrom, absoluteTo);
+              
+              if (mappedRange.valid) {
+                // Update suggestion with mapped positions
+                suggestion.from = mappedRange.from.mapped;
+                suggestion.to = mappedRange.to.mapped;
+                console.log(`Mapped to current positions: [${suggestion.from}, ${suggestion.to}]`);
+                
+                // Verify the text is still there
+                const currentText = editor.state.doc.textBetween(suggestion.from, suggestion.to);
+                if (currentText.toLowerCase() !== suggestion.originalText.toLowerCase()) {
+                  console.warn(`Text at mapped position has changed: expected "${suggestion.originalText}", found "${currentText}"`);
+                  // Try recovery by text search in a small radius
+                  const recovered = findTextNearPosition(editor.state.doc, suggestion.originalText, suggestion.from, 100);
+                  if (recovered) {
+                    suggestion.from = recovered.from;
+                    suggestion.to = recovered.to;
+                    console.log(`Recovered position by text search: [${suggestion.from}, ${suggestion.to}]`);
+                  } else {
+                    // Clear positions to fall back to text search
+                    delete suggestion.from;
+                    delete suggestion.to;
+                    console.log(`Could not recover position, will use text search`);
+                  }
+                }
+              } else {
+                console.warn(`Position mapping invalid for "${suggestion.originalText}", will use text search`);
+                // Clear positions to fall back to text search
+                delete suggestion.from;
+                delete suggestion.to;
+              }
+            }
+            
+            return suggestion;
+          });
+        }
+      }
       
       // Reset applying states when we get new results
       applyingStates = {};
