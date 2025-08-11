@@ -177,9 +177,14 @@
 			error = 'Please generate a summary first';
 			return;
 		}
+		
+		// Check if already analyzing
+		if (analysisState?.isAnalyzing) {
+			return;
+		}
 
-		isAnalyzing = true;
-		analysisStatus = 'analyzing';
+		// Set shared state to analyzing
+		analysisStateStore.startAnalysis(fileId, segment.index);
 		error = null;
 
 		try {
@@ -205,7 +210,9 @@
 
 			const result = await response.json();
 			analysisResult = result.analysisSegment;
-			analysisStatus = 'analyzed';
+			
+			// Mark as completed in shared state
+			analysisStateStore.completeAnalysis(fileId, segment.index);
 			
 			onAnalysisComplete(result);
 		} catch (err: any) {
