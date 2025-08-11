@@ -1,0 +1,234 @@
+Block text:
+2020 jah, ja siis sellest ajast olengi töötanud teenusedisainerina, nii et no neli pool aastat.
+
+Terminal log:
+ASRNBestServerNodeTool initialized with endpoint: https://tekstiks.ee/asr/transcribe/alternatives
+Calling ASR N-best tool for segment: {
+  audioFilePath: '/home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/15a88c2c8d724365872f876a41edc0_intekas.mp4',
+  startTime: 6.93,
+  endTime: 9
+}
+ASR N-best timing validation: {
+  audioFilePath: '/home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/15a88c2c8d724365872f876a41edc0_intekas.mp4',
+  startTime: '6.930',
+  endTime: '9.000',
+  duration: '2.070',
+  originalText: ''
+}
+Slicing audio from 6.930s to 9.000s (duration: 2.070s)
+AudioSlicer: Slicing audio file {
+  inputPath: '/home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/15a88c2c8d724365872f876a41edc0_intekas.mp4',
+  startTime: '6.930',
+  endTime: '9.000',
+  duration: '2.070',
+  format: 'wav'
+}
+AudioSlicer: Running ffmpeg with args: -ss 6.93 -t 2.0700000000000003 -i /home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/15a88c2c8d724365872f876a41edc0_intekas.mp4 -acodec pcm_s16le -ar 16000 -ac 1 -y /home/aivo/dev/est-asr-ui/uploads/temp/slice_9184f124-1ecb-4e50-a404-1e40e56779ab.wav
+AudioSlicer: Slice completed successfully {
+  tempFilePath: '/home/aivo/dev/est-asr-ui/uploads/temp/slice_9184f124-1ecb-4e50-a404-1e40e56779ab.wav',
+  fileSize: 66318,
+  duration: '2.070',
+  elapsedMs: 95,
+  elapsedSeconds: '0.095'
+}
+Audio slice successful: {
+  tempFilePath: '/home/aivo/dev/est-asr-ui/uploads/temp/slice_9184f124-1ecb-4e50-a404-1e40e56779ab.wav',
+  sliceDuration: 2.0700000000000003,
+  expectedDuration: 2.0700000000000003,
+  durationDiff: 0
+}
+Making ASR request using curl to: https://tekstiks.ee/asr/transcribe/alternatives?n_best=5
+Curl command: curl -L -X POST "https://tekstiks.ee/asr/transcribe/alternatives?n_best=5" -F "file=@/home/aivo/dev/est-asr-ui/uploads/temp/slice_9184f124-1ecb-4e50-a404-1e40e56779ab.wav" -H "Accept: application/json" 2>&1
+Curl full output:   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-100 66556    0     0  100 66556      0  52642  0:00:0100 66556    0     0  100 66556      0  29327  0:00:0100 66556    0     0  100 66556      0  20326  0:00:0100 66556    0     0  100 66556      0  15552  0:00:0100 66556    0     0  100 66556      0  12595  0:00:0100 66556    0     0  100 66556      0  10588  0:00:0100 66556    0     0  100 66556      0   9128  0:00:0100 66556    0     0  100 66556      0   8024  0:00:0100 66556    0     0  100 66556      0   7157  0:00:0100 66556    0     0  100 66556      0   6459  0:00:1100 66556    0     0  100 66556      0   5885  0:00:1100 66556    0     0  100 66556      0   5405  0:00:1100 66556    0     0  100 66556      0   4997  0:00:1100 66556    0     0  100 66556      0   4646  0:00:1100 66556    0     0  100 66556      0   4342  0:00:1100 66556    0     0  100 66556      0   4075  0:00:1100 66556    0     0  100 66556      0   3839  0:00:1100 66556    0     0  100 66556      0   3629  0:00:1100 66556    0     0  100 66556      0   3440  0:00:1100 66556    0     0  100 66556      0   3270  0:00:2100 66556    0     0  100 66556      0   3116  0:00:2100 66556    0     0  100 66556      0   2976  0:00:2100 66556    0     0  100 66556      0   2848  0:00:2100 66556    0     0  100 66556      0   2731  0:00:2100 66556    0     0  100 66556      0   2623  0:00:2100 66556    0     0  100 66556      0   2523  0:00:2100 66556    0     0  100 66556      0   2430  0:00:2100 66556    0     0  100 66556      0   2344  0:00:2100 66556    0     0  100 66556      0   2264  0:00:2100 66556    0     0  100 66556      0   2189  0:00:3100 66556    0     0  100 66556      0   2119  0:00:3100 66556    0     0  100 66556      0   2053  0:00:3100 66556    0     0  100 66556      0   1992  0:00:3100 66556    0     0  100 66556      0   1933  0:00:3100 66556    0     0  100 66556      0   1878  0:00:3100 66556    0     0  100 66556      0   1827  0:00:3100 66556    0     0  100 66556      0   1778  0:00:3100 66702  100   146  100 66556      3   1759  0:00:48  0:00:37  0:00:11    33
+{"text":"et läks käima","alternatives":[{"text":"et läks käima","beam_size":10}],"language":"et","duration":2.07,"is_final":true,"error":null}
+ASR API raw response: {"text":"et läks käima","alternatives":[{"text":"et läks käima","beam_size":10}],"language":"et","duration":2.07,"is_final":true,"error":null}
+ASR API response structure: {
+  hasText: true,
+  hasAlternatives: true,
+  alternativesCount: 1,
+  hasError: false,
+  keys: [
+    'text',
+    'alternatives',
+    'language',
+    'duration',
+    'is_final',
+    'error'
+  ]
+}
+ASR N-best results saved to: /home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/asr-nbest/15a88c2c8d724365872f876a41edc0_intekas/nbest_6.9-9.0s_2025-08-11T10-49-01-777Z.json
+AudioSlicer: Cleaned up temp file: /home/aivo/dev/est-asr-ui/uploads/temp/slice_9184f124-1ecb-4e50-a404-1e40e56779ab.wav
+ASR N-best results received: {
+  alternatives: [ { text: 'et läks käima', confidence: 0.9 } ],
+  primaryText: 'et läks käima',
+  duration: 2.07
+}
+Performing enhanced analysis with ASR results for segment: undefined
+Original text: Et  läks  käima  ja
+ASR alternatives: [ { text: 'et läks käima', confidence: 0.9 } ]
+Failed to parse enhanced analysis: SyntaxError: Unexpected non-whitespace character after JSON at position 427
+    at JSON.parse (<anonymous>)
+    at CoordinatingAgentSimple.analyzeSegment (/home/aivo/dev/est-asr-ui/src/lib/agents/coordinatingAgentSimple.ts:233:41)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async POST (/home/aivo/dev/est-asr-ui/src/routes/api/transcript-analysis/segment/+server.ts:90:16)
+    at async render_endpoint (/home/aivo/dev/est-asr-ui/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:45:18)
+    at async resolve (/home/aivo/dev/est-asr-ui/node_modules/@sveltejs/kit/src/runtime/server/respond.js:376:22)
+    at async transformHtml (/home/aivo/dev/est-asr-ui/src/hooks.server.ts:52:10)
+    at async respond (/home/aivo/dev/est-asr-ui/node_modules/@sveltejs/kit/src/runtime/server/respond.js:271:22)
+    at async file:///home/aivo/dev/est-asr-ui/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:549:22
+Enhanced response content: Based on the ASR alternatives and the specialized model's capabilities, here's my enhanced analysis:
+
+[
+  {
+    "type": "boundary",
+    "severity": "high",
+    "text": "This appears to be an incomplete utterance that ends mid-sentence with 'ja' (and)",
+    "originalText": "Et läks käima ja",
+    "suggestedText": "Et läks käima",
+    "confidence": 0.9,
+    "explanation": "The ASR alternative without 'ja' appears more complete and matches common Estonian phrasing. The trailing 'ja' in original likely belongs to next segment."
+  },
+  {
+    "type": "consistency",
+    "severity": "medium", 
+    "text": "Word count needs correction",
+    "originalText": "Word count: 0 words",
+    "suggestedText": "Word count: 3 words",
+    "confidence": 0.95,
+    "explanation": "Based on the ASR's more confident version, this is 3 words rather than 4"
+  },
+  {
+    "type": "clarity",
+    "severity": "medium",
+    "text": "Expression appears to be complete Estonian phrase",
+    "originalText": "Et läks käima ja",
+    "suggestedText": "Et läks käima",
+    "confidence": 0.9,
+    "explanation": "ASR suggests this is a complete Estonian expression meaning 'That got going/started'. No English content detected despite ASR's English capabilities."
+  }
+]
+
+Note: While the ASR model excels at detecting English content, in this case it confirms this is legitimate Estonian text rather than misrecognized English. The main improvement suggested by ASR is removing the trailing "ja" which likely belongs to the next segment.
+Failed to apply suggestion: TipTap editor not available
+Failed to apply suggestion: TipTap editor not available
+Failed to apply suggestion: TipTap editor not available
+1:51:18 PM [vite] (client) hmr update /src/lib/components/transcript-sidebar/TranscriptSidebar.svelte, /src/app.css
+1:51:18 PM [vite] (ssr) page reload src/lib/components/transcript-sidebar/TranscriptSidebar.svelte
+1:51:33 PM [vite] (client) hmr update /src/lib/components/transcript-sidebar/TranscriptSidebar.svelte, /src/app.css
+1:51:33 PM [vite] (ssr) page reload src/lib/components/transcript-sidebar/TranscriptSidebar.svelte
+1:51:52 PM [vite] (client) hmr update /src/lib/components/transcript-sidebar/TranscriptSidebar.svelte, /src/app.css
+1:51:52 PM [vite] (ssr) page reload src/lib/components/transcript-sidebar/TranscriptSidebar.svelte
+Calling ASR N-best tool for segment: {
+  audioFilePath: '/home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/15a88c2c8d724365872f876a41edc0_intekas.mp4',
+  startTime: 131.46,
+  endTime: 139.44
+}
+ASR N-best timing validation: {
+  audioFilePath: '/home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/15a88c2c8d724365872f876a41edc0_intekas.mp4',
+  startTime: '131.460',
+  endTime: '139.440',
+  duration: '7.980',
+  originalText: ''
+}
+Slicing audio from 131.460s to 139.440s (duration: 7.980s)
+AudioSlicer: Slicing audio file {
+  inputPath: '/home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/15a88c2c8d724365872f876a41edc0_intekas.mp4',
+  startTime: '131.460',
+  endTime: '139.440',
+  duration: '7.980',
+  format: 'wav'
+}
+AudioSlicer: Running ffmpeg with args: -ss 131.46 -t 7.97999999999999 -i /home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/15a88c2c8d724365872f876a41edc0_intekas.mp4 -acodec pcm_s16le -ar 16000 -ac 1 -y /home/aivo/dev/est-asr-ui/uploads/temp/slice_250df7f1-fcae-4a67-833d-ed79b835c7a5.wav
+AudioSlicer: Slice completed successfully {
+  tempFilePath: '/home/aivo/dev/est-asr-ui/uploads/temp/slice_250df7f1-fcae-4a67-833d-ed79b835c7a5.wav',
+  fileSize: 255438,
+  duration: '7.980',
+  elapsedMs: 94,
+  elapsedSeconds: '0.094'
+}
+Audio slice successful: {
+  tempFilePath: '/home/aivo/dev/est-asr-ui/uploads/temp/slice_250df7f1-fcae-4a67-833d-ed79b835c7a5.wav',
+  sliceDuration: 7.97999999999999,
+  expectedDuration: 7.97999999999999,
+  durationDiff: 0
+}
+Making ASR request using curl to: https://tekstiks.ee/asr/transcribe/alternatives?n_best=5
+Curl command: curl -L -X POST "https://tekstiks.ee/asr/transcribe/alternatives?n_best=5" -F "file=@/home/aivo/dev/est-asr-ui/uploads/temp/slice_250df7f1-fcae-4a67-833d-ed79b835c7a5.wav" -H "Accept: application/json" 2>&1
+Curl full output:   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--    100  249k    0     0  100  249k      0   198k  0:00:01  0:00:01 --:--:--  19100  249k    0     0  100  249k      0   110k  0:00:02  0:00:02 --:--:--  11100  249k    0     0  100  249k      0  78309  0:00:03  0:00:03 --:--:-- 783100  249k    0     0  100  249k      0  59876  0:00:04  0:00:04 --:--:-- 598100  249k    0     0  100  249k      0  48467  0:00:05  0:00:05 --:--:-- 484100  249k    0     0  100  249k      0  40711  0:00:06  0:00:06 --:--:--    100  249k    0     0  100  249k      0  35094  0:00:07  0:00:07 --:--:--    100  249k    0     0  100  249k      0  30841  0:00:08  0:00:08 --:--:--    100  249k    0     0  100  249k      0  27506  0:00:09  0:00:09 --:--:--    100  249k    0     0  100  249k      0  24822  0:00:10  0:00:10 --:--:--    100  249k    0     0  100  249k      0  22615  0:00:11  0:00:11 --:--:--    100  249k    0     0  100  249k      0  20769  0:00:12  0:00:12 --:--:--    100  249k    0     0  100  249k      0  19201  0:00:13  0:00:13 --:--:--    100  249k    0     0  100  249k      0  17854  0:00:14  0:00:14 --:--:--    100  249k    0     0  100  249k      0  16683  0:00:15  0:00:15 --:--:--    100  249k    0     0  100  249k      0  15656  0:00:16  0:00:16 --:--:--    100  249k    0     0  100  249k      0  14748  0:00:17  0:00:17 --:--:--    100  249k    0     0  100  249k      0  13940  0:00:18  0:00:18 --:--:--    100  249k    0     0  100  249k      0  13216  0:00:19  0:00:19 --:--:--    100  249k    0     0  100  249k      0  12563  0:00:20  0:00:20 --:--:--    100  249k    0     0  100  249k      0  11972  0:00:21  0:00:21 --:--:--    100  249k    0     0  100  249k      0  11434  0:00:22  0:00:22 --:--:--    100  249k    0     0  100  249k      0  10942  0:00:23  0:00:23 --:--:--    100  249k    0     0  100  249k      0  10491  0:00:24  0:00:24 --:--:--    100  249k    0     0  100  249k      0  10075  0:00:25  0:00:25 --:--:--    100  249k    0     0  100  249k      0   9691  0:00:26  0:00:26 --:--:--    100  249k    0     0  100  249k      0   9336  0:00:27  0:00:27 --:--:--    100  249k    0     0  100  249k      0   9005  0:00:28  0:00:28 --:--:--    100  249k    0     0  100  249k      0   8697  0:00:29  0:00:29 --:--:--    100  249k    0     0  100  249k      0   8410  0:00:30  0:00:30 --:--:--    100  249k    0     0  100  249k      0   8141  0:00:31  0:00:31 --:--:--    100  249k    0     0  100  249k      0   7889  0:00:32  0:00:32 --:--:--    100  249k    0     0  100  249k      0   7651  0:00:33  0:00:33 --:--:--    100  249k    0     0  100  249k      0   7428  0:00:34  0:00:34 --:--:--    100  249k    0     0  100  249k      0   7217  0:00:35  0:00:35 --:--:--    100  249k    0     0  100  249k      0   7018  0:00:36  0:00:36 --:--:--    100  249k    0     0  100  249k      0   6830  0:00:37  0:00:37 --:--:--    100  249k    0     0  100  249k      0   6651  0:00:38  0:00:38 --:--:--    100  249k    0     0  100  249k      0   6482  0:00:39  0:00:39 --:--:--    100  249k    0     0  100  249k      0   6321  0:00:40  0:00:40 --:--:--    100  249k    0     0  100  249k      0   6167  0:00:41  0:00:41 --:--:--    100  249k    0     0  100  249k      0   6021  0:00:42  0:00:42 --:--:--    100  249k  100   322  100  249k      7   5944  0:00:46  0:00:43  0:00:03    100  249k  100   322  100  249k      7   5944  0:00:46  0:00:43  0:00:03    90
+{"text":"Kaks tuhat kakskümmend jah, ja siis sellest ajast olengi töötanud teenusedisainerina, nii et no neli","alternatives":[{"text":"Kaks tuhat kakskümmend jah, ja siis sellest ajast olengi töötanud teenusedisainerina, nii et no neli","beam_size":10}],"language":"et","duration":7.98,"is_final":true,"error":null}
+ASR API raw response: {"text":"Kaks tuhat kakskümmend jah, ja siis sellest ajast olengi töötanud teenusedisainerina, nii et no neli","alternatives":[{"text":"Kaks tuhat kakskümmend jah, ja siis sellest ajast olengi töötanud teenusedisainerina, nii et no neli","beam_size":10}],"language":"et","duration":7.98,"is_final":true,"error":null}
+ASR API response structure: {
+  hasText: true,
+  hasAlternatives: true,
+  alternativesCount: 1,
+  hasError: false,
+  keys: [
+    'text',
+    'alternatives',
+    'language',
+    'duration',
+    'is_final',
+    'error'
+  ]
+}
+ASR N-best results saved to: /home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/asr-nbest/15a88c2c8d724365872f876a41edc0_intekas/nbest_131.5-139.4s_2025-08-11T10-56-57-134Z.json
+AudioSlicer: Cleaned up temp file: /home/aivo/dev/est-asr-ui/uploads/temp/slice_250df7f1-fcae-4a67-833d-ed79b835c7a5.wav
+ASR N-best results received: {
+  alternatives: [
+    {
+      text: 'Kaks tuhat kakskümmend jah, ja siis sellest ajast olengi töötanud teenusedisainerina, nii et no neli',
+      confidence: 0.9
+    }
+  ],
+  primaryText: 'Kaks tuhat kakskümmend jah, ja siis sellest ajast olengi töötanud teenusedisainerina, nii et no neli',
+  duration: 7.98
+}
+Performing enhanced analysis with ASR results for segment: undefined
+Original text: 2020  jah,  ja  siis  sellest  ajast  olengi  töötanud  teenusedisainerina,  nii  et  no  neli  pool  aastat.
+ASR alternatives: [
+  {
+    text: 'Kaks tuhat kakskümmend jah, ja siis sellest ajast olengi töötanud teenusedisainerina, nii et no neli',
+    confidence: 0.9
+  }
+]
+Failed to parse enhanced analysis: SyntaxError: Unexpected non-whitespace character after JSON at position 457
+    at JSON.parse (<anonymous>)
+    at CoordinatingAgentSimple.analyzeSegment (/home/aivo/dev/est-asr-ui/src/lib/agents/coordinatingAgentSimple.ts:233:41)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async POST (/home/aivo/dev/est-asr-ui/src/routes/api/transcript-analysis/segment/+server.ts:90:16)
+    at async render_endpoint (/home/aivo/dev/est-asr-ui/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:45:18)
+    at async resolve (/home/aivo/dev/est-asr-ui/node_modules/@sveltejs/kit/src/runtime/server/respond.js:376:22)
+    at async transformHtml (/home/aivo/dev/est-asr-ui/src/hooks.server.ts:52:10)
+    at async respond (/home/aivo/dev/est-asr-ui/node_modules/@sveltejs/kit/src/runtime/server/respond.js:271:22)
+    at async file:///home/aivo/dev/est-asr-ui/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:549:22
+Enhanced response content: After analyzing the original transcript and ASR alternatives, I don't find any clear cases where the ASR reveals previously unrecognized English content or technical terms. The ASR alternative mainly offers the same content in a more verbose Estonian format ("Kaks tuhat kakskümmend" instead of "2020"), but doesn't reveal any misrecognized English phrases or technical terms.
+
+I'll maintain the original suggestion about spacing consistency and add a minor note about number formatting:
+
+[
+  {
+    "type": "punctuation",
+    "severity": "low",
+    "text": "Inconsistent spacing between words",
+    "originalText": "2020  jah,  ja  siis  sellest  ajast  olengi  töötanud  teenusedisainerina,  nii  et  no  neli  pool  aastat",
+    "suggestedText": "2020 jah, ja siis sellest ajast olengi töötanud teenusedisainerina, nii et no neli pool aastat",
+    "confidence": 0.98,
+    "explanation": "Normalized spacing between words for better readability"
+  },
+  {
+    "type": "formatting",
+    "severity": "low",
+    "text": "Number format could be written out",
+    "originalText": "2020",
+    "suggestedText": "Kaks tuhat kakskümmend",
+    "confidence": 0.85,
+    "explanation": "ASR shows the year written out in words, which might be preferred in some contexts"
+  }
+]
+
+The content appears to be consistently Estonian, and while "teenusedisainerina" (service designer) contains the concept of "design," it's properly expressed in Estonian compound form and doesn't need correction.
+Failed to apply suggestion: TipTap editor not available

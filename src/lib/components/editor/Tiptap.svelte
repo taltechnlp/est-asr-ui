@@ -186,6 +186,24 @@
 			// Also set for position-based agent
 			const positionAgent = getCoordinatingAgentPositionClient();
 			positionAgent.setEditor($editor);
+			
+			// Listen for apply suggestion events from the sidebar
+			const handleApplySuggestion = async (event: CustomEvent) => {
+				const { suggestion, segmentId, callback } = event.detail;
+				try {
+					const result = await agent.applySuggestionManually(suggestion, segmentId);
+					if (callback) callback(result);
+				} catch (error) {
+					if (callback) callback({ success: false, error: error.message });
+				}
+			};
+			
+			window.addEventListener('applyTranscriptSuggestion', handleApplySuggestion as EventListener);
+			
+			// Cleanup listener on component destroy
+			onDestroy(() => {
+				window.removeEventListener('applyTranscriptSuggestion', handleApplySuggestion as EventListener);
+			});
 		} catch (error) {
 			console.warn('Failed to set editor in coordinating agent:', error);
 		}

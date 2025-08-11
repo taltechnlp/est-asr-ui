@@ -10,10 +10,14 @@
   import flask from 'svelte-awesome/icons/flask';
   import spinner from 'svelte-awesome/icons/spinner';
   import check from 'svelte-awesome/icons/check';
+  import refresh from 'svelte-awesome/icons/refresh';
+  import exclamationTriangle from 'svelte-awesome/icons/exclamationTriangle';
+  import wrench from 'svelte-awesome/icons/wrench';
   import SegmentControlPosition from '../transcript-analysis/SegmentControlPosition.svelte';
-  import { _ } from 'svelte-i18n';
+  import { _, locale } from 'svelte-i18n';
   import { selectedSegmentStore } from '$lib/stores/selectedSegmentStore';
   import { analysisStateStore } from '$lib/stores/analysisStateStore';
+  import { normalizeLanguageCode } from '$lib/utils/language';
   
   let {
     fileId = '',
@@ -28,6 +32,8 @@
   let selectedSegment = $state<any>(null);
   let segmentText = $state('');
   let segmentAnalysisResult = $state<any>(null);
+  let isReanalyzing = $state(false);
+  let applyingStates = $state<Record<number, boolean>>({});
   
   // Subscribe to shared analysis state
   let analysisState = $state<any>(null);
@@ -38,13 +44,42 @@
   );
   
   // Subscribe to selected segment changes
-  const unsubscribe = selectedSegmentStore.subscribe(segment => {
+  const unsubscribe = selectedSegmentStore.subscribe(async segment => {
     selectedSegment = segment;
     if (segment) {
       // Extract segment text from the editor content
       extractSegmentText(segment);
+      
       // Clear previous analysis when selecting new segment
       segmentAnalysisResult = null;
+      
+      // Check if there's an existing analysis for this segment
+      try {
+        const response = await fetch(`/api/transcript-analysis/segments/${fileId}/`);
+        if (response.ok) {
+          const segments = await response.json();
+          const existingAnalysis = segments.find((s: any) => 
+            s.segmentIndex === segment.index
+          );
+          
+          if (existingAnalysis) {
+            // Parse suggestions if they're a string
+            if (typeof existingAnalysis.suggestions === 'string') {
+              try {
+                existingAnalysis.suggestions = JSON.parse(existingAnalysis.suggestions);
+              } catch (e) {
+                console.error('Failed to parse existing suggestions:', e);
+                existingAnalysis.suggestions = [];
+              }
+            }
+            
+            segmentAnalysisResult = existingAnalysis;
+            console.log('Loaded existing analysis:', existingAnalysis);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check for existing analysis:', error);
+      }
     }
   });
   
@@ -103,19 +138,34 @@
     analysisStateStore.startAnalysis(fileId, selectedSegment.index);
     
     try {
-      // Call the position-based analysis for this segment
-      const response = await fetch('/api/transcript-analysis/segment-position', {
+      // Create segment object with required fields
+      const segment = {
+        index: selectedSegment.index || 0,
+        startTime: typeof selectedSegment.start === 'number' ? selectedSegment.start : 0,
+        endTime: typeof selectedSegment.end === 'number' ? selectedSegment.end : 0,
+        startWord: 0,  // Required field
+        endWord: 0,    // Required field
+        text: segmentText || selectedSegment.text || '',
+        speakerTag: selectedSegment.speakerTag || selectedSegment.speakerName || 'Speaker',
+        speakerName: selectedSegment.speakerName || selectedSegment.speakerTag || 'Speaker',
+        words: []
+      };
+      
+      console.log('Sending segment to API:', segment);
+      
+      // Call the same endpoint as the popup component
+      const currentLocale = normalizeLanguageCode($locale);
+      const response = await fetch('/api/transcript-analysis/segment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           fileId,
-          editorContent,
+          segment,
           summaryId: summary.id,
           audioFilePath,
-          segmentId: selectedSegment.id,
-          usePositions: true,
+          uiLanguage: currentLocale,
         }),
       });
 
@@ -123,7 +173,46 @@
         throw new Error('Analysis failed');
       }
 
-      segmentAnalysisResult = await response.json();
+      const result = await response.json();
+      console.log('Analysis result from API:', result);
+      
+      // Handle the response structure
+      if (result.analysisSegment) {
+        // The analysisSegment from database has suggestions as a JSON string
+        const dbRecord = result.analysisSegment;
+        
+        // Parse suggestions if they're a string
+        if (typeof dbRecord.suggestions === 'string') {
+          try {
+            dbRecord.suggestions = JSON.parse(dbRecord.suggestions);
+          } catch (e) {
+            console.error('Failed to parse suggestions:', e);
+            dbRecord.suggestions = [];
+          }
+        }
+        
+        segmentAnalysisResult = dbRecord;
+      } else if (result.suggestions) {
+        // Direct suggestions in result - ensure they're parsed if needed
+        if (typeof result.suggestions === 'string') {
+          try {
+            result.suggestions = JSON.parse(result.suggestions);
+          } catch (e) {
+            console.error('Failed to parse suggestions:', e);
+            result.suggestions = [];
+          }
+        }
+        segmentAnalysisResult = result;
+      } else {
+        console.warn('Unexpected response structure:', result);
+        segmentAnalysisResult = result;
+      }
+      
+      console.log('segmentAnalysisResult set to:', segmentAnalysisResult);
+      console.log('Suggestions:', segmentAnalysisResult?.suggestions);
+      
+      // Reset applying states when we get new results
+      applyingStates = {};
       
       // Mark as completed in shared state
       analysisStateStore.completeAnalysis(fileId, selectedSegment.index);
@@ -131,6 +220,84 @@
     } catch (err) {
       console.error('Segment analysis error:', err);
       analysisStateStore.setError(fileId, err instanceof Error ? err.message : 'Analysis failed');
+    }
+  }
+  
+  async function reanalyzeSegment() {
+    if (!selectedSegment || !summary || isReanalyzing) return;
+    
+    isReanalyzing = true;
+    
+    try {
+      // First delete the existing analysis from database
+      const deleteResponse = await fetch(`/api/transcript-analysis/segments/${fileId}/${selectedSegment.index}`, {
+        method: 'DELETE'
+      });
+      
+      if (!deleteResponse.ok) {
+        console.warn('Failed to delete existing analysis, continuing with re-analysis');
+      }
+      
+      // Clear the current results
+      segmentAnalysisResult = null;
+      applyingStates = {};
+      
+      // Perform fresh analysis
+      await analyzeSelectedSegment();
+    } finally {
+      isReanalyzing = false;
+    }
+  }
+  
+  function getSeverityColor(severity: string): string {
+    switch (severity) {
+      case 'high':
+        return '#ef4444';
+      case 'medium':
+        return '#f59e0b';
+      case 'low':
+        return '#10b981';
+      default:
+        return '#6b7280';
+    }
+  }
+  
+  async function applySuggestion(suggestion: any, index: number) {
+    if (!suggestion?.originalText || !suggestion?.suggestedText || applyingStates[index]) {
+      return;
+    }
+    
+    applyingStates[index] = true;
+    
+    try {
+      // Dispatch a custom event that Tiptap can listen to
+      const event = new CustomEvent('applyTranscriptSuggestion', {
+        detail: {
+          suggestion,
+          segmentId: selectedSegment.speakerName || selectedSegment.speakerTag || 'Speaker',
+          callback: (result: any) => {
+            if (result.success) {
+              // Mark as applied
+              if (segmentAnalysisResult?.suggestions) {
+                segmentAnalysisResult.suggestions[index] = {
+                  ...suggestion,
+                  applied: true,
+                  appliedAt: result.appliedAt,
+                  transactionId: result.transactionId
+                };
+              }
+            } else {
+              console.error('Failed to apply suggestion:', result.error);
+            }
+            applyingStates[index] = false;
+          }
+        }
+      });
+      
+      window.dispatchEvent(event);
+    } catch (error) {
+      console.error('Failed to apply suggestion:', error);
+      applyingStates[index] = false;
     }
   }
   
@@ -213,7 +380,77 @@
           <!-- Analysis Results -->
           {#if segmentAnalysisResult}
             <div class="analysis-results">
-              <h4>{$_('transcript.analysis.results')}</h4>
+              <div class="results-header">
+                <h4>{$_('transcript.analysis.results')}</h4>
+                <button 
+                  class="reanalyze-btn" 
+                  onclick={reanalyzeSegment}
+                  disabled={isReanalyzing}
+                  title={$_('transcript.analysis.reanalyze')}
+                >
+                  {#if isReanalyzing}
+                    <Icon data={spinner} spin scale={0.8} />
+                  {:else}
+                    <Icon data={refresh} scale={0.8} />
+                  {/if}
+                  <span>{isReanalyzing ? $_('transcript.analysis.reanalyzing') : $_('transcript.analysis.reanalyze')}</span>
+                </button>
+              </div>
+              
+              <!-- Suggestions Section -->
+              {#if segmentAnalysisResult?.suggestions && Array.isArray(segmentAnalysisResult.suggestions) && segmentAnalysisResult.suggestions.length > 0}
+                <div class="suggestions-section">
+                  <h5>{$_('transcript.analysis.suggestions')} ({segmentAnalysisResult.suggestions.length})</h5>
+                  {#each (segmentAnalysisResult.suggestions as any[]) as suggestion, index}
+                    <div class="suggestion-item">
+                      <div class="suggestion-header">
+                        <span class="suggestion-type">{suggestion?.type ? $_(`transcript.suggestion.${suggestion.type}`) : $_('transcript.suggestion.unknown')}</span>
+                        <div class="suggestion-header-right">
+                          <span 
+                            class="suggestion-severity" 
+                            style="color: {getSeverityColor(suggestion?.severity || 'low')}"
+                          >
+                            {$_(`transcript.severity.${suggestion?.severity || 'low'}`)}
+                          </span>
+                          {#if suggestion?.applied}
+                            <span class="applied-badge">{$_('transcript.suggestion.applied')}</span>
+                          {:else if suggestion?.originalText && suggestion?.suggestedText}
+                            <button 
+                              class="apply-suggestion-btn"
+                              onclick={() => applySuggestion(suggestion, index)}
+                              disabled={applyingStates[index]}
+                            >
+                              {#if applyingStates[index]}
+                                <Icon data={spinner} spin scale={0.7} />
+                              {:else}
+                                <Icon data={wrench} scale={0.7} />
+                              {/if}
+                              <span>{applyingStates[index] ? $_('transcript.suggestion.applying') : $_('transcript.suggestion.apply')}</span>
+                            </button>
+                          {/if}
+                        </div>
+                      </div>
+                      <p class="suggestion-text">{suggestion?.text || suggestion?.explanation || $_('transcript.suggestion.noDescription')}</p>
+                      {#if suggestion?.originalText && suggestion?.suggestedText}
+                        <div class="suggestion-changes">
+                          <div class="original">
+                            <strong>{$_('transcript.suggestion.original')}:</strong> {suggestion.originalText}
+                          </div>
+                          <div class="suggested">
+                            <strong>{$_('transcript.suggestion.suggested')}:</strong> {suggestion.suggestedText}
+                          </div>
+                        </div>
+                      {/if}
+                    </div>
+                  {/each}
+                </div>
+              {:else}
+                <div class="no-suggestions">
+                  <p>{$_('transcript.analysis.noSuggestions')}</p>
+                </div>
+              {/if}
+              
+              <!-- Original SegmentControlPosition component (if needed) -->
               <SegmentControlPosition
                 {fileId}
                 {editorContent}
@@ -377,13 +614,177 @@
     border-top: 1px solid #e5e7eb;
   }
   
-  .analysis-results h4 {
-    margin: 0 0 1rem 0;
+  .results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  
+  .results-header h4 {
+    margin: 0;
     font-size: 0.875rem;
     font-weight: 600;
     color: #374151;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+  }
+  
+  .reanalyze-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid #e5e7eb;
+    background: white;
+    color: #6b7280;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .reanalyze-btn:hover:not(:disabled) {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+    color: #374151;
+  }
+  
+  .reanalyze-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  .suggestions-section {
+    margin-bottom: 1rem;
+  }
+  
+  .suggestions-section h5 {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #374151;
+  }
+  
+  .suggestion-item {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .suggestion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+  }
+  
+  .suggestion-type {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #374151;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  
+  .suggestion-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .suggestion-severity {
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  
+  .applied-badge {
+    font-size: 0.75rem;
+    padding: 0.125rem 0.5rem;
+    background: #d1fae5;
+    color: #065f46;
+    border-radius: 0.25rem;
+    font-weight: 500;
+  }
+  
+  .apply-suggestion-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid #3b82f6;
+    background: #eff6ff;
+    color: #3b82f6;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .apply-suggestion-btn:hover:not(:disabled) {
+    background: #3b82f6;
+    color: white;
+  }
+  
+  .apply-suggestion-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  .suggestion-text {
+    font-size: 0.8125rem;
+    color: #4b5563;
+    line-height: 1.5;
+    margin: 0 0 0.5rem 0;
+  }
+  
+  .suggestion-changes {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #e5e7eb;
+  }
+  
+  .original,
+  .suggested {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+  
+  .original strong,
+  .suggested strong {
+    font-weight: 600;
+    color: #374151;
+    min-width: 70px;
+  }
+  
+  .original {
+    color: #dc2626;
+  }
+  
+  .suggested {
+    color: #059669;
+  }
+  
+  .no-suggestions {
+    text-align: center;
+    padding: 1.5rem 1rem;
+    background: #f9fafb;
+    border-radius: 0.375rem;
+    color: #6b7280;
+    font-size: 0.875rem;
+  }
+  
+  .no-suggestions p {
+    margin: 0;
   }
   
   .no-segment {

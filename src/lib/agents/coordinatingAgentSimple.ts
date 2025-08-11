@@ -10,6 +10,7 @@ import type { Editor } from '@tiptap/core';
 import { getLanguageName, normalizeLanguageCode } from '$lib/utils/language';
 import { logEditorSnapshot, createEditorSnapshot, searchInSnapshot } from '$lib/services/editorDebugger';
 import { runAutomatedTestSuite } from '$lib/services/textReplacementTestHarness';
+import { robustJsonParse, formatParsingErrorForLLM, validateJsonStructure } from './utils/jsonParser';
 
 export interface SegmentAnalysisRequest {
 	fileId: string;
@@ -59,23 +60,28 @@ Focus on:
 
 IMPORTANT: Provide your analysis and all suggestions in {responseLanguage} language.
 
-Provide a detailed analysis with actionable suggestions in the following JSON format:
+CRITICAL: You MUST respond with ONLY valid JSON. No explanations, no text before or after the JSON.
+Do NOT include markdown code blocks. Just the raw JSON object.
+
+Provide a detailed analysis with actionable suggestions in exactly this JSON format:
 {
   "analysis": "Your detailed analysis of this speaker's complete turn",
-  "confidence": 0.85, // Your confidence in the transcription accuracy (0-1)
-  "needsAlternatives": false, // Whether ASR alternatives would be helpful
-  "needsWebSearch": [], // List of terms that need web search verification
+  "confidence": 0.85,
+  "needsAlternatives": false,
+  "needsWebSearch": [],
   "suggestions": [
     {
       "type": "grammar|punctuation|clarity|consistency|speaker|boundary",
       "severity": "low|medium|high",
       "text": "Description of the issue",
-      "originalText": "problematic text",
-      "suggestedText": "corrected text",
+      "originalText": "exact problematic text from the segment",
+      "suggestedText": "corrected text to replace it with",
       "confidence": 0.9
     }
   ]
-}`;
+}
+
+Remember: Return ONLY the JSON object above with your analysis. Nothing else.`;
 
 const ENHANCED_ANALYSIS_PROMPT = `You are an expert transcript analyst. You have already performed an initial analysis of a transcript segment.
 Now you have access to additional ASR (Automatic Speech Recognition) alternative transcriptions from a specialized model that excels at recognizing English and mixed-language content.
@@ -113,9 +119,30 @@ IMPORTANT:
 - The ASR alternatives often reveal English content that was misrecognized as Estonian/Finnish
 - Provide your updated analysis and suggestions in {responseLanguage} language
 - Be aggressive in suggesting ASR alternatives when they contain sensible English text
-- Provide your analysis and all suggestions in {responseLanguage} language.
 
-Provide your enhanced analysis in the same JSON format as before.`;
+CRITICAL: You MUST respond with ONLY valid JSON. No explanations, no text before or after the JSON.
+Do NOT include markdown code blocks, notes, or any other text. Just the raw JSON object.
+
+Return your enhanced analysis in exactly this format:
+{
+  "analysis": "Your enhanced analysis incorporating ASR alternatives",
+  "confidence": 0.85,
+  "needsAlternatives": false,
+  "needsWebSearch": [],
+  "suggestions": [
+    {
+      "type": "grammar|punctuation|clarity|consistency|speaker|boundary",
+      "severity": "low|medium|high",
+      "text": "Description of the issue with explanation of why ASR alternative is better",
+      "originalText": "exact text from original transcript",
+      "suggestedText": "better alternative from ASR or your correction",
+      "confidence": 0.9,
+      "explanation": "Optional: why the ASR alternative is more accurate"
+    }
+  ]
+}
+
+Remember: Return ONLY the JSON object. No other text whatsoever.`;
 
 export class CoordinatingAgentSimple {
 	private model;
@@ -204,6 +231,111 @@ export class CoordinatingAgentSimple {
 			.replace(/[\u201C\u201D]/g, '"');
 	}
 
+	private async parseResponseWithRetry(
+		response: string,
+		expectedStructure: string[],
+		maxRetries: number = 2
+	): Promise<any> {
+		console.group('🔍 JSON Parsing Attempt');
+		console.log('Response length:', response.length);
+		console.log('First 200 chars:', response.substring(0, 200));
+		
+		// First attempt: Use robust parsing utility
+		const parseResult = robustJsonParse(response);
+		
+		if (parseResult.success) {
+			console.log('✅ JSON parsed successfully on first attempt');
+			if (parseResult.fixesApplied && parseResult.fixesApplied.length > 0) {
+				console.log('Fixes applied:', parseResult.fixesApplied);
+			}
+			
+			// Validate structure
+			if (validateJsonStructure(parseResult.data, expectedStructure)) {
+				console.groupEnd();
+				return parseResult.data;
+			} else {
+				console.warn('⚠️ JSON structure validation failed, missing keys:', 
+					expectedStructure.filter(key => !(key in parseResult.data)));
+			}
+		} else {
+			console.warn('⚠️ Initial JSON parsing failed:', parseResult.error);
+			if (parseResult.extractedJson) {
+				console.log('Extracted JSON attempt:', parseResult.extractedJson.substring(0, 200));
+			}
+		}
+		
+		// Retry with LLM self-correction
+		for (let retry = 1; retry <= maxRetries; retry++) {
+			console.group(`🔄 Retry ${retry}/${maxRetries}: Requesting JSON correction from LLM`);
+			
+			const correctionPrompt = `${formatParsingErrorForLLM(
+				parseResult.error || 'Invalid JSON structure',
+				response
+			)}
+
+Please provide ONLY valid JSON that matches this exact structure:
+{
+  "analysis": "string - your analysis text",
+  "confidence": 0.0 to 1.0,
+  "needsAlternatives": true or false,
+  "needsWebSearch": ["array", "of", "search", "terms"] or [],
+  "suggestions": [
+    {
+      "type": "one of: grammar|punctuation|clarity|consistency|speaker|boundary",
+      "severity": "one of: low|medium|high",
+      "text": "description of the issue",
+      "originalText": "exact text to replace",
+      "suggestedText": "replacement text",
+      "confidence": 0.0 to 1.0
+    }
+  ]
+}
+
+CRITICAL: Return ONLY the JSON object. No explanations, no text before or after, no markdown code blocks.`;
+			
+			console.log('Sending correction prompt to LLM');
+			
+			try {
+				const correctedResponse = await this.model.invoke([
+					new HumanMessage({ content: correctionPrompt })
+				]);
+				
+				const correctedContent = correctedResponse.content as string;
+				console.log('LLM correction response length:', correctedContent.length);
+				
+				const retryResult = robustJsonParse(correctedContent);
+				
+				if (retryResult.success) {
+					console.log(`✅ JSON parsed successfully on retry ${retry}`);
+					if (retryResult.fixesApplied && retryResult.fixesApplied.length > 0) {
+						console.log('Fixes applied:', retryResult.fixesApplied);
+					}
+					console.groupEnd(); // End retry group
+					console.groupEnd(); // End main parsing group
+					return retryResult.data;
+				} else {
+					console.warn(`⚠️ Retry ${retry} failed:`, retryResult.error);
+				}
+			} catch (error) {
+				console.error(`❌ Retry ${retry} error:`, error);
+			}
+			
+			console.groupEnd(); // End retry group
+		}
+		
+		// Fallback after all retries failed
+		console.error('❌ All JSON parsing attempts failed, using fallback structure');
+		console.groupEnd(); // End main parsing group
+		
+		return {
+			analysis: response.substring(0, 1000),
+			confidence: 0.5,
+			needsAlternatives: true,
+			needsWebSearch: [],
+			suggestions: []
+		};
+	}
+
 	async analyzeSegment(request: SegmentAnalysisRequest): Promise<SegmentAnalysisResult> {
 		try {
 			const { segment, summary, audioFilePath, fileId, uiLanguage } = request;
@@ -222,30 +354,29 @@ export class CoordinatingAgentSimple {
 				.replace('{wordCount}', segment.words.length.toString())
 				.replace('{responseLanguage}', responseLanguage);
 
+			// Log the analysis request
+			console.group('🤖 LLM Analysis Request');
+			console.log('Segment:', segment.speakerName || segment.speakerTag);
+			console.log('Text length:', segment.text.length);
+			console.log('Duration:', (segment.endTime - segment.startTime).toFixed(2), 'seconds');
+			console.groupEnd();
+
 			// Get initial analysis
 			const response = await this.model.invoke([new HumanMessage({ content: prompt })]);
-
-			// Parse the response
-			let analysisData;
-			try {
-				const content = response.content as string;
-				const jsonMatch = content.match(/\{[\s\S]*\}/);
-				if (!jsonMatch) {
-					throw new Error('No JSON found in response');
-				}
-				// Clean the JSON string before parsing
-				const cleanedJson = this.cleanJsonString(jsonMatch[0]);
-				analysisData = JSON.parse(cleanedJson);
-			} catch (e) {
-				console.error('Failed to parse analysis response:', e);
-				analysisData = {
-					analysis: response.content,
-					confidence: 0.7,
-					needsAlternatives: false,
-					needsWebSearch: [],
-					suggestions: []
-				};
-			}
+			
+			console.group('📝 LLM Response Processing');
+			console.log('Raw response received, length:', (response.content as string).length);
+			
+			// Parse the response with robust error recovery and retry
+			const expectedKeys = ['analysis', 'confidence', 'needsAlternatives', 'needsWebSearch', 'suggestions'];
+			const analysisData = await this.parseResponseWithRetry(
+				response.content as string,
+				expectedKeys
+			);
+			
+			console.log('Analysis data extracted successfully');
+			console.log('Suggestions count:', analysisData.suggestions?.length || 0);
+			console.groupEnd();
 
 			let nBestResults = null;
 
@@ -301,30 +432,33 @@ export class CoordinatingAgentSimple {
 						.replace('{asrAlternatives}', asrAlternativesText)
 						.replace('{responseLanguage}', responseLanguage);
 
+					console.group('🔬 Enhanced Analysis with ASR Results');
+					console.log('Sending enhanced prompt to LLM');
+					
 					// Get enhanced analysis
 					const enhancedResponse = await this.model.invoke([
 						new HumanMessage({ content: enhancedPrompt })
 					]);
 
-					// Parse enhanced response
-					try {
-						const enhancedContent = enhancedResponse.content as string;
-						const enhancedJsonMatch = enhancedContent.match(/\{[\s\S]*\}/);
-						if (enhancedJsonMatch) {
-							// Clean the JSON string before parsing
-							const cleanedJson = this.cleanJsonString(enhancedJsonMatch[0]);
-							const enhancedData = JSON.parse(cleanedJson);
-							console.log('Enhanced analysis suggestions:', enhancedData.suggestions);
-							// Update analysis data with enhanced suggestions
-							if (enhancedData.suggestions) {
-								analysisData.suggestions = enhancedData.suggestions;
-								analysisData.analysis = enhancedData.analysis || analysisData.analysis;
-							}
-						}
-					} catch (e) {
-						console.error('Failed to parse enhanced analysis:', e);
-						console.error('Enhanced response content:', enhancedResponse.content);
+					console.log('Enhanced response received, length:', (enhancedResponse.content as string).length);
+					
+					// Parse enhanced response with retry mechanism
+					const enhancedData = await this.parseResponseWithRetry(
+						enhancedResponse.content as string,
+						['analysis', 'confidence', 'needsAlternatives', 'needsWebSearch', 'suggestions']
+					);
+					
+					if (enhancedData.suggestions && enhancedData.suggestions.length > 0) {
+						console.log('✅ Enhanced analysis produced', enhancedData.suggestions.length, 'suggestions');
+						// Update analysis data with enhanced suggestions
+						analysisData.suggestions = enhancedData.suggestions;
+						analysisData.analysis = enhancedData.analysis || analysisData.analysis;
+						analysisData.confidence = enhancedData.confidence || analysisData.confidence;
+					} else {
+						console.log('⚠️ Enhanced analysis produced no suggestions');
 					}
+					
+					console.groupEnd();
 				} catch (e) {
 					console.error('Enhanced analysis error:', e);
 				}
