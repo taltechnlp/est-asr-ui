@@ -247,49 +247,32 @@
         
         console.log(`Looking for segment ${selectedSegment?.index} with text: "${searchText.substring(0, 50)}..."`);
         
-        // Search for the exact segment text in the document
-        let found = false;
-        let occurrenceCount = 0;
-        
+        // First, let's find the speaker node by index to get the actual text
+        const speakerNodes = [];
         doc.nodesBetween(0, doc.content.size, (node, pos) => {
-          if (!found && node.isText && node.text) {
-            // Look for exact match of the segment text
-            const nodeText = node.text;
-            let searchIndex = 0;
-            
-            while (searchIndex < nodeText.length) {
-              const index = nodeText.indexOf(searchText, searchIndex);
-              if (index === -1) break;
-              
-              occurrenceCount++;
-              const absolutePos = pos + index;
-              
-              // Verify we found the complete text
-              try {
-                const foundText = doc.textBetween(
-                  absolutePos, 
-                  Math.min(doc.content.size, absolutePos + searchText.length),
-                  ''  // Don't add separators
-                );
-                
-                if (foundText === searchText) {
-                  segmentAbsolutePosition = absolutePos;
-                  console.log(`📍 Found segment ${selectedSegment?.index} at absolute position: ${segmentAbsolutePosition}`);
-                  console.log(`   First 100 chars: "${foundText.substring(0, 100)}"`);
-                  found = true;
-                  return false; // Stop searching
-                }
-              } catch (e) {
-                console.error('Error verifying text:', e);
-              }
-              
-              searchIndex = index + 1;
-            }
+          if (node.type.name === 'speaker') {
+            speakerNodes.push({ node, pos });
           }
         });
         
-        if (!found) {
-          console.warn(`Could not find exact position for segment ${selectedSegment?.index}. Found ${occurrenceCount} partial matches.`);
+        if (speakerNodes[selectedSegment?.index]) {
+          const targetSpeakerNode = speakerNodes[selectedSegment.index];
+          const actualText = targetSpeakerNode.node.textContent;
+          console.log(`🔍 Speaker node ${selectedSegment.index} actual text: "${actualText.substring(0, 100)}..."`);
+          console.log(`🔍 Search text from segment: "${searchText.substring(0, 100)}..."`);
+          
+          // Use the position of the speaker node's content
+          segmentAbsolutePosition = targetSpeakerNode.pos + 1; // +1 to skip the speaker node itself
+          console.log(`📍 Found segment ${selectedSegment.index} at position: ${segmentAbsolutePosition}`);
+          
+          // Verify the text matches
+          if (actualText !== searchText) {
+            console.warn(`⚠️ Text mismatch! Actual text in document differs from extracted segment text`);
+            console.warn(`   Document text length: ${actualText.length}, Segment text length: ${searchText.length}`);
+            // Use the actual position even if text doesn't match exactly
+          }
+        } else {
+          console.warn(`Could not find speaker node at index ${selectedSegment?.index}. Total speaker nodes: ${speakerNodes.length}`);
           // Don't use position-based approach if we can't find the segment
           segmentAbsolutePosition = null;
         }
@@ -449,10 +432,18 @@
                   console.warn(`Text mismatch at calculated position [${absoluteFrom}, ${absoluteTo}]:`);
                   console.warn(`  Expected: "${suggestion.originalText}"`);
                   console.warn(`  Found: "${textAtPosition}"`);
-                  console.warn(`  Will try to recover...`);
+                  console.warn(`  Will fall back to text search...`);
+                  // Clear positions to trigger text search fallback
+                  suggestion.from = undefined;
+                  suggestion.to = undefined;
+                  return suggestion;
                 }
               } catch (e) {
                 console.error('Error verifying text at position:', e);
+                // Clear positions to trigger text search fallback
+                suggestion.from = undefined;
+                suggestion.to = undefined;
+                return suggestion;
               }
               
               // Map through any transactions that happened since analysis started
@@ -465,7 +456,7 @@
                 console.log(`Mapped to current positions: [${suggestion.from}, ${suggestion.to}]`);
                 
                 // Verify the text is still there
-                const currentText = editor.state.doc.textBetween(suggestion.from, suggestion.to);
+                const currentText = editor.state.doc.textBetween(suggestion.from, suggestion.to, '');
                 if (currentText.toLowerCase() !== suggestion.originalText.toLowerCase()) {
                   console.warn(`Text at mapped position has changed: expected "${suggestion.originalText}", found "${currentText}"`);
                   // Try recovery by text search in a small radius
@@ -634,7 +625,13 @@
       // If we have position info and reconciliation service, reconcile first
       let reconciledSuggestion = { ...suggestion };
       
-      if (suggestion.from !== undefined && suggestion.to !== undefined && reconciliationService) {
+      // Only attempt reconciliation if we have valid positions (not 0,0 or undefined)
+      const hasValidPositions = suggestion.from !== undefined && 
+                               suggestion.to !== undefined && 
+                               suggestion.from >= 0 && 
+                               suggestion.to > suggestion.from;
+      
+      if (hasValidPositions && reconciliationService) {
         // Add to reconciliation service for tracking
         const editId = reconciliationService.addPendingEdit({
           id: `suggestion_${index}_${Date.now()}`,
@@ -656,7 +653,15 @@
           reconciledSuggestion.to = reconcileResult.newTo;
         } else if (!reconcileResult.success) {
           console.warn('Position reconciliation failed, falling back to text search');
+          // Clear positions to trigger text search
+          delete reconciledSuggestion.from;
+          delete reconciledSuggestion.to;
         }
+      } else if (!hasValidPositions) {
+        // Make sure positions are not set when invalid
+        delete reconciledSuggestion.from;
+        delete reconciledSuggestion.to;
+        console.log('No valid positions available, will use text search');
       }
       
       // Dispatch event to create diff node

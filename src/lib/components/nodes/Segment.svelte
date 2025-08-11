@@ -130,7 +130,23 @@
 		if (node && node.content) {
 			// ProseMirror nodes have a forEach method to iterate over child nodes
 			node.forEach((child: any, offset: number, index: number) => {
-				if (child.isText && child.marks && child.marks.length > 0) {
+				// Check if this is a Word node (AI editor)
+				if (child.type && child.type.name === 'wordNode') {
+					// Extract text from Word node
+					const wordText = child.textContent || '';
+					const word: ExtractedWord = {
+						text: wordText,
+						start: child.attrs?.start || 0,
+						end: child.attrs?.end || 0,
+						speakerTag: selectedVal.name
+					};
+					words.push(word);
+					text += wordText; // Don't add spaces - they're separate text nodes in AI editor
+					startTime = Math.min(startTime, word.start);
+					endTime = Math.max(endTime, word.end);
+				}
+				// Check if this is text with word marks (original editor)
+				else if (child.isText && child.marks && child.marks.length > 0) {
 					// Find word mark
 					const wordMark = child.marks.find((mark: any) => mark.type.name === 'word');
 					if (wordMark && wordMark.attrs) {
@@ -145,10 +161,31 @@
 						startTime = Math.min(startTime, word.start);
 						endTime = Math.max(endTime, word.end);
 					}
-				} else if (child.content && child.content.size > 0) {
-					// Recursively process child nodes
+				}
+				// Check for plain text nodes (spaces between words in AI editor)
+				else if (child.isText && !child.marks?.length) {
+					// Add plain text (usually spaces) to maintain proper formatting
+					text += child.text || '';
+				}
+				// Recursively process child nodes for nested structures
+				else if (child.content && child.content.size > 0) {
 					child.forEach((grandchild: any) => {
-						if (grandchild.isText && grandchild.marks && grandchild.marks.length > 0) {
+						// Check for Word nodes in nested structure
+						if (grandchild.type && grandchild.type.name === 'wordNode') {
+							const wordText = grandchild.textContent || '';
+							const word: ExtractedWord = {
+								text: wordText,
+								start: grandchild.attrs?.start || 0,
+								end: grandchild.attrs?.end || 0,
+								speakerTag: selectedVal.name
+							};
+							words.push(word);
+							text += (text ? ' ' : '') + wordText;
+							startTime = Math.min(startTime, word.start);
+							endTime = Math.max(endTime, word.end);
+						}
+						// Check for word marks in nested structure
+						else if (grandchild.isText && grandchild.marks && grandchild.marks.length > 0) {
 							const wordMark = grandchild.marks.find((mark: any) => mark.type.name === 'word');
 							if (wordMark && wordMark.attrs) {
 								const word: ExtractedWord = {
@@ -162,6 +199,10 @@
 								startTime = Math.min(startTime, word.start);
 								endTime = Math.max(endTime, word.end);
 							}
+						}
+						// Add plain text nodes
+						else if (grandchild.isText && !grandchild.marks?.length) {
+							text += grandchild.text || '';
 						}
 					});
 				}
