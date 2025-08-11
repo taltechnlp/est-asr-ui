@@ -75,6 +75,9 @@
             
             segmentAnalysisResult = existingAnalysis;
             console.log('Loaded existing analysis:', existingAnalysis);
+            
+            // Auto-apply suggestions for existing analysis if not already applied
+            await applyAutoSuggestions(existingAnalysis);
           }
         }
       } catch (error) {
@@ -217,10 +220,63 @@
       // Mark as completed in shared state
       analysisStateStore.completeAnalysis(fileId, selectedSegment.index);
       onSegmentAnalyzed(segmentAnalysisResult);
+      
+      // Automatically apply suggestions marked with shouldAutoApply
+      await applyAutoSuggestions(segmentAnalysisResult);
     } catch (err) {
       console.error('Segment analysis error:', err);
       analysisStateStore.setError(fileId, err instanceof Error ? err.message : 'Analysis failed');
     }
+  }
+  
+  async function applyAutoSuggestions(analysisResult: any) {
+    if (!analysisResult?.suggestions || !Array.isArray(analysisResult.suggestions)) {
+      return;
+    }
+    
+    const autoApplySuggestions = analysisResult.suggestions.filter(
+      (s: any) => s.shouldAutoApply && !s.applied && s.originalText && s.suggestedText
+    );
+    
+    if (autoApplySuggestions.length === 0) {
+      console.log('No suggestions marked for auto-apply');
+      return;
+    }
+    
+    console.group(`🤖 Auto-applying ${autoApplySuggestions.length} suggestions as diff nodes`);
+    
+    for (const suggestion of autoApplySuggestions) {
+      try {
+        console.log(`Creating diff: "${suggestion.originalText}" → "${suggestion.suggestedText}"`);
+        
+        // Dispatch event to create diff node in the editor
+        const event = new CustomEvent('applyTranscriptSuggestionAsDiff', {
+          detail: {
+            suggestion,
+            segmentId: selectedSegment.speakerName || selectedSegment.speakerTag || 'Speaker',
+            callback: (result: any) => {
+              if (result.success) {
+                console.log(`✅ Diff created: ${result.diffId}`);
+                // Update the suggestion to mark it as having a diff created
+                suggestion.diffCreated = true;
+                suggestion.diffId = result.diffId;
+              } else {
+                console.error(`❌ Failed to create diff: ${result.error}`);
+              }
+            }
+          }
+        });
+        
+        window.dispatchEvent(event);
+        
+        // Small delay between creating diffs to avoid overwhelming the editor
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (error) {
+        console.error('Error creating diff for suggestion:', error);
+      }
+    }
+    
+    console.groupEnd();
   }
   
   async function reanalyzeSegment() {
@@ -267,27 +323,34 @@
       return;
     }
     
+    // Check if a diff has already been created for this suggestion
+    if (suggestion.diffCreated) {
+      console.log('Diff already created for this suggestion:', suggestion.diffId);
+      return;
+    }
+    
     applyingStates[index] = true;
     
     try {
-      // Dispatch a custom event that Tiptap can listen to
-      const event = new CustomEvent('applyTranscriptSuggestion', {
+      // Dispatch event to create diff node (not direct replacement)
+      const event = new CustomEvent('applyTranscriptSuggestionAsDiff', {
         detail: {
           suggestion,
           segmentId: selectedSegment.speakerName || selectedSegment.speakerTag || 'Speaker',
           callback: (result: any) => {
             if (result.success) {
-              // Mark as applied
+              // Mark as having diff created
               if (segmentAnalysisResult?.suggestions) {
                 segmentAnalysisResult.suggestions[index] = {
                   ...suggestion,
-                  applied: true,
-                  appliedAt: result.appliedAt,
-                  transactionId: result.transactionId
+                  diffCreated: true,
+                  diffId: result.diffId,
+                  appliedAt: result.appliedAt
                 };
               }
+              console.log(`✅ Manual diff created: ${result.diffId}`);
             } else {
-              console.error('Failed to apply suggestion:', result.error);
+              console.error('Failed to create diff:', result.error);
             }
             applyingStates[index] = false;
           }
@@ -296,7 +359,7 @@
       
       window.dispatchEvent(event);
     } catch (error) {
-      console.error('Failed to apply suggestion:', error);
+      console.error('Failed to create diff for suggestion:', error);
       applyingStates[index] = false;
     }
   }
@@ -412,7 +475,9 @@
                           >
                             {$_(`transcript.severity.${suggestion?.severity || 'low'}`)}
                           </span>
-                          {#if suggestion?.applied}
+                          {#if suggestion?.diffCreated}
+                            <span class="diff-badge">{$_('transcript.suggestion.diffCreated') || 'Diff Created'}</span>
+                          {:else if suggestion?.applied}
                             <span class="applied-badge">{$_('transcript.suggestion.applied')}</span>
                           {:else if suggestion?.originalText && suggestion?.suggestedText}
                             <button 
@@ -706,6 +771,15 @@
     padding: 0.125rem 0.5rem;
     background: #d1fae5;
     color: #065f46;
+    border-radius: 0.25rem;
+    font-weight: 500;
+  }
+  
+  .diff-badge {
+    font-size: 0.75rem;
+    padding: 0.125rem 0.5rem;
+    background: #fef3c7;
+    color: #92400e;
     border-radius: 0.25rem;
     font-weight: 500;
   }

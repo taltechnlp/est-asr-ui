@@ -1,0 +1,103 @@
+🤖 LLM Analysis Request
+  Segment: S0
+  Text length: 75
+  Duration: 6.39 seconds
+📝 LLM Response Processing
+  Raw response received, length: 1407
+  🔍 JSON Parsing Attempt
+    Response length: 1407
+    First 200 chars: {
+      "analysis": "This speaker turn appears to be severely corrupted or incorrectly transcribed Estonian text. The sequence 'Näolfootšerly Vuja hoiunenisming, Houd Hazdić' does not contain valid Estoni
+    ✅ JSON parsed successfully on first attempt
+  Analysis data extracted successfully
+  Suggestions count: 2
+ASRNBestServerNodeTool initialized with endpoint: https://tekstiks.ee/asr/transcribe/alternatives
+Calling ASR N-best tool for segment: {
+  audioFilePath: '/home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/fa6b3b689c01493e98f07a211dfd50_Päevakaja 16.05.mp3',
+  startTime: 68.81,
+  endTime: 75.2
+}
+ASR N-best timing validation: {
+  audioFilePath: '/home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/fa6b3b689c01493e98f07a211dfd50_Päevakaja 16.05.mp3',
+  startTime: '68.810',
+  endTime: '75.200',
+  duration: '6.390',
+  originalText: ''
+}
+Slicing audio from 68.810s to 75.200s (duration: 6.390s)
+AudioSlicer: Slicing audio file {
+  inputPath: '/home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/fa6b3b689c01493e98f07a211dfd50_Päevakaja 16.05.mp3',
+  startTime: '68.810',
+  endTime: '75.200',
+  duration: '6.390',
+  format: 'wav'
+}
+AudioSlicer: Running ffmpeg with args: -ss 68.81 -t 6.390000000000001 -i /home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/fa6b3b689c01493e98f07a211dfd50_Päevakaja 16.05.mp3 -acodec pcm_s16le -ar 16000 -ac 1 -y /home/aivo/dev/est-asr-ui/uploads/temp/slice_a131e3d7-e45a-46db-aab0-6417df4fab72.wav
+AudioSlicer: Slice completed successfully {
+  tempFilePath: '/home/aivo/dev/est-asr-ui/uploads/temp/slice_a131e3d7-e45a-46db-aab0-6417df4fab72.wav',
+  fileSize: 204558,
+  duration: '6.390',
+  elapsedMs: 64,
+  elapsedSeconds: '0.064'
+}
+Audio slice successful: {
+  tempFilePath: '/home/aivo/dev/est-asr-ui/uploads/temp/slice_a131e3d7-e45a-46db-aab0-6417df4fab72.wav',
+  sliceDuration: 6.390000000000001,
+  expectedDuration: 6.390000000000001,
+  durationDiff: 0
+}
+Making ASR request using curl to: https://tekstiks.ee/asr/transcribe/alternatives?n_best=5
+Curl command: curl -L -X POST "https://tekstiks.ee/asr/transcribe/alternatives?n_best=5" -F "file=@/home/aivo/dev/est-asr-ui/uploads/temp/slice_a131e3d7-e45a-46db-aab0-6417df4fab72.wav" -H "Accept: application/json" 2>&1
+Curl full output:   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100  200k  100   270  100  199k      5   4514  0:00:54  0:00:45  0:00:09    69
+{"text":"And now, unfortunately, we are at the whole unit is being hold postage by one","alternatives":[{"text":"And now, unfortunately, we are at the whole unit is being hold postage by one","beam_size":10}],"language":"et","duration":6.39,"is_final":true,"error":null}
+ASR API raw response: {"text":"And now, unfortunately, we are at the whole unit is being hold postage by one","alternatives":[{"text":"And now, unfortunately, we are at the whole unit is being hold postage by one","beam_size":10}],"language":"et","duration":6.39,"is_final":true,"error":null}
+ASR API response structure: {
+  hasText: true,
+  hasAlternatives: true,
+  alternativesCount: 1,
+  hasError: false,
+  keys: [
+    'text',
+    'alternatives',
+    'language',
+    'duration',
+    'is_final',
+    'error'
+  ]
+}
+ASR N-best results saved to: /home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/asr-nbest/fa6b3b689c01493e98f07a211dfd50_Päevakaja 16.05/nbest_68.8-75.2s_2025-08-11T11-16-25-111Z.json
+AudioSlicer: Cleaned up temp file: /home/aivo/dev/est-asr-ui/uploads/temp/slice_a131e3d7-e45a-46db-aab0-6417df4fab72.wav
+ASR N-best results received: {
+  alternatives: [
+    {
+      text: 'And now, unfortunately, we are at the whole unit is being hold postage by one',
+      confidence: 0.9
+    }
+  ],
+  primaryText: 'And now, unfortunately, we are at the whole unit is being hold postage by one',
+  duration: 6.39
+}
+Performing enhanced analysis with ASR results for segment: undefined
+Original text: Näolfootšerly  Vuja  hoiunenisming,  Houd  Hazdić  vahe  on  umbes  seitse.
+ASR alternatives: [
+  {
+    text: 'And now, unfortunately, we are at the whole unit is being hold postage by one',
+    confidence: 0.9
+  }
+]
+🔬 Enhanced Analysis with ASR Results
+  Sending enhanced prompt to LLM
+  Enhanced response received, length: 1020
+  🔍 JSON Parsing Attempt
+    Response length: 1020
+    First 200 chars: {
+      "analysis": "The ASR alternative reveals this is actually English content that was severely misrecognized as Estonian-like text. The ASR shows a clear English phrase 'And now, unfortunately, we ar
+    ✅ JSON parsed successfully on first attempt
+  ✅ Enhanced analysis produced 1 suggestions
+No search results found for query: "Houd Hazdić"
+Web search for "Houd Hazdić": {"query":"Houd Hazdić","results":[],"totalResults":0}
+No search results found for query: "Vuja"
+Web search for "Vuja": {"query":"Vuja","results":[],"totalResults":0}
+Failed to apply suggestion: TipTap editor not available

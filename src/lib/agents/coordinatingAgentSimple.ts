@@ -482,67 +482,35 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 				}
 			}
 
-			// Apply high-confidence suggestions automatically
-			const appliedSuggestions = [];
+			// Process suggestions - mark them for automatic application on client-side
+			const processedSuggestions = [];
 			if (analysisData.suggestions && Array.isArray(analysisData.suggestions)) {
-				// Log editor state before applying suggestions if in debug mode
-				if (this.debugMode && this.editor) {
-					logEditorSnapshot(this.editor, 'Before applying suggestions');
-				}
-				
 				for (const suggestion of analysisData.suggestions) {
+					// Mark high-confidence suggestions for automatic application
+					// These will be applied as diff nodes on the client-side
 					if (suggestion.confidence >= 0.5 && suggestion.originalText && suggestion.suggestedText) {
-						try {
-							// Debug search before applying
-							if (this.debugMode) {
-								console.log(`\n📝 Attempting to apply suggestion:`);
-								console.log(`  Original: "${suggestion.originalText}"`);
-								console.log(`  Suggested: "${suggestion.suggestedText}"`);
-								this.debugSearchText(suggestion.originalText);
-							}
-							
-							const result = await this.tiptapTool.applyTransaction({
-								originalText: suggestion.originalText,
-								suggestedText: suggestion.suggestedText,
-								segmentId: segment.speakerName || segment.speakerTag,
-								changeType: suggestion.type || 'text_replacement',
-								confidence: suggestion.confidence,
-								context: suggestion.text || suggestion.explanation || ''
-							});
-
-							const transactionResult = JSON.parse(result);
-							if (transactionResult.success) {
-								appliedSuggestions.push({
-									...suggestion,
-									applied: true,
-									appliedAt: transactionResult.appliedAt,
-									transactionId: transactionResult.transactionId
-								});
-							} else {
-								console.warn('Failed to apply suggestion:', transactionResult.error);
-								appliedSuggestions.push({
-									...suggestion,
-									applied: false,
-									error: transactionResult.error
-								});
-							}
-						} catch (error) {
-							console.error('Error applying suggestion:', error);
-							appliedSuggestions.push({
-								...suggestion,
-								applied: false,
-								error: error instanceof Error ? error.message : 'Unknown error'
-							});
-						}
-					} else {
-						// Low confidence suggestions remain unapplied for manual review
-						appliedSuggestions.push({
+						processedSuggestions.push({
 							...suggestion,
+							shouldAutoApply: true,
+							applied: false,
+							requiresManualReview: false
+						});
+						console.log(`✅ Marked for auto-apply: "${suggestion.originalText}" → "${suggestion.suggestedText}"`);
+					} else {
+						// Low confidence suggestions require manual review
+						processedSuggestions.push({
+							...suggestion,
+							shouldAutoApply: false,
 							applied: false,
 							requiresManualReview: true
 						});
+						console.log(`⚠️ Marked for manual review: "${suggestion.originalText}" → "${suggestion.suggestedText}"`);
 					}
 				}
+				
+				console.log(`📊 Processed ${processedSuggestions.length} suggestions:`);
+				console.log(`  - ${processedSuggestions.filter(s => s.shouldAutoApply).length} marked for auto-apply`);
+				console.log(`  - ${processedSuggestions.filter(s => s.requiresManualReview).length} require manual review`);
 			}
 
 			// Save to database
@@ -564,7 +532,7 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 					speakerName: segment.speakerName || segment.speakerTag,
 					analysis: analysisData.analysis,
 					suggestions:
-						appliedSuggestions.length > 0 ? appliedSuggestions : analysisData.suggestions,
+						processedSuggestions.length > 0 ? processedSuggestions : analysisData.suggestions,
 					nBestResults,
 					status: 'analyzed'
 				},
@@ -572,7 +540,7 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 					speakerName: segment.speakerName || segment.speakerTag,
 					analysis: analysisData.analysis,
 					suggestions:
-						appliedSuggestions.length > 0 ? appliedSuggestions : analysisData.suggestions,
+						processedSuggestions.length > 0 ? processedSuggestions : analysisData.suggestions,
 					nBestResults,
 					status: 'analyzed'
 				}
@@ -581,7 +549,7 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 			return {
 				segmentIndex: segment.index,
 				analysis: analysisData.analysis,
-				suggestions: appliedSuggestions.length > 0 ? appliedSuggestions : analysisData.suggestions,
+				suggestions: processedSuggestions.length > 0 ? processedSuggestions : analysisData.suggestions,
 				nBestResults,
 				confidence: analysisData.confidence
 			};

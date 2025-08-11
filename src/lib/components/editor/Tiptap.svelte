@@ -198,11 +198,43 @@
 				}
 			};
 			
+			// Listen for apply suggestion as diff events from the sidebar
+			const handleApplySuggestionAsDiff = async (event: CustomEvent) => {
+				const { suggestion, segmentId, callback } = event.detail;
+				try {
+					// Import the diff creation function
+					const { findAndCreateDiff } = await import('$lib/services/transcriptTextReplaceDiff');
+					
+					// Create a diff node instead of direct replacement
+					const result = findAndCreateDiff(
+						$editor,
+						suggestion.originalText,
+						suggestion.suggestedText,
+						{
+							caseSensitive: false,
+							changeType: suggestion.type || 'text_replacement',
+							confidence: suggestion.confidence || 0.5,
+							context: suggestion.explanation || suggestion.text || ''
+						}
+					);
+					
+					if (callback) callback(result);
+				} catch (error) {
+					console.error('Error creating diff:', error);
+					if (callback) callback({ 
+						success: false, 
+						error: error instanceof Error ? error.message : 'Unknown error' 
+					});
+				}
+			};
+			
 			window.addEventListener('applyTranscriptSuggestion', handleApplySuggestion as EventListener);
+			window.addEventListener('applyTranscriptSuggestionAsDiff', handleApplySuggestionAsDiff as EventListener);
 			
 			// Cleanup listener on component destroy
 			onDestroy(() => {
 				window.removeEventListener('applyTranscriptSuggestion', handleApplySuggestion as EventListener);
+				window.removeEventListener('applyTranscriptSuggestionAsDiff', handleApplySuggestionAsDiff as EventListener);
 			});
 		} catch (error) {
 			console.warn('Failed to set editor in coordinating agent:', error);
