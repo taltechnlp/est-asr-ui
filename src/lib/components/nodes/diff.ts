@@ -16,8 +16,6 @@ declare module '@tiptap/core' {
         changeType: string;
         confidence: number;
         context?: string;
-        from: number;
-        to: number;
       }) => ReturnType;
       approveDiff: (diffId: string) => ReturnType;
       rejectDiff: (diffId: string) => ReturnType;
@@ -113,36 +111,6 @@ export const Diff = Node.create<DiffOptions>({
           }
           return {
             'data-context': attributes.context,
-          };
-        },
-      },
-      from: {
-        default: 0,
-        parseHTML: element => {
-          const from = element.getAttribute('data-from');
-          return from ? parseInt(from, 10) : 0;
-        },
-        renderHTML: attributes => {
-          if (!attributes.from) {
-            return {};
-          }
-          return {
-            'data-from': attributes.from.toString(),
-          };
-        },
-      },
-      to: {
-        default: 0,
-        parseHTML: element => {
-          const to = element.getAttribute('data-to');
-          return to ? parseInt(to, 10) : 0;
-        },
-        renderHTML: attributes => {
-          if (!attributes.to) {
-            return {};
-          }
-          return {
-            'data-to': attributes.to.toString(),
           };
         },
       },

@@ -35,15 +35,14 @@ export function createDiffNode(
       }
       
       // Create diff node with all necessary attributes
+      // Note: We no longer store positions as they become stale after edits
       const diffNode = state.schema.nodes.diff.create({
         id: diffId,
         originalText: match.text,
         suggestedText,
         changeType,
         confidence,
-        context: context || '',
-        from: match.from,
-        to: match.to
+        context: context || ''
       });
       
       if (!diffNode) {

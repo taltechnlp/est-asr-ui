@@ -18,6 +18,7 @@
   import { selectedSegmentStore } from '$lib/stores/selectedSegmentStore';
   import { analysisStateStore } from '$lib/stores/analysisStateStore';
   import { normalizeLanguageCode } from '$lib/utils/language';
+  import { editor as editorStore } from '$lib/stores.svelte';
   
   let {
     fileId = '',
@@ -137,6 +138,14 @@
       return;
     }
     
+    // Lock the editor during analysis
+    const editor = $editorStore;
+    const wasEditable = editor?.isEditable;
+    if (editor) {
+      console.log('🔒 Locking editor during analysis');
+      editor.setEditable(false);
+    }
+    
     // Set shared state to analyzing
     analysisStateStore.startAnalysis(fileId, selectedSegment.index);
     
@@ -226,6 +235,13 @@
     } catch (err) {
       console.error('Segment analysis error:', err);
       analysisStateStore.setError(fileId, err instanceof Error ? err.message : 'Analysis failed');
+    } finally {
+      // Unlock the editor after analysis
+      const editor = $editorStore;
+      if (editor && wasEditable !== false) {
+        console.log('🔓 Unlocking editor after analysis');
+        editor.setEditable(true);
+      }
     }
   }
   
@@ -284,6 +300,14 @@
     
     isReanalyzing = true;
     
+    // Lock the editor during reanalysis
+    const editor = $editorStore;
+    const wasEditable = editor?.isEditable;
+    if (editor) {
+      console.log('🔒 Locking editor during reanalysis');
+      editor.setEditable(false);
+    }
+    
     try {
       // First delete the existing analysis from database
       const deleteResponse = await fetch(`/api/transcript-analysis/segments/${fileId}/${selectedSegment.index}`, {
@@ -298,10 +322,17 @@
       segmentAnalysisResult = null;
       applyingStates = {};
       
-      // Perform fresh analysis
+      // Perform fresh analysis (it will handle unlocking)
       await analyzeSelectedSegment();
     } finally {
       isReanalyzing = false;
+      
+      // Ensure editor is unlocked even if analysis fails
+      const editor = $editorStore;
+      if (editor && wasEditable !== false) {
+        console.log('🔓 Ensuring editor is unlocked after reanalysis');
+        editor.setEditable(true);
+      }
     }
   }
   
@@ -377,6 +408,15 @@
   
   onDestroy(() => {
     unsubscribe();
+    
+    // Ensure editor is unlocked if component unmounts during analysis
+    if (analysisState?.isAnalyzing) {
+      const editor = $editorStore;
+      if (editor) {
+        console.log('🔓 Unlocking editor on component unmount');
+        editor.setEditable(true);
+      }
+    }
   });
 </script>
 
@@ -439,6 +479,14 @@
               {$_('transcript.analysis.analyzeSegment')}
             {/if}
           </button>
+          
+          <!-- Analysis in Progress Notice -->
+          {#if isAnalyzing}
+            <div class="analysis-notice">
+              <Icon data={exclamationTriangle} scale={0.9} />
+              <span>{$_('transcript.analysis.editorLocked') || 'Editor is locked during analysis'}</span>
+            </div>
+          {/if}
           
           <!-- Analysis Results -->
           {#if segmentAnalysisResult}
@@ -875,6 +923,30 @@
     font-size: 0.875rem;
     font-style: italic;
     color: #9ca3af;
+  }
+  
+  .analysis-notice {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: #fef3c7;
+    border: 1px solid #fbbf24;
+    border-radius: 0.375rem;
+    color: #92400e;
+    font-size: 0.875rem;
+    font-weight: 500;
+    animation: pulse 2s infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.8;
+    }
   }
   
   /* Mobile responsiveness */

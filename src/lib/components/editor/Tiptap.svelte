@@ -25,6 +25,7 @@
 	import keyboard from 'svelte-awesome/icons/keyboardO';
 	import settings from 'svelte-awesome/icons/cog';
 	import pencil from 'svelte-awesome/icons/pencilSquareO';
+	import spinner from 'svelte-awesome/icons/spinner';
 	import debounce from 'lodash/debounce';
 	import {
 		editorMounted,
@@ -271,6 +272,14 @@
 	const updateWindowSize = () => windowWidth = window.innerWidth;
 	window.addEventListener("resize", updateWindowSize);
 	let editable = $state(true);
+	let isAnalyzing = $state(false);
+	
+	// Subscribe to editor editability changes to show overlay
+	$effect(() => {
+		if ($editor) {
+			isAnalyzing = !$editor.isEditable;
+		}
+	});
 
 
 	onDestroy(() => {
@@ -465,7 +474,17 @@
 				
 			</div>
 		{/if}
-		<EditorContent editor={$editor} />
+		<div class="editor-content-wrapper" class:analyzing={isAnalyzing}>
+			{#if isAnalyzing}
+				<div class="analysis-overlay">
+					<div class="analysis-message">
+						<Icon data={spinner} spin scale={1.5} />
+						<span>{$_('transcript.analysis.editorLockedMessage') || 'Analyzing segment... Editor is temporarily locked'}</span>
+					</div>
+				</div>
+			{/if}
+			<EditorContent editor={$editor} />
+		</div>
 	</div>
 	<LanguageSelection />
 	<Hotkeys />
@@ -492,6 +511,43 @@
 		min-width: max-content;
 		padding: 5px 5px;
 		border-radius: var(--rounded-box, 0.5rem);
+	}
+
+	.editor-content-wrapper {
+		position: relative;
+	}
+
+	.editor-content-wrapper.analyzing {
+		pointer-events: none;
+		opacity: 0.8;
+	}
+
+	.analysis-overlay {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(255, 255, 255, 0.9);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 100;
+		pointer-events: all;
+	}
+
+	.analysis-message {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		padding: 1.5rem 2rem;
+		background: white;
+		border: 2px solid #fbbf24;
+		border-radius: 0.5rem;
+		box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+		font-size: 1rem;
+		font-weight: 500;
+		color: #92400e;
 	}
 
 </style>
