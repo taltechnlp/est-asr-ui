@@ -157,14 +157,19 @@
       
       // Traverse the speaker node to find where the actual text content begins
       let foundContentStart = false;
-      targetSpeakerNode.node.nodesBetween(0, targetSpeakerNode.node.content.size, (node, relPos) => {
+      let firstTextPos = -1;
+      targetSpeakerNode.node.descendants((node, pos) => {
         if (!foundContentStart && (node.isText || node.type.name === 'wordNode')) {
           // Found the first text or word node - this is where content starts
-          contentStartPos = targetSpeakerNode.pos + 1 + relPos;
+          firstTextPos = pos;
           foundContentStart = true;
           return false; // Stop searching
         }
       });
+      
+      if (firstTextPos >= 0) {
+        contentStartPos = targetSpeakerNode.pos + 1 + firstTextPos;
+      }
       
       segmentAbsolutePosition = contentStartPos;
       console.log(`📍 Found segment ${selectedSegment.index} content at position: ${segmentAbsolutePosition}`);

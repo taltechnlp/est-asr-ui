@@ -160,13 +160,17 @@ export class EditReconciliationService {
     console.log(`[Reconciliation] Mapping [${edit.from}, ${edit.to}] → [${mappedRange.from.mapped}, ${mappedRange.to.mapped}], valid: ${mappedRange.valid}`);
     
     if (mappedRange.valid && !mappedRange.from.deleted && !mappedRange.to.deleted) {
-      // Validate content at mapped positions
-      const currentText = doc.textBetween(mappedRange.from.mapped, mappedRange.to.mapped, ' ');
-      const textMatches = this.normalizeText(currentText) === this.normalizeText(edit.originalText);
+      // Validate content at mapped positions - use empty separator to avoid adding spaces
+      const currentText = doc.textBetween(mappedRange.from.mapped, mappedRange.to.mapped, '');
+      const normalizedCurrent = this.normalizeText(currentText);
+      const normalizedExpected = this.normalizeText(edit.originalText);
+      const textMatches = normalizedCurrent === normalizedExpected;
       
       console.log(`[Reconciliation] Text validation:`);
       console.log(`  Expected: "${edit.originalText?.substring(0, 50)}..."`);
       console.log(`  Found: "${currentText.substring(0, 50)}..."`);
+      console.log(`  Normalized expected: "${normalizedExpected.substring(0, 50)}..."`);
+      console.log(`  Normalized found: "${normalizedCurrent.substring(0, 50)}..."`);
       console.log(`  Matches: ${textMatches}`);
       
       if (textMatches) {
