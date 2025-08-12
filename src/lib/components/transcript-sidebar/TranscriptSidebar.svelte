@@ -89,6 +89,9 @@
             segmentAnalysisResult = existingAnalysis;
             console.log('Loaded existing analysis:', existingAnalysis);
             
+            // Calculate segment position before applying suggestions
+            await calculateSegmentPosition();
+            
             // Auto-apply suggestions for existing analysis if not already applied
             await applyAutoSuggestions(existingAnalysis);
           }
@@ -98,6 +101,74 @@
       }
     }
   });
+  
+  // Function to calculate segment position in the document
+  async function calculateSegmentPosition() {
+    const editor = $editorStore;
+    if (!editor || !selectedSegment) {
+      segmentAbsolutePosition = null;
+      return;
+    }
+    
+    const doc = editor.state.doc;
+    
+    // Extract the segment text
+    extractSegmentText(selectedSegment);
+    
+    console.log(`Calculating position for segment ${selectedSegment.index} with text: "${segmentText?.substring(0, 50) || ''}..."`);
+    
+    // Find all speaker nodes
+    const speakerNodes = [];
+    doc.nodesBetween(0, doc.content.size, (node, pos) => {
+      if (node.type.name === 'speaker') {
+        speakerNodes.push({ node, pos });
+      }
+    });
+    
+    if (speakerNodes[selectedSegment.index]) {
+      const targetSpeakerNode = speakerNodes[selectedSegment.index];
+      const actualText = targetSpeakerNode.node.textContent;
+      console.log(`🔍 Speaker node ${selectedSegment.index} actual text: "${actualText.substring(0, 100)}..."`);
+      
+      // Find the actual text content position within the speaker node
+      let contentStartPos = targetSpeakerNode.pos + 1; // Start after the speaker node opening
+      
+      // Traverse the speaker node to find where the actual text content begins
+      let foundContentStart = false;
+      targetSpeakerNode.node.nodesBetween(0, targetSpeakerNode.node.content.size, (node, relPos) => {
+        if (!foundContentStart && (node.isText || node.type.name === 'wordNode')) {
+          // Found the first text or word node - this is where content starts
+          contentStartPos = targetSpeakerNode.pos + 1 + relPos;
+          foundContentStart = true;
+          return false; // Stop searching
+        }
+      });
+      
+      segmentAbsolutePosition = contentStartPos;
+      console.log(`📍 Found segment ${selectedSegment.index} content at position: ${segmentAbsolutePosition}`);
+      
+      // Debug: Check what text is actually at this position
+      try {
+        const testText = doc.textBetween(
+          segmentAbsolutePosition,
+          Math.min(segmentAbsolutePosition + 50, doc.content.size),
+          '',
+          ''
+        );
+        console.log(`📍 Text at calculated position ${segmentAbsolutePosition}: "${testText}..."`);
+      } catch (e) {
+        console.error('Could not verify text at position:', e);
+      }
+    } else {
+      console.warn(`Could not find speaker node at index ${selectedSegment.index}. Total speaker nodes: ${speakerNodes.length}`);
+      segmentAbsolutePosition = null;
+    }
+    
+    // Initialize reconciliation service if needed
+    if (!reconciliationService && editor) {
+      reconciliationService = getReconciliationService(editor);
+    }
+  }
   
   function extractSegmentText(segment: any) {
     if (!editorContent || !editorContent.content) {
@@ -236,81 +307,8 @@
       documentVersionAtAnalysis = mapper.getVersion();
       documentStateAtAnalysis = editor.state.doc;
       
-      // Find the absolute position of the selected segment in the document
-      segmentAbsolutePosition = null;
-      
-      // Use the actual segment text that we're analyzing
-      const searchText = segmentText;
-      
-      if (searchText && editor) {
-        const doc = editor.state.doc;
-        
-        console.log(`Looking for segment ${selectedSegment?.index} with text: "${searchText.substring(0, 50)}..."`);
-        
-        // First, let's find the speaker node by index to get the actual text
-        const speakerNodes = [];
-        doc.nodesBetween(0, doc.content.size, (node, pos) => {
-          if (node.type.name === 'speaker') {
-            speakerNodes.push({ node, pos });
-          }
-        });
-        
-        if (speakerNodes[selectedSegment?.index]) {
-          const targetSpeakerNode = speakerNodes[selectedSegment.index];
-          const actualText = targetSpeakerNode.node.textContent;
-          console.log(`🔍 Speaker node ${selectedSegment.index} actual text: "${actualText.substring(0, 100)}..."`);
-          console.log(`🔍 Search text from segment: "${searchText.substring(0, 100)}..."`);
-          
-          // Find the actual text content position within the speaker node
-          // The speaker node has structure, so we need to find where the actual content starts
-          let contentStartPos = targetSpeakerNode.pos + 1; // Start after the speaker node opening
-          
-          // Traverse the speaker node to find where the actual text content begins
-          let foundContentStart = false;
-          targetSpeakerNode.node.nodesBetween(0, targetSpeakerNode.node.content.size, (node, relPos) => {
-            if (!foundContentStart && (node.isText || node.type.name === 'wordNode')) {
-              // Found the first text or word node - this is where content starts
-              contentStartPos = targetSpeakerNode.pos + 1 + relPos;
-              foundContentStart = true;
-              return false; // Stop searching
-            }
-          });
-          
-          segmentAbsolutePosition = contentStartPos;
-          console.log(`📍 Found segment ${selectedSegment.index} content at position: ${segmentAbsolutePosition}`);
-          
-          // Debug: Check what text is actually at this position
-          try {
-            const testText = doc.textBetween(
-              segmentAbsolutePosition,
-              Math.min(segmentAbsolutePosition + 50, doc.content.size),
-              '',
-              ''
-            );
-            console.log(`📍 Text at calculated position ${segmentAbsolutePosition}: "${testText}..."`);
-          } catch (e) {
-            console.error('Could not verify text at position:', e);
-          }
-          
-          // Verify the text matches
-          if (actualText !== searchText) {
-            console.warn(`⚠️ Text mismatch! Actual text in document differs from extracted segment text`);
-            console.warn(`   Document text length: ${actualText.length}, Segment text length: ${searchText.length}`);
-            // Use the actual position even if text doesn't match exactly
-          }
-        } else {
-          console.warn(`Could not find speaker node at index ${selectedSegment?.index}. Total speaker nodes: ${speakerNodes.length}`);
-          // Don't use position-based approach if we can't find the segment
-          segmentAbsolutePosition = null;
-        }
-      } else {
-        console.warn('No segment text available for position finding');
-      }
-      
-      // Initialize reconciliation service if needed
-      if (!reconciliationService) {
-        reconciliationService = getReconciliationService(editor);
-      }
+      // Calculate the segment position
+      await calculateSegmentPosition();
     }
     
     // Set shared state to analyzing
