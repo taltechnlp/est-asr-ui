@@ -523,53 +523,47 @@
           segmentAnalysisResult.suggestions = segmentAnalysisResult.suggestions.map((suggestion: any) => {
             // If the suggestion has segment-relative positions AND we know where the segment is
             if (suggestion.from !== undefined && suggestion.to !== undefined && segmentAbsolutePosition !== null) {
-              // Convert to absolute positions
-              const absoluteFrom = segmentAbsolutePosition + suggestion.from;
-              const absoluteTo = segmentAbsolutePosition + suggestion.to;
-              
-              console.log(`Converting positions for "${suggestion.originalText}": segment [${suggestion.from}, ${suggestion.to}] → absolute [${absoluteFrom}, ${absoluteTo}]`);
-              console.log(`Segment absolute position: ${segmentAbsolutePosition}, analyzing segment index: ${selectedSegment?.index}`);
-              
               // Debug: Show what's in the segment text at these positions
               if (segmentText) {
                 const segmentPart = segmentText.substring(suggestion.from, suggestion.to);
                 console.log(`Text in segment at positions [${suggestion.from}, ${suggestion.to}]: "${segmentPart}"`);
-              }
-              
-              // Verify the text at the calculated position matches what we expect
-              try {
-                const textAtPosition = editor.state.doc.textBetween(
-                  Math.max(0, absoluteFrom),
-                  Math.min(editor.state.doc.content.size, absoluteTo),
-                  ''
-                );
                 
-                // Also show context around the position
-                const contextStart = Math.max(0, absoluteFrom - 20);
-                const contextEnd = Math.min(editor.state.doc.content.size, absoluteTo + 20);
-                const contextText = editor.state.doc.textBetween(contextStart, contextEnd, '');
+                // Try to find the actual position of this text in the document
+                const searchStart = Math.max(0, segmentAbsolutePosition - 10);
+                const searchEnd = Math.min(editor.state.doc.content.size, segmentAbsolutePosition + segmentText.length + 50);
+                const searchArea = editor.state.doc.textBetween(searchStart, searchEnd, '');
+                const actualIndex = searchArea.indexOf(suggestion.originalText);
                 
-                if (textAtPosition.toLowerCase() !== suggestion.originalText.toLowerCase()) {
-                  console.warn(`Text mismatch at calculated position [${absoluteFrom}, ${absoluteTo}]:`);
-                  console.warn(`  Expected: "${suggestion.originalText}"`);
-                  console.warn(`  Found: "${textAtPosition}"`);
-                  console.warn(`  Context: "...${contextText}..."`);
-                  console.warn(`  Will fall back to text search...`);
+                if (actualIndex !== -1) {
+                  const correctedFrom = searchStart + actualIndex;
+                  const correctedTo = correctedFrom + suggestion.originalText.length;
+                  console.log(`Found text at actual position [${correctedFrom}, ${correctedTo}] instead of calculated [${segmentAbsolutePosition + suggestion.from}, ${segmentAbsolutePosition + suggestion.to}]`);
+                  
+                  // Use the corrected positions
+                  suggestion.from = correctedFrom;
+                  suggestion.to = correctedTo;
+                  console.log(`Using corrected absolute positions: [${suggestion.from}, ${suggestion.to}]`);
+                } else {
+                  console.warn(`Could not find "${suggestion.originalText}" in document near segment position`);
                   // Clear positions to trigger text search fallback
                   suggestion.from = undefined;
                   suggestion.to = undefined;
                   return suggestion;
                 }
-              } catch (e) {
-                console.error('Error verifying text at position:', e);
-                // Clear positions to trigger text search fallback
-                suggestion.from = undefined;
-                suggestion.to = undefined;
-                return suggestion;
+              } else {
+                // Fallback to original calculation if no segment text
+                const absoluteFrom = segmentAbsolutePosition + suggestion.from;
+                const absoluteTo = segmentAbsolutePosition + suggestion.to;
+                suggestion.from = absoluteFrom;
+                suggestion.to = absoluteTo;
               }
               
               // Map through any transactions that happened since analysis started
-              const mappedRange = mapper.mapRange(absoluteFrom, absoluteTo);
+              if (suggestion.from === undefined || suggestion.to === undefined) {
+                return suggestion;
+              }
+              
+              const mappedRange = mapper.mapRange(suggestion.from, suggestion.to);
               
               if (mappedRange.valid) {
                 // Update suggestion with mapped positions
