@@ -153,22 +153,56 @@
       console.log(`🔍 Speaker node ${selectedSegment.index} actual text: "${actualText.substring(0, 100)}..."`);
       
       // Find the actual text content position within the speaker node
-      let contentStartPos = targetSpeakerNode.pos + 1; // Start after the speaker node opening
+      // The speaker node contains metadata nodes before the actual content
+      // We need to skip past all metadata to find where the actual text begins
       
-      // Traverse the speaker node to find where the actual text content begins
-      let foundContentStart = false;
-      let firstTextPos = -1;
-      targetSpeakerNode.node.descendants((node, pos) => {
-        if (!foundContentStart && (node.isText || node.type.name === 'wordNode')) {
-          // Found the first text or word node - this is where content starts
-          firstTextPos = pos;
-          foundContentStart = true;
-          return false; // Stop searching
-        }
-      });
+      let contentStartPos = null;
       
-      if (firstTextPos >= 0) {
-        contentStartPos = targetSpeakerNode.pos + 1 + firstTextPos;
+      // Use a more precise method: iterate through the document to find the exact position
+      // where our segment text actually starts
+      if (segmentText) {
+        // Get the first few words of the segment to search for
+        const searchText = segmentText.substring(0, 50).trim();
+        
+        // Search within the speaker node's range
+        const nodeStart = targetSpeakerNode.pos;
+        const nodeEnd = targetSpeakerNode.pos + targetSpeakerNode.node.nodeSize;
+        
+        // Look for the text within this range
+        doc.nodesBetween(nodeStart, nodeEnd, (node, pos) => {
+          if (node.isText && node.text) {
+            const nodeText = node.text;
+            // Check if this text node contains the beginning of our segment
+            if (nodeText.includes(searchText.substring(0, 20))) {
+              // Find the exact position where our text starts
+              const textIndex = nodeText.indexOf(searchText.substring(0, 20));
+              if (textIndex >= 0) {
+                contentStartPos = pos + textIndex;
+                return false; // Stop searching
+              }
+            }
+          } else if (node.type.name === 'wordNode' && contentStartPos === null) {
+            // For Word nodes, check if this is where our content starts
+            const nodeText = node.textContent;
+            if (searchText.startsWith(nodeText)) {
+              contentStartPos = pos;
+              return false;
+            }
+          }
+        });
+      }
+      
+      // Fallback to the previous method if text search fails
+      if (contentStartPos === null) {
+        contentStartPos = targetSpeakerNode.pos + 1;
+        let foundContentStart = false;
+        targetSpeakerNode.node.descendants((node, pos) => {
+          if (!foundContentStart && (node.isText || node.type.name === 'wordNode')) {
+            contentStartPos = targetSpeakerNode.pos + 1 + pos;
+            foundContentStart = true;
+            return false;
+          }
+        });
       }
       
       segmentAbsolutePosition = contentStartPos;
@@ -178,11 +212,27 @@
       try {
         const testText = doc.textBetween(
           segmentAbsolutePosition,
-          Math.min(segmentAbsolutePosition + 50, doc.content.size),
+          Math.min(segmentAbsolutePosition + 100, doc.content.size),
           '',
           ''
         );
-        console.log(`📍 Text at calculated position ${segmentAbsolutePosition}: "${testText}..."`);
+        console.log(`📍 Text at calculated position ${segmentAbsolutePosition}: "${testText}"`);
+        console.log(`📍 Expected segment text starts with: "${segmentText?.substring(0, 100) || ''}"`);
+        
+        // Additional validation - check if the text at this position matches our segment
+        if (segmentText && !testText.startsWith(segmentText.substring(0, 20))) {
+          console.warn(`⚠️ Position mismatch detected! Text at position doesn't match expected segment text.`);
+          // Try to find the correct position by searching for the text
+          const searchStart = Math.max(0, segmentAbsolutePosition - 50);
+          const searchEnd = Math.min(doc.content.size, segmentAbsolutePosition + 200);
+          const searchArea = doc.textBetween(searchStart, searchEnd, ' ');
+          const correctIndex = searchArea.indexOf(segmentText.substring(0, 30));
+          if (correctIndex >= 0) {
+            const correctedPosition = searchStart + correctIndex;
+            console.log(`📍 Correcting position from ${segmentAbsolutePosition} to ${correctedPosition}`);
+            segmentAbsolutePosition = correctedPosition;
+          }
+        }
       } catch (e) {
         console.error('Could not verify text at position:', e);
       }
