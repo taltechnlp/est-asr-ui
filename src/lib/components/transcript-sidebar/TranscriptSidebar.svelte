@@ -261,9 +261,36 @@
           console.log(`🔍 Speaker node ${selectedSegment.index} actual text: "${actualText.substring(0, 100)}..."`);
           console.log(`🔍 Search text from segment: "${searchText.substring(0, 100)}..."`);
           
-          // Use the position of the speaker node's content
-          segmentAbsolutePosition = targetSpeakerNode.pos + 1; // +1 to skip the speaker node itself
-          console.log(`📍 Found segment ${selectedSegment.index} at position: ${segmentAbsolutePosition}`);
+          // Find the actual text content position within the speaker node
+          // The speaker node has structure, so we need to find where the actual content starts
+          let contentStartPos = targetSpeakerNode.pos + 1; // Start after the speaker node opening
+          
+          // Traverse the speaker node to find where the actual text content begins
+          let foundContentStart = false;
+          targetSpeakerNode.node.nodesBetween(0, targetSpeakerNode.node.content.size, (node, relPos) => {
+            if (!foundContentStart && (node.isText || node.type.name === 'wordNode')) {
+              // Found the first text or word node - this is where content starts
+              contentStartPos = targetSpeakerNode.pos + 1 + relPos;
+              foundContentStart = true;
+              return false; // Stop searching
+            }
+          });
+          
+          segmentAbsolutePosition = contentStartPos;
+          console.log(`📍 Found segment ${selectedSegment.index} content at position: ${segmentAbsolutePosition}`);
+          
+          // Debug: Check what text is actually at this position
+          try {
+            const testText = doc.textBetween(
+              segmentAbsolutePosition,
+              Math.min(segmentAbsolutePosition + 50, doc.content.size),
+              '',
+              ''
+            );
+            console.log(`📍 Text at calculated position ${segmentAbsolutePosition}: "${testText}..."`);
+          } catch (e) {
+            console.error('Could not verify text at position:', e);
+          }
           
           // Verify the text matches
           if (actualText !== searchText) {
