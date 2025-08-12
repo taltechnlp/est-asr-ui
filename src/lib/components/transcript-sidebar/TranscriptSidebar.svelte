@@ -588,8 +588,8 @@
         console.log(`Creating diff: "${suggestion.originalText}" → "${suggestion.suggestedText}"`);
         console.log(`  With positions: [${suggestion.from}, ${suggestion.to}]`);
         
-        // Use the applySuggestionAsDiff function which handles reconciliation
-        await applySuggestionAsDiff(suggestion, i);
+        // Use the applySuggestion function which handles reconciliation
+        await applySuggestion(suggestion, i);
         
         // Small delay between creating diffs to avoid overwhelming the editor
         await new Promise(resolve => setTimeout(resolve, 100));
