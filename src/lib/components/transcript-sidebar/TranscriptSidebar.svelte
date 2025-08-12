@@ -92,6 +92,27 @@
             // Calculate segment position before applying suggestions
             await calculateSegmentPosition();
             
+            // Map positions for loaded analysis (same as we do for fresh analysis)
+            if ($editorStore && segmentAnalysisResult.suggestions) {
+              console.log('Mapping positions for loaded analysis suggestions...');
+              segmentAnalysisResult.suggestions = segmentAnalysisResult.suggestions.map((suggestion: any) => {
+                // If the suggestion has segment-relative positions AND we know where the segment is
+                if (suggestion.from !== undefined && suggestion.to !== undefined && segmentAbsolutePosition !== null) {
+                  // Convert to absolute positions
+                  const absoluteFrom = segmentAbsolutePosition + suggestion.from;
+                  const absoluteTo = segmentAbsolutePosition + suggestion.to;
+                  
+                  console.log(`Converting positions for "${suggestion.originalText}": segment [${suggestion.from}, ${suggestion.to}] → absolute [${absoluteFrom}, ${absoluteTo}]`);
+                  
+                  // Update suggestion with absolute positions
+                  suggestion.from = absoluteFrom;
+                  suggestion.to = absoluteTo;
+                  console.log(`Updated suggestion positions to: [${suggestion.from}, ${suggestion.to}]`);
+                }
+                return suggestion;
+              });
+            }
+            
             // Auto-apply suggestions for existing analysis if not already applied
             await applyAutoSuggestions(existingAnalysis);
           }
