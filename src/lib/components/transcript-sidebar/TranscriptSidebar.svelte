@@ -93,11 +93,36 @@
             await calculateSegmentPosition();
             
             // Map positions for loaded analysis (same as we do for fresh analysis)
-            if ($editorStore && segmentAnalysisResult.suggestions) {
+            if ($editorStore && segmentAnalysisResult.suggestions && segmentText) {
               console.log('Mapping positions for loaded analysis suggestions...');
+              console.log(`Segment text length: ${segmentText.length}`);
+              
               segmentAnalysisResult.suggestions = segmentAnalysisResult.suggestions.map((suggestion: any) => {
                 // If the suggestion has segment-relative positions AND we know where the segment is
                 if (suggestion.from !== undefined && suggestion.to !== undefined && segmentAbsolutePosition !== null) {
+                  // First, let's verify what text is at these positions in the segment
+                  const textAtPosition = segmentText.substring(suggestion.from, suggestion.to);
+                  console.log(`Text at segment positions [${suggestion.from}, ${suggestion.to}]: "${textAtPosition}"`);
+                  console.log(`Expected text: "${suggestion.originalText}"`);
+                  
+                  // Check if the positions are correct
+                  if (textAtPosition !== suggestion.originalText) {
+                    console.warn(`⚠️ Position mismatch! Text at position doesn't match originalText`);
+                    // Try to find the correct position
+                    const correctIndex = segmentText.indexOf(suggestion.originalText);
+                    if (correctIndex !== -1) {
+                      console.log(`Found correct position at index ${correctIndex}`);
+                      suggestion.from = correctIndex;
+                      suggestion.to = correctIndex + suggestion.originalText.length;
+                    } else {
+                      console.warn(`Could not find "${suggestion.originalText}" in segment text`);
+                      // Clear positions to trigger text search fallback
+                      suggestion.from = undefined;
+                      suggestion.to = undefined;
+                      return suggestion;
+                    }
+                  }
+                  
                   // Convert to absolute positions
                   const absoluteFrom = segmentAbsolutePosition + suggestion.from;
                   const absoluteTo = segmentAbsolutePosition + suggestion.to;
