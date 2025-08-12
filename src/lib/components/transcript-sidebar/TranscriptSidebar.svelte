@@ -686,7 +686,8 @@
           reconciledSuggestion.from = reconcileResult.newFrom;
           reconciledSuggestion.to = reconcileResult.newTo;
         } else if (!reconcileResult.success) {
-          console.warn('Position reconciliation failed, falling back to text search');
+          console.warn('Position reconciliation failed:', reconcileResult.error || 'Unknown error');
+          console.warn('Falling back to text search');
           // Clear positions to trigger text search
           delete reconciledSuggestion.from;
           delete reconciledSuggestion.to;
