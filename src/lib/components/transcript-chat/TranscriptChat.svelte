@@ -33,15 +33,15 @@
   let isAnalyzing = $state(false);
   let analysisResult = $state<TranscriptAnalysisResult | null>(null);
   let error = $state<string | null>(null);
-  let selectedModel = $state('anthropic/claude-3.5-sonnet');
+  let selectedModel = $state('openai/gpt-4o');
   let analysisType = $state<'full' | 'grammar' | 'punctuation' | 'speaker_diarization' | 'confidence' | 'context'>('full');
   let feedbackMessage = $state<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
   let activeTab = $state<'analysis' | 'legacy' | 'position'>('position');
 
   const availableModels = [
+    { value: 'openai/gpt-4o', label: 'GPT-4o' },
     { value: 'anthropic/claude-3.5-sonnet', label: 'Claude 3.5 Sonnet' },
     { value: 'anthropic/claude-3.5-haiku', label: 'Claude 3.5 Haiku (Faster)' },
-    { value: 'openai/gpt-4o', label: 'GPT-4o' },
     { value: 'openai/gpt-4o-mini', label: 'GPT-4o Mini (Faster)' },
   ];
 

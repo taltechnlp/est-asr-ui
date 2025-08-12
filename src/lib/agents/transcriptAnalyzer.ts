@@ -37,7 +37,7 @@ export class TranscriptAnalyzer {
   private graph;
   private compiledGraph;
 
-  constructor(modelName: string = OPENROUTER_MODELS.CLAUDE_3_5_SONNET) {
+  constructor(modelName: string = OPENROUTER_MODELS.GPT_4O) {
     // Initialize model with tools (temporarily disabled - using coordinating agent instead)
     this.tools = [
       // new GrammarCheckerTool(),

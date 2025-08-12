@@ -50,7 +50,7 @@ export class OpenRouterChat {
     }
 
     this.apiKey = OPENROUTER_API_KEY;
-    this.modelName = config.modelName || "anthropic/claude-3.5-sonnet";
+    this.modelName = config.modelName || "openai/gpt-4o";
     this.temperature = config.temperature || 0.7;
     this.maxTokens = config.maxTokens || 4096;
   }

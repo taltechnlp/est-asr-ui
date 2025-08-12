@@ -134,7 +134,7 @@ export class CoordinatingAgentPosition {
   private reconciliationService: any = null;
   private currentSegments: PositionAwareSegment[] = [];
   
-  constructor(modelName: string = OPENROUTER_MODELS.CLAUDE_3_5_SONNET) {
+  constructor(modelName: string = OPENROUTER_MODELS.GPT_4O) {
     this.model = createOpenRouterChat({
       modelName,
       temperature: 0.3,

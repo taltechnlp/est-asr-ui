@@ -1,0 +1,105 @@
+🤖 LLM Analysis Request
+  Segment: S0
+  Text length: 145
+  Duration: 8.28 seconds
+📝 LLM Response Processing
+  Raw response received, length: 1101
+  🔍 JSON Parsing Attempt
+    Response length: 1101
+    First 200 chars: {
+      "analysis": "Kõneleja väljendab selgelt kriitilist seisukohta peaministri ultimaatumi suhtes koalitsiooni lõpetamise osas. Lause on grammatiliselt korrektne ja sobib konteksti, kuid sisaldab mõnin
+    ✅ JSON parsed successfully on first attempt
+  Analysis data extracted successfully
+  Suggestions count: 2
+ASRNBestServerNodeTool initialized with endpoint: https://tekstiks.ee/asr/transcribe/alternatives
+Calling ASR N-best tool for segment: {
+  audioFilePath: '/home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/5ea03f7b266d4723a23d6d82437f17_Päevakaja 16.05.mp3',
+  startTime: 49.44,
+  endTime: 57.72
+}
+ASR N-best timing validation: {
+  audioFilePath: '/home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/5ea03f7b266d4723a23d6d82437f17_Päevakaja 16.05.mp3',
+  startTime: '49.440',
+  endTime: '57.720',
+  duration: '8.280',
+  originalText: ''
+}
+Slicing audio from 49.440s to 57.720s (duration: 8.280s)
+AudioSlicer: Slicing audio file {
+  inputPath: '/home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/5ea03f7b266d4723a23d6d82437f17_Päevakaja 16.05.mp3',
+  startTime: '49.440',
+  endTime: '57.720',
+  duration: '8.280',
+  format: 'wav'
+}
+AudioSlicer: Running ffmpeg with args: -ss 49.44 -t 8.280000000000001 -i /home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/5ea03f7b266d4723a23d6d82437f17_Päevakaja 16.05.mp3 -acodec pcm_s16le -ar 16000 -ac 1 -y /home/aivo/dev/est-asr-ui/uploads/temp/slice_713dcd18-ce23-4861-9ad8-6b4aad641ab3.wav
+AudioSlicer: Slice completed successfully {
+  tempFilePath: '/home/aivo/dev/est-asr-ui/uploads/temp/slice_713dcd18-ce23-4861-9ad8-6b4aad641ab3.wav',
+  fileSize: 265038,
+  duration: '8.280',
+  elapsedMs: 66,
+  elapsedSeconds: '0.066'
+}
+Audio slice successful: {
+  tempFilePath: '/home/aivo/dev/est-asr-ui/uploads/temp/slice_713dcd18-ce23-4861-9ad8-6b4aad641ab3.wav',
+  sliceDuration: 8.280000000000001,
+  expectedDuration: 8.280000000000001,
+  durationDiff: 0
+}
+Making ASR request using curl to: https://tekstiks.ee/asr/transcribe/alternatives?n_best=5
+Curl command: curl -L -X POST "https://tekstiks.ee/asr/transcribe/alternatives?n_best=5" -F "file=@/home/aivo/dev/est-asr-ui/uploads/temp/slice_713dcd18-ce23-4861-9ad8-6b4aad641ab3.wav" -H "Accept: application/json" 2>&1
+Curl full output:   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100  259k  100   380  100  259k      7   5548  0:00:54  0:00:47  0:00:07   115
+{"text":"Ma arvan, et peaministri poolt välja öeldu, et kui see eelnõu vastu võetakse, et siis see koalitsioon lõpetab, et see ultimaatu","alternatives":[{"text":"Ma arvan, et peaministri poolt välja öeldu, et kui see eelnõu vastu võetakse, et siis see koalitsioon lõpetab, et see ultimaatu","beam_size":10}],"language":"et","duration":8.28,"is_final":true,"error":null}
+ASR API raw response length: 370
+ASR API response structure: {
+  hasText: true,
+  hasAlternatives: true,
+  alternativesCount: 1,
+  hasError: false,
+  keys: [
+    'text',
+    'alternatives',
+    'language',
+    'duration',
+    'is_final',
+    'error'
+  ]
+}
+ASR N-best results saved to: /home/aivo/dev/est-asr-ui/uploads/jfl7j0nk96svm70kqsuhp/asr-nbest/5ea03f7b266d4723a23d6d82437f17_Päevakaja 16.05/nbest_49.4-57.7s_2025-08-12T05-00-24-899Z.json
+AudioSlicer: Cleaned up temp file: /home/aivo/dev/est-asr-ui/uploads/temp/slice_713dcd18-ce23-4861-9ad8-6b4aad641ab3.wav
+ASR N-best results received: {
+  alternatives: [
+    {
+      text: 'Ma arvan, et peaministri poolt välja öeldu, et kui see eelnõu vastu võetakse, et siis see koalitsioon lõpetab, et see ultimaatu',
+      confidence: 0.9
+    }
+  ],
+  primaryText: 'Ma arvan, et peaministri poolt välja öeldu, et kui see eelnõu vastu võetakse, et siis see koalitsioon lõpetab, et see ultimaatu',
+  duration: 8.28
+}
+Performing enhanced analysis with ASR results for segment: undefined
+Original text: Ma arvan, et peaministri poolt välja öeldu, et kui see eelnõu vastu võetakse, et siis see koalitsioon lõpetab, et see ultimaatum ei ole mõistlik.
+ASR alternatives: [
+  {
+    text: 'Ma arvan, et peaministri poolt välja öeldu, et kui see eelnõu vastu võetakse, et siis see koalitsioon lõpetab, et see ultimaatu',
+    confidence: 0.9
+  }
+]
+🔬 Enhanced Analysis with ASR Results
+  Sending enhanced prompt to LLM
+  Enhanced response received, length: 1145
+  🔍 JSON Parsing Attempt
+    Response length: 1145
+    First 200 chars: {
+      "analysis": "Lause struktuur on kohmakas ja sisaldab liigseid sidesõnu 'et'. ASR alternatiivid kinnitavad originaalteksti sisu, kuid näitavad selgemalt, et tegemist on ultimaatumiga seotud avaldus
+    ✅ JSON parsed successfully on first attempt
+  ✅ Enhanced analysis produced 2 suggestions
+📍 Found position for "et peaministri poolt välja öeldu, et kui see eelnõu vastu võetakse, et siis": [10, 85] in segment
+✅ Marked for auto-apply: "et peaministri poolt välja öeldu, et kui see eelnõu vastu võetakse, et siis" → "peaministri väide, mille kohaselt eelnõu vastuvõtmisel"
+📍 Found position for "Ma arvan, et peaministri poolt välja öeldu, et kui see eelnõu vastu võetakse, et siis see koalitsioon lõpetab, et see ultimaatum": [0, 128] in segment
+✅ Marked for auto-apply: "Ma arvan, et peaministri poolt välja öeldu, et kui see eelnõu vastu võetakse, et siis see koalitsioon lõpetab, et see ultimaatum" → "Ma arvan, et peaministri väide, mille kohaselt eelnõu vastuvõtmisel koalitsioon lõpetab, on ultimaatumina ebamõistlik"
+📊 Processed 2 suggestions:
+  - 2 marked for auto-apply
+  - 0 require manual review

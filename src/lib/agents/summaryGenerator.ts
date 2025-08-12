@@ -72,7 +72,7 @@ Example response format:
 export class SummaryGenerator {
   private model;
 
-  constructor(modelName: string = OPENROUTER_MODELS.CLAUDE_3_5_SONNET) {
+  constructor(modelName: string = OPENROUTER_MODELS.GPT_4O) {
     this.model = createOpenRouterChat({
       modelName,
       temperature: 0.3, // Lower temperature for consistent summaries

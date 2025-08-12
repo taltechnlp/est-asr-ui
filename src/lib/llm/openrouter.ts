@@ -21,7 +21,7 @@ export function createOpenRouterChat(config: OpenRouterConfig = {}) {
   }
 
   const {
-    modelName = "anthropic/claude-3.5-sonnet",
+    modelName = "openai/gpt-4o",
     temperature = 0.7,
     maxTokens = 4096,
   } = config;

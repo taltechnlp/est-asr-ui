@@ -33,7 +33,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         OPENROUTER_MODELS.CLAUDE_3_5_HAIKU,
         OPENROUTER_MODELS.GPT_4O,
         OPENROUTER_MODELS.GPT_4O_MINI,
-      ]).default(OPENROUTER_MODELS.CLAUDE_3_5_SONNET),
+      ]).default(OPENROUTER_MODELS.GPT_4O),
       stream: z.boolean().default(false),
     });
 
