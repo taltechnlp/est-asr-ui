@@ -110,53 +110,118 @@ export function findAndCreateDiff(
     let found = false;
     let diffResult: DiffCreationResult = { success: false, error: 'Text not found' };
     
-    // Search through the document for Word nodes
-    doc.descendants((node, pos) => {
-      if (found) return false; // Stop if already found
+    // First, try to find the text using textBetween which handles node boundaries better
+    const fullText = doc.textBetween(0, doc.content.size, ' ', ' ');
+    const normalizedFull = caseSensitive ? fullText : fullText.toLowerCase();
+    let searchIndex = normalizedFull.indexOf(normalizedSearch);
+    
+    if (searchIndex !== -1) {
+      // Found the text in the document, now find the exact position
+      let currentPos = 0;
+      let charCount = 0;
       
-      // Skip non-text content
-      if (!node.isText && node.type.name !== 'wordNode') return true;
-      
-      // For Word nodes, get the text content
-      let nodeText = '';
-      let nodeStart = pos;
-      
-      if (node.type.name === 'wordNode') {
-        // Extract text from Word node content
-        node.content.forEach((child) => {
-          if (child.isText) {
-            nodeText += child.text;
+      doc.nodesBetween(0, doc.content.size, (node, pos) => {
+        if (found) return false;
+        
+        const nodeSize = node.isText ? node.text!.length : node.nodeSize;
+        
+        // Check if our target position is within this node's range
+        if (charCount <= searchIndex && searchIndex < charCount + nodeSize) {
+          // Calculate the exact position
+          const from = pos + (searchIndex - charCount);
+          const to = from + searchText.length;
+          
+          // Verify the text at this position
+          try {
+            const actualText = doc.textBetween(from, Math.min(to, doc.content.size), '', '');
+            const normalizedActual = caseSensitive ? actualText : actualText.toLowerCase();
+            
+            if (normalizedActual === normalizedSearch) {
+              // Create diff at this position
+              diffResult = createDiffAtPosition(
+                editor,
+                from,
+                to,
+                searchText,
+                suggestedText,
+                options
+              );
+              found = true;
+              return false;
+            }
+          } catch (e) {
+            console.warn('Position verification failed:', e);
           }
-        });
-      } else if (node.isText) {
-        nodeText = node.text || '';
-      }
+        }
+        
+        // Update character count
+        if (node.isText) {
+          charCount += node.text!.length;
+        } else if (node.isLeaf) {
+          charCount += node.nodeSize;
+        }
+        
+        return true;
+      });
+    }
+    
+    // If still not found, try a more flexible search that handles Word nodes specifically
+    if (!found) {
+      console.log(`Text search failed for: "${searchText}". Trying flexible search...`);
       
-      // Check if this node contains our search text
-      const normalizedNode = caseSensitive ? nodeText : nodeText.toLowerCase();
-      const searchIndex = normalizedNode.indexOf(normalizedSearch);
+      // Build a map of text positions
+      let textMap = '';
+      let positionMap: { start: number; end: number; docPos: number }[] = [];
+      
+      doc.nodesBetween(0, doc.content.size, (node, pos) => {
+        if (node.type.name === 'wordNode') {
+          const wordText = node.textContent;
+          const startIndex = textMap.length;
+          textMap += wordText;
+          positionMap.push({ start: startIndex, end: startIndex + wordText.length, docPos: pos });
+        } else if (node.isText && !node.marks.length) {
+          // Plain text (spaces between words)
+          const startIndex = textMap.length;
+          textMap += node.text || '';
+          positionMap.push({ start: startIndex, end: startIndex + (node.text?.length || 0), docPos: pos });
+        }
+      });
+      
+      const normalizedMap = caseSensitive ? textMap : textMap.toLowerCase();
+      searchIndex = normalizedMap.indexOf(normalizedSearch);
       
       if (searchIndex !== -1) {
-        // Found the text
-        const from = nodeStart + searchIndex;
-        const to = from + searchText.length;
+        // Find the document positions that correspond to this text range
+        const searchEnd = searchIndex + searchText.length;
         
-        // Create diff at this position
-        diffResult = createDiffAtPosition(
-          editor,
-          from,
-          to,
-          searchText,
-          suggestedText,
-          options
-        );
+        // Find the first position entry that contains our start
+        const startEntry = positionMap.find(entry => entry.start <= searchIndex && searchIndex < entry.end);
+        // Find the last position entry that contains our end
+        const endEntry = positionMap.find(entry => entry.start < searchEnd && searchEnd <= entry.end);
         
-        found = true;
-        return false; // Stop searching
+        if (startEntry && endEntry) {
+          const from = startEntry.docPos + (searchIndex - startEntry.start);
+          const to = endEntry.docPos + (searchEnd - endEntry.start);
+          
+          diffResult = createDiffAtPosition(
+            editor,
+            from,
+            to,
+            searchText,
+            suggestedText,
+            options
+          );
+          found = true;
+        }
       }
-      
-      return true; // Continue searching
-    });
+    }
+    
+    if (!found) {
+      console.warn(`Could not find text: "${searchText}" in document`);
+      // Log some context to help debug
+      const preview = doc.textBetween(0, Math.min(200, doc.content.size), ' ', ' ');
+      console.log(`Document preview: "${preview}..."`);
+    }
     
     return diffResult;
   } catch (error) {
