@@ -177,7 +177,7 @@
       // Extract the actual segment text from the ProseMirror document
       // This ensures we have the exact text as it appears in the document
       segmentText = actualText.trim();
-      console.log(`📝 Extracted segment text from document: "${segmentText.substring(0, 100)}..."`);
+      console.log(`📝 Extracted segment text from document (length: ${segmentText.length}): "${segmentText.substring(0, 200)}"`);
       
       // Find the actual text content position within the speaker node
       // The speaker node contains metadata nodes before the actual content
@@ -530,6 +530,12 @@
               console.log(`Converting positions for "${suggestion.originalText}": segment [${suggestion.from}, ${suggestion.to}] → absolute [${absoluteFrom}, ${absoluteTo}]`);
               console.log(`Segment absolute position: ${segmentAbsolutePosition}, analyzing segment index: ${selectedSegment?.index}`);
               
+              // Debug: Show what's in the segment text at these positions
+              if (segmentText) {
+                const segmentPart = segmentText.substring(suggestion.from, suggestion.to);
+                console.log(`Text in segment at positions [${suggestion.from}, ${suggestion.to}]: "${segmentPart}"`);
+              }
+              
               // Verify the text at the calculated position matches what we expect
               try {
                 const textAtPosition = editor.state.doc.textBetween(
@@ -538,10 +544,16 @@
                   ''
                 );
                 
+                // Also show context around the position
+                const contextStart = Math.max(0, absoluteFrom - 20);
+                const contextEnd = Math.min(editor.state.doc.content.size, absoluteTo + 20);
+                const contextText = editor.state.doc.textBetween(contextStart, contextEnd, '');
+                
                 if (textAtPosition.toLowerCase() !== suggestion.originalText.toLowerCase()) {
                   console.warn(`Text mismatch at calculated position [${absoluteFrom}, ${absoluteTo}]:`);
                   console.warn(`  Expected: "${suggestion.originalText}"`);
                   console.warn(`  Found: "${textAtPosition}"`);
+                  console.warn(`  Context: "...${contextText}..."`);
                   console.warn(`  Will fall back to text search...`);
                   // Clear positions to trigger text search fallback
                   suggestion.from = undefined;
