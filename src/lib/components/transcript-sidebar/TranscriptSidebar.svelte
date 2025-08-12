@@ -114,7 +114,8 @@
             }
             
             // Auto-apply suggestions for existing analysis if not already applied
-            await applyAutoSuggestions(existingAnalysis);
+            // Pass segmentAnalysisResult which has the updated positions, not existingAnalysis
+            await applyAutoSuggestions(segmentAnalysisResult);
           }
         }
       } catch (error) {
@@ -581,29 +582,14 @@
     
     console.group(`🤖 Auto-applying ${autoApplySuggestions.length} suggestions as diff nodes`);
     
-    for (const suggestion of autoApplySuggestions) {
+    for (let i = 0; i < autoApplySuggestions.length; i++) {
+      const suggestion = autoApplySuggestions[i];
       try {
         console.log(`Creating diff: "${suggestion.originalText}" → "${suggestion.suggestedText}"`);
+        console.log(`  With positions: [${suggestion.from}, ${suggestion.to}]`);
         
-        // Dispatch event to create diff node in the editor
-        const event = new CustomEvent('applyTranscriptSuggestionAsDiff', {
-          detail: {
-            suggestion,
-            segmentId: selectedSegment.speakerName || selectedSegment.speakerTag || 'Speaker',
-            callback: (result: any) => {
-              if (result.success) {
-                console.log(`✅ Diff created: ${result.diffId}`);
-                // Update the suggestion to mark it as having a diff created
-                suggestion.diffCreated = true;
-                suggestion.diffId = result.diffId;
-              } else {
-                console.error(`❌ Failed to create diff: ${result.error}`);
-              }
-            }
-          }
-        });
-        
-        window.dispatchEvent(event);
+        // Use the applySuggestionAsDiff function which handles reconciliation
+        await applySuggestionAsDiff(suggestion, i);
         
         // Small delay between creating diffs to avoid overwhelming the editor
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -670,6 +656,8 @@
     try {
       // If we have position info and reconciliation service, reconcile first
       let reconciledSuggestion = { ...suggestion };
+      
+      console.log(`📍 Applying suggestion with positions: [${suggestion.from}, ${suggestion.to}]`);
       
       // Only attempt reconciliation if we have valid positions (not 0,0 or undefined)
       const hasValidPositions = suggestion.from !== undefined && 
