@@ -159,10 +159,7 @@
     
     const doc = editor.state.doc;
     
-    // Extract the segment text
-    extractSegmentText(selectedSegment);
-    
-    console.log(`Calculating position for segment ${selectedSegment.index} with text: "${segmentText?.substring(0, 50) || ''}..."`);
+    console.log(`Calculating position for segment ${selectedSegment.index}`);
     
     // Find all speaker nodes
     const speakerNodes = [];
@@ -177,57 +174,43 @@
       const actualText = targetSpeakerNode.node.textContent;
       console.log(`🔍 Speaker node ${selectedSegment.index} actual text: "${actualText.substring(0, 100)}..."`);
       
+      // Extract the actual segment text from the ProseMirror document
+      // This ensures we have the exact text as it appears in the document
+      segmentText = actualText.trim();
+      console.log(`📝 Extracted segment text from document: "${segmentText.substring(0, 100)}..."`);
+      
       // Find the actual text content position within the speaker node
       // The speaker node contains metadata nodes before the actual content
       // We need to skip past all metadata to find where the actual text begins
       
       let contentStartPos = null;
       
-      // Use a more precise method: iterate through the document to find the exact position
-      // where our segment text actually starts
-      if (segmentText) {
-        // Get the first few words of the segment to search for
-        const searchText = segmentText.substring(0, 50).trim();
-        
-        // Search within the speaker node's range
-        const nodeStart = targetSpeakerNode.pos;
-        const nodeEnd = targetSpeakerNode.pos + targetSpeakerNode.node.nodeSize;
-        
-        // Look for the text within this range
-        doc.nodesBetween(nodeStart, nodeEnd, (node, pos) => {
-          if (node.isText && node.text) {
-            const nodeText = node.text;
-            // Check if this text node contains the beginning of our segment
-            if (nodeText.includes(searchText.substring(0, 20))) {
-              // Find the exact position where our text starts
-              const textIndex = nodeText.indexOf(searchText.substring(0, 20));
-              if (textIndex >= 0) {
-                contentStartPos = pos + textIndex;
-                return false; // Stop searching
-              }
-            }
-          } else if (node.type.name === 'wordNode' && contentStartPos === null) {
-            // For Word nodes, check if this is where our content starts
-            const nodeText = node.textContent;
-            if (searchText.startsWith(nodeText)) {
-              contentStartPos = pos;
-              return false;
-            }
-          }
-        });
-      }
+      // Find the first text or word node position within the speaker node
+      const nodeStart = targetSpeakerNode.pos;
+      const nodeEnd = targetSpeakerNode.pos + targetSpeakerNode.node.nodeSize;
       
-      // Fallback to the previous method if text search fails
-      if (contentStartPos === null) {
-        contentStartPos = targetSpeakerNode.pos + 1;
-        let foundContentStart = false;
-        targetSpeakerNode.node.descendants((node, pos) => {
-          if (!foundContentStart && (node.isText || node.type.name === 'wordNode')) {
-            contentStartPos = targetSpeakerNode.pos + 1 + pos;
-            foundContentStart = true;
+      // Find the first actual content (text or wordNode) position
+      doc.nodesBetween(nodeStart, nodeEnd, (node, pos) => {
+        if (contentStartPos === null) {
+          if (node.isText && node.text && node.text.trim()) {
+            // Found a non-empty text node
+            contentStartPos = pos;
+            // If the text starts with whitespace, adjust position
+            const leadingSpaces = node.text.match(/^(\s*)/)?.[1]?.length || 0;
+            contentStartPos += leadingSpaces;
+            return false;
+          } else if (node.type.name === 'wordNode') {
+            // Found a word node
+            contentStartPos = pos;
             return false;
           }
-        });
+        }
+      });
+      
+      // Fallback: if we couldn't find content, use speaker node position + 1
+      if (contentStartPos === null) {
+        contentStartPos = targetSpeakerNode.pos + 1;
+        console.warn(`⚠️ Could not find content start position, using fallback: ${contentStartPos}`);
       }
       
       segmentAbsolutePosition = contentStartPos;
