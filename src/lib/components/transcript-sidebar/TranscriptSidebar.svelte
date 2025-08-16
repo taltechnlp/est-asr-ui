@@ -1042,7 +1042,6 @@
   
   .sidebar-content {
     flex: 1;
-    overflow-y: auto;
     padding: 1rem;
   }
   
@@ -1366,9 +1365,10 @@
       position: fixed;
       right: 0;
       top: 0;
-      height: calc(100vh - 80px); /* Account for player area height */
+      bottom: 120px; /* Leave space for fixed audio player */
       z-index: 1000;
       box-shadow: -4px 0 6px -1px rgba(0, 0, 0, 0.1);
+      overflow-y: auto; /* Enable scrolling on mobile when fixed */
     }
     
     .transcript-sidebar:not(.collapsed) {

@@ -102,19 +102,18 @@
 
 <style>
 	.transcript-layout {
-		display: grid;
-		grid-template-rows: 1fr auto; /* Content area takes remaining space, player area auto-sized */
-		height: 100vh;
+		display: flex;
+		flex-direction: column;
 		width: 100%;
-		overflow: hidden;
+		min-height: 100vh;
+		padding-bottom: 120px; /* Space for fixed audio player */
 	}
 	
 	.content-area {
 		display: grid;
 		grid-template-columns: 1fr 400px;
-		overflow: hidden;
 		transition: grid-template-columns 0.3s ease;
-		min-height: 0; /* Allow content to shrink */
+		flex: 1;
 	}
 	
 	.transcript-layout.sidebar-collapsed .content-area {
@@ -122,24 +121,21 @@
 	}
 	
 	.editor-pane {
-		display: flex;
-		flex-direction: column;
-		overflow: hidden;
-		min-height: 0; /* Allow content to shrink */
 		background: #f8f9fa; /* Light gray background to match top sections */
 	}
 	
 	.editor-content {
-		flex: 1;
-		overflow-y: auto;
-		min-height: 0; /* Allow content to shrink */
 		background: #f8f9fa; /* Light gray background to match top sections */
 	}
 	
 	.player-area {
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		right: 0;
 		border-top: 1px solid #e5e7eb;
 		background: white;
-		z-index: 10;
+		z-index: 1000;
 	}
 	
 	/* Responsive layout */
@@ -150,6 +146,10 @@
 		
 		.transcript-layout.sidebar-collapsed .content-area {
 			grid-template-columns: 1fr;
+		}
+		
+		.transcript-layout {
+			padding-bottom: 140px; /* More space for player on mobile */
 		}
 	}
 </style>
