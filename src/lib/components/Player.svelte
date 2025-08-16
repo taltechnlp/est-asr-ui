@@ -53,7 +53,7 @@
     }
 </script>
 
-<div class="w-full h-auto fixed bottom-0 left-0 pb-1 bg-white">
+<div class="w-full h-auto pb-1 bg-white border-t border-gray-200">
     <div class="controls flex justify-between items-center pt-0.5 pb-0.5">
         <div class="flex justify-center items-center">
             <button class="btn btn-square btn-sm control-button ml-5" onclick={zoomIn}>

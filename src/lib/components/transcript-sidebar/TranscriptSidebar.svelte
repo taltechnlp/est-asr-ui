@@ -1366,7 +1366,7 @@
       position: fixed;
       right: 0;
       top: 0;
-      height: 100vh;
+      height: calc(100vh - 80px); /* Account for player area height */
       z-index: 1000;
       box-shadow: -4px 0 6px -1px rgba(0, 0, 0, 0.1);
     }
