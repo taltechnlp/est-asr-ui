@@ -492,7 +492,7 @@
 		color: rgba(0, 0, 0, 0.54) !important;
 	}
 	.editor {
-		box-shadow: rgb(0 0 0 / 9%) 0px 4px 4px 4px;
+		box-shadow: rgba(0, 0, 0, 0.02) 0px 1px 2px 0px, rgba(0, 0, 0, 0.04) 0px 1px 3px 1px;
 	}
 
 	.toolbar {
