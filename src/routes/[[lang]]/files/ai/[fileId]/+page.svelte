@@ -133,14 +133,14 @@
 		flex-direction: column;
 		overflow: hidden;
 		min-height: 0; /* Allow content to shrink */
-		background: #f8f9fa; /* Light gray background to match top sections */
+		background: white;
 	}
 	
 	.editor-content {
 		flex: 1;
 		overflow-y: auto;
 		min-height: 0; /* Allow content to shrink */
-		background: #f8f9fa; /* Light gray background to match top sections */
+		background: white;
 	}
 	
 	.player-area {
