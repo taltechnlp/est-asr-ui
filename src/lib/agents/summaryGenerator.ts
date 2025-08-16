@@ -3,6 +3,7 @@ import { HumanMessage } from "@langchain/core/messages";
 import { prisma } from "$lib/db/client";
 import type { TranscriptSummary } from "@prisma/client";
 import { getLanguageName, normalizeLanguageCode, type SupportedLanguage } from "$lib/utils/language";
+import { robustJsonParse, formatParsingErrorForLLM, validateJsonStructure } from "./utils/jsonParser";
 
 export interface SummaryGenerationOptions {
   forceRegenerate?: boolean;
@@ -80,15 +81,6 @@ export class SummaryGenerator {
     });
   }
 
-  private cleanJsonString(str: string): string {
-    // Remove control characters except for valid JSON whitespace
-    return str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ' ')
-      // Also remove any non-breaking spaces that might cause issues
-      .replace(/\u00A0/g, ' ')
-      // Normalize quotes
-      .replace(/[\u2018\u2019]/g, "'")
-      .replace(/[\u201C\u201D]/g, '"');
-  }
 
   async generateSummary(
     fileId: string,
@@ -132,24 +124,42 @@ export class SummaryGenerator {
         new HumanMessage({ content: prompt }),
       ]);
 
-      // Parse the JSON response
+      // Parse the JSON response with robust parsing
       const content = response.content as string;
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("Failed to parse summary response");
-      }
-
-      // Clean the JSON string before parsing
-      const cleanedJson = this.cleanJsonString(jsonMatch[0]);
+      let parseResult = robustJsonParse(content);
       
-      let result: SummaryResult;
-      try {
-        result = JSON.parse(cleanedJson);
-      } catch (parseError) {
-        console.error("JSON parse error:", parseError);
-        console.error("Original JSON:", jsonMatch[0]);
-        console.error("Cleaned JSON:", cleanedJson);
-        throw new Error(`Failed to parse summary JSON: ${parseError instanceof Error ? parseError.message : "Unknown parse error"}`);
+      // If parsing failed, try to get corrected response from LLM
+      if (!parseResult.success) {
+        console.warn('Initial JSON parsing failed, attempting correction...');
+        
+        const correctionPrompt = `${formatParsingErrorForLLM(
+          parseResult.error || 'Unknown error',
+          content
+        )}
+
+Please provide the corrected JSON response with proper formatting.`;
+
+        try {
+          const correctionResponse = await this.model.invoke([
+            new HumanMessage({ content: correctionPrompt }),
+          ]);
+          
+          const correctedContent = correctionResponse.content as string;
+          parseResult = robustJsonParse(correctedContent);
+          
+          if (!parseResult.success) {
+            throw new Error(`Failed to parse summary JSON even after correction: ${parseResult.error}`);
+          }
+        } catch (correctionError) {
+          throw new Error(`Failed to parse summary JSON: ${parseResult.error}`);
+        }
+      }
+      
+      const result = parseResult.data as SummaryResult;
+      
+      // Validate the structure
+      if (!validateJsonStructure(result, ['summary', 'keyTopics', 'speakerCount', 'language'])) {
+        throw new Error('Summary response missing required fields');
       }
 
       // Generate display summary and translate key topics in UI language if different from English
@@ -229,7 +239,12 @@ export class SummaryGenerator {
         return topics; // Return original topics as fallback
       }
 
-      return JSON.parse(jsonMatch[0]);
+      const parseResult = robustJsonParse(jsonMatch[0]);
+      if (!parseResult.success) {
+        console.error("Failed to parse translated topics:", parseResult.error);
+        return topics; // Return original topics as fallback
+      }
+      return parseResult.data;
     } catch (error) {
       console.error("Key topics translation error:", error);
       return topics; // Return original topics as fallback

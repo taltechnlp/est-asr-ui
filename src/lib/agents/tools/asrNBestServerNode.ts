@@ -3,6 +3,7 @@ import { readFile, writeFile, mkdir } from "fs/promises";
 import { join, dirname, basename } from "path";
 // AudioSlicer will be loaded conditionally to avoid client-side import issues
 import { exec } from "child_process";
+import { robustJsonParse } from '../utils/jsonParser';
 import { promisify } from "util";
 
 const execAsync = promisify(exec);
@@ -189,14 +190,13 @@ export class ASRNBestServerNodeTool {
       
       console.log(`ASR API raw response length: ${jsonResponse.length}`);
       
-      let asrResult;
-      try {
-        asrResult = JSON.parse(jsonResponse);
-      } catch (e) {
-        console.error('Failed to parse ASR response as JSON:', e);
+      const parseResult = robustJsonParse(jsonResponse);
+      if (!parseResult.success) {
+        console.error('Failed to parse ASR response as JSON:', parseResult.error);
         console.error('First 500 chars of response:', jsonResponse.substring(0, 500));
-        throw new Error(`Invalid ASR response format: ${e.message}`);
+        throw new Error(`Invalid ASR response format: ${parseResult.error}`);
       }
+      const asrResult = parseResult.data;
 
       // Check if we got the service metadata instead of transcription result
       if (asrResult.service && asrResult.version && asrResult.endpoints) {

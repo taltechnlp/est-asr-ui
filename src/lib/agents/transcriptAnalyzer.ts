@@ -2,6 +2,7 @@ import { StateGraph, END, START } from "@langchain/langgraph";
 import { BaseMessage, HumanMessage, AIMessage, ToolMessage } from "@langchain/core/messages";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
 import { createOpenRouterChat, OPENROUTER_MODELS } from "$lib/llm/openrouter-direct";
+import { robustJsonParse } from "./utils/jsonParser";
 // Note: Using simplified imports for now - these tools are not currently implemented
 // import {
 //   GrammarCheckerTool,
@@ -144,16 +145,17 @@ Please analyze this transcript and use the available tools to identify issues an
     
     messages.forEach(msg => {
       if (msg instanceof ToolMessage) {
-        try {
-          const result = JSON.parse(msg.content as string);
+        const parseResult = robustJsonParse(msg.content as string);
+        if (parseResult.success) {
+          const result = parseResult.data;
           toolResults.push(result);
           
           // Extract suggestions from tool results
           if (result.suggestions && Array.isArray(result.suggestions)) {
             suggestions.push(...result.suggestions);
           }
-        } catch (e) {
-          console.error("Failed to parse tool result:", e);
+        } else {
+          console.error("Failed to parse tool result:", parseResult.error);
         }
       }
     });

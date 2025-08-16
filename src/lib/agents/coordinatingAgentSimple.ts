@@ -622,8 +622,16 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 				context: suggestion.text || suggestion.explanation || ''
 			});
 
-			const transactionResult = JSON.parse(result);
-			return transactionResult;
+			const parseResult = robustJsonParse(result);
+			if (parseResult.success) {
+				return parseResult.data;
+			} else {
+				console.error('Failed to parse transaction result:', parseResult.error);
+				return {
+					success: false,
+					error: `JSON parsing failed: ${parseResult.error}`
+				};
+			}
 		} catch (error) {
 			return {
 				success: false,

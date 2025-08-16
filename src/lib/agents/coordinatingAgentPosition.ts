@@ -6,6 +6,7 @@ import type { TranscriptSummary, AnalysisSegment } from '@prisma/client';
 import { prisma } from '$lib/db/client';
 import type { Editor } from '@tiptap/core';
 import { getLanguageName, normalizeLanguageCode } from '$lib/utils/language';
+import { robustJsonParse } from './utils/jsonParser';
 import {
   extractSpeakerSegmentsWithPositions,
   formatSegmentsForLLM,
@@ -209,8 +210,12 @@ export class CoordinatingAgentPosition {
         if (!jsonMatch) {
           throw new Error('No JSON found in response');
         }
-        const cleanedJson = this.cleanJsonString(jsonMatch[0]);
-        analysisData = JSON.parse(cleanedJson);
+        const parseResult = robustJsonParse(jsonMatch[0]);
+        if (parseResult.success) {
+          analysisData = parseResult.data;
+        } else {
+          throw new Error(`JSON parsing failed: ${parseResult.error}`);
+        }
       } catch (e) {
         console.error('Failed to parse position-aware analysis:', e);
         analysisData = {
@@ -237,7 +242,13 @@ export class CoordinatingAgentPosition {
               endTime: maxTime,
               nBest: 5
             });
-            nBestResults = JSON.parse(asrResult);
+            const parseResult = robustJsonParse(asrResult);
+            if (parseResult.success) {
+              nBestResults = parseResult.data;
+            } else {
+              console.error('Failed to parse ASR results:', parseResult.error);
+              nBestResults = null;
+            }
             
             // Enhance analysis with ASR results
             if (nBestResults?.alternatives?.length > 0) {
@@ -255,8 +266,12 @@ export class CoordinatingAgentPosition {
                 const enhancedContent = enhancedResponse.content as string;
                 const enhancedJsonMatch = enhancedContent.match(/\{[\s\S]*\}/);
                 if (enhancedJsonMatch) {
-                  const cleanedJson = this.cleanJsonString(enhancedJsonMatch[0]);
-                  const enhancedData = JSON.parse(cleanedJson);
+                  const parseResult = robustJsonParse(enhancedJsonMatch[0]);
+                  if (!parseResult.success) {
+                    console.error('Failed to parse enhanced analysis:', parseResult.error);
+                    return;
+                  }
+                  const enhancedData = parseResult.data;
                   if (enhancedData.suggestions) {
                     analysisData.suggestions = enhancedData.suggestions;
                     analysisData.analysis = enhancedData.analysis || analysisData.analysis;
@@ -300,7 +315,12 @@ export class CoordinatingAgentPosition {
                 context: suggestion.explanation || suggestion.text || ''
               });
               
-              const positionResult = JSON.parse(result);
+              const parseResult = robustJsonParse(result);
+              if (!parseResult.success) {
+                console.error('Failed to parse position result:', parseResult.error);
+                continue;
+              }
+              const positionResult = parseResult.data;
               
               if (positionResult.success) {
                 positionsUsedCount++;

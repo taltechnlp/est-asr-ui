@@ -1,5 +1,6 @@
 import { PositionAwareTipTapToolDirect } from './tools/positionAwareTiptapTool';
 import type { Editor } from '@tiptap/core';
+import { robustJsonParse } from './utils/jsonParser';
 import {
   extractSpeakerSegmentsWithPositions,
   type PositionAwareSegment
@@ -72,7 +73,15 @@ export class CoordinatingAgentPositionClient {
           context: suggestion.explanation || suggestion.text || ''
         });
         
-        const positionResult = JSON.parse(result);
+        const parseResult = robustJsonParse(result);
+        if (!parseResult.success) {
+          console.error('Failed to parse position result:', parseResult.error);
+          return {
+            success: false,
+            error: `JSON parsing failed: ${parseResult.error}`
+          };
+        }
+        const positionResult = parseResult.data;
         
         if (positionResult.success && this.reconciliationService) {
           // Track in reconciliation service
@@ -134,7 +143,15 @@ export class CoordinatingAgentPositionClient {
         context: suggestion.text || suggestion.explanation || ''
       });
       
-      return JSON.parse(result);
+      const parseResult = robustJsonParse(result);
+      if (!parseResult.success) {
+        console.error('Failed to parse text tool result:', parseResult.error);
+        return {
+          success: false,
+          error: `JSON parsing failed: ${parseResult.error}`
+        };
+      }
+      return parseResult.data;
     } catch (error) {
       return {
         success: false,

@@ -244,8 +244,7 @@
 
   .accordion-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    align-items: left;
     padding: 0.75rem 1rem;
     background: #f9fafb;
     min-height: 48px;
@@ -263,6 +262,7 @@
     color: #374151;
     transition: color 0.2s;
     text-align: left;
+    padding-right: 10px;
   }
 
   .accordion-toggle:hover:not(:disabled) {
