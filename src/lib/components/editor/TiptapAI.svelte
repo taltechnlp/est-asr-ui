@@ -410,7 +410,7 @@
 	
 	<div class="editor max-w-5xl">
 		{#if $editor}
-			<div class="toolbar sticky top-0 z-10 pt-1 pb-1 bg-base-200">
+			<div class="toolbar sticky top-0 z-10 pt-1 pb-1 bg-white border-b border-gray-200">
 				{#if !editable}
 				<div class="flex items-center tooltip tooltip-bottom" data-tip={$_('editor.editing.edit')}>
 					<button
