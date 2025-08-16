@@ -493,6 +493,7 @@
 	}
 	.editor {
 		box-shadow: rgba(0, 0, 0, 0.02) 0px 1px 2px 0px, rgba(0, 0, 0, 0.04) 0px 1px 3px 1px;
+		background: white;
 	}
 
 	.toolbar {
