@@ -217,3 +217,66 @@ interface IWeblog {
 }
 
 export type { IWeblog };
+
+// New ASR format types (from est-asr-pipeline)
+export interface NewWord {
+  word_with_punctuation: string;
+  start: number;
+  end: number;
+  word: string;
+  punctuation: string;
+}
+
+export interface NewTurn {
+  speaker: string;
+  start: number;
+  end: number;
+  transcript: string;
+  words: NewWord[];
+  unnormalized_transcript: string;
+}
+
+export interface NewSection {
+  type: "speech";
+  start: number;
+  end: number;
+  turns?: NewTurn[];
+}
+
+export interface NewSpeaker {
+  [speakerId: string]: Record<string, unknown>;
+}
+
+export interface BestHypothesis {
+  speakers: NewSpeaker;
+  sections: NewSection[];
+}
+
+export interface Alternative {
+  rank: number;
+  text: string;
+  avg_logprob: number;
+}
+
+export interface Segment {
+  start: number;
+  end: number;
+  alternatives: Alternative[];
+}
+
+export interface AlternativesData {
+  language: string;
+  segments: Segment[];
+}
+
+export interface AsrMetadata {
+  n_best: number;
+  has_word_alignments: boolean;
+  basename: string;
+}
+
+export interface TranscriptionResult {
+  best_hypothesis: BestHypothesis;
+  alternatives: AlternativesData;
+  metadata: AsrMetadata;
+}

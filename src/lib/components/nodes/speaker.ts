@@ -44,7 +44,8 @@ export const Speaker = Node.create<SpeakerOptions>({
 		return {
 			'data-name': '',
 			id: "",
-			topic: "" 
+			topic: "",
+			alternatives: "" // JSON string of Alternative[] for this segment 
 		};
 	},
 	addNodeView() {

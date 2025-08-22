@@ -1,6 +1,8 @@
-import type { EditorContent, SectionType, Speakers, Word as ApiWord, Turn } from '$lib/helpers/api.d';
+import type { EditorContent, SectionType, Speakers, Word as ApiWord, Turn, TranscriptionResult } from '$lib/helpers/api.d';
 import { v4 as uuidv4 } from "uuid";
-import type { Word, Speaker } from './types'
+import type { Word, Speaker } from './types';
+import { isNewFormat } from './newEstFormat';
+import { fromNewEstFormatAI } from './newEstFormatAI';
 
 // Create Word nodes instead of marked text
 const combineWords = (words: Array<Word>) => (acc, word: ApiWord) => {
@@ -71,7 +73,10 @@ const mapTurns = (turn: Turn, sps: Speakers, speakers: Array<Speaker>, words: Ar
     };
 };
 
-export const fromEstFormatAI = (transcription: EditorContent) => {
+/**
+ * Legacy AI converter for the old EST format
+ */
+export const fromEstFormatAILegacy = (transcription: EditorContent) => {
     // Create local arrays for this conversion
     const words: Array<Word> = [];
     const speakers: Array<Speaker> = [];
@@ -108,4 +113,18 @@ export const fromEstFormatAI = (transcription: EditorContent) => {
         words,
         speakers
     }; // Empty JSON result
-}
+};
+
+/**
+ * Universal AI converter that detects format and uses appropriate converter
+ * Supports both legacy EST format and new TranscriptionResult format
+ */
+export const fromEstFormatAI = (input: any) => {
+    // Check if it's the new TranscriptionResult format
+    if (isNewFormat(input)) {
+        return fromNewEstFormatAI(input as TranscriptionResult);
+    }
+    
+    // Otherwise use legacy AI converter
+    return fromEstFormatAILegacy(input as EditorContent);
+};

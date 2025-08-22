@@ -144,6 +144,7 @@ export interface SegmentWithTiming {
 	speakerTag: string;
 	speakerName?: string; // Added to distinguish from speakerTag
 	words: ExtractedWord[];
+	alternatives?: Array<{ rank: number; text: string; avg_logprob: number }>; // ASR alternative hypotheses
 }
 
 export function extractSegmentsWithTiming(

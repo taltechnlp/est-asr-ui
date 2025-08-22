@@ -39,6 +39,8 @@ Text: {text}
 Duration: {duration} seconds
 Word count: {wordCount} words
 
+{alternativesSection}
+
 This is a complete speaker turn - analyze the entire utterance from {speaker}.
 
 Your task:
@@ -344,6 +346,19 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 			const normalizedLanguage = normalizeLanguageCode(uiLanguage);
 			const responseLanguage = getLanguageName(normalizedLanguage);
 
+			// Build alternatives section if available
+			let alternativesSection = '';
+			if (segment.alternatives && segment.alternatives.length > 0) {
+				const alternativesText = segment.alternatives
+					.map((alt, idx) => `${idx + 1}. ${alt.text} (confidence: ${alt.avg_logprob.toFixed(3)})`)
+					.join('\n');
+				
+				alternativesSection = `Alternative transcriptions available:
+${alternativesText}
+
+Consider these alternatives when analyzing for potential transcription errors.`;
+			}
+
 			// Build the analysis prompt
 			const prompt = SEGMENT_ANALYSIS_PROMPT.replace('{summary}', summary.summary)
 				.replace('{segmentIndex}', (segment.index + 1).toString())
@@ -352,6 +367,7 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 				.replace('{text}', segment.text)
 				.replace('{duration}', (segment.endTime - segment.startTime).toFixed(2))
 				.replace('{wordCount}', segment.words.length.toString())
+				.replace('{alternativesSection}', alternativesSection)
 				.replace('{responseLanguage}', responseLanguage);
 
 			// Log the analysis request
@@ -359,6 +375,10 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 			console.log('Segment:', segment.speakerName || segment.speakerTag);
 			console.log('Text length:', segment.text.length);
 			console.log('Duration:', (segment.endTime - segment.startTime).toFixed(2), 'seconds');
+			console.log('Alternatives available:', segment.alternatives ? segment.alternatives.length : 0);
+			if (segment.alternatives && segment.alternatives.length > 0) {
+				console.log('Alternative texts:', segment.alternatives.map(alt => alt.text));
+			}
 			console.groupEnd();
 
 			// Get initial analysis

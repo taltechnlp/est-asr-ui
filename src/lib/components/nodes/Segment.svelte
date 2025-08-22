@@ -21,6 +21,8 @@
 	import SegmentAnalysisButton from './SegmentAnalysisButton.svelte';
 	import type { SegmentWithTiming, ExtractedWord } from '$lib/utils/extractWordsFromEditor';
 	import { page } from '$app/stores';
+	import { getAlternativesFromSegment } from '$lib/helpers/converters/newEstFormat';
+	import type { Alternative } from '$lib/helpers/api.d';
 	interface Props {
 		node: NodeViewProps['node'];
 		decorations: NodeViewProps['decorations'];
@@ -114,6 +116,11 @@
 	};
 	let cssVarStyles = $derived(`font-size:${$fontSizeStore}px`)
 	let time = $derived(findTimeStamps(getPos() + 1, editor.state));
+	
+	// Extract alternatives from node attributes
+	let segmentAlternatives = $derived.by(() => {
+		return getAlternativesFromSegment(node);
+	});
 	
 	// Extract file info from page store
 	let fileId = $derived($page.params.fileId || '');
@@ -223,7 +230,8 @@
 			text,
 			speakerTag: selectedVal.name,
 			speakerName: selectedVal.name,
-			words
+			words,
+			alternatives: segmentAlternatives
 		} as SegmentWithTiming;
 	});
 	

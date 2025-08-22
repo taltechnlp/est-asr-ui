@@ -1,6 +1,7 @@
-import type { EditorContent, SectionType, Speakers, Word as ApiWord, Turn } from '$lib/helpers/api.d';
+import type { EditorContent, SectionType, Speakers, Word as ApiWord, Turn, TranscriptionResult } from '$lib/helpers/api.d';
 import { v4 as uuidv4 } from "uuid";
-import type { Word, Speaker } from './types'
+import type { Word, Speaker } from './types';
+import { isNewFormat, fromNewEstFormat } from './newEstFormat';
 
 const words: Array<Word> = [];
 const speakers: Array<Speaker> = [];
@@ -33,7 +34,10 @@ const mapTurns = (turn: Turn, sps: Speakers) => {
     return `<speaker data-name="${name}" id="${id}" >${turn.words.reduce(combineWords, '')}</speaker>`;
 };
 
-export const fromEstFormat = (transcription: EditorContent) => {
+/**
+ * Legacy converter for the old EST format
+ */
+export const fromEstFormatLegacy = (transcription: EditorContent) => {
     if (transcription && transcription.sections) {
         const tr = transcription.sections
             .reduce((acc, section) => {
@@ -57,5 +61,18 @@ export const fromEstFormat = (transcription: EditorContent) => {
         words,
         speakers
     }; // Empty JSON result
+};
 
-} 
+/**
+ * Universal converter that detects format and uses appropriate converter
+ * Supports both legacy EST format and new TranscriptionResult format
+ */
+export const fromEstFormat = (input: any) => {
+    // Check if it's the new TranscriptionResult format
+    if (isNewFormat(input)) {
+        return fromNewEstFormat(input as TranscriptionResult);
+    }
+    
+    // Otherwise use legacy converter
+    return fromEstFormatLegacy(input as EditorContent);
+};

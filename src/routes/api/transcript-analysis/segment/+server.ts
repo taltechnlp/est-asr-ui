@@ -22,6 +22,11 @@ const AnalyzeSegmentSchema = z.object({
       end: z.number(),
       speakerTag: z.string(),
     })),
+    alternatives: z.array(z.object({
+      rank: z.number(),
+      text: z.string(),
+      avg_logprob: z.number(),
+    })).optional(), // ASR alternative hypotheses
   }),
   summaryId: z.string(),
   audioFilePath: z.string(),

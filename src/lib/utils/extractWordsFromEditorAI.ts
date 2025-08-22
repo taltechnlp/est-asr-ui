@@ -128,6 +128,7 @@ export interface SegmentWithTiming {
 	end: number;
 	duration: number;
 	absolutePosition: number;
+	alternatives?: Array<{ rank: number; text: string; avg_logprob: number }>; // ASR alternative hypotheses
 }
 
 /**

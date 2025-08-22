@@ -20,6 +20,7 @@
 	let summary = $state<TranscriptSummary | null>(null);
 	let sidebarCollapsed = $state(false);
 	let content;
+	
 	// First time transcription from the Estonian JSON format.
 	if (json && !json.type) {
 		content = fromEstFormatAI(json);  // Use AI converter for Word nodes
@@ -27,42 +28,49 @@
 	}
 	// Already in Editor format - need to handle Word nodes
 	else if (json && json.content) {
-		json.content.forEach((node) => {
-			// Extract timing from first and last Word nodes
-			let start = -1;
-			let end = -1;
-			
-			if (node.content && node.content.length > 0) {
-				// Find first Word node
-				const firstWordNode = node.content.find(n => n.type === 'wordNode');
-				if (firstWordNode && firstWordNode.attrs) {
-					start = firstWordNode.attrs.start || -1;
+		transcription = json; // Set the transcription to the full JSON structure
+		
+		if (json.content && Array.isArray(json.content)) {
+			json.content.forEach((node) => {
+				// Extract timing from first and last Word nodes
+				let start = -1;
+				let end = -1;
+				
+				if (node.content && node.content.length > 0) {
+					// Find first Word node
+					const firstWordNode = node.content.find(n => n.type === 'wordNode');
+					if (firstWordNode && firstWordNode.attrs) {
+						start = firstWordNode.attrs.start || -1;
+					}
+					
+					// Find last Word node
+					const lastWordNode = [...node.content].reverse().find(n => n.type === 'wordNode');
+					if (lastWordNode && lastWordNode.attrs) {
+						end = lastWordNode.attrs.end || -1;
+					}
 				}
 				
-				// Find last Word node
-				const lastWordNode = [...node.content].reverse().find(n => n.type === 'wordNode');
-				if (lastWordNode && lastWordNode.attrs) {
-					end = lastWordNode.attrs.end || -1;
+				if (node.attrs) {
+					speakers.push({ name: node.attrs['data-name'], id: node.attrs.id, start, end });
 				}
-			}
-			
-			speakers.push({ name: node.attrs['data-name'], id: node.attrs.id, start, end });
-			
-			if (node.content) {
-				node.content.forEach((inlineNode) => {
-					// Extract word timing from Word nodes
-					if (inlineNode.type === 'wordNode' && inlineNode.attrs) {
-						words.push({ 
-							start: inlineNode.attrs.start, 
-							end: inlineNode.attrs.end, 
-							id: inlineNode.attrs.id 
-						});
-					}
-				});
-			}
-		});
-		transcription = json;
-	} else transcription = json; // empty editor;
+				
+				if (node.content) {
+					node.content.forEach((inlineNode) => {
+						// Extract word timing from Word nodes
+						if (inlineNode.type === 'wordNode' && inlineNode.attrs) {
+							words.push({ 
+								start: inlineNode.attrs.start, 
+								end: inlineNode.attrs.end, 
+								id: inlineNode.attrs.id 
+							});
+						}
+					});
+				}
+			});
+		}
+	} else {
+		transcription = json || {type: 'doc', content: []}; // empty editor;
+	}
 	editorMounted.set(false);
 	speakerNamesStore.set(speakers);
 	wordsStore.set(words);
