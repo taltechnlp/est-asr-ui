@@ -3,9 +3,12 @@ import { json } from "@sveltejs/kit";
 import { prisma } from "$lib/db/client";
 import { z } from "zod";
 import { extractWordsFromEditor } from "$lib/utils/extractWordsFromEditor";
+import { fromNewEstFormatAI } from "$lib/helpers/converters/newEstFormatAI";
 import { getCoordinatingAgent } from "$lib/agents/coordinatingAgentSimple";
 import { getSummaryGenerator } from "$lib/agents/summaryGenerator";
 import { extractFullTextWithSpeakers } from "$lib/utils/extractWordsFromEditor";
+import { isNewFormat } from "$lib/helpers/converters/newEstFormat";
+import type { TranscriptionResult } from "$lib/helpers/api.d";
 import { promises as fs } from "fs";
 
 const AutoAnalyzeSchema = z.object({
@@ -128,29 +131,48 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           console.log(`Parsed transcript content keys: ${Object.keys(parsedContent).join(', ')}`);
           console.log(`Transcript content size: ${transcriptContent.length} chars`);
           
-          fullText = extractFullTextWithSpeakers(parsedContent);
-          console.log(`extractFullTextWithSpeakers returned: ${fullText.length} chars`);
-          
-          if (!fullText && parsedContent) {
-            // Try different extraction approaches
-            if (typeof parsedContent === 'string') {
-              fullText = parsedContent;
-              console.log('Using transcript content as plain string');
-            } else if (parsedContent.content) {
-              // Try to extract from content field
-              const contentStr = typeof parsedContent.content === 'string' ? parsedContent.content : JSON.stringify(parsedContent.content);
-              fullText = contentStr;
-              console.log(`Using transcript content.content field: ${contentStr.length} chars`);
-            } else if (parsedContent.text) {
-              // Try to extract from text field
-              fullText = parsedContent.text;
-              console.log(`Using transcript content.text field: ${parsedContent.text.length} chars`);
-            } else {
-              // Last resort - stringify the whole object (but limit size for summary)
-              const stringified = JSON.stringify(parsedContent);
-              fullText = stringified.substring(0, 10000); // Limit to 10k chars
-              console.log(`Using stringified transcript content (truncated): ${fullText.length} chars`);
-            }
+          // Check if it's the new ASR format
+          if (isNewFormat(parsedContent)) {
+            console.log('Detected new TranscriptionResult format');
+            // Extract text from new format by combining all transcript fields
+            const sections = parsedContent.best_hypothesis.sections || [];
+            const textParts = [];
+            
+            sections.forEach(section => {
+              if (section.type === 'speech' && section.turns) {
+                section.turns.forEach(turn => {
+                  if (turn.transcript) {
+                    textParts.push(turn.transcript);
+                  }
+                });
+              }
+            });
+            
+            fullText = textParts.join(' ');
+            console.log(`Extracted text from new format: ${fullText.length} chars`);
+            
+          } else if (parsedContent.type === 'doc' && parsedContent.content) {
+            // TipTap format - use existing extraction
+            fullText = extractFullTextWithSpeakers(parsedContent);
+            console.log(`extractFullTextWithSpeakers returned: ${fullText.length} chars`);
+            
+          } else if (typeof parsedContent === 'string') {
+            fullText = parsedContent;
+            console.log('Using transcript content as plain string');
+          } else if (parsedContent.content) {
+            // Try to extract from content field
+            const contentStr = typeof parsedContent.content === 'string' ? parsedContent.content : JSON.stringify(parsedContent.content);
+            fullText = contentStr;
+            console.log(`Using transcript content.content field: ${contentStr.length} chars`);
+          } else if (parsedContent.text) {
+            // Try to extract from text field
+            fullText = parsedContent.text;
+            console.log(`Using transcript content.text field: ${parsedContent.text.length} chars`);
+          } else {
+            // Last resort - stringify the whole object (but limit size for summary)
+            const stringified = JSON.stringify(parsedContent);
+            fullText = stringified.substring(0, 10000); // Limit to 10k chars
+            console.log(`Using stringified transcript content (truncated): ${fullText.length} chars`);
           }
         } catch (error) {
           // If JSON parsing fails, treat as plain text
@@ -165,12 +187,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
         console.log(`Generating new summary for ${fullText.length} characters of text`);
         
-        summary = await summaryGenerator.generateSummary({
-          fileId: file.id,
+        summary = await summaryGenerator.generateSummary(
+          file.id,
           fullText,
-          language: file.language,
-          uiLanguage: 'en' // Default to English for auto-analysis
-        });
+          { uiLanguage: 'en' } // Default to English for auto-analysis
+        );
 
         console.log(`Summary generated successfully for file ${fileId}`);
       }
@@ -185,7 +206,19 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       const parsedContent = JSON.parse(transcriptContent);
       console.log(`Segment extraction - parsed content keys: ${Object.keys(parsedContent).join(', ')}`);
       console.log(`Segment extraction - has content type: ${parsedContent.type || 'no type field'}`);
-      const extractedWords = extractWordsFromEditor(parsedContent);
+      
+      let extractedWords;
+      if (isNewFormat(parsedContent)) {
+        console.log('Using new format converter for segment extraction');
+        // Convert new format to editor format first, then extract words
+        const convertedFormat = fromNewEstFormatAI(parsedContent as TranscriptionResult);
+        extractedWords = extractWordsFromEditor(convertedFormat.transcription);
+      } else {
+        console.log('Using old format for segment extraction');
+        extractedWords = extractWordsFromEditor(parsedContent);
+      }
+      
+      console.log(`Extracted ${extractedWords.length} words for segmentation`);
       
       // Group words by speaker to create segments
       const segments = [];
