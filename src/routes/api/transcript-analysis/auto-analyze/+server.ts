@@ -125,12 +125,38 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         let fullText = "";
         try {
           const parsedContent = JSON.parse(transcriptContent);
+          console.log(`Parsed transcript content keys: ${Object.keys(parsedContent).join(', ')}`);
+          console.log(`Transcript content structure sample: ${JSON.stringify(parsedContent).substring(0, 500)}...`);
+          
           fullText = extractFullTextWithSpeakers(parsedContent);
+          console.log(`Extracted full text length: ${fullText.length}`);
+          
+          if (!fullText && parsedContent) {
+            // Try different extraction approaches
+            if (typeof parsedContent === 'string') {
+              fullText = parsedContent;
+              console.log('Using transcript content as plain string');
+            } else if (parsedContent.content) {
+              // Try to extract from content field
+              fullText = JSON.stringify(parsedContent.content);
+              console.log('Using transcript content.content field');
+            } else if (parsedContent.text) {
+              // Try to extract from text field
+              fullText = parsedContent.text;
+              console.log('Using transcript content.text field');
+            } else {
+              // Last resort - stringify the whole object
+              fullText = JSON.stringify(parsedContent);
+              console.log('Using stringified transcript content as fallback');
+            }
+          }
         } catch (error) {
           // If JSON parsing fails, treat as plain text
           fullText = transcriptContent;
+          console.log(`JSON parsing failed, using raw content: ${error.message}`);
         }
 
+        console.log(`Final full text length for summary: ${fullText.length}`);
         if (!fullText) {
           throw new Error("No transcript content available for summary generation");
         }
@@ -155,6 +181,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       }
 
       const parsedContent = JSON.parse(transcriptContent);
+      console.log(`Segment extraction - parsed content structure: ${JSON.stringify(parsedContent).substring(0, 200)}...`);
       const extractedWords = extractWordsFromEditor(parsedContent);
       
       // Group words by speaker to create segments
