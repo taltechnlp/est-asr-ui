@@ -207,49 +207,74 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       console.log(`Segment extraction - parsed content keys: ${Object.keys(parsedContent).join(', ')}`);
       console.log(`Segment extraction - has content type: ${parsedContent.type || 'no type field'}`);
       
-      let extractedWords;
+      // Create segments directly from new format structure
+      const segments = [];
+      
       if (isNewFormat(parsedContent)) {
-        console.log('Using new format converter for segment extraction');
-        // Convert new format to editor format first, then extract words
-        const convertedFormat = fromNewEstFormatAI(parsedContent as TranscriptionResult);
-        extractedWords = extractWordsFromEditor(convertedFormat.transcription);
+        console.log('Creating segments directly from new TranscriptionResult format');
+        const sections = parsedContent.best_hypothesis.sections || [];
+        let segmentIndex = 0;
+        
+        sections.forEach(section => {
+          if (section.type === 'speech' && section.turns) {
+            section.turns.forEach(turn => {
+              if (turn.transcript && turn.words) {
+                segments.push({
+                  index: segmentIndex++,
+                  startTime: turn.start,
+                  endTime: turn.end,
+                  startWord: 0, // Will be updated if needed
+                  endWord: turn.words.length - 1,
+                  text: turn.transcript,
+                  speakerTag: turn.speaker,
+                  speakerName: parsedContent.best_hypothesis.speakers[turn.speaker]?.name || turn.speaker,
+                  words: turn.words.map(word => ({
+                    text: word.word_with_punctuation,
+                    start: word.start,
+                    end: word.end,
+                    speakerTag: turn.speaker
+                  }))
+                });
+              }
+            });
+          }
+        });
+        
       } else {
         console.log('Using old format for segment extraction');
-        extractedWords = extractWordsFromEditor(parsedContent);
-      }
-      
-      console.log(`Extracted ${extractedWords.length} words for segmentation`);
-      
-      // Group words by speaker to create segments
-      const segments = [];
-      let currentSegment = null;
-      
-      for (const word of extractedWords) {
-        if (!currentSegment || currentSegment.speakerTag !== word.speakerTag) {
-          if (currentSegment) {
-            segments.push(currentSegment);
+        // Old format - use existing word extraction approach
+        const extractedWords = extractWordsFromEditor(parsedContent);
+        console.log(`Extracted ${extractedWords.length} words for segmentation`);
+        
+        let currentSegment = null;
+        
+        for (const word of extractedWords) {
+          if (!currentSegment || currentSegment.speakerTag !== word.speakerTag) {
+            if (currentSegment) {
+              segments.push(currentSegment);
+            }
+            currentSegment = {
+              index: segments.length,
+              startTime: word.start,
+              endTime: word.end,
+              startWord: extractedWords.indexOf(word),
+              endWord: extractedWords.indexOf(word),
+              text: word.text,
+              speakerTag: word.speakerTag,
+              speakerName: word.speakerTag,
+              words: [word]
+            };
+          } else {
+            currentSegment.text += " " + word.text;
+            currentSegment.endTime = word.end;
+            currentSegment.endWord = extractedWords.indexOf(word);
+            currentSegment.words.push(word);
           }
-          currentSegment = {
-            index: segments.length,
-            startTime: word.start,
-            endTime: word.end,
-            startWord: extractedWords.indexOf(word),
-            endWord: extractedWords.indexOf(word),
-            text: word.text,
-            speakerTag: word.speakerTag,
-            speakerName: word.speakerTag,
-            words: [word]
-          };
-        } else {
-          currentSegment.text += " " + word.text;
-          currentSegment.endTime = word.end;
-          currentSegment.endWord = extractedWords.indexOf(word);
-          currentSegment.words.push(word);
         }
-      }
-      
-      if (currentSegment) {
-        segments.push(currentSegment);
+        
+        if (currentSegment) {
+          segments.push(currentSegment);
+        }
       }
 
       // Take only first 5 segments
