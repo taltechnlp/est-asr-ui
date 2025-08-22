@@ -225,8 +225,9 @@ export class CoordinatingAgentPosition {
         };
       }
       
-      // Get ASR alternatives if needed
+      // ASR alternatives disabled for now - can be re-enabled when needed
       let nBestResults = null;
+      /* 
       if (segments.length > 0 && segments[0].startTime !== undefined) {
         try {
           await this.initializeASRTool();
@@ -286,6 +287,7 @@ export class CoordinatingAgentPosition {
           console.error('ASR tool error in position-based analysis:', e);
         }
       }
+      */
       
       // Apply position-based suggestions
       const appliedSuggestions = [];

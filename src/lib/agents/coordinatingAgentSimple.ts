@@ -8,9 +8,17 @@ import { prisma } from '$lib/db/client';
 import type { SegmentWithTiming } from '$lib/utils/extractWordsFromEditor';
 import type { Editor } from '@tiptap/core';
 import { getLanguageName, normalizeLanguageCode } from '$lib/utils/language';
-import { logEditorSnapshot, createEditorSnapshot, searchInSnapshot } from '$lib/services/editorDebugger';
+import {
+	logEditorSnapshot,
+	createEditorSnapshot,
+	searchInSnapshot
+} from '$lib/services/editorDebugger';
 import { runAutomatedTestSuite } from '$lib/services/textReplacementTestHarness';
-import { robustJsonParse, formatParsingErrorForLLM, validateJsonStructure } from './utils/jsonParser';
+import {
+	robustJsonParse,
+	formatParsingErrorForLLM,
+	validateJsonStructure
+} from './utils/jsonParser';
 
 export interface SegmentAnalysisRequest {
 	fileId: string;
@@ -168,12 +176,14 @@ export class CoordinatingAgentSimple {
 
 	private async initializeASRTool() {
 		if (this.asrTool) return;
-		
+
 		// Only load on server side
 		if (typeof window === 'undefined') {
 			try {
 				const { createASRNBestServerNodeTool } = await import('./tools/asrNBestServerNode');
-				this.asrTool = createASRNBestServerNodeTool('https://tekstiks.ee/asr/transcribe/alternatives');
+				this.asrTool = createASRNBestServerNodeTool(
+					'https://tekstiks.ee/asr/transcribe/alternatives'
+				);
 			} catch (e) {
 				console.error('Failed to load ASR tool:', e);
 			}
@@ -201,15 +211,18 @@ export class CoordinatingAgentSimple {
 			console.error('Editor not set');
 			return;
 		}
-		
+
 		const snapshot = createEditorSnapshot(this.editor);
 		const results = searchInSnapshot(snapshot, searchText);
-		
+
 		console.group(`🔍 Debug Search: "${searchText}"`);
 		console.log('Results:', results);
-		
+
 		if (results.exactMatch) {
-			console.log('✅ Exact match found at positions:', results.locations.map(l => l.position));
+			console.log(
+				'✅ Exact match found at positions:',
+				results.locations.map((l) => l.position)
+			);
 		} else if (results.found) {
 			console.log('⚠️ All words found but not as exact phrase');
 			console.log('Found words:', results.wordAnalysis.foundWords);
@@ -218,19 +231,22 @@ export class CoordinatingAgentSimple {
 			console.log('❌ Not found');
 			console.log('Missing words:', results.wordAnalysis.missingWords);
 		}
-		
+
 		console.groupEnd();
 		return results;
 	}
 
 	private cleanJsonString(str: string): string {
 		// Remove control characters except for valid JSON whitespace
-		return str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ' ')
-			// Also remove any non-breaking spaces that might cause issues
-			.replace(/\u00A0/g, ' ')
-			// Normalize quotes
-			.replace(/[\u2018\u2019]/g, "'")
-			.replace(/[\u201C\u201D]/g, '"');
+		return (
+			str
+				.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ' ')
+				// Also remove any non-breaking spaces that might cause issues
+				.replace(/\u00A0/g, ' ')
+				// Normalize quotes
+				.replace(/[\u2018\u2019]/g, "'")
+				.replace(/[\u201C\u201D]/g, '"')
+		);
 	}
 
 	private async parseResponseWithRetry(
@@ -241,23 +257,25 @@ export class CoordinatingAgentSimple {
 		console.group('🔍 JSON Parsing Attempt');
 		console.log('Response length:', response.length);
 		console.log('First 200 chars:', response.substring(0, 200));
-		
+
 		// First attempt: Use robust parsing utility
 		const parseResult = robustJsonParse(response);
-		
+
 		if (parseResult.success) {
 			console.log('✅ JSON parsed successfully on first attempt');
 			if (parseResult.fixesApplied && parseResult.fixesApplied.length > 0) {
 				console.log('Fixes applied:', parseResult.fixesApplied);
 			}
-			
+
 			// Validate structure
 			if (validateJsonStructure(parseResult.data, expectedStructure)) {
 				console.groupEnd();
 				return parseResult.data;
 			} else {
-				console.warn('⚠️ JSON structure validation failed, missing keys:', 
-					expectedStructure.filter(key => !(key in parseResult.data)));
+				console.warn(
+					'⚠️ JSON structure validation failed, missing keys:',
+					expectedStructure.filter((key) => !(key in parseResult.data))
+				);
 			}
 		} else {
 			console.warn('⚠️ Initial JSON parsing failed:', parseResult.error);
@@ -265,11 +283,11 @@ export class CoordinatingAgentSimple {
 				console.log('Extracted JSON attempt:', parseResult.extractedJson.substring(0, 200));
 			}
 		}
-		
+
 		// Retry with LLM self-correction
 		for (let retry = 1; retry <= maxRetries; retry++) {
 			console.group(`🔄 Retry ${retry}/${maxRetries}: Requesting JSON correction from LLM`);
-			
+
 			const correctionPrompt = `${formatParsingErrorForLLM(
 				parseResult.error || 'Invalid JSON structure',
 				response
@@ -294,19 +312,19 @@ Please provide ONLY valid JSON that matches this exact structure:
 }
 
 CRITICAL: Return ONLY the JSON object. No explanations, no text before or after, no markdown code blocks.`;
-			
+
 			console.log('Sending correction prompt to LLM');
-			
+
 			try {
 				const correctedResponse = await this.model.invoke([
 					new HumanMessage({ content: correctionPrompt })
 				]);
-				
+
 				const correctedContent = correctedResponse.content as string;
 				console.log('LLM correction response length:', correctedContent.length);
-				
+
 				const retryResult = robustJsonParse(correctedContent);
-				
+
 				if (retryResult.success) {
 					console.log(`✅ JSON parsed successfully on retry ${retry}`);
 					if (retryResult.fixesApplied && retryResult.fixesApplied.length > 0) {
@@ -321,14 +339,14 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 			} catch (error) {
 				console.error(`❌ Retry ${retry} error:`, error);
 			}
-			
+
 			console.groupEnd(); // End retry group
 		}
-		
+
 		// Fallback after all retries failed
 		console.error('❌ All JSON parsing attempts failed, using fallback structure');
 		console.groupEnd(); // End main parsing group
-		
+
 		return {
 			analysis: response.substring(0, 1000),
 			confidence: 0.5,
@@ -352,7 +370,7 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 				const alternativesText = segment.alternatives
 					.map((alt, idx) => `${idx + 1}. ${alt.text} (confidence: ${alt.avg_logprob.toFixed(3)})`)
 					.join('\n');
-				
+
 				alternativesSection = `Alternative transcriptions available:
 ${alternativesText}
 
@@ -375,58 +393,70 @@ Consider these alternatives when analyzing for potential transcription errors.`;
 			console.log('Segment:', segment.speakerName || segment.speakerTag);
 			console.log('Text length:', segment.text.length);
 			console.log('Duration:', (segment.endTime - segment.startTime).toFixed(2), 'seconds');
-			console.log('Alternatives available:', segment.alternatives ? segment.alternatives.length : 0);
+			console.log(
+				'Alternatives available:',
+				segment.alternatives ? segment.alternatives.length : 0
+			);
 			if (segment.alternatives && segment.alternatives.length > 0) {
-				console.log('Alternative texts:', segment.alternatives.map(alt => alt.text));
+				console.log(
+					'Alternative texts:',
+					segment.alternatives.map((alt) => alt.text)
+				);
 			}
 			console.groupEnd();
 
 			// Get initial analysis
 			const response = await this.model.invoke([new HumanMessage({ content: prompt })]);
-			
+
 			console.group('📝 LLM Response Processing');
 			console.log('Raw response received, length:', (response.content as string).length);
-			
+
 			// Parse the response with robust error recovery and retry
-			const expectedKeys = ['analysis', 'confidence', 'needsAlternatives', 'needsWebSearch', 'suggestions'];
+			const expectedKeys = [
+				'analysis',
+				'confidence',
+				'needsAlternatives',
+				'needsWebSearch',
+				'suggestions'
+			];
 			const analysisData = await this.parseResponseWithRetry(
 				response.content as string,
 				expectedKeys
 			);
-			
+
 			console.log('Analysis data extracted successfully');
 			console.log('Suggestions count:', analysisData.suggestions?.length || 0);
 			console.groupEnd();
 
 			let nBestResults = null;
 
-			// TEMPORARY: Always use ASR N-best tool for testing
-			// if (analysisData.needsAlternatives) {
-			try {
-				// Initialize ASR tool if not already done
-				await this.initializeASRTool();
-				
-				if (this.asrTool) {
-					console.log('Calling ASR N-best tool for segment:', {
-						audioFilePath,
-						startTime: segment.startTime,
-						endTime: segment.endTime
-					});
-					const asrResult = await this.asrTool._call({
-						audioFilePath,
-						startTime: segment.startTime,
-						endTime: segment.endTime,
-						nBest: 5
-					});
-					nBestResults = JSON.parse(asrResult);
-					console.log('ASR N-best results received:', nBestResults);
-				} else {
-					console.log('ASR tool not available (client-side context)');
+			// Only use ASR N-best tool when the LLM determines it's needed
+			if (analysisData.needsAlternatives) {
+				try {
+					// Initialize ASR tool if not already done
+					await this.initializeASRTool();
+
+					if (this.asrTool) {
+						console.log('Calling ASR N-best tool for segment:', {
+							audioFilePath,
+							startTime: segment.startTime,
+							endTime: segment.endTime
+						});
+						const asrResult = await this.asrTool._call({
+							audioFilePath,
+							startTime: segment.startTime,
+							endTime: segment.endTime,
+							nBest: 5
+						});
+						nBestResults = JSON.parse(asrResult);
+						console.log('ASR N-best results received:', nBestResults);
+					} else {
+						console.log('ASR tool not available (client-side context)');
+					}
+				} catch (e) {
+					console.error('ASR N-best tool error:', e);
 				}
-			} catch (e) {
-				console.error('ASR N-best tool error:', e);
 			}
-			// }
 
 			// If we have ASR results, perform enhanced analysis
 			if (nBestResults && nBestResults.alternatives && nBestResults.alternatives.length > 0) {
@@ -454,22 +484,29 @@ Consider these alternatives when analyzing for potential transcription errors.`;
 
 					console.group('🔬 Enhanced Analysis with ASR Results');
 					console.log('Sending enhanced prompt to LLM');
-					
+
 					// Get enhanced analysis
 					const enhancedResponse = await this.model.invoke([
 						new HumanMessage({ content: enhancedPrompt })
 					]);
 
-					console.log('Enhanced response received, length:', (enhancedResponse.content as string).length);
-					
+					console.log(
+						'Enhanced response received, length:',
+						(enhancedResponse.content as string).length
+					);
+
 					// Parse enhanced response with retry mechanism
 					const enhancedData = await this.parseResponseWithRetry(
 						enhancedResponse.content as string,
 						['analysis', 'confidence', 'needsAlternatives', 'needsWebSearch', 'suggestions']
 					);
-					
+
 					if (enhancedData.suggestions && enhancedData.suggestions.length > 0) {
-						console.log('✅ Enhanced analysis produced', enhancedData.suggestions.length, 'suggestions');
+						console.log(
+							'✅ Enhanced analysis produced',
+							enhancedData.suggestions.length,
+							'suggestions'
+						);
 						// Update analysis data with enhanced suggestions
 						analysisData.suggestions = enhancedData.suggestions;
 						analysisData.analysis = enhancedData.analysis || analysisData.analysis;
@@ -477,7 +514,7 @@ Consider these alternatives when analyzing for potential transcription errors.`;
 					} else {
 						console.log('⚠️ Enhanced analysis produced no suggestions');
 					}
-					
+
 					console.groupEnd();
 				} catch (e) {
 					console.error('Enhanced analysis error:', e);
@@ -509,22 +546,22 @@ Consider these alternatives when analyzing for potential transcription errors.`;
 					// Compute positions for the suggestion within the segment text
 					let from: number | undefined;
 					let to: number | undefined;
-					
+
 					if (suggestion.originalText && segment.text) {
 						// Find the position of the original text in the segment
 						const segmentText = segment.text;
 						const searchText = suggestion.originalText;
-						
+
 						// Try exact match first
 						let index = segmentText.indexOf(searchText);
-						
+
 						// If not found, try case-insensitive search
 						if (index === -1) {
 							const lowerSegment = segmentText.toLowerCase();
 							const lowerSearch = searchText.toLowerCase();
 							index = lowerSegment.indexOf(lowerSearch);
 						}
-						
+
 						if (index !== -1) {
 							// Found the text - compute positions
 							// These are character positions within the segment text
@@ -535,20 +572,22 @@ Consider these alternatives when analyzing for potential transcription errors.`;
 							console.log(`⚠️ Could not find position for "${searchText}" in segment`);
 						}
 					}
-					
+
 					// Mark high-confidence suggestions for automatic application
 					// These will be applied as diff nodes on the client-side
 					if (suggestion.confidence >= 0.5 && suggestion.originalText && suggestion.suggestedText) {
 						processedSuggestions.push({
 							...suggestion,
-							from,  // Character position in segment
-							to,    // Character position in segment
-							segmentIndex: segment.index,  // Which segment this belongs to
+							from, // Character position in segment
+							to, // Character position in segment
+							segmentIndex: segment.index, // Which segment this belongs to
 							shouldAutoApply: true,
 							applied: false,
 							requiresManualReview: false
 						});
-						console.log(`✅ Marked for auto-apply: "${suggestion.originalText}" → "${suggestion.suggestedText}"`);
+						console.log(
+							`✅ Marked for auto-apply: "${suggestion.originalText}" → "${suggestion.suggestedText}"`
+						);
 					} else {
 						// Low confidence suggestions require manual review
 						processedSuggestions.push({
@@ -560,13 +599,19 @@ Consider these alternatives when analyzing for potential transcription errors.`;
 							applied: false,
 							requiresManualReview: true
 						});
-						console.log(`⚠️ Marked for manual review: "${suggestion.originalText}" → "${suggestion.suggestedText}"`);
+						console.log(
+							`⚠️ Marked for manual review: "${suggestion.originalText}" → "${suggestion.suggestedText}"`
+						);
 					}
 				}
-				
+
 				console.log(`📊 Processed ${processedSuggestions.length} suggestions:`);
-				console.log(`  - ${processedSuggestions.filter(s => s.shouldAutoApply).length} marked for auto-apply`);
-				console.log(`  - ${processedSuggestions.filter(s => s.requiresManualReview).length} require manual review`);
+				console.log(
+					`  - ${processedSuggestions.filter((s) => s.shouldAutoApply).length} marked for auto-apply`
+				);
+				console.log(
+					`  - ${processedSuggestions.filter((s) => s.requiresManualReview).length} require manual review`
+				);
 			}
 
 			// Save to database
@@ -605,7 +650,8 @@ Consider these alternatives when analyzing for potential transcription errors.`;
 			return {
 				segmentIndex: segment.index,
 				analysis: analysisData.analysis,
-				suggestions: processedSuggestions.length > 0 ? processedSuggestions : analysisData.suggestions,
+				suggestions:
+					processedSuggestions.length > 0 ? processedSuggestions : analysisData.suggestions,
 				nBestResults,
 				confidence: analysisData.confidence
 			};
