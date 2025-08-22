@@ -155,19 +155,37 @@ Please provide the corrected JSON response with proper formatting.`;
         }
       }
       
-      const result = parseResult.data as SummaryResult;
+      let result = parseResult.data as SummaryResult;
       
-      // Validate the structure
+      // Step 1: Detect and recover format if needed
+      const formatRecoveryResult = await this.detectAndRecoverFormat(result, transcript);
+      if (formatRecoveryResult.recovered) {
+        result = formatRecoveryResult.data;
+        console.log('✅ Format recovery successful');
+      }
+      
+      // Step 2: Validate the structure and attempt field recovery if needed
       const requiredFields = ['summary', 'keyTopics', 'speakerCount', 'language'];
       const missingFields = requiredFields.filter(field => !(field in result));
       
       if (missingFields.length > 0) {
-        console.error('Summary validation failed:');
-        console.error('Required fields:', requiredFields);
-        console.error('Actual fields:', Object.keys(result));
-        console.error('Missing fields:', missingFields);
-        console.error('Result sample:', JSON.stringify(result).substring(0, 500));
-        throw new Error(`Summary response missing required fields: ${missingFields.join(', ')}`);
+        console.warn('Summary validation failed, attempting field recovery...');
+        console.warn('Required fields:', requiredFields);
+        console.warn('Actual fields:', Object.keys(result));
+        console.warn('Missing fields:', missingFields);
+        console.warn('Result sample:', JSON.stringify(result).substring(0, 500));
+        
+        // Attempt field-specific recovery
+        const fieldRecoveryResult = await this.recoverMissingFields(result, missingFields, transcript);
+        if (fieldRecoveryResult.recovered) {
+          result = fieldRecoveryResult.data;
+          console.log('✅ Field recovery successful');
+        } else {
+          // Final fallback: create a valid summary from available data
+          console.warn('Field recovery failed, creating fallback summary...');
+          result = this.createFallbackSummary(result, transcript);
+          console.log('✅ Fallback summary created');
+        }
       }
 
       // Generate display summary and translate key topics in UI language if different from English
@@ -271,6 +289,273 @@ Please provide the corrected JSON response with proper formatting.`;
     }).catch(() => {
       // Ignore if summary doesn't exist
     });
+  }
+
+  /**
+   * Detect and recover from format issues (e.g., array instead of object)
+   */
+  private async detectAndRecoverFormat(
+    result: any, 
+    transcript: string
+  ): Promise<{ recovered: boolean; data: any }> {
+    // Check if result is an array (common LLM mistake)
+    if (Array.isArray(result)) {
+      console.log('🔄 Detected array response, attempting format recovery...');
+      
+      // Assume the array contains keyTopics
+      const keyTopics = result;
+      
+      // Create a recovery prompt to get the full structure
+      const formatRecoveryPrompt = `You provided only an array of key topics, but I need a complete JSON object.
+
+Key topics you provided: ${JSON.stringify(keyTopics)}
+
+Transcript to analyze:
+${transcript.substring(0, 1000)}${transcript.length > 1000 ? '...' : ''}
+
+Please provide the COMPLETE analysis in the exact JSON format:
+{
+  "summary": "comprehensive summary (2-3 paragraphs) of the transcript",
+  "keyTopics": ${JSON.stringify(keyTopics)},
+  "speakerCount": number_of_unique_speakers,
+  "language": "et|fi|en"
+}
+
+CRITICAL: Return ONLY the complete JSON object. No explanations or other text.`;
+
+      try {
+        const recoveryResponse = await this.model.invoke([
+          new HumanMessage({ content: formatRecoveryPrompt }),
+        ]);
+        
+        const recoveryContent = recoveryResponse.content as string;
+        const recoveryParseResult = robustJsonParse(recoveryContent);
+        
+        if (recoveryParseResult.success && typeof recoveryParseResult.data === 'object' && !Array.isArray(recoveryParseResult.data)) {
+          console.log('✅ Format recovery successful');
+          return { recovered: true, data: recoveryParseResult.data };
+        } else {
+          console.warn('Format recovery failed, parsed data is still not an object');
+        }
+      } catch (error) {
+        console.error('Format recovery error:', error);
+      }
+    }
+    
+    // Check if result is a string (another common mistake)
+    if (typeof result === 'string') {
+      console.log('🔄 Detected string response, attempting format recovery...');
+      
+      const stringRecoveryPrompt = `You provided only a string response, but I need a complete JSON object.
+
+Your response: "${result}"
+
+Transcript to analyze:
+${transcript.substring(0, 1000)}${transcript.length > 1000 ? '...' : ''}
+
+Please provide the COMPLETE analysis in the exact JSON format:
+{
+  "summary": "comprehensive summary (use your previous response as basis if it was a summary)",
+  "keyTopics": ["extract", "5-10", "key", "topics", "from", "transcript"],
+  "speakerCount": number_of_unique_speakers,
+  "language": "et|fi|en"
+}
+
+CRITICAL: Return ONLY the complete JSON object. No explanations or other text.`;
+
+      try {
+        const recoveryResponse = await this.model.invoke([
+          new HumanMessage({ content: stringRecoveryPrompt }),
+        ]);
+        
+        const recoveryContent = recoveryResponse.content as string;
+        const recoveryParseResult = robustJsonParse(recoveryContent);
+        
+        if (recoveryParseResult.success && typeof recoveryParseResult.data === 'object' && !Array.isArray(recoveryParseResult.data)) {
+          return { recovered: true, data: recoveryParseResult.data };
+        }
+      } catch (error) {
+        console.error('String format recovery error:', error);
+      }
+    }
+    
+    return { recovered: false, data: result };
+  }
+
+  /**
+   * Recover missing fields by prompting LLM for specific missing data
+   */
+  private async recoverMissingFields(
+    result: any, 
+    missingFields: string[], 
+    transcript: string
+  ): Promise<{ recovered: boolean; data: any }> {
+    console.log(`🔄 Attempting to recover missing fields: ${missingFields.join(', ')}`);
+    
+    // Build a targeted prompt for the missing fields
+    const availableData = Object.keys(result).length > 0 ? 
+      `\n\nData you already provided:\n${JSON.stringify(result, null, 2)}` : '';
+    
+    const fieldDescriptions = {
+      summary: 'A comprehensive 2-3 paragraph summary of the transcript',
+      keyTopics: 'An array of 5-10 key topics/themes as short phrases',
+      speakerCount: 'The number of unique speakers in the transcript',
+      language: 'The primary language (et|fi|en)'
+    };
+    
+    const missingFieldPrompts = missingFields.map(field => 
+      `- ${field}: ${fieldDescriptions[field] || 'Required field'}`
+    ).join('\n');
+    
+    const fieldRecoveryPrompt = `I need you to complete the missing fields from your previous response.
+${availableData}
+
+Transcript to analyze:
+${transcript.substring(0, 1500)}${transcript.length > 1500 ? '...' : ''}
+
+Missing fields that need to be provided:
+${missingFieldPrompts}
+
+Please provide the COMPLETE JSON object with ALL required fields:
+{
+  "summary": "comprehensive summary here...",
+  "keyTopics": ["topic1", "topic2", "topic3", ...],
+  "speakerCount": number,
+  "language": "et|fi|en"
+}
+
+Use any data from your previous response if applicable.
+CRITICAL: Return ONLY the complete JSON object. No explanations or other text.`;
+
+    try {
+      const recoveryResponse = await this.model.invoke([
+        new HumanMessage({ content: fieldRecoveryPrompt }),
+      ]);
+      
+      const recoveryContent = recoveryResponse.content as string;
+      const recoveryParseResult = robustJsonParse(recoveryContent);
+      
+      if (recoveryParseResult.success) {
+        const recoveredData = recoveryParseResult.data;
+        
+        // Validate that the missing fields are now present
+        const stillMissing = missingFields.filter(field => !(field in recoveredData));
+        
+        if (stillMissing.length === 0) {
+          console.log('✅ All missing fields successfully recovered');
+          return { recovered: true, data: recoveredData };
+        } else {
+          console.warn(`⚠️ Some fields still missing after recovery: ${stillMissing.join(', ')}`);
+          // Return partial recovery - let fallback handle the rest
+          return { recovered: false, data: recoveredData };
+        }
+      } else {
+        console.error('Field recovery parsing failed:', recoveryParseResult.error);
+      }
+    } catch (error) {
+      console.error('Field recovery error:', error);
+    }
+    
+    return { recovered: false, data: result };
+  }
+
+  /**
+   * Create a fallback summary when all recovery attempts fail
+   */
+  private createFallbackSummary(result: any, transcript: string): SummaryResult {
+    console.log('🛡️ Creating fallback summary from available data...');
+    
+    // Extract what we can from the result
+    let summary = '';
+    let keyTopics: string[] = [];
+    let speakerCount = 1;
+    let language = 'et'; // Default to Estonian
+    
+    // Try to extract data from whatever format we received
+    if (Array.isArray(result)) {
+      // Assume it's keyTopics
+      keyTopics = result.filter(item => typeof item === 'string').slice(0, 10);
+      summary = `Transcript analysis identified ${keyTopics.length} key topics: ${keyTopics.slice(0, 3).join(', ')}${keyTopics.length > 3 ? ', and others' : ''}.`;
+    } else if (typeof result === 'string') {
+      // Assume it's a summary
+      summary = result;
+      // Extract simple topics from the summary
+      keyTopics = this.extractTopicsFromText(result);
+    } else if (typeof result === 'object') {
+      // Try to extract partial data
+      summary = result.summary || result.text || result.description || 'Transcript analysis completed.';
+      keyTopics = result.keyTopics || result.topics || result.themes || [];
+      speakerCount = result.speakerCount || result.speakers || 1;
+      language = result.language || 'et';
+    }
+    
+    // Ensure keyTopics is an array
+    if (!Array.isArray(keyTopics)) {
+      keyTopics = typeof keyTopics === 'string' ? [keyTopics] : [];
+    }
+    
+    // Fallback summary generation if we don't have one
+    if (!summary || summary.length < 20) {
+      summary = `This transcript contains ${transcript.length} characters of content with ${speakerCount} speaker(s). ` +
+        `Key topics discussed include: ${keyTopics.slice(0, 5).join(', ') || 'various subjects'}. ` +
+        `The conversation appears to be in ${language === 'et' ? 'Estonian' : language === 'fi' ? 'Finnish' : 'English'}.`;
+    }
+    
+    // Ensure minimum topics
+    if (keyTopics.length === 0) {
+      keyTopics = this.extractTopicsFromText(transcript);
+    }
+    
+    // Estimate speaker count from transcript if not provided
+    if (speakerCount <= 0) {
+      speakerCount = this.estimateSpeakerCount(transcript);
+    }
+    
+    console.log(`📋 Fallback summary created: ${summary.length} chars, ${keyTopics.length} topics, ${speakerCount} speakers`);
+    
+    return {
+      summary,
+      keyTopics: keyTopics.slice(0, 10), // Limit to 10 topics
+      speakerCount: Math.max(1, speakerCount),
+      language
+    };
+  }
+
+  /**
+   * Extract topics from text using simple heuristics
+   */
+  private extractTopicsFromText(text: string): string[] {
+    const words = text.toLowerCase().split(/\s+/);
+    const commonWords = new Set(['the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'a', 'an', 'ja', 'või', 'aga', 'ning', 'kui', 'et', 'see', 'tema', 'ta']);
+    
+    // Find longer, potentially meaningful words
+    const candidateTopics = words
+      .filter(word => word.length >= 4 && !commonWords.has(word))
+      .slice(0, 8);
+    
+    return candidateTopics.length > 0 ? candidateTopics : ['general discussion'];
+  }
+
+  /**
+   * Estimate speaker count from transcript
+   */
+  private estimateSpeakerCount(transcript: string): number {
+    // Look for speaker indicators
+    const speakerPatterns = [
+      /speaker\s*\d+/gi,
+      /\b[A-Z][a-z]+:/g, // Name: pattern
+      /^[A-Z][a-z]+\s*$/gm, // Lines with just names
+    ];
+    
+    const speakerIndicators = new Set();
+    speakerPatterns.forEach(pattern => {
+      const matches = transcript.match(pattern);
+      if (matches) {
+        matches.forEach(match => speakerIndicators.add(match.toLowerCase()));
+      }
+    });
+    
+    return Math.max(1, Math.min(speakerIndicators.size || 1, 6)); // Cap at reasonable number
   }
 }
 

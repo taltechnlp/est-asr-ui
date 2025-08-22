@@ -1,0 +1,27 @@
+# Estonian ASR Analysis Tools Dependencies
+
+# Core dependencies for basic functionality
+# These are sufficient for fallback analysis
+
+# Optional dependencies for enhanced functionality:
+
+# For Estonian Phonetic Analysis (et-g2p-fst):
+# pynini>=2.1.0  # Required for et-g2p-fst
+# openfst-python>=1.8.0  # FST operations
+
+# For Signal Quality Assessment (TorchMetrics):
+# torch>=1.9.0  # PyTorch for audio processing
+# torchaudio>=0.9.0  # Audio loading and processing
+# torchmetrics>=0.11.0  # Signal quality metrics including SNR
+# librosa>=0.9.0  # Alternative audio analysis library
+# numpy>=1.20.0  # Numerical computations
+
+# To install enhanced dependencies:
+# pip install torch torchaudio torchmetrics librosa numpy
+
+# To install et-g2p-fst:
+# 1. Install pynini: pip install pynini
+# 2. Clone et-g2p-fst: git clone https://github.com/alumae/et-g2p-fst.git
+# 3. Follow the setup instructions in the et-g2p-fst repository
+
+# For now, both scripts will work with fallback methods using only standard library

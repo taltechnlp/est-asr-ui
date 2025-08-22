@@ -34,6 +34,9 @@ export interface SegmentAnalysisResult {
 	suggestions: any[];
 	nBestResults?: any;
 	confidence: number;
+	signalQuality?: any;
+	analysisStrategy?: string;
+	dynamicConfidenceThreshold?: number;
 }
 
 const SEGMENT_ANALYSIS_PROMPT = `You are an expert transcript analyst specializing in Estonian and Finnish languages.
@@ -67,6 +70,7 @@ Focus on:
 - Speaker attribution accuracy (is this all from the same speaker?)
 - Natural speech patterns and turn-taking
 - Punctuation and formatting
+- Phonetic plausibility of words (especially for potential homophones or ASR errors)
 
 IMPORTANT: Provide your analysis and all suggestions in {responseLanguage} language.
 
@@ -157,6 +161,8 @@ Remember: Return ONLY the JSON object. No other text whatsoever.`;
 export class CoordinatingAgentSimple {
 	private model;
 	private asrTool: any = null;
+	private phoneticTool: any = null;
+	private signalQualityTool: any = null;
 	private webSearchTool;
 	private tiptapTool: TipTapTransactionToolDirect;
 	private editor: Editor | null = null;
@@ -169,7 +175,7 @@ export class CoordinatingAgentSimple {
 			maxTokens: 2000
 		});
 
-		// The ASR tool will be loaded lazily when needed (server-side only)
+		// The ASR, phonetic, and signal quality tools will be loaded lazily when needed (server-side only)
 		this.webSearchTool = createWebSearchTool();
 		this.tiptapTool = new TipTapTransactionToolDirect();
 	}
@@ -186,6 +192,36 @@ export class CoordinatingAgentSimple {
 				);
 			} catch (e) {
 				console.error('Failed to load ASR tool:', e);
+			}
+		}
+	}
+
+	private async initializePhoneticTool() {
+		if (this.phoneticTool) return;
+
+		// Only load on server side
+		if (typeof window === 'undefined') {
+			try {
+				const { createPhoneticAnalyzerTool } = await import('./tools/phoneticAnalyzer');
+				this.phoneticTool = createPhoneticAnalyzerTool();
+				console.log('PhoneticAnalyzerTool initialized successfully');
+			} catch (e) {
+				console.error('Failed to load PhoneticAnalyzer tool:', e);
+			}
+		}
+	}
+
+	private async initializeSignalQualityTool() {
+		if (this.signalQualityTool) return;
+
+		// Only load on server side
+		if (typeof window === 'undefined') {
+			try {
+				const { createSignalQualityAssessorTool } = await import('./tools/signalQualityAssessor');
+				this.signalQualityTool = createSignalQualityAssessorTool();
+				console.log('SignalQualityAssessorTool initialized successfully');
+			} catch (e) {
+				console.error('Failed to load SignalQualityAssessor tool:', e);
 			}
 		}
 	}
@@ -364,6 +400,45 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 			const normalizedLanguage = normalizeLanguageCode(uiLanguage);
 			const responseLanguage = getLanguageName(normalizedLanguage);
 
+			// Step 1: Assess signal quality to guide analysis strategy
+			let signalQuality = null;
+			let analysisStrategy = 'balanced';
+			let dynamicConfidenceThreshold = 0.7;
+			
+			try {
+				console.log('Assessing signal quality for analysis strategy');
+				
+				// Initialize signal quality tool if needed
+				await this.initializeSignalQualityTool();
+				
+				if (this.signalQualityTool) {
+					const qualityData = await this.signalQualityTool.assessSignalQuality({
+						audioFilePath,
+						startTime: segment.startTime,
+						endTime: segment.endTime
+					});
+					
+					signalQuality = qualityData;
+					
+					// Get analysis strategy based on SNR
+					const strategy = this.signalQualityTool.getAnalysisStrategy(qualityData.snr_db);
+					analysisStrategy = strategy.strategy;
+					dynamicConfidenceThreshold = strategy.confidenceThreshold;
+					
+					console.log('✅ Signal quality assessment completed:');
+					console.log(`  - SNR: ${qualityData.snr_db.toFixed(2)} dB`);
+					console.log(`  - Quality: ${qualityData.quality_category}`);
+					console.log(`  - Strategy: ${analysisStrategy}`);
+					console.log(`  - Dynamic threshold: ${dynamicConfidenceThreshold}`);
+					
+				} else {
+					console.log('Signal quality tool not available, using default strategy');
+				}
+			} catch (qualityError) {
+				console.error('Signal quality assessment failed:', qualityError);
+				// Continue with default strategy
+			}
+
 			// Build alternatives section if available
 			let alternativesSection = '';
 			if (segment.alternatives && segment.alternatives.length > 0) {
@@ -377,6 +452,20 @@ ${alternativesText}
 Consider these alternatives when analyzing for potential transcription errors.`;
 			}
 
+			// Build signal quality section for prompt
+			let signalQualitySection = '';
+			if (signalQuality) {
+				signalQualitySection = `\nSignal Quality Assessment:
+- SNR: ${signalQuality.snr_db.toFixed(2)} dB (${signalQuality.quality_category} quality)
+- Reliability: ${signalQuality.reliability}
+- Analysis Strategy: ${analysisStrategy}
+- Recommended confidence threshold: ${dynamicConfidenceThreshold}
+
+Based on this audio quality, you should be ${analysisStrategy === 'conservative' ? 'very conservative' : 
+	analysisStrategy === 'aggressive' ? 'more aggressive' : 
+	analysisStrategy === 'very_aggressive' ? 'very aggressive' : 'balanced'} with corrections.`;
+			}
+
 			// Build the analysis prompt
 			const prompt = SEGMENT_ANALYSIS_PROMPT.replace('{summary}', summary.summary)
 				.replace('{segmentIndex}', (segment.index + 1).toString())
@@ -385,7 +474,7 @@ Consider these alternatives when analyzing for potential transcription errors.`;
 				.replace('{text}', segment.text)
 				.replace('{duration}', (segment.endTime - segment.startTime).toFixed(2))
 				.replace('{wordCount}', segment.words.length.toString())
-				.replace('{alternativesSection}', alternativesSection)
+				.replace('{alternativesSection}', alternativesSection + signalQualitySection)
 				.replace('{responseLanguage}', responseLanguage);
 
 			// Log the analysis request
@@ -430,8 +519,11 @@ Consider these alternatives when analyzing for potential transcription errors.`;
 
 			let nBestResults = null;
 
-			// Only use ASR N-best tool when the LLM determines it's needed
-			if (analysisData.needsAlternatives) {
+			// Use ASR N-best tool when the LLM determines it's needed OR when signal quality is poor
+			const shouldUseASR = analysisData.needsAlternatives || 
+				(signalQuality && signalQuality.snr_db < 15); // Aggressive ASR for poor audio
+			
+			if (shouldUseASR) {
 				try {
 					// Initialize ASR tool if not already done
 					await this.initializeASRTool();
@@ -523,6 +615,67 @@ Consider these alternatives when analyzing for potential transcription errors.`;
 				console.log('No ASR results available for enhanced analysis');
 			}
 
+			// Perform phonetic analysis on high-confidence suggestions
+			if (analysisData.suggestions && Array.isArray(analysisData.suggestions) && analysisData.suggestions.length > 0) {
+				try {
+					console.log('Performing phonetic analysis on suggestions');
+					
+					// Initialize phonetic tool if needed
+					await this.initializePhoneticTool();
+					
+					if (this.phoneticTool) {
+						// Analyze each suggestion that has both original and suggested text
+						for (const suggestion of analysisData.suggestions) {
+							if (suggestion.originalText && suggestion.suggestedText) {
+								try {
+									console.log(`Analyzing phonetic similarity: "${suggestion.originalText}" vs "${suggestion.suggestedText}"`);
+									
+									const phoneticData = await this.phoneticTool.analyzePhoneticSimilarity({
+										text: suggestion.originalText,
+										candidate: suggestion.suggestedText
+									});
+									
+									// Enhance suggestion with phonetic analysis
+									suggestion.phoneticAnalysis = {
+										similarity_score: phoneticData.similarity_score,
+										confidence: phoneticData.confidence,
+										is_likely_asr_error: phoneticData.is_likely_asr_error,
+										original_phonetic: phoneticData.original_phonetic,
+										candidate_phonetic: phoneticData.candidate_phonetic
+									};
+									
+									// Boost confidence for high phonetic similarity
+									if (phoneticData.similarity_score >= 0.7) {
+										const originalConfidence = suggestion.confidence || 0.5;
+										const phoneticBoost = (phoneticData.similarity_score - 0.7) * 0.5; // 0.0 to 0.15 boost
+										suggestion.confidence = Math.min(1.0, originalConfidence + phoneticBoost);
+										
+										// Add explanation about phonetic similarity
+										const phoneticExplanation = `Phonetic analysis shows ${Math.round(phoneticData.similarity_score * 100)}% similarity, suggesting this could be an ASR error.`;
+										suggestion.explanation = suggestion.explanation ? 
+											`${suggestion.explanation} ${phoneticExplanation}` : 
+											phoneticExplanation;
+										
+										console.log(`✅ Phonetic boost applied: confidence ${originalConfidence.toFixed(2)} → ${suggestion.confidence.toFixed(2)}`);
+									} else {
+										console.log(`⚠️ Low phonetic similarity (${phoneticData.similarity_score.toFixed(2)}), no confidence boost`);
+									}
+									
+								} catch (phoneticError) {
+									console.error(`Phonetic analysis failed for "${suggestion.originalText}" vs "${suggestion.suggestedText}":`, phoneticError);
+									// Continue with other suggestions even if one fails
+								}
+							}
+						}
+					} else {
+						console.log('Phonetic tool not available, skipping phonetic analysis');
+					}
+				} catch (phoneticError) {
+					console.error('Phonetic analysis error:', phoneticError);
+					// Don't fail the entire analysis if phonetic analysis fails
+				}
+			}
+
 			// Use web search for unfamiliar terms
 			if (analysisData.needsWebSearch && analysisData.needsWebSearch.length > 0) {
 				for (const term of analysisData.needsWebSearch) {
@@ -575,7 +728,9 @@ Consider these alternatives when analyzing for potential transcription errors.`;
 
 					// Mark high-confidence suggestions for automatic application
 					// These will be applied as diff nodes on the client-side
-					if (suggestion.confidence >= 0.5 && suggestion.originalText && suggestion.suggestedText) {
+					// Use dynamic confidence threshold based on signal quality
+					const autoApplyThreshold = Math.max(0.5, dynamicConfidenceThreshold - 0.2); // Slightly lower than analysis threshold
+					if (suggestion.confidence >= autoApplyThreshold && suggestion.originalText && suggestion.suggestedText) {
 						processedSuggestions.push({
 							...suggestion,
 							from, // Character position in segment
@@ -653,7 +808,10 @@ Consider these alternatives when analyzing for potential transcription errors.`;
 				suggestions:
 					processedSuggestions.length > 0 ? processedSuggestions : analysisData.suggestions,
 				nBestResults,
-				confidence: analysisData.confidence
+				confidence: analysisData.confidence,
+				signalQuality,
+				analysisStrategy,
+				dynamicConfidenceThreshold
 			};
 		} catch (error) {
 			console.error('Segment analysis error:', error);
