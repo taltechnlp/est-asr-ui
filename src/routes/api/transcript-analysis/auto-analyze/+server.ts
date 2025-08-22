@@ -126,10 +126,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         try {
           const parsedContent = JSON.parse(transcriptContent);
           console.log(`Parsed transcript content keys: ${Object.keys(parsedContent).join(', ')}`);
-          console.log(`Transcript content structure sample: ${JSON.stringify(parsedContent).substring(0, 500)}...`);
+          console.log(`Transcript content size: ${transcriptContent.length} chars`);
           
           fullText = extractFullTextWithSpeakers(parsedContent);
-          console.log(`Extracted full text length: ${fullText.length}`);
+          console.log(`extractFullTextWithSpeakers returned: ${fullText.length} chars`);
           
           if (!fullText && parsedContent) {
             // Try different extraction approaches
@@ -138,25 +138,27 @@ export const POST: RequestHandler = async ({ request, locals }) => {
               console.log('Using transcript content as plain string');
             } else if (parsedContent.content) {
               // Try to extract from content field
-              fullText = JSON.stringify(parsedContent.content);
-              console.log('Using transcript content.content field');
+              const contentStr = typeof parsedContent.content === 'string' ? parsedContent.content : JSON.stringify(parsedContent.content);
+              fullText = contentStr;
+              console.log(`Using transcript content.content field: ${contentStr.length} chars`);
             } else if (parsedContent.text) {
               // Try to extract from text field
               fullText = parsedContent.text;
-              console.log('Using transcript content.text field');
+              console.log(`Using transcript content.text field: ${parsedContent.text.length} chars`);
             } else {
-              // Last resort - stringify the whole object
-              fullText = JSON.stringify(parsedContent);
-              console.log('Using stringified transcript content as fallback');
+              // Last resort - stringify the whole object (but limit size for summary)
+              const stringified = JSON.stringify(parsedContent);
+              fullText = stringified.substring(0, 10000); // Limit to 10k chars
+              console.log(`Using stringified transcript content (truncated): ${fullText.length} chars`);
             }
           }
         } catch (error) {
           // If JSON parsing fails, treat as plain text
-          fullText = transcriptContent;
+          fullText = transcriptContent.substring(0, 10000); // Limit to 10k chars for summary
           console.log(`JSON parsing failed, using raw content: ${error.message}`);
         }
 
-        console.log(`Final full text length for summary: ${fullText.length}`);
+        console.log(`Final full text for summary: ${fullText.length} chars`);
         if (!fullText) {
           throw new Error("No transcript content available for summary generation");
         }
@@ -181,7 +183,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       }
 
       const parsedContent = JSON.parse(transcriptContent);
-      console.log(`Segment extraction - parsed content structure: ${JSON.stringify(parsedContent).substring(0, 200)}...`);
+      console.log(`Segment extraction - parsed content keys: ${Object.keys(parsedContent).join(', ')}`);
+      console.log(`Segment extraction - has content type: ${parsedContent.type || 'no type field'}`);
       const extractedWords = extractWordsFromEditor(parsedContent);
       
       // Group words by speaker to create segments
