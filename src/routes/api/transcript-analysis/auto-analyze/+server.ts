@@ -6,6 +6,7 @@ import { extractWordsFromEditor } from "$lib/utils/extractWordsFromEditor";
 import { getCoordinatingAgent } from "$lib/agents/coordinatingAgentSimple";
 import { getSummaryGenerator } from "$lib/agents/summaryGenerator";
 import { extractFullTextWithSpeakers } from "$lib/utils/extractWordsFromEditor";
+import { promises as fs } from "fs";
 
 const AutoAnalyzeSchema = z.object({
   fileId: z.string(),
@@ -63,33 +64,41 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
     console.log(`File ${fileId} verified for auto-analysis`);
 
-    // Wait for transcript content to be available (with retry mechanism)
-    console.log(`Waiting for transcript content to be available for file ${fileId}`);
-    let fileWithContent = file;
+    // Wait for transcript file to be available (with retry mechanism)
+    console.log(`Waiting for transcript file to be available for file ${fileId}`);
     let retryCount = 0;
     const maxRetries = 10; // Wait up to 50 seconds (10 * 5 second intervals)
+    let transcriptContent = null;
     
-    while ((!fileWithContent.text && !fileWithContent.initialTranscription) && retryCount < maxRetries) {
-      console.log(`Transcript content not yet available, waiting... (attempt ${retryCount + 1}/${maxRetries})`);
-      await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+    while (!transcriptContent && retryCount < maxRetries) {
+      console.log(`Checking for transcript file... (attempt ${retryCount + 1}/${maxRetries})`);
       
-      // Re-fetch the file to check for updated content
-      const updatedFile = await prisma.file.findUnique({
-        where: { id: fileId },
-        select: {
-          text: true,
-          initialTranscription: true,
+      try {
+        if (file.initialTranscriptionPath) {
+          // Try to read from file path
+          const content = await fs.readFile(file.initialTranscriptionPath, 'utf8');
+          transcriptContent = content;
+          console.log(`Found transcript content in file: ${file.initialTranscriptionPath}`);
+        } else if (file.text) {
+          // Fallback to database content
+          transcriptContent = file.text;
+          console.log(`Found transcript content in database text field`);
+        } else if (file.initialTranscription) {
+          // Fallback to database initialTranscription
+          transcriptContent = file.initialTranscription;
+          console.log(`Found transcript content in database initialTranscription field`);
         }
-      });
-      
-      if (updatedFile) {
-        fileWithContent = { ...fileWithContent, ...updatedFile };
+      } catch (error) {
+        console.log(`Failed to read transcript file (attempt ${retryCount + 1}): ${error.message}`);
       }
       
-      retryCount++;
+      if (!transcriptContent) {
+        await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+        retryCount++;
+      }
     }
 
-    if (!fileWithContent.text && !fileWithContent.initialTranscription) {
+    if (!transcriptContent) {
       console.error(`Transcript content still not available after ${maxRetries} retries for file ${fileId}`);
       throw new Error(`Transcript content not available after waiting ${maxRetries * 5} seconds`);
     }
@@ -112,13 +121,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         console.log(`Summary already exists for file ${fileId}`);
         summary = existingSummary;
       } else {
-        // Extract full text for summary generation
+        // Extract full text for summary generation from transcript content
         let fullText = "";
-        if (fileWithContent.text) {
-          const parsedContent = JSON.parse(fileWithContent.text);
+        try {
+          const parsedContent = JSON.parse(transcriptContent);
           fullText = extractFullTextWithSpeakers(parsedContent);
-        } else if (fileWithContent.initialTranscription) {
-          fullText = fileWithContent.initialTranscription;
+        } catch (error) {
+          // If JSON parsing fails, treat as plain text
+          fullText = transcriptContent;
         }
 
         if (!fullText) {
@@ -140,11 +150,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       // Step 2: Extract first 5 segments
       console.log(`Step 2: Extracting segments for file ${fileId}`);
       
-      if (!fileWithContent.text) {
+      if (!transcriptContent) {
         throw new Error("No transcript content available for segment extraction");
       }
 
-      const parsedContent = JSON.parse(fileWithContent.text);
+      const parsedContent = JSON.parse(transcriptContent);
       const extractedWords = extractWordsFromEditor(parsedContent);
       
       // Group words by speaker to create segments
