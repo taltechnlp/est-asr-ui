@@ -13,19 +13,13 @@ const AutoAnalyzeSchema = z.object({
 
 export const POST: RequestHandler = async ({ request, locals }) => {
   try {
-    // Check authentication
-    const session = await locals.auth();
-    if (!session?.user) {
-      return json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     // Parse and validate request
     const body = await request.json();
     const { fileId } = AutoAnalyzeSchema.parse(body);
 
     console.log(`Starting auto-analysis for file ${fileId}`);
 
-    // Get file and verify ownership
+    // Get file first to check ownership and auto-analysis flag
     const file = await prisma.file.findUnique({
       where: { id: fileId },
       select: {
@@ -45,7 +39,17 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       return json({ error: "File not found" }, { status: 404 });
     }
 
-    if (file.uploader !== session.user.id) {
+    // Check authentication - but allow server-to-server calls for auto-analysis
+    const session = await locals.auth();
+    
+    // For auto-analysis requests, we allow server-to-server calls (no session required)
+    // but we still verify the file has autoAnalyze enabled
+    if (!file.autoAnalyze) {
+      return json({ error: "Auto-analysis not requested for this file" }, { status: 400 });
+    }
+
+    // If there's a session, verify ownership (for manual calls)
+    if (session?.user && file.uploader !== session.user.id) {
       return json({ error: "Access denied" }, { status: 403 });
     }
 

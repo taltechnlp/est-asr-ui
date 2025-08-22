@@ -235,11 +235,12 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 											'Content-Type': 'application/json',
 										},
 										body: JSON.stringify({ fileId: file.id })
-									}).then(response => {
+									}).then(async response => {
 										if (response.ok) {
 											console.log(`Auto-analysis initiated successfully for file: ${file.filename}`);
 										} else {
-											console.error(`Failed to initiate auto-analysis for file: ${file.filename}`);
+											const errorText = await response.text();
+											console.error(`Failed to initiate auto-analysis for file: ${file.filename} - Status: ${response.status}, Error: ${errorText}`);
 										}
 									}).catch(error => {
 										console.error(`Error initiating auto-analysis for file: ${file.filename}`, error);
@@ -294,11 +295,12 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 											'Content-Type': 'application/json',
 										},
 										body: JSON.stringify({ fileId: file.id })
-									}).then(response => {
+									}).then(async response => {
 										if (response.ok) {
 											console.log(`Auto-analysis initiated successfully for file: ${file.filename}`);
 										} else {
-											console.error(`Failed to initiate auto-analysis for file: ${file.filename}`);
+											const errorText = await response.text();
+											console.error(`Failed to initiate auto-analysis for file: ${file.filename} - Status: ${response.status}, Error: ${errorText}`);
 										}
 									}).catch(error => {
 										console.error(`Error initiating auto-analysis for file: ${file.filename}`, error);
