@@ -212,28 +212,40 @@
 								{file.filename}
 							</p>
 						</td>
-						<td>
+						<td class="status-cell">
 							{#if file.oldSystem}
-							<div class="badge badge-md badge-info pl-2 pr-2">{$_('files.statusOld')}</div>
+							<div class="badge badge-sm badge-info px-1 text-xs truncate max-w-full">{$_('files.statusOld')}</div>
 							{:else if file.state == 'READY'}
-								<div class="badge badge-md badge-success pl-2 pr-2">{$_('files.statusReady')}</div>
+								<div class="badge badge-sm badge-success px-1 text-xs truncate max-w-full">{$_('files.statusReady')}</div>
 							{:else if file.state == 'PROCESSING_ERROR'}
-								<div class="badge badge-md badge-error pl-2 pr-2">{$_('files.statusError')}</div>
+								<div class="badge badge-sm badge-error px-1 text-xs truncate max-w-full">{$_('files.statusError')}</div>
 							{:else if file.state == 'PROCESSING'}
-								<div class="badge badge-md badge-accent pl-2 pr-2">
-									{$_('files.statusProcessing')} 
+								<div class="flex flex-col sm:flex-row sm:items-center gap-1">
+									<div class="badge badge-sm badge-accent px-1 text-xs truncate max-w-full">
+										<span class="hidden sm:inline">{$_('files.statusProcessing')}</span>
+										<span class="sm:hidden">PROC</span>
+										{#if file.progress >= 0}
+											{` ${file.progress}%`}
+										{/if}
+									</div>
+									<span class="loading loading-spinner loading-xs"></span>
 								</div>
-								{#if file.progress >= 0}
-									{` ${file.progress}%`}
-								{/if}
-								<span class="btn btn-ghost btn-xs" aria-label={$_('files.loading')}></span>
-								<span class="loading loading-spinner loading-xs"></span>
 							{:else if file.state == 'UPLOADED' && file.queued}
-								<div class="badge badge-md badge-info pl-2 pr-2">{$_('files.statusUploaded')}</div>
-								<span class="loading loading-spinner loading-xs"></span>
+								<div class="flex flex-col sm:flex-row sm:items-center gap-1">
+									<div class="badge badge-sm badge-info px-1 text-xs truncate max-w-full">
+										<span class="hidden sm:inline">{$_('files.statusUploaded')}</span>
+										<span class="sm:hidden">UPL</span>
+									</div>
+									<span class="loading loading-spinner loading-xs"></span>
+								</div>
 							{:else if file.state == 'UPLOADED'}
-								<div class="badge badge-md badge-info pl-2 pr-2">{$_('files.statusUploaded')}</div>
-								<span class="loading loading-spinner loading-xs"></span>
+								<div class="flex flex-col sm:flex-row sm:items-center gap-1">
+									<div class="badge badge-sm badge-info px-1 text-xs truncate max-w-full">
+										<span class="hidden sm:inline">{$_('files.statusUploaded')}</span>
+										<span class="sm:hidden">UPL</span>
+									</div>
+									<span class="loading loading-spinner loading-xs"></span>
+								</div>
 							{/if}
 						</td>
 						<td class="">
@@ -389,4 +401,91 @@
 </div>
 
 <style>
+	/* Responsive table improvements */
+	.table {
+		table-layout: fixed;
+		width: 100%;
+	}
+	
+	/* Column width distribution */
+	.table th:nth-child(1), .table td:nth-child(1) {
+		width: 3rem; /* Index number */
+	}
+	
+	.table th:nth-child(2), .table td:nth-child(2) {
+		width: auto; /* Filename - takes remaining space */
+		min-width: 8rem;
+	}
+	
+	.table th:nth-child(3), .table td:nth-child(3) {
+		width: 8rem; /* Status */
+		min-width: 6rem;
+	}
+	
+	.table th:nth-child(4), .table td:nth-child(4) {
+		width: 7rem; /* Date */
+		min-width: 5rem;
+	}
+	
+	.table th:nth-child(5), .table td:nth-child(5) {
+		width: 8rem; /* Actions */
+		min-width: 6rem;
+	}
+	
+	/* Status cell improvements */
+	.status-cell {
+		max-width: 0; /* Force text truncation within fixed width */
+		overflow: hidden;
+	}
+	
+	/* Badge improvements for mobile */
+	.badge {
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		min-width: 0;
+		flex-shrink: 1;
+	}
+	
+	/* Mobile responsive adjustments */
+	@media (max-width: 640px) {
+		.table th:nth-child(3), .table td:nth-child(3) {
+			width: 5rem;
+			min-width: 4rem;
+		}
+		
+		.table th:nth-child(4), .table td:nth-child(4) {
+			width: 5rem;
+			min-width: 4rem;
+			font-size: 0.75rem;
+		}
+		
+		.table th:nth-child(5), .table td:nth-child(5) {
+			width: 6rem;
+			min-width: 5rem;
+		}
+		
+		/* Make badges even smaller on mobile */
+		.badge {
+			font-size: 0.65rem;
+			padding: 0.125rem 0.25rem;
+		}
+	}
+	
+	/* Very small screens */
+	@media (max-width: 480px) {
+		.table {
+			font-size: 0.875rem;
+		}
+		
+		.table th:nth-child(3), .table td:nth-child(3) {
+			width: 4rem;
+			min-width: 3.5rem;
+		}
+		
+		.badge {
+			font-size: 0.6rem;
+			padding: 0.1rem 0.2rem;
+		}
+	}
 </style>

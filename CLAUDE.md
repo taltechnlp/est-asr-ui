@@ -11,6 +11,8 @@ This is the EST-ASR-UI project (https://tekstiks.ee), a full-stack Estonian spee
 - **Database**: PostgreSQL with Prisma ORM
 - **Authentication**: Better Auth (recently migrated from Auth.js)
 - **Text Editor**: TipTap for transcription editing
+- **AI Integration**: LangChain with OpenRouter for transcript analysis
+- **Runtime**: Node.js/Bun support
 
 ## Common Development Commands
 
@@ -18,69 +20,95 @@ This is the EST-ASR-UI project (https://tekstiks.ee), a full-stack Estonian spee
 # Install dependencies
 npm install
 
-# Generate Prisma client (run after schema changes)
-npx prisma generate
+# Database setup and management
+npx prisma generate              # Generate Prisma client after schema changes
+npx prisma migrate deploy        # Apply database migrations
+docker compose up -d             # Start PostgreSQL database
 
-# Apply database migrations
-npx prisma migrate deploy
+# Development workflow
+npm run dev                      # Start development server with --host
+npm run dev -- --open          # Start dev server and open browser
 
-# Development server
-npm run dev
+# Production builds
+npm run build                    # Build for production
+npm run preview                  # Preview production build locally
+npm run prod                     # Run production server
+npm run prelive                  # Run pre-live server
 
-# Build for production
-npm run build
-
-# Run production build locally
-npm run preview
-
-# Type checking
-npm run check
-
-# Linting
-npm run lint
-
-# Format code
-npm run format
+# Code quality
+npm run check                    # TypeScript type checking
+npm run check:watch             # Watch mode for type checking
+npm run lint                     # ESLint + Prettier check
+npm run format                   # Format code with Prettier
 ```
 
 ## High-Level Architecture
 
 ### Authentication System
-The project recently migrated from Auth.js to Better Auth. The authentication system:
-- Uses Better Auth with Prisma adapter (src/lib/auth.ts)
-- Supports email/password and OAuth (Google, Facebook)
-- Maintains backwards compatibility through hooks (src/hooks.server.ts)
-- Session management uses both Better Auth sessions and a legacy session cookie for compatibility
+**Dual Authentication Setup**: Recently migrated from Auth.js to Better Auth while maintaining backward compatibility:
+- **Better Auth** (`src/lib/auth.ts`): Primary authentication with Prisma adapter
+- **Legacy Support** (`src/hooks.server.ts`): Maintains compatibility with existing session cookies
+- **Providers**: Email/password authentication + OAuth (Google, Facebook)
+- **Session Management**: Unified session handling through `event.locals.auth()`
 
-### Database Structure
-- **User**: Stores user accounts with roles (USER/ADMIN)
-- **File**: Manages uploaded audio files and their transcriptions
-- **Account/Session**: Better Auth tables for OAuth and session management
-- **NfWorkflow/NfProcess**: Tracks Nextflow pipeline execution for transcription processing
+### Core Database Models
+- **User**: Account management with roles (USER/ADMIN), supports both Better Auth and legacy sessions
+- **File**: Central entity for uploaded audio files and transcription metadata
+- **Account/Session**: Better Auth tables for OAuth and session persistence  
+- **NfWorkflow/NfProcess**: Tracks Nextflow pipeline execution and transcription processing status
+- **ChatSession**: Stores AI-powered transcript analysis conversations
+- **TranscriptSummary**: AI-generated summaries with multi-language support
+- **AnalysisSegment**: Incremental transcript analysis with improvement suggestions
 
-### Key Application Flow
-1. **File Upload**: Users upload audio files through `/files` route
-2. **Processing**: Files are sent to external ASR backend via API calls
-3. **Transcription Editing**: Interactive editor using TipTap with custom marks and nodes
-4. **Export**: Transcriptions can be exported in various formats (DOCX, EST format)
+### Application Architecture Flow
 
-### Important Integrations
-- **ASR Backend**: External service for speech recognition pipeline
-- **Email Service**: SendGrid/Mailjet for notifications
-- **Audio Processing**: Uses ffmpeg and audiowaveform for waveform generation
-- **Real-time Updates**: WebSocket/polling for transcription progress
+#### File Processing Pipeline
+1. **Upload** (`/files`): Audio file upload with validation and metadata extraction
+2. **ASR Processing**: External speech recognition via EST-ASR-Backend API calls
+3. **Nextflow Integration**: Pipeline monitoring through NfWorkflow/NfProcess models
+4. **Real-time Updates**: Progress tracking and notifications during transcription
 
-### Directory Structure Highlights
-- `/src/routes/[[lang]]/`: Internationalized routes (et, en, fi)
-- `/src/lib/components/editor/`: TipTap editor components
-- `/src/lib/adapters/`: File upload adapters for different services
-- `/prisma/`: Database schema and migrations
-- `/uploads/`: Local file storage for audio files
+#### Transcript Enhancement System
+1. **TipTap Editor** (`/src/lib/components/editor/`): Rich text editing with custom marks/nodes
+2. **AI Analysis** (`/src/lib/agents/`): LangChain-powered transcript improvement using:
+   - `transcriptAnalyzer.ts`: Segment-by-segment analysis
+   - `summaryGenerator.ts`: Document summarization  
+   - `coordinatingAgent*.ts`: Multi-agent coordination
+3. **Export Pipeline**: Multiple format support (DOCX, EST format)
 
-### Environment Configuration
-Requires `.env` file with:
-- DATABASE_URL for PostgreSQL connection
-- AUTH_SECRET for Better Auth
-- OAuth credentials (GOOGLE_CLIENT_ID, etc.)
-- Email service credentials
-- ASR backend API endpoints
+### Critical Integrations
+
+#### External Services
+- **EST-ASR-Backend**: Primary speech recognition pipeline
+- **OpenRouter API**: LLM services for transcript analysis (via LangChain)
+- **Email Services**: SendGrid/Mailjet for notifications
+- **Audio Processing**: ffmpeg + audiowaveform for waveform generation
+
+#### Internationalization
+- **Route Structure**: `[[lang]]` pattern supporting et/en/fi languages
+- **Multi-language Support**: Both UI and transcript content localization
+
+### Key Technical Patterns
+
+#### Route Architecture
+- **API Routes** (`/src/routes/api/`): RESTful endpoints for file operations, transcription, and analysis
+- **Page Routes** (`/src/routes/[[lang]]/`): Internationalized user interface
+- **Authentication Flow**: Better Auth integration at `/api/auth/[...all]`
+
+#### State Management
+- **Server-Side**: Prisma ORM with PostgreSQL
+- **Client-Side**: Svelte 5 reactivity + Dexie for offline storage
+- **Real-time**: Progress polling for long-running operations
+
+### Development Environment
+
+#### Required Dependencies
+- **System**: Node.js (16.x/18.x tested), ffmpeg, audiowaveform, python3
+- **Database**: PostgreSQL (via Docker or local installation)
+- **External APIs**: EST-ASR backend, OpenRouter API key
+
+#### Environment Variables (`.env.example`)
+- **Database**: `DATABASE_URL` for PostgreSQL connection
+- **Authentication**: `AUTH_SECRET`, OAuth client credentials
+- **External Services**: ASR backend URLs, OpenRouter API key, email service credentials
+- **File Storage**: Upload directories and processing pipeline paths
