@@ -66,6 +66,7 @@ export const actions: Actions = {
             return fail(400, { invalidLang: true })
         }
         const notify = data.get('notify') === "yes" ? true : false;
+        const autoAnalyze = data.get('autoAnalyze') === "yes" ? true : false;
         const file = data.get('file') as Blob;
         if (!file || !('name' in file) || !('size' in file) || !('type' in file)) {
             console.error("no file name, size or type", file)
@@ -153,6 +154,7 @@ export const actions: Actions = {
                     initialTranscriptionPath: resultPath,
                     notified: false,
                     notify: notify,
+                    autoAnalyze: autoAnalyze,
                     User: {
                         connect: { id: session.user.id }
                     }
@@ -214,6 +216,7 @@ export const actions: Actions = {
                     initialTranscriptionPath: resultPath,
                     notified: false,
                     notify: notify,
+                    autoAnalyze: autoAnalyze,
                     User: {
                         connect: { id: session.user.id }
                     }

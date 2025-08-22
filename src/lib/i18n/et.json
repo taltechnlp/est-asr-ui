@@ -252,6 +252,8 @@
             "finnish": "soome"
         },
         "uploadNotify": "Teavita valmimisest e-postile",
+        "autoAnalyze": "Analüüsi automaatselt AI-ga pärast transkriptsiooni",
+        "uploadAndAnalyze": "Laadi üles ja analüüsi automaatselt",
         "noFiles": "Ühtegi ülesse laetud faili pole",
         "loading": "Laadimine...",
         "uploadIcon": "Ülesse laadimine",

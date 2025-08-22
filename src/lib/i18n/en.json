@@ -266,6 +266,8 @@
       "finnish": "Finnish"
     },
     "uploadNotify": "Notify about the completion via email",
+    "autoAnalyze": "Automatically analyze with AI after transcription",
+    "uploadAndAnalyze": "Upload & Auto Analyze",
     "noFiles": "No files uploaded yet",
     "loading": "Loading...",
     "uploadIcon": "Upload a speech recording",

@@ -19,6 +19,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 				externalId: true,
 				filename: true,
 				notify: true,
+				autoAnalyze: true,
 				User: {
 					select: {
 						email: true
@@ -223,6 +224,31 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 							});
 							console.log(`Transcription completed successfully for file: ${file.filename}`);
 
+							// Trigger auto-analysis if requested
+							if (file.autoAnalyze) {
+								console.log(`Starting auto-analysis for file: ${file.filename} (${file.id})`);
+								try {
+									// Call auto-analysis endpoint in background (don't await)
+									fetch(`${ORIGIN}/api/transcript-analysis/auto-analyze`, {
+										method: 'POST',
+										headers: {
+											'Content-Type': 'application/json',
+										},
+										body: JSON.stringify({ fileId: file.id })
+									}).then(response => {
+										if (response.ok) {
+											console.log(`Auto-analysis initiated successfully for file: ${file.filename}`);
+										} else {
+											console.error(`Failed to initiate auto-analysis for file: ${file.filename}`);
+										}
+									}).catch(error => {
+										console.error(`Error initiating auto-analysis for file: ${file.filename}`, error);
+									});
+								} catch (error) {
+									console.error(`Failed to trigger auto-analysis for file: ${file.filename}`, error);
+								}
+							}
+
 							if (file.notify) {
 								await sendEmail({
 									to: file.User.email,
@@ -256,6 +282,31 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 								}
 							});
 							console.log(`Transcription completed successfully for file: ${file.filename}`);
+
+							// Trigger auto-analysis if requested
+							if (file.autoAnalyze) {
+								console.log(`Starting auto-analysis for file: ${file.filename} (${file.id})`);
+								try {
+									// Call auto-analysis endpoint in background (don't await)
+									fetch(`${ORIGIN}/api/transcript-analysis/auto-analyze`, {
+										method: 'POST',
+										headers: {
+											'Content-Type': 'application/json',
+										},
+										body: JSON.stringify({ fileId: file.id })
+									}).then(response => {
+										if (response.ok) {
+											console.log(`Auto-analysis initiated successfully for file: ${file.filename}`);
+										} else {
+											console.error(`Failed to initiate auto-analysis for file: ${file.filename}`);
+										}
+									}).catch(error => {
+										console.error(`Error initiating auto-analysis for file: ${file.filename}`, error);
+									});
+								} catch (error) {
+									console.error(`Failed to trigger auto-analysis for file: ${file.filename}`, error);
+								}
+							}
 
 							if (file.notify) {
 								await sendEmail({

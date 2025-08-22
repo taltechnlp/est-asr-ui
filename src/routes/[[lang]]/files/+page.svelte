@@ -18,6 +18,7 @@
 	];
 	let selectedLanguage = languageChoices[0];
 	let notify = true;
+	let autoAnalyze = false;
 
 	let delFileId;
 	const delFile = async (fileId) => {
@@ -70,6 +71,7 @@
 		
 		// Add additional form data
 		formData.append('notify', notify ? "yes" : "no");
+		formData.append('autoAnalyze', autoAnalyze ? "yes" : "no");
 		formData.append('lang', selectedLanguage.text);
 		
 		loading = true;
@@ -351,6 +353,12 @@
 							<span class="label-text">{$_('files.uploadNotify')}</span>
 						</label>
 					</div>
+					<div class="form-control flex-row">
+						<label class="label cursor-pointer">
+							<input type="checkbox" id="autoAnalyze" bind:checked={autoAnalyze} class="checkbox mr-4" />
+							<span class="label-text">{$_('files.autoAnalyze')}</span>
+						</label>
+					</div>
 				</fieldset>
 				<fieldset class="fieldset w-md bg-base-200 border border-base-300 p-4 rounded-box mb-4">
 					<legend class="fieldset-legend">{$_('files.requirements')}</legend>
@@ -371,9 +379,18 @@
 							><span class="btn btn-ghost btn-xs loading" aria-label={$_('files.loading')}></span></button
 						>
 					{:else if upload}
-						<button type="submit" class="btn btn-active btn-primary" aria-label={$_('files.uploadButton')}
-							>{$_('files.uploadButton')}</button
-						>
+						<div class="flex gap-2">
+							<button type="submit" class="btn btn-active btn-primary" aria-label={$_('files.uploadButton')}
+								>{$_('files.uploadButton')}</button
+							>
+							<button 
+								type="submit" 
+								class="btn btn-active btn-accent" 
+								aria-label={$_('files.uploadAndAnalyze')}
+								onclick={() => { autoAnalyze = true; }}
+								>{$_('files.uploadAndAnalyze')}</button
+							>
+						</div>
 					{:else}
 						<button class="btn" disabled>{$_('files.uploadButton')}</button>
 					{/if}
