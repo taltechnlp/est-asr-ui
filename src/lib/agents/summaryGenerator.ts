@@ -158,8 +158,16 @@ Please provide the corrected JSON response with proper formatting.`;
       const result = parseResult.data as SummaryResult;
       
       // Validate the structure
-      if (!validateJsonStructure(result, ['summary', 'keyTopics', 'speakerCount', 'language'])) {
-        throw new Error('Summary response missing required fields');
+      const requiredFields = ['summary', 'keyTopics', 'speakerCount', 'language'];
+      const missingFields = requiredFields.filter(field => !(field in result));
+      
+      if (missingFields.length > 0) {
+        console.error('Summary validation failed:');
+        console.error('Required fields:', requiredFields);
+        console.error('Actual fields:', Object.keys(result));
+        console.error('Missing fields:', missingFields);
+        console.error('Result sample:', JSON.stringify(result).substring(0, 500));
+        throw new Error(`Summary response missing required fields: ${missingFields.join(', ')}`);
       }
 
       // Generate display summary and translate key topics in UI language if different from English
