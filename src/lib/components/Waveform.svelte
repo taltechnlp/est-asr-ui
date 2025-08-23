@@ -76,166 +76,116 @@
 			});
 		// console.log("updated", speakers)
 		});
-	onMount(() => {
-		let styles = getComputedStyle(document.documentElement);
-		let colorPrimary = styles.getPropertyValue("--color-primary");
-		let colorSecondary = styles.getPropertyValue("--color-secondary");
-		let colorAccent = styles.getPropertyValue("--color-accent");
-		let colorBase = styles.getPropertyValue("--color-base-100");
-		let colorNeutral = styles.getPropertyValue("--color-neutral");
-		
-		const audioContext = new AudioContext();
-		// console.log(names)
-		const options: PeaksOptions = {
+
+let zoomviewEl: HTMLDivElement;
+let overviewEl: HTMLDivElement;
+let resizeObs: ResizeObserver;
+let audioEl: HTMLAudioElement;
+
+function buildOptions(): PeaksOptions {
+	let styles = getComputedStyle(document.documentElement);
+	let colorPrimary = styles.getPropertyValue("--color-primary");
+	let colorSecondary = styles.getPropertyValue("--color-secondary");
+	let colorAccent = styles.getPropertyValue("--color-accent");
+	let colorBase = styles.getPropertyValue("--color-base-100");
+	let colorNeutral = styles.getPropertyValue("--color-neutral");
+	const audioContext = new AudioContext();
+	return {
+		segmentOptions: {
+			markers: true,
+			overlay: true,
+			startMarkerColor: colorAccent,
+			endMarkerColor: colorAccent,
+			waveformColor: colorAccent,
+			overlayColor: colorSecondary,
+			overlayOpacity: 0.1,
+			overlayBorderColor: colorSecondary,
+			overlayBorderWidth: 2,
+			overlayCornerRadius: 5,
+			overlayOffset: 2,
+			overlayLabelAlign: 'left',
+			overlayLabelPadding: 2,
+			overlayLabelColor: 'black',
+			overlayFontFamily: 'sans-serif',
+			overlayFontSize: 10,
+			overlayFontStyle: 'bold'
+		},
+		zoomview: {
+			container: zoomviewEl,
+			waveformColor: colorNeutral,
+			playedWaveformColor: colorPrimary,
+			playheadColor: colorAccent,
+			playheadTextColor: colorBase,
+			playheadClickTolerance: 3,
+			showPlayheadTime: true,
+			timeLabelPrecision: 2,
+			// @ts-ignore
+			axisTopMarkerHeight: 5,
+			axisBottomMarkerHeight: 5,
+			autoScroll: true,
+			autoScrollOffset: 100,
+			enablePoints: false,
+			enableSegments: true,
 			segmentOptions: {
-					// Enable segment markers
-					markers: true,
+				overlayOpacity: 0.1,
+			}
+		},
+		overview: {
+			container: overviewEl,
+			playedWaveformColor: colorPrimary,
+			highlightColor: colorNeutral,
+			highlightStrokeColor: 'transparent',
+			enablePoints: false,
+			enableSegments: true,
+		},
+		mediaElement: audioEl,
+		webAudio: {
+			audioContext: audioContext,
+			scale: 128,
+			multiChannel: false
+		},
+		withCredentials: true,
+		zoomLevels: [512, 1024, 2048, 4096],
+		keyboard: true,
+		nudgeIncrement: 0.01,
+		emitCueEvents: false,
+	};
+}
 
-					// Enable segment overlays
-					overlay: true,
-
-					// Color for segment start marker handles
-					startMarkerColor: colorAccent,
-
-					// Color for segment end marker handles
-					endMarkerColor: colorAccent,
-					
-					// Segment waveform color
-					waveformColor: colorAccent,
-
-					// Segment overlay color
-					overlayColor: colorSecondary,
-
-					// Segment overlay opacity
-					overlayOpacity: 0.1,
-
-					// Segment overlay border color
-					overlayBorderColor: colorSecondary,
-
-					// Segment overlay border width
-					overlayBorderWidth: 2,
-
-					// Segment overlay border corner radius
-					overlayCornerRadius: 5,
-
-					// Segment overlay offset from the top and bottom of the waveform view, in pixels
-					overlayOffset: 2,
-
-					// Segment overlay label alignment, either 'top-left' or 'center'
-					overlayLabelAlign: 'left',
-
-					// Segment overlay label offset, in pixels
-					overlayLabelPadding: 2,
-
-					// Segment overlay label color
-					overlayLabelColor: 'black',
-
-					// Segment overlay font family
-					overlayFontFamily: 'sans-serif',
-
-					// Segment overlay font size
-					overlayFontSize: 10,
-
-					// Segment overlay font style
-					overlayFontStyle: 'bold'
-				},
-			zoomview: {
-				// main waveform
-				container: document.getElementById('zoomview-container'),
-				waveformColor: colorNeutral,
-				playedWaveformColor: colorPrimary,
-				playheadColor: colorAccent,
-				playheadTextColor: colorBase,
-				playheadClickTolerance: 3,
-				showPlayheadTime: true,
-				timeLabelPrecision: 2,
-				// @ts-ignore
-				axisTopMarkerHeight: 5,
-				axisBottomMarkerHeight: 5,
-				autoScroll: true,
-				autoScrollOffset: 100,
-				enablePoints: false,
-				enableSegments: true,
-				segmentOptions: {
-					overlayOpacity: 0.1,
-				}
-				
-			},
-			overview: {
-				container: document.getElementById('overview-container'),
-				playedWaveformColor: colorPrimary,
-				highlightColor: colorNeutral,
-				highlightStrokeColor:  'transparent',
-				enablePoints: false,
-				enableSegments: true,
-			},
-			mediaElement: document.getElementById('audio'),
-			webAudio: {
-				audioContext: audioContext,
-				scale: 128,
-				multiChannel: false
-			},
-			withCredentials: true,
-			zoomLevels: [512, 1024, 2048, 4096],
-			keyboard: true,
-			nudgeIncrement: 0.01,
-			emitCueEvents: false, // enter segment event for example
-			/* points: [
-				{
-				time: 150,
-				editable: true,
-				labelText: "A point"
-				},
-				{
-				time: 160,
-				editable: true,
-				labelText: "Another point"
-				}
-			], */
-			
-		};
-
+	function initPeaks() {
+		const options = buildOptions();
 		Peaks.init(options, function(err, peaks) {
-		// Do something when the waveform is displayed and ready, or handle errors
-			if(err) console.log("Error initiating Peaks", err);
+			if (err) {
+				console.log("Error initiating Peaks", err);
+				return;
+			}
 			peaksInstance = peaks;
-			if (peaksInstance)	waveform.set(peaksInstance);
+			if (peaksInstance) waveform.set(peaksInstance);
 			// Event subscriptions
 			peaksInstance.on('peaks.ready', function () {
 				peaksReady = true;
 				duration.set(peaksInstance.player.getDuration());
 				peaksInstance.player.pause();
-				player.update((x) => {
-					return { ...x, ready: true };
-				});
+				player.update((x) => ({ ...x, ready: true }));
 			});
 			peaksInstance.on('player.playing', function() {
-				player.update((x) => {
-					return { ...x, playing: true };
-				});
+				player.update((x) => ({ ...x, playing: true }));
 			});
 			peaksInstance.on('player.pause', function() {
-				player.update((x) => {
-					return { ...x, playing: false };
-				});
+				player.update((x) => ({ ...x, playing: false }));
 			});
 			peaksInstance.on('segments.enter', function (event) {
 				const progress = Math.round($waveform.player.getCurrentTime() * 100) / 100;
 				playingTime.set(progress);
-				// console.log("entered segment");
 				if ($editor) {
-					// Apply word color decoration change to state without adding this state change to the history stack.
 					let newState = $editor.view.state.apply(
 						$editor.view.state.tr
 							.setMeta('wordColor', {
 								id: event.segment.id,
-	/* 							start: region.start,
-								end: region.end, */
 								event: 'in'
 							})
 							.setMeta('addToHistory', false)
 					);
-					// console.log("entered segment", event.segment.id)
 					$editor.view.updateState(newState);
 				}
 			});
@@ -246,61 +196,86 @@
 				playingTime.set(time);
 			});
 		});
-		
+	}
 
-		// Subscribe to playback events
-		let audio = document.getElementById("audio") as HTMLMediaElement;
-		audio.ontimeupdate = function() {onPlayback()};
-		function onPlayback() {
-			const candidateWords = wordLookup[Math.floor(audio.currentTime)];
-			let currentWord;
-			if (candidateWords)	currentWord = candidateWords.find(w => w.start <= audio.currentTime && w.end >= audio.currentTime)
-			if (!currentWord || currentWord.id != lastHighlighedWord.id) {
-				let progress = 0;
-				if ($waveform && $waveform.player) progress = Math.round($waveform.player.getCurrentTime() * 100) / 100;
-				playingTime.set(progress);
-				if ($editor) {
-					// Apply word color decoration change to state without adding this state change to the history stack.
-					let newState = $editor.view.state.apply(
-						$editor.view.state.tr
-							// TODO: pass ID instead of progress
-							// TODO: fire at region start, end and player seek events
-							.setMeta('wordColor', {
-								id: lastHighlighedWord.id,
-								start: lastHighlighedWord.start,
-								end: lastHighlighedWord.end,
-								event: 'out'
-							})
-							.setMeta('addToHistory', false)
-					);
-					$editor.view.updateState(newState);
-				}
-				if (lastHighlighedWord.highlight) lastHighlighedWord.highlight = false;
-			}
-			if (currentWord && currentWord.id != lastHighlighedWord.id) {
-				const progress = Math.round($waveform.player.getCurrentTime() * 100) / 100;
-				playingTime.set(progress);
-				if ($editor) {
-				// Apply word color decoration change to state without adding this state change to the history stack.
-					let newState = $editor.view.state.apply(
-						$editor.view.state.tr
+onMount(() => {
+		// Ensure refs are available
+		if (!audioEl) {
+			// try again on next frame if not yet bound
+			requestAnimationFrame(() => onMount(() => {}));
+			return;
+		}
+		initPeaks();
+		// Observe size changes to re-init Peaks so canvas fits container
+		let debounce = 0;
+		resizeObs = new ResizeObserver(() => {
+			cancelAnimationFrame(debounce);
+			debounce = requestAnimationFrame(() => {
+				if (!peaksInstance) return;
+				const currentTime = $waveform?.player?.getCurrentTime?.() || 0;
+				const wasPlaying = !!$player.playing;
+				peaksInstance.destroy();
+				initPeaks();
+				// restore time/play state after small delay to ensure ready
+				setTimeout(() => {
+					if ($waveform) {
+						try { $waveform.player.seek(currentTime); } catch {}
+						if (wasPlaying) { try { $waveform.player.play(); } catch {} }
+					}
+				}, 50);
+			});
+		});
+		if (zoomviewEl) resizeObs.observe(zoomviewEl);
+		// hook playback time updates
+		if (audioEl) audioEl.ontimeupdate = function() { onPlayback(); };
+	});
+
+	// Subscribe to playback events
+	function onPlayback() {
+		const candidateWords = wordLookup[Math.floor(audio.currentTime)];
+		let currentWord;
+		if (candidateWords)	currentWord = candidateWords.find(w => w.start <= audio.currentTime && w.end >= audio.currentTime)
+		if (!currentWord || currentWord.id != lastHighlighedWord.id) {
+			let progress = 0;
+			if ($waveform && $waveform.player) progress = Math.round($waveform.player.getCurrentTime() * 100) / 100;
+			playingTime.set(progress);
+			if ($editor) {
+				let newState = $editor.view.state.apply(
+					$editor.view.state.tr
 						.setMeta('wordColor', {
-							id: currentWord.id,
-							start: currentWord.start,
-							end: currentWord.end,
-							event: 'in'
+							id: lastHighlighedWord.id,
+							start: lastHighlighedWord.start,
+							end: lastHighlighedWord.end,
+							event: 'out'
 						})
 						.setMeta('addToHistory', false)
-					);
-					$editor.view.updateState(newState);
-				}
-				lastHighlighedWord.id = currentWord.id;
-				lastHighlighedWord.start = currentWord.start;
-				lastHighlighedWord.end = currentWord.end;
-				lastHighlighedWord.highlight = true;
+				);
+				$editor.view.updateState(newState);
 			}
+			if (lastHighlighedWord.highlight) lastHighlighedWord.highlight = false;
 		}
-	});
+		if (currentWord && currentWord.id != lastHighlighedWord.id) {
+			const progress = Math.round($waveform.player.getCurrentTime() * 100) / 100;
+			playingTime.set(progress);
+			if ($editor) {
+				let newState = $editor.view.state.apply(
+					$editor.view.state.tr
+					.setMeta('wordColor', {
+						id: currentWord.id,
+						start: currentWord.start,
+						end: currentWord.end,
+						event: 'in'
+					})
+					.setMeta('addToHistory', false)
+				);
+				$editor.view.updateState(newState);
+			}
+			lastHighlighedWord.id = currentWord.id;
+			lastHighlighedWord.start = currentWord.start;
+			lastHighlighedWord.end = currentWord.end;
+			lastHighlighedWord.highlight = true;
+		}
+	}
 
 	// Local state
 	let playbackSpeed = 0;
@@ -314,8 +289,10 @@
 		unsubscribeSpeakerNames();
 	}) 
 
-	onDestroy(() => {
+onDestroy(() => {
 		unsubscribeSpeakerNames();
+		if (resizeObs) resizeObs.disconnect();
+		if (audioEl) audioEl.ontimeupdate = null;
 		if ($waveform) {
 			$waveform.destroy();
 		}
@@ -337,9 +314,9 @@
 </script>
 
 <div>
-	<div id="zoomview-container" class="waveform-container w-full"></div>
-	<div id="overview-container" class="w-full h-auto "></div>
-	<audio id="audio">
+	<div id="zoomview-container" class="waveform-container w-full" bind:this={zoomviewEl}></div>
+	<div id="overview-container" class="w-full h-auto " bind:this={overviewEl}></div>
+<audio id="audio" bind:this={audioEl}>
 		<source src={url} type="audio/mpeg">
 	</audio>
 </div>

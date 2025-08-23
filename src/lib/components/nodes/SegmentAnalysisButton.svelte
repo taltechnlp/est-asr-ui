@@ -8,6 +8,7 @@
 	import times from 'svelte-awesome/icons/times';
 	import wrench from 'svelte-awesome/icons/wrench';
 	import refresh from 'svelte-awesome/icons/refresh';
+	import chevronRight from 'svelte-awesome/icons/chevronRight';
 	import type { AnalysisSegment, TranscriptSummary } from '@prisma/client';
 	import type { SegmentWithTiming } from '$lib/utils/extractWordsFromEditor';
 	import { _, locale } from 'svelte-i18n';
@@ -18,18 +19,20 @@
 	import { summaryStore } from '$lib/stores/summaryStore';
 	import { analysisStateStore } from '$lib/stores/analysisStateStore';
 
-	interface Props {
+interface Props {
 		fileId: string;
 		segment: SegmentWithTiming;
 		audioFilePath: string;
 		onAnalysisComplete?: (result: any) => void;
+		selected?: boolean; // whether this segment is the currently selected one
 	}
 
 	let { 
 		fileId, 
 		segment, 
 		audioFilePath,
-		onAnalysisComplete = () => {}
+		onAnalysisComplete = () => {},
+		selected = false
 	}: Props = $props();
 
 	let error = $state<string | null>(null);
@@ -51,6 +54,15 @@
 	let popupMaxHeight = $state(400);
 	let applyingStates = $state<Record<number, boolean>>({});
 	let isReanalyzing = $state(false);
+	let sidebarIsCollapsed = $state(false);
+
+	onMount(() => {
+		const onSidebarState = (e: any) => {
+			sidebarIsCollapsed = !!e?.detail?.collapsed;
+		};
+		window.addEventListener('transcriptSidebarCollapsed', onSidebarState);
+		return () => window.removeEventListener('transcriptSidebarCollapsed', onSidebarState);
+	});
 
 	// Handle escape key
 	$effect(() => {
@@ -107,6 +119,11 @@
 		}
 	}
 
+
+function openSidebar() {
+		// Notify page to open the transcript sidebar
+		window.dispatchEvent(new CustomEvent('openTranscriptSidebar'));
+	}
 
 	async function handleButtonClick() {
 		if (analysisStatus === 'analyzed' && analysisResult) {
@@ -399,7 +416,28 @@
 	}
 </script>
 
-<div class="segment-analysis-container" contentEditable={false}>
+<div class="segment-analysis-container {selected ? '' : 'compact'}" contentEditable={false}>
+	{#if analysisResult && analysisStatus === 'analyzed'}
+		{#if analysisResult.suggestions && Array.isArray(analysisResult.suggestions)}
+			<span class="suggestion-count" title={$_('transcript.analysis.suggestions')}>
+				{analysisResult.suggestions.length}
+			</span>
+		{/if}
+	{/if}
+
+	<!-- Button to open sidebar quickly (only on selected segment and when sidebar is collapsed) -->
+	{#if selected && sidebarIsCollapsed}
+		<button
+			class="open-sidebar-btn"
+			onclick={openSidebar}
+			title={$_('transcript.sidebar.title')}
+		>
+			<Icon data={chevronRight} />
+			<span class="btn-text">{$_('transcript.sidebar.title')}</span>
+		</button>
+	{/if}
+
+	<!-- Main analysis/status button (also opens popup when analyzed) -->
 	<button
 		bind:this={buttonElement}
 		class={getButtonClass()}
@@ -416,12 +454,11 @@
 		{:else}
 			<Icon data={flask} />
 		{/if}
-		
 		<span class="btn-text">
 			{#if analysisStatus === 'analyzing'}
 				{$_('transcript.analysis.analyzing')}
 			{:else if analysisStatus === 'analyzed'}
-				{$_('transcript.analysis.analyzed')}
+				{$_('transcript.analysis.viewAnalysis')}
 			{:else if analysisStatus === 'error'}
 				{$_('common.error')}
 			{:else}
@@ -429,17 +466,6 @@
 			{/if}
 		</span>
 	</button>
-
-	{#if analysisResult && analysisStatus === 'analyzed'}
-		<div class="analysis-summary">
-			{#if analysisResult.suggestions && Array.isArray(analysisResult.suggestions)}
-				<span class="suggestion-count">
-					{analysisResult.suggestions.length} {$_('transcript.analysis.suggestionCount')}
-				</span>
-			{/if}
-		</div>
-	{/if}
-	
 </div>
 
 {#if showResults && analysisResult}
@@ -531,7 +557,7 @@
 {/if}
 
 <style>
-	.segment-analysis-container {
+.segment-analysis-container {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.25rem;
@@ -539,6 +565,8 @@
 		vertical-align: middle;
 		position: relative;
 	}
+
+	.segment-analysis-container.compact .btn-text { display: none; }
 
 	.analysis-btn {
 		display: inline-flex;
@@ -575,7 +603,7 @@
 	}
 
 	.analysis-btn.analyzed {
-		background: #f0fdf4;
+		background: white; /* neutral instead of filled green */
 		border-color: #10b981;
 		color: #10b981;
 	}
@@ -600,7 +628,24 @@
 		background: #f3f4f6;
 		border-radius: 0.25rem;
 		font-size: 0.625rem;
+		margin-right: 0.25rem;
 	}
+
+	.open-sidebar-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0.125rem 0.5rem;
+		font-size: 0.625rem;
+		border: 1px solid #e5e7eb;
+		background: white;
+		color: #6b7280;
+		border-radius: 0.25rem;
+		cursor: pointer;
+		transition: all 0.2s;
+		height: 1.75rem;
+	}
+	.open-sidebar-btn:hover { background: #f3f4f6; border-color: #d1d5db; color: #374151; }
 
 	/* Mobile responsive */
 	@media (max-width: 640px) {

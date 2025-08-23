@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { onMount, onDestroy } from 'svelte';
     import Waveform from '$lib/components/Waveform.svelte'
     import Icon from 'svelte-awesome/components/Icon.svelte';
 	import minus from 'svelte-awesome/icons/minusCircle';
@@ -7,6 +8,21 @@
     let { url } = $props();
     let rate = '1.0x';
 	let zoom = $state(1);
+    let rootEl: HTMLDivElement;
+
+    // Publish --player-height based on rendered size
+    let ro: ResizeObserver;
+    onMount(() => {
+      ro = new ResizeObserver(entries => {
+        for (const e of entries) {
+          const h = Math.ceil(e.contentRect.height);
+          document.documentElement.style.setProperty('--player-height', h + 'px');
+        }
+      });
+      if (rootEl) ro.observe(rootEl);
+    });
+    onDestroy(() => ro && ro.disconnect());
+
 	const togglePlay = () => {
 		if ($waveform) {
             if ($player && $player.playing) $waveform.player.pause();
@@ -53,7 +69,7 @@
     }
 </script>
 
-<div class="w-full h-auto pb-1 bg-white border-t border-gray-200">
+<div class="w-full h-auto pb-1 bg-white border-t border-gray-200" bind:this={rootEl}>
     <div class="controls flex justify-between items-center pt-0.5 pb-0.5">
         <div class="flex justify-center items-center">
             <button class="btn btn-square btn-sm control-button ml-5" onclick={zoomIn}>

@@ -11,6 +11,8 @@
 	import type { Word, Speaker } from '$lib/helpers/converters/types';
 	import TranscriptSidebar from '$lib/components/transcript-sidebar/TranscriptSidebar.svelte';
 	import SummaryAccordion from '$lib/components/transcript-summary/SummaryAccordion.svelte';
+	import Icon from 'svelte-awesome/components/Icon.svelte';
+	import chevronLeft from 'svelte-awesome/icons/chevronLeft';
 	import type { TranscriptSummary } from '@prisma/client';
 	let { data } = $props();
 	let words = $state<Array<Word>>([]);
@@ -78,12 +80,35 @@
 	function handleSummaryGenerated(newSummary: TranscriptSummary) {
 		summary = newSummary;
 	}
+
+	// Listen for openTranscriptSidebar events from inline segment controls
+	$effect(() => {
+		const onOpen = () => {
+			// Only react if currently collapsed
+			sidebarCollapsed = false;
+		};
+		window.addEventListener('openTranscriptSidebar', onOpen);
+		return () => window.removeEventListener('openTranscriptSidebar', onOpen);
+	});
+
+	// Broadcast sidebar collapsed state so inline controls can adapt
+	$effect(() => {
+		const collapsedState = sidebarCollapsed;
+		window.dispatchEvent(new CustomEvent('transcriptSidebarCollapsed', { detail: { collapsed: collapsedState } }));
+	});
 </script>
 
 <main class="transcript-layout {sidebarCollapsed ? 'sidebar-collapsed' : ''}">
 	<div class="content-area">
 		<div class="editor-pane">
 			<div class="editor-content">
+				{#if sidebarCollapsed}
+					<div class="expand-sidebar-stick">
+						<button class="expand-sidebar-btn" title="Open sidebar" onclick={() => (sidebarCollapsed = false)}>
+							<Icon data={chevronLeft} />
+						</button>
+					</div>
+				{/if}
 				<TiptapAI
 					content={transcription}
 					fileId={data.file.id}
@@ -109,38 +134,71 @@
 			}}
 		/>
 	</div>
-	
+
 	<div class="player-area">
 		<Player url={`${data.url}/uploaded/${data.file.id}`} />
 	</div>
 </main>
 
 <style>
+	:root {
+		/* default; will be updated by Player via ResizeObserver */
+		--player-height: 140px;
+		--sidebar-width: clamp(320px, 28vw, 420px);
+	}
 	.transcript-layout {
 		display: flex;
 		flex-direction: column;
 		width: 100%;
 		min-height: 100vh;
-		padding-bottom: 120px; /* Space for fixed audio player */
+		padding-bottom: var(--player-height, 140px); /* Space for fixed audio player */
 	}
 	
 	.content-area {
 		display: grid;
-		grid-template-columns: 1fr 400px;
-		transition: grid-template-columns 0.3s ease;
+		grid-template-columns: 1fr var(--sidebar-width);
+		transition: grid-template-columns 0.2s ease;
 		flex: 1;
+		gap: 0; /* no gap to keep player full width alignment */
 	}
 	
 	.transcript-layout.sidebar-collapsed .content-area {
-		grid-template-columns: 1fr 48px;
+		grid-template-columns: 1fr; /* remove sidebar column entirely when collapsed */
 	}
 	
 	.editor-pane {
-		background: #f8f9fa; /* Light gray background to match top sections */
+		background: #f8f9fa;
 	}
 	
 	.editor-content {
-		background: #f8f9fa; /* Light gray background to match top sections */
+		background: #f8f9fa;
+		position: relative; /* container for the editor */
+	}
+
+	/* Sticky expand control aligned to the right edge of editor */
+	.expand-sidebar-stick {
+		position: sticky;
+		top: 12px;
+		z-index: 900; /* below player */
+		display: flex;
+		justify-content: flex-end;
+		pointer-events: none; /* avoid intercepting selection in editor */
+	}
+	.expand-sidebar-btn {
+		pointer-events: auto; /* clickable */
+		margin-right: 8px;
+		background: white;
+		border: 1px solid #e5e7eb;
+		border-radius: 9999px;
+		padding: 8px;
+		box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+		cursor: pointer;
+		animation: expandPulse 1600ms ease-out 1;
+	}
+	@keyframes expandPulse {
+		0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59,130,246,0.4); }
+		50% { transform: scale(1.06); box-shadow: 0 0 0 8px rgba(59,130,246,0.08); }
+		100% { transform: scale(1); box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
 	}
 	
 	.player-area {
@@ -152,7 +210,7 @@
 		background: white;
 		z-index: 1000;
 	}
-	
+
 	/* Responsive layout */
 	@media (max-width: 1024px) {
 		.content-area {
@@ -164,7 +222,7 @@
 		}
 		
 		.transcript-layout {
-			padding-bottom: 140px; /* More space for player on mobile */
+			padding-bottom: var(--player-height, 160px);
 		}
 	}
 </style>

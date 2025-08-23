@@ -184,59 +184,80 @@
 				}
 			};
 			
-			// Listen for apply suggestion as diff events from the sidebar
-			const handleApplySuggestionAsDiff = async (event: CustomEvent) => {
-				const { suggestion, segmentId, callback } = event.detail;
-				try {
-					// Import the AI-specific diff creation functions
-					const { findAndCreateDiff, createDiffAtPosition } = await import('$lib/services/transcriptTextReplaceDiffAI');
-					
-					let result;
-					
-					// Check if we have reconciled positions
-					if (suggestion.from !== undefined && suggestion.to !== undefined) {
-						console.log(`Using reconciled positions [${suggestion.from}, ${suggestion.to}] for diff creation`);
-						
-						// Use position-based creation for reconciled positions
-						result = createDiffAtPosition(
-							$editor,
-							suggestion.from,
-							suggestion.to,
-							suggestion.originalText,
-							suggestion.suggestedText,
-							{
-								changeType: suggestion.type || 'text_replacement',
-								confidence: suggestion.confidence || 0.5,
-								context: suggestion.explanation || suggestion.text || '',
-								validateText: true
-							}
-						);
-					} else {
-						console.log('No positions available, using text search for diff creation');
-						
-						// Fall back to text search
-						result = findAndCreateDiff(
-							$editor,
-							suggestion.originalText,
-							suggestion.suggestedText,
-							{
-								caseSensitive: false,
-								changeType: suggestion.type || 'text_replacement',
-								confidence: suggestion.confidence || 0.5,
-								context: suggestion.explanation || suggestion.text || ''
-							}
-						);
-					}
-					
-					if (callback) callback(result);
-				} catch (error) {
-					console.error('Error creating diff:', error);
-					if (callback) callback({ 
-						success: false, 
-						error: error instanceof Error ? error.message : 'Unknown error' 
-					});
-				}
-			};
+// Listen for apply suggestion as diff events from the sidebar
+      const handleApplySuggestionAsDiff = async (event: CustomEvent) => {
+        const { suggestion, segmentId, callback, segmentFrom, segmentTo } = event.detail as any;
+        try {
+          // Import the AI-specific diff creation functions
+          const { findAndCreateDiff, findAndCreateDiffFuzzy, createDiffAtPosition } = await import('$lib/services/transcriptTextReplaceDiffAI');
+          
+          let result;
+          
+          // Check if we have reconciled positions
+          if (suggestion.from !== undefined && suggestion.to !== undefined) {
+            console.log(`Using reconciled positions [${suggestion.from}, ${suggestion.to}] for diff creation`);
+            
+            // Use position-based creation for reconciled positions
+            result = createDiffAtPosition(
+              $editor,
+              suggestion.from,
+              suggestion.to,
+              suggestion.originalText,
+              suggestion.suggestedText,
+              {
+                changeType: suggestion.type || 'text_replacement',
+                confidence: suggestion.confidence || 0.5,
+                context: suggestion.explanation || suggestion.text || '',
+                validateText: true
+              }
+            );
+          } else {
+            console.log('No positions available, using text search for diff creation');
+            
+            // 1) Try existing exact/normalized search first
+            result = findAndCreateDiff(
+              $editor,
+              suggestion.originalText,
+              suggestion.suggestedText,
+              {
+                caseSensitive: false,
+                changeType: suggestion.type || 'text_replacement',
+                confidence: suggestion.confidence || 0.5,
+                context: suggestion.explanation || suggestion.text || ''
+              }
+            );
+
+            // 2) If that fails, try WordNode-aware fuzzy search scoped to the segment if we know it
+            if (!result?.success) {
+              const segmentBounds = (typeof segmentFrom === 'number' && typeof segmentTo === 'number' && segmentTo > segmentFrom)
+                ? { from: segmentFrom, to: segmentTo }
+                : undefined;
+              result = findAndCreateDiffFuzzy(
+                $editor,
+                suggestion.originalText,
+                suggestion.suggestedText,
+                {
+                  caseSensitive: false,
+                  changeType: suggestion.type || 'text_replacement',
+                  confidence: suggestion.confidence || 0.5,
+                  context: (suggestion.explanation || suggestion.text || '') + ' (fuzzy)',
+                  segmentBounds,
+                  segmentId,
+                  thresholds: { tokenSimilarity: 0.6, avgSimilarity: 0.75 },
+                }
+              );
+            }
+          }
+          
+          if (callback) callback(result);
+        } catch (error) {
+          console.error('Error creating diff:', error);
+          if (callback) callback({ 
+            success: false, 
+            error: error instanceof Error ? error.message : 'Unknown error' 
+          });
+        }
+      };
 			
 			window.addEventListener('applyTranscriptSuggestion', handleApplySuggestion as EventListener);
 			window.addEventListener('applyTranscriptSuggestionAsDiff', handleApplySuggestionAsDiff as EventListener);

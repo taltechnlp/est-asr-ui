@@ -45,6 +45,7 @@
   let documentVersionAtAnalysis = $state<any>(null);
   let documentStateAtAnalysis = $state<any>(null);
   let segmentAbsolutePosition = $state<number | null>(null);
+  let segmentContentEnd = $state<number | null>(null);
   let reconciliationService = $state<any>(null);
   let toolProgress = $state<ToolProgress[]>([]);
   
@@ -214,7 +215,9 @@
       }
       
       segmentAbsolutePosition = contentStartPos;
-      console.log(`📍 Found segment ${selectedSegment.index} content at position: ${segmentAbsolutePosition}`);
+      // Content end is the end of the speaker node content (pos + nodeSize - 1)
+      segmentContentEnd = targetSpeakerNode.pos + targetSpeakerNode.node.nodeSize - 1;
+      console.log(`📍 Found segment ${selectedSegment.index} content at position: ${segmentAbsolutePosition} - ${segmentContentEnd}`);
       
       // Debug: Check what text is actually at this position
       try {
@@ -247,6 +250,7 @@
     } else {
       console.warn(`Could not find speaker node at index ${selectedSegment.index}. Total speaker nodes: ${speakerNodes.length}`);
       segmentAbsolutePosition = null;
+      segmentContentEnd = null;
     }
     
     // Initialize reconciliation service if needed
@@ -773,6 +777,9 @@
         detail: {
           suggestion: reconciledSuggestion,
           segmentId: selectedSegment.speakerName || selectedSegment.speakerTag || 'Speaker',
+          // Provide absolute bounds of the selected segment when available
+          segmentFrom: segmentAbsolutePosition ?? undefined,
+          segmentTo: segmentContentEnd ?? undefined,
           callback: (result: any) => {
             if (result.success) {
               // Mark as having diff created
@@ -828,7 +835,7 @@
       onclick={toggleCollapsed}
       title={collapsed ? $_('transcript.sidebar.expand') : $_('transcript.sidebar.collapse')}
     >
-      <Icon data={collapsed ? chevronRight : chevronLeft} />
+      <Icon data={collapsed ? chevronLeft : chevronRight} />
     </button>
     
     {#if !collapsed}
@@ -996,16 +1003,25 @@
   .transcript-sidebar {
     background: white;
     border-left: 1px solid #e5e7eb;
-    height: 100%;
+    height: calc(100dvh - var(--player-height, 140px));
     display: flex;
     flex-direction: column;
-    transition: width 0.3s ease;
-    width: 400px;
-    position: relative;
+    position: sticky; /* desktop: keep visible while scrolling */
+    top: 0; /* okay to cover header when scrolled a bit */
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    transition: width 0.2s ease, padding 0.2s ease, opacity 0.2s ease;
+    width: 100%; /* takes the grid column width */
+    max-width: 100%;
+    z-index: 900; /* below player (1000) */
   }
   
   .transcript-sidebar.collapsed {
-    width: 48px;
+    width: 0 !important;
+    padding: 0 !important;
+    border-left: 0 !important;
+    opacity: 0;
+    pointer-events: none; /* do not block clicks when column is removed */
   }
   
   .sidebar-header {
@@ -1365,13 +1381,10 @@
       position: fixed;
       right: 0;
       top: 0;
-      bottom: 120px; /* Leave space for fixed audio player */
+      bottom: var(--player-height, 140px); /* Leave space for fixed audio player */
       z-index: 1000;
       box-shadow: -4px 0 6px -1px rgba(0, 0, 0, 0.1);
       overflow-y: auto; /* Enable scrolling on mobile when fixed */
-    }
-    
-    .transcript-sidebar:not(.collapsed) {
       width: 100%;
       max-width: 400px;
     }

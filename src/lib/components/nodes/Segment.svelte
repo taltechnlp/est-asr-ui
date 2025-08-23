@@ -495,6 +495,7 @@
 					{fileId}
 					segment={segmentWithTiming}
 					{audioFilePath}
+					selected={isSelectedSegment}
 					onAnalysisComplete={(result) => {
 						console.log('Segment analysis completed:', result);
 					}}
