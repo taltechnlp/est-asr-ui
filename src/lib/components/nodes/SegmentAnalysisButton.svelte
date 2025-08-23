@@ -17,7 +17,8 @@
 	import { getCoordinatingAgentClient } from '$lib/agents/coordinatingAgentClient';
 	import { normalizeLanguageCode } from '$lib/utils/language';
 	import { summaryStore } from '$lib/stores/summaryStore';
-	import { analysisStateStore } from '$lib/stores/analysisStateStore';
+import { analysisStateStore } from '$lib/stores/analysisStateStore';
+import { getAnalyzedSegmentsMap, upsertAnalyzedSegment } from '$lib/services/analyzedSegmentsCache';
 
 interface Props {
 		fileId: string;
@@ -82,22 +83,38 @@ interface Props {
 	});
 
 	// Check if this segment has been analyzed before
-	onMount(async () => {
+onMount(async () => {
 		// Subscribe to shared analysis state
 		const unsubscribe = analysisStateStore.subscribe(fileId, (state) => {
 			analysisState = state;
 		});
 		
-		await checkExistingAnalysis();
-		// Load summary using shared store to avoid multiple requests
-		if (fileId) {
-			summary = await summaryStore.checkAndLoad(fileId);
-		}
+		// Do NOT block paint; schedule analysis lookup after paint
+		requestIdleCallback?.(loadExistingAnalysis, { timeout: 200 }) ?? setTimeout(loadExistingAnalysis, 0);
+		// Load summary lazily as well
+		requestIdleCallback?.(async () => {
+			if (fileId) summary = await summaryStore.checkAndLoad(fileId);
+		}, { timeout: 200 }) ?? setTimeout(async () => {
+			if (fileId) summary = await summaryStore.checkAndLoad(fileId);
+		}, 0);
 		
 		return () => {
 			unsubscribe();
 		};
 	});
+
+async function loadExistingAnalysis() {
+	try {
+		const map = await getAnalyzedSegmentsMap(fileId);
+		const existingAnalysis = map.get(segment.index);
+		if (existingAnalysis) {
+			analysisResult = existingAnalysis;
+			analysisStateStore.completeAnalysis(fileId, segment.index);
+		}
+	} catch (err) {
+		console.error('Failed to check existing analysis:', err);
+	}
+}
 
 	async function checkExistingAnalysis() {
 		try {
@@ -228,8 +245,9 @@ function openSidebar() {
 			const result = await response.json();
 			analysisResult = result.analysisSegment;
 			
-			// Mark as completed in shared state
+			// Mark as completed in shared state and cache
 			analysisStateStore.completeAnalysis(fileId, segment.index);
+			upsertAnalyzedSegment(fileId, analysisResult as any);
 			
 			onAnalysisComplete(result);
 		} catch (err: any) {
@@ -339,6 +357,7 @@ function openSidebar() {
 			
 			// Mark as completed in shared state
 			analysisStateStore.completeAnalysis(fileId, segment.index);
+			upsertAnalyzedSegment(fileId, analysisResult as any);
 			
 			// Reset applying states since we have new suggestions
 			applyingStates = {};
