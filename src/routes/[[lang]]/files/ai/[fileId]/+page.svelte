@@ -9,32 +9,18 @@
 	let { data } = $props();
 
 	import { browser } from '$app/environment';
+	import { onMount } from 'svelte';
 	// Dynamic imports to defer heavy components; avoid importing on server
 	const editorModPromise: Promise<any> = browser ? import('$lib/components/editor/TiptapAI.svelte') : new Promise(() => {});
 	const playerModPromise: Promise<any> = browser ? import('$lib/components/Player.svelte') : new Promise(() => {});
 	const sidebarModPromise: Promise<any> = browser ? import('$lib/components/transcript-sidebar/TranscriptSidebar.svelte') : new Promise(() => {});
 
-	// Kick off transcript fetch for progressive load (client only)
-	const transcriptPromise: Promise<any> = browser
-		? fetch(`/api/files/${data.file.id}`, { headers: { accept: 'application/json' } })
-			.then((r) => (r.ok ? r.json() : Promise.reject(new Error(`Transcript ${r.status}`))))
-		: new Promise(() => {});
-
-	// Apply transcript after it loads — outside of template to avoid state_unsafe_mutation
-	$effect(() => {
-		if (browser) {
-			transcriptPromise
-				.then((json) => applyTranscript(json))
-				.catch(() => {/* handled by await/catch UI */});
-		}
-	});
-
 	let words = $state<Array<Word>>([]);
 	let speakers = $state<Array<Speaker>>([]);
 	let summary = $state<TranscriptSummary | null>(null);
 	let sidebarCollapsed = $state(false);
-	let editorRef: any;
-	let pendingDoc: any = null;
+	let transcriptReady = $state(false);
+	let doc = $state<any>({ type: 'doc', content: [{ type: 'paragraph', content: [] }] });
 
 	function handleSummaryGenerated(newSummary: TranscriptSummary) {
 		summary = newSummary;
@@ -76,20 +62,26 @@
 		return { doc, w, s };
 	}
 
-	function applyTranscript(raw: any) {
-		if (!raw || raw.error) return;
-		const { doc, w, s } = processTranscript(raw);
-		words = w; speakers = s;
-		speakerNamesStore.set(speakers);
-		wordsStore.set(words);
-		if (editorRef?.setContent) editorRef.setContent(doc);
-		else pendingDoc = doc;
-	}
-
-	$effect(() => {
-		if (editorRef && pendingDoc) {
-			editorRef.setContent(pendingDoc);
-			pendingDoc = null;
+	onMount(async () => {
+		try {
+			transcriptReady = false;
+			const r = await fetch(`/api/files/${data.file.id}`, { headers: { accept: 'application/json' } });
+			const text = await r.text();
+			let raw: any;
+			try { raw = JSON.parse(text); }
+			catch { raw = { type: 'doc', content: [{ type: 'paragraph', content: text ? [{ type: 'text', text }] : [] }] }; }
+			const parsed = processTranscript(raw);
+			doc = parsed.doc;
+			words = parsed.w;
+			speakers = parsed.s;
+			speakerNamesStore.set(speakers);
+			wordsStore.set(words);
+		} catch (e) {
+			console.error('Transcript load failed', e);
+			// show a fallback doc
+			doc = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Failed to load transcript.' }] }] };
+		} finally {
+			transcriptReady = true;
 		}
 	});
 
@@ -131,21 +123,16 @@
 				{#await editorModPromise}
 					<div class="editor-skeleton shimmer"></div>
 				{:then mod}
-					<mod.default bind:this={editorRef}
-						initialContent={{ type: 'doc', content: [{ type: 'paragraph' }] }}
+					<mod.default
+						initialContent={doc}
 						fileId={data.file.id}
 						demo={false}
 						fileName={data.file.name}
 						uploadedAt={data.file.uploadedAt}
 						{summary}
+						transcriptReady={transcriptReady}
 						onSummaryGenerated={handleSummaryGenerated}
 					/>
-				{/await}
-
-				{#await transcriptPromise}
-					<div class="paragraph-skeleton shimmer"></div>
-				{:then transcriptJson}
-					<!-- transcript loaded; content will be applied via effect to avoid state mutation in template -->
 				{/await}
 			</div>
 		</div>

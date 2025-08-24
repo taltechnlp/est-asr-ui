@@ -60,6 +60,7 @@
 		"@tiptap/extension-dropcursor": "^3.3.0",
 		"@tiptap/extension-gapcursor": "^3.3.0",
 		"@tiptap/extension-history": "^3.3.0",
+		"@tiptap/extension-paragraph": "^3.3.0",
 		"@tiptap/extension-text": "^3.3.0",
 		"@tiptap/extension-text-style": "^3.3.0",
 		"@tiptap/pm": "^3.3.0",

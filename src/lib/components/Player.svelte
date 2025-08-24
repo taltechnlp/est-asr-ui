@@ -57,8 +57,9 @@
 		}
 	};
 	const changePlaybackRate = (rate) => {
+        if (typeof document === 'undefined') return; // Guard against SSR
         const audio = document.getElementById("audio") as HTMLMediaElement;
-		if (rate && rate >= 0.5 && rate <= 4){
+		if (audio && rate && rate >= 0.5 && rate <= 4){
 			audio.playbackRate = rate;
 		}
 	}

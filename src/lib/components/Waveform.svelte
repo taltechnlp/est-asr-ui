@@ -53,13 +53,13 @@
 		}
 	});
 	let names = $state();
-	run(() => {
-		if ($waveform && $waveform.segments) {
-				$waveform.segments.removeAll();
+run(() => {
+		if ($waveform && $waveform.segments && Array.isArray(names)) {
+				try { $waveform.segments.removeAll(); } catch {}
 				names.forEach((m) => {
-					$waveform.segments.add(m);
+					try { $waveform.segments.add(m); } catch {}
 				});
-			} else console.log("not ready"/* , names */)
+		}
 	});
 	const speakerFilter = (s) => s && s.start && s.start !== -1 && s.end && s.end !== -1 && s.name;
 	const unsubscribeSpeakerNames = speakerNames.subscribe((speakers) => {
@@ -83,13 +83,21 @@ let resizeObs: ResizeObserver;
 let audioEl: HTMLAudioElement;
 
 function buildOptions(): PeaksOptions {
+	// Guard against SSR and ensure media element refs exist
+	if (typeof document === 'undefined' || typeof window === 'undefined') {
+		return null as any;
+	}
+	if (!audioEl || !zoomviewEl || !overviewEl) {
+		return null as any;
+	}
+	
 	let styles = getComputedStyle(document.documentElement);
 	let colorPrimary = styles.getPropertyValue("--color-primary");
 	let colorSecondary = styles.getPropertyValue("--color-secondary");
 	let colorAccent = styles.getPropertyValue("--color-accent");
 	let colorBase = styles.getPropertyValue("--color-base-100");
 	let colorNeutral = styles.getPropertyValue("--color-neutral");
-	const audioContext = new AudioContext();
+	const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
 	return {
 		segmentOptions: {
 			markers: true,
@@ -152,8 +160,12 @@ function buildOptions(): PeaksOptions {
 	};
 }
 
-	function initPeaks() {
+function initPeaks() {
 		const options = buildOptions();
+		if (!options) {
+			console.warn('Cannot initialize Peaks.js: options unavailable');
+			return;
+		}
 		Peaks.init(options, function(err, peaks) {
 			if (err) {
 				console.log("Error initiating Peaks", err);
@@ -164,8 +176,8 @@ function buildOptions(): PeaksOptions {
 			// Event subscriptions
 			peaksInstance.on('peaks.ready', function () {
 				peaksReady = true;
-				duration.set(peaksInstance.player.getDuration());
-				peaksInstance.player.pause();
+				try { duration.set(peaksInstance.player.getDuration()); } catch {}
+				try { peaksInstance.player.pause(); } catch {}
 				player.update((x) => ({ ...x, ready: true }));
 			});
 			peaksInstance.on('player.playing', function() {
@@ -175,7 +187,7 @@ function buildOptions(): PeaksOptions {
 				player.update((x) => ({ ...x, playing: false }));
 			});
 			peaksInstance.on('segments.enter', function (event) {
-				const progress = Math.round($waveform.player.getCurrentTime() * 100) / 100;
+				const progress = Math.round((($waveform?.player?.getCurrentTime?.() || 0)) * 100) / 100;
 				playingTime.set(progress);
 				if ($editor) {
 					let newState = $editor.view.state.apply(
@@ -199,35 +211,37 @@ function buildOptions(): PeaksOptions {
 	}
 
 onMount(() => {
-		// Ensure refs are available
-		if (!audioEl) {
-			// try again on next frame if not yet bound
-			requestAnimationFrame(() => onMount(() => {}));
-			return;
-		}
-		initPeaks();
-		// Observe size changes to re-init Peaks so canvas fits container
-		let debounce = 0;
-		resizeObs = new ResizeObserver(() => {
-			cancelAnimationFrame(debounce);
-			debounce = requestAnimationFrame(() => {
-				if (!peaksInstance) return;
-				const currentTime = $waveform?.player?.getCurrentTime?.() || 0;
-				const wasPlaying = !!$player.playing;
-				peaksInstance.destroy();
-				initPeaks();
-				// restore time/play state after small delay to ensure ready
-				setTimeout(() => {
-					if ($waveform) {
-						try { $waveform.player.seek(currentTime); } catch {}
-						if (wasPlaying) { try { $waveform.player.play(); } catch {} }
-					}
-				}, 50);
+		// Ensure refs are available (audio & containers) before init
+		const tryInit = () => {
+			if (!audioEl || !zoomviewEl || !overviewEl) {
+				requestAnimationFrame(tryInit);
+				return;
+			}
+			initPeaks();
+			// Observe size changes to re-init Peaks so canvas fits container
+			let debounce = 0;
+			resizeObs = new ResizeObserver(() => {
+				cancelAnimationFrame(debounce);
+				debounce = requestAnimationFrame(() => {
+					if (!peaksInstance) return;
+					const currentTime = $waveform?.player?.getCurrentTime?.() || 0;
+					const wasPlaying = !!$player.playing;
+					try { peaksInstance.destroy(); } catch {}
+					initPeaks();
+					// restore time/play state after small delay to ensure ready
+					setTimeout(() => {
+						if ($waveform) {
+							try { $waveform.player.seek(currentTime); } catch {}
+							if (wasPlaying) { try { $waveform.player.play(); } catch {} }
+						}
+					}, 50);
+				});
 			});
-		});
-		if (zoomviewEl) resizeObs.observe(zoomviewEl);
-		// hook playback time updates
-		if (audioEl) audioEl.ontimeupdate = function() { onPlayback(); };
+			if (zoomviewEl) resizeObs.observe(zoomviewEl);
+			// hook playback time updates
+			audioEl.ontimeupdate = function() { onPlayback(); };
+		};
+		tryInit();
 	});
 
 	// Subscribe to playback events
@@ -307,11 +321,11 @@ onDestroy(() => {
 			$waveform.player.seek(pos);
 		}
 	};
-	export const play = () => {
-		$waveform.player.play();
+export const play = () => {
+		try { $waveform?.player?.play?.(); } catch {}
 	};
-	export const pause = () => {
-		$waveform.player.pause();
+export const pause = () => {
+		try { $waveform?.player?.pause?.(); } catch {}
 	};
 </script>
 
