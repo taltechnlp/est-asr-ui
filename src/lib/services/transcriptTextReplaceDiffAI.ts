@@ -96,7 +96,7 @@ export function findAndCreateDiff(
   editor: Editor,
   searchText: string,
   suggestedText: string,
-  options: DiffCreationOptions = {}
+  options: DiffCreationOptions & { segmentBounds?: { from: number; to: number }; segmentId?: string } = {}
 ): DiffCreationResult {
   const { caseSensitive = false } = options;
   
@@ -104,6 +104,15 @@ export function findAndCreateDiff(
     const state = editor.state;
     const doc = state.doc;
     
+    // Determine search scope
+    let bounds = options.segmentBounds ?? undefined;
+    if (!bounds && options.segmentId) {
+      const resolved = resolveSegmentBoundsById(editor, options.segmentId);
+      if (resolved) bounds = resolved;
+    }
+    const scopeFrom = bounds?.from ?? 0;
+    const scopeTo = bounds?.to ?? doc.content.size;
+
     // Normalize search text for comparison
     const normalizedSearch = caseSensitive ? searchText : searchText.toLowerCase();
     
@@ -111,16 +120,49 @@ export function findAndCreateDiff(
     let diffResult: DiffCreationResult = { success: false, error: 'Text not found' };
     
     // First, try to find the text using textBetween which handles node boundaries better
-    const fullText = doc.textBetween(0, doc.content.size, ' ', ' ');
+    const fullText = doc.textBetween(scopeFrom, scopeTo, ' ', ' ');
     const normalizedFull = caseSensitive ? fullText : fullText.toLowerCase();
     let searchIndex = normalizedFull.indexOf(normalizedSearch);
     
     if (searchIndex !== -1) {
       // Found the text in the document, now find the exact position
-      let currentPos = 0;
       let charCount = 0;
       
-      doc.nodesBetween(0, doc.content.size, (node, pos) => {
+      // Convert string index within scoped text to absolute ProseMirror positions
+      const convertScoped = (
+        doc: ProseMirrorNode,
+        rangeFrom: number,
+        rangeTo: number,
+        stringFrom: number,
+        stringTo: number
+      ): { from: number; to: number } | null => {
+        let currentStringPos = 0;
+        let fromPos: number | null = null;
+        let toPos: number | null = null;
+        doc.nodesBetween(rangeFrom, rangeTo, (node, pos) => {
+          if (fromPos !== null && toPos !== null) return false;
+          if (node.isText && node.text) {
+            const nodeStringStart = currentStringPos;
+            const nodeStringEnd = currentStringPos + node.text.length;
+            if (fromPos === null && stringFrom >= nodeStringStart && stringFrom < nodeStringEnd) {
+              const offset = stringFrom - nodeStringStart;
+              fromPos = pos + offset;
+            }
+            if (toPos === null && stringTo > nodeStringStart && stringTo <= nodeStringEnd) {
+              const offset = stringTo - nodeStringStart;
+              toPos = pos + offset;
+            }
+            currentStringPos += node.text.length;
+          }
+          return true;
+        });
+        if (fromPos !== null && toPos !== null) return { from: fromPos, to: toPos };
+        return null;
+      };
+
+      const mapped = convertScoped(doc, scopeFrom, scopeTo, searchIndex, searchIndex + searchText.length);
+      if (mapped) {
+        const { from, to } = mapped;
         if (found) return false;
         
         const nodeSize = node.isText ? node.text!.length : node.nodeSize;
@@ -147,22 +189,12 @@ export function findAndCreateDiff(
                 options
               );
               found = true;
-              return false;
             }
           } catch (e) {
             console.warn('Position verification failed:', e);
           }
         }
-        
-        // Update character count
-        if (node.isText) {
-          charCount += node.text!.length;
-        } else if (node.isLeaf) {
-          charCount += node.nodeSize;
-        }
-        
-        return true;
-      });
+      }
     }
     
     // If still not found, try a more flexible search that handles Word nodes specifically
@@ -173,7 +205,7 @@ export function findAndCreateDiff(
       let textMap = '';
       let positionMap: { start: number; end: number; docPos: number }[] = [];
       
-      doc.nodesBetween(0, doc.content.size, (node, pos) => {
+      doc.nodesBetween(scopeFrom, scopeTo, (node, pos) => {
         if (node.type.name === 'wordNode') {
           const wordText = node.textContent;
           const startIndex = textMap.length;
