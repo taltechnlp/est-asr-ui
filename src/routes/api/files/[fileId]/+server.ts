@@ -1,7 +1,7 @@
 import { prisma } from "$lib/db/client";
 import { promises as fs } from "fs";
 import type { RequestHandler } from "./$types";
-import { error } from "@sveltejs/kit";
+import { error, json } from "@sveltejs/kit";
 
 export const DELETE: RequestHandler = async ({ params, locals }) => {
     const session = await locals.auth();
@@ -80,4 +80,33 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
     }
     if (success) return new Response("", { status: 201 });
     else error(500, "fileWriteError");
+};
+
+// Provide transcript content for progressive loading
+export const GET: RequestHandler = async ({ params, locals }) => {
+  const session = await locals.auth();
+  if (!session || !session.user.id) {
+    error(401, "Not authenticated user");
+  }
+  const file = await prisma.file.findUnique({
+    where: { id: params.fileId },
+    select: {
+      initialTranscriptionPath: true,
+      User: { select: { id: true } }
+    }
+  });
+  if (!file || file.User.id !== session.user.id) {
+    error(404, "fileNotFound");
+  }
+  const raw = await fs.readFile(file.initialTranscriptionPath, 'utf8').catch((e) => {
+    console.error("Failed to read transcript", e);
+    error(404, "transcriptNotFound");
+  });
+  try {
+    const parsed = JSON.parse(raw as string);
+    return json(parsed);
+  } catch (e) {
+    // If content is not JSON, return as text
+    return new Response(raw as string, { status: 200, headers: { 'content-type': 'text/plain; charset=utf-8' } });
+  }
 };
