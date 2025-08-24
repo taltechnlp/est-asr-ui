@@ -232,9 +232,11 @@ onMount(() => {
 
 	// Subscribe to playback events
 	function onPlayback() {
-		const candidateWords = wordLookup[Math.floor(audio.currentTime)];
+		if (!audioEl) return;
+		const now = audioEl.currentTime || 0;
+		const candidateWords = wordLookup[Math.floor(now)];
 		let currentWord;
-		if (candidateWords)	currentWord = candidateWords.find(w => w.start <= audio.currentTime && w.end >= audio.currentTime)
+		if (candidateWords) currentWord = candidateWords.find(w => w.start <= now && w.end >= now);
 		if (!currentWord || currentWord.id != lastHighlighedWord.id) {
 			let progress = 0;
 			if ($waveform && $waveform.player) progress = Math.round($waveform.player.getCurrentTime() * 100) / 100;
@@ -255,7 +257,7 @@ onMount(() => {
 			if (lastHighlighedWord.highlight) lastHighlighedWord.highlight = false;
 		}
 		if (currentWord && currentWord.id != lastHighlighedWord.id) {
-			const progress = Math.round($waveform.player.getCurrentTime() * 100) / 100;
+			const progress = Math.round(($waveform?.player?.getCurrentTime?.() || 0) * 100) / 100;
 			playingTime.set(progress);
 			if ($editor) {
 				let newState = $editor.view.state.apply(

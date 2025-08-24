@@ -7,10 +7,9 @@ const config = {
   // for more information about preprocessors
   preprocess: preprocess(),
 
+  // Enable experimental async Svelte in components/markup
   compilerOptions: {
-    experimental: {
-      async: true
-    }
+    experimental: { async: true }
   },
 
   kit: {

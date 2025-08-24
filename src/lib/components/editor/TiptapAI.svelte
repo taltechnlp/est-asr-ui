@@ -5,14 +5,14 @@
 	import { beforeNavigate } from '$app/navigation';
 	import { getDebugJSON } from '@tiptap/core';
 	import type { Node, Schema } from 'prosemirror-model';
-	import Document from '@tiptap/extension-document';
-	import { Editor, EditorContent, createEditor } from 'svelte-tiptap';
-	import type { Readable } from 'svelte/store';
-	import Text from '@tiptap/extension-text';
-	import DropCursor from '@tiptap/extension-dropcursor';
-	import GapCursor from '@tiptap/extension-gapcursor';
-	import TextStyle from '@tiptap/extension-text-style';
-	import History from '@tiptap/extension-history';
+import { Document } from '@tiptap/extension-document';
+import { Editor, EditorContent, createEditor } from 'svelte-tiptap';
+import type { Readable } from 'svelte/store';
+import { Text } from '@tiptap/extension-text';
+import { Dropcursor } from '@tiptap/extension-dropcursor';
+import { Gapcursor } from '@tiptap/extension-gapcursor';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { History } from '@tiptap/extension-history';
 	import { Speaker } from '../nodes/speaker';
 	import { Diff } from '../nodes/diff';
 	import { WordNode } from '../nodes/word-ai';  // Use Word nodes instead of marks
@@ -122,8 +122,8 @@
 		editor = createEditor({
 			extensions: [
 				Document,
-				DropCursor,
-				GapCursor,
+				Dropcursor,
+				Gapcursor,
 				Text,
 				TextStyle,
 				History,
@@ -318,6 +318,20 @@
 			$editor.destroy();
 		}
 		window.removeEventListener("resize", updateWindowSize)
+	});
+
+	// Allow parent to set content after mount
+	export function setContent(next: any) {
+		if ($editor && next) {
+			$editor.commands.setContent(next, false);
+		}
+	}
+
+	// If "content" prop changes after mount, update editor
+	$effect(() => {
+		if ($editor && content && $editor.getJSON && JSON.stringify($editor.getJSON()) !== JSON.stringify(content)) {
+			$editor.commands.setContent(content, false);
+		}
 	});
 
 	async function handleSaveLocal() {

@@ -8,15 +8,26 @@
 
 	let { data } = $props();
 
-	// Dynamic imports to defer heavy components
-	const editorModPromise = import('$lib/components/editor/TiptapAI.svelte');
-	const playerModPromise = import('$lib/components/Player.svelte');
-	const sidebarModPromise = import('$lib/components/transcript-sidebar/TranscriptSidebar.svelte');
+	import { browser } from '$app/environment';
+	// Dynamic imports to defer heavy components; avoid importing on server
+	const editorModPromise: Promise<any> = browser ? import('$lib/components/editor/TiptapAI.svelte') : new Promise(() => {});
+	const playerModPromise: Promise<any> = browser ? import('$lib/components/Player.svelte') : new Promise(() => {});
+	const sidebarModPromise: Promise<any> = browser ? import('$lib/components/transcript-sidebar/TranscriptSidebar.svelte') : new Promise(() => {});
 
-	// Kick off transcript fetch for progressive load
-	const transcriptPromise = fetch(`/api/files/${data.file.id}`, { headers: { accept: 'application/json' } })
-		.then((r) => (r.ok ? r.json() : Promise.reject(new Error(`Transcript ${r.status}`))))
-		.catch((e) => ({ error: e?.message || 'Failed to load transcript' }));
+	// Kick off transcript fetch for progressive load (client only)
+	const transcriptPromise: Promise<any> = browser
+		? fetch(`/api/files/${data.file.id}`, { headers: { accept: 'application/json' } })
+			.then((r) => (r.ok ? r.json() : Promise.reject(new Error(`Transcript ${r.status}`))))
+		: new Promise(() => {});
+
+	// Apply transcript after it loads — outside of template to avoid state_unsafe_mutation
+	$effect(() => {
+		if (browser) {
+			transcriptPromise
+				.then((json) => applyTranscript(json))
+				.catch(() => {/* handled by await/catch UI */});
+		}
+	});
 
 	let words = $state<Array<Word>>([]);
 	let speakers = $state<Array<Speaker>>([]);
@@ -134,7 +145,7 @@
 				{#await transcriptPromise}
 					<div class="paragraph-skeleton shimmer"></div>
 				{:then transcriptJson}
-					{applyTranscript(transcriptJson)}
+					<!-- transcript loaded; content will be applied via effect to avoid state mutation in template -->
 				{/await}
 			</div>
 		</div>

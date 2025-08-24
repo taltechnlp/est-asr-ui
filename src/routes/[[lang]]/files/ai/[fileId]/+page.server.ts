@@ -1,6 +1,5 @@
 import { prisma } from "$lib/db/client";
 import type { PageServerLoad } from './$types';
-import { promises as fs } from 'fs';
 import { error } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
@@ -34,7 +33,6 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
             path: file.path,
             name: file.filename,
             uploadedAt: file.uploadedAt,
-            text: file.text,
             language: file.language
         },
         url: url.origin,
