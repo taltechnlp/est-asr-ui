@@ -271,7 +271,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 						summary,
 						audioFilePath: file.path,
 						transcriptFilePath: file.initialTranscriptionPath,
-						uiLanguage: 'en'
+						uiLanguage: 'et' // Estonian for Estonian transcript analysis
 					});
 
 					return { segmentIndex: index, success: true, result };

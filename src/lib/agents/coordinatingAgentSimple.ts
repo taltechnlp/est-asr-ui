@@ -363,7 +363,7 @@ export class CoordinatingAgentSimple {
 	private debugMode: boolean = false;
 	private logger: AgentFileLogger | null = null;
 
-	constructor(modelName: string = OPENROUTER_MODELS.GPT_4O) {
+	constructor(modelName: string = OPENROUTER_MODELS.CLAUDE_3_5_SONNET) {
 		this.model = createOpenRouterChat({
 			modelName,
 			temperature: 0.3,
@@ -743,6 +743,14 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 			const normalizedLanguage = normalizeLanguageCode(uiLanguage);
 			const responseLanguage = getLanguageName(normalizedLanguage);
 
+			// Debug logging for language detection
+			await this.logger?.logGeneral('debug', 'Language detection for analysis', {
+				originalUiLanguage: uiLanguage,
+				normalizedLanguage,
+				responseLanguage,
+				segmentIndex: segment.index
+			});
+
 			// Step 1: Assess signal quality to guide analysis strategy
 			let signalQuality = null;
 			let analysisStrategy = 'balanced';
@@ -873,7 +881,7 @@ Based on this audio quality, you should be ${
 
 			// Get initial analysis
 			const llmStartTime = Date.now();
-			await this.logger?.logLLMRequest(prompt, 'GPT-4O', segment.index);
+			await this.logger?.logLLMRequest(prompt, 'Claude-3.5-Sonnet', segment.index);
 
 			const response = await this.model.invoke([new HumanMessage({ content: prompt })]);
 
@@ -1011,7 +1019,7 @@ Based on this audio quality, you should be ${
 					const enhancedLlmStartTime = Date.now();
 					await this.logger?.logLLMRequest(
 						enhancedPrompt,
-						'GPT-4O (Enhanced Analysis)',
+						'Claude-3.5-Sonnet (Enhanced Analysis)',
 						segment.index
 					);
 
@@ -1415,6 +1423,14 @@ Based on this audio quality, you should be ${
 			const normalizedLanguage = normalizeLanguageCode(uiLanguage);
 			const responseLanguage = getLanguageName(normalizedLanguage);
 
+			// Debug logging for language detection
+			await this.logger?.logGeneral('debug', 'Multi-segment language detection', {
+				originalUiLanguage: uiLanguage,
+				normalizedLanguage,
+				responseLanguage,
+				segmentCount: segments.length
+			});
+
 			// Build segments content for prompt
 			const segmentsContent = segments.map((segment, idx) => {
 				const segmentNumber = idx + 1;
@@ -1459,7 +1475,7 @@ Word count: ${segment.words.length} words${alternativesSection}`;
 
 			// Get initial multi-segment analysis
 			const llmStartTime = Date.now();
-			await this.logger?.logLLMRequest(prompt, 'GPT-4O (Multi-Segment)', 0);
+			await this.logger?.logLLMRequest(prompt, 'Claude-3.5-Sonnet (Multi-Segment)', 0);
 
 			const response = await this.model.invoke([new HumanMessage({ content: prompt })]);
 
