@@ -4,6 +4,7 @@ import { promisify } from "util";
 import { join } from "path";
 import { TranscriptAnalysisTool } from "./base";
 import { robustJsonParse } from '../utils/jsonParser';
+import { getCurrentLogger } from '../../utils/agentFileLogger';
 
 const execAsync = promisify(exec);
 
@@ -84,9 +85,7 @@ Output: Comprehensive signal quality analysis including SNR, quality category, a
     this.pythonCommand = pythonCommand;
     this.scriptPath = scriptPath || join(process.cwd(), 'scripts', 'signal_quality_assessor.py');
     
-    console.log(`SignalQualityAssessorTool initialized:`);
-    console.log(`  - Python command: ${this.pythonCommand}`);
-    console.log(`  - Script path: ${this.scriptPath}`);
+    // Initialization logging moved to file logger when assessment starts
     
     // Test availability on initialization (don't await in constructor)
     this.testAvailability().catch(() => {
@@ -102,14 +101,11 @@ Output: Comprehensive signal quality analysis including SNR, quality category, a
       
       const parseResult = robustJsonParse(stdout);
       if (parseResult.success) {
-        console.log('✅ SignalQualityAssessorTool Python environment is available');
         this.isAvailable = true;
       } else {
-        console.warn('⚠️ SignalQualityAssessorTool Python test failed');
         this.isAvailable = false;
       }
     } catch (error) {
-      console.warn('⚠️ SignalQualityAssessorTool not available:', error instanceof Error ? error.message : 'Unknown error');
       this.isAvailable = false;
     }
   }
@@ -124,12 +120,17 @@ Output: Comprehensive signal quality analysis including SNR, quality category, a
    */
   async assessSignalQuality(input: z.infer<typeof SignalQualitySchema>): Promise<SignalQualityResult> {
     const { audioFilePath, startTime, endTime } = input;
+    const logger = getCurrentLogger();
 
-    console.group(`📊 Signal Quality Assessment: ${audioFilePath} [${startTime.toFixed(2)}s - ${endTime.toFixed(2)}s]`);
+    await logger?.logToolExecution('SignalQualityAssessor', 'Starting signal quality assessment', {
+      audioFile: audioFilePath.split('/').pop() || 'unknown',
+      startTime,
+      endTime,
+      duration: (endTime - startTime).toFixed(3) + 's'
+    });
     
     if (!this.isAvailable) {
-      console.warn('SignalQualityAssessorTool not available, returning fallback result');
-      console.groupEnd();
+      await logger?.logToolExecution('SignalQualityAssessor', 'Tool not available, using fallback result');
       return this.createFallbackResult(audioFilePath, startTime, endTime);
     }
 
@@ -144,15 +145,16 @@ Output: Comprehensive signal quality analysis including SNR, quality category, a
       }
 
       const duration = endTime - startTime;
-      console.log(`Assessing ${duration.toFixed(3)}s audio segment`);
 
       // Escape file path for shell execution
       const escapedPath = audioFilePath.replace(/"/g, '\\"');
       
       const command = `${this.pythonCommand} "${this.scriptPath}" assess "${escapedPath}" ${startTime} ${endTime}`;
       
-      console.log('Executing signal quality assessment');
-      console.log('Command:', command.replace(this.scriptPath, '[script]').replace(audioFilePath, '[audio]'));
+      await logger?.logToolExecution('SignalQualityAssessor', 'Executing quality assessment command', {
+        command: command.replace(this.scriptPath, '[script]').replace(audioFilePath, '[audio]'),
+        duration: duration.toFixed(3) + 's'
+      });
       
       const { stdout, stderr } = await execAsync(command, {
         timeout: 30000, // 30 second timeout for audio processing
@@ -160,16 +162,22 @@ Output: Comprehensive signal quality analysis including SNR, quality category, a
       });
 
       if (stderr) {
-        console.warn('Python script warnings:', stderr);
+        await logger?.logToolExecution('SignalQualityAssessor', 'Python script generated warnings', {
+          warnings: stderr
+        });
       }
 
-      console.log('Raw Python output length:', stdout.length);
+      await logger?.logToolExecution('SignalQualityAssessor', 'Received Python output', {
+        outputLength: stdout.length
+      });
 
       // Parse the JSON response
       const parseResult = robustJsonParse(stdout);
       if (!parseResult.success) {
-        console.error('Failed to parse signal quality result:', parseResult.error);
-        console.error('Raw output (first 500 chars):', stdout.substring(0, 500));
+        await logger?.logToolExecution('SignalQualityAssessor', 'Failed to parse JSON response', {
+          error: parseResult.error,
+          rawOutput: stdout.substring(0, 500)
+        });
         throw new Error(`Invalid signal quality response: ${parseResult.error}`);
       }
 
@@ -180,29 +188,26 @@ Output: Comprehensive signal quality analysis including SNR, quality category, a
         throw new Error('Invalid response: missing or invalid snr_db');
       }
 
-      console.log('✅ Signal quality assessment completed successfully:');
-      console.log(`  - SNR: ${result.snr_db.toFixed(2)} dB`);
-      console.log(`  - Quality: ${result.quality_category}`);
-      console.log(`  - Reliability: ${result.reliability}`);
-      console.log(`  - Suggested threshold: ${result.suggested_confidence_threshold}`);
-      console.log(`  - Method: ${result.method}`);
+      await logger?.logToolExecution('SignalQualityAssessor', 'Assessment completed successfully', {
+        snrDb: result.snr_db,
+        qualityCategory: result.quality_category,
+        reliability: result.reliability,
+        suggestedThreshold: result.suggested_confidence_threshold,
+        method: result.method,
+        peakAmplitude: result.peak_amplitude || null,
+        isClipped: result.is_clipped || false,
+        clippingRatio: result.clipping_ratio || 0
+      });
       
-      if (result.peak_amplitude) {
-        console.log(`  - Peak amplitude: ${result.peak_amplitude.toFixed(3)}`);
-      }
-      if (result.is_clipped) {
-        console.log(`  - ⚠️ Audio clipping detected: ${(result.clipping_ratio * 100).toFixed(1)}%`);
-      }
-      
-      console.groupEnd();
       return result;
 
     } catch (error) {
-      console.error('Signal quality assessment error:', error);
-      console.groupEnd();
+      await logger?.logToolExecution('SignalQualityAssessor', 'Assessment failed with error', {
+        error: error instanceof Error ? { message: error.message, stack: error.stack } : error
+      });
       
       // Return fallback result instead of throwing
-      console.log('Returning fallback signal quality result');
+      await logger?.logToolExecution('SignalQualityAssessor', 'Returning fallback result due to error');
       return this.createFallbackResult(audioFilePath, startTime, endTime);
     }
   }
@@ -268,7 +273,7 @@ Output: Comprehensive signal quality analysis including SNR, quality category, a
       
       throw new Error('Invalid assess_file response');
     } catch (error) {
-      console.warn('File quality assessment failed:', error);
+      // File quality assessment failed, using fallback
       return this.createFallbackResult(audioFilePath, 0, 10);
     }
   }

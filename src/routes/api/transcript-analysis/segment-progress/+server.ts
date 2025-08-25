@@ -107,34 +107,4 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   return new Response('OK');
 };
 
-// Export function for agents to send progress updates
-export function sendToolProgress(
-  fileId: string, 
-  segmentIndex: number, 
-  toolId: string, 
-  status: ToolProgress['status'],
-  extras?: { startTime?: number; endTime?: number; error?: string }
-) {
-  const key = `${fileId}-${segmentIndex}`;
-  const analysis = activeAnalysis.get(key);
-  
-  if (analysis) {
-    const progressUpdate: ToolProgress = {
-      toolId,
-      status,
-      ...extras
-    };
-    
-    try {
-      analysis.controller.enqueue(
-        `data: ${JSON.stringify({ 
-          type: 'progress', 
-          tool: progressUpdate 
-        })}\n\n`
-      );
-    } catch (e) {
-      // Client disconnected
-      activeAnalysis.delete(key);
-    }
-  }
-}
+// Note: Progress sending utility has been moved to a separate file to comply with SvelteKit export restrictions

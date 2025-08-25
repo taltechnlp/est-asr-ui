@@ -5,6 +5,7 @@ import { join, dirname, basename } from "path";
 import { exec } from "child_process";
 import { robustJsonParse } from '../utils/jsonParser';
 import { promisify } from "util";
+import { getCurrentLogger } from '../../utils/agentFileLogger';
 
 const execAsync = promisify(exec);
 
@@ -33,7 +34,7 @@ export class ASRNBestServerNodeTool {
 
   constructor(asrEndpoint: string = "https://tekstiks.ee/asr/transcribe/alternatives") {
     this.asrEndpoint = asrEndpoint;
-    console.log(`ASRNBestServerNodeTool initialized with endpoint: ${this.asrEndpoint}`);
+    // ASR tool initialization logging moved to file logger when called
   }
 
   private async initializeAudioSlicer() {
@@ -59,39 +60,45 @@ export class ASRNBestServerNodeTool {
 
   async getAlternativeTranscriptions(input: z.infer<typeof ASRNBestSchema>): Promise<ASRNBestResult> {
     const { audioFilePath, startTime, endTime, originalText = "", nBest } = input;
+    const logger = getCurrentLogger();
     
     // Validate timing parameters
-    console.log(`ASR N-best timing validation:`, {
-      audioFilePath,
+    await logger?.logToolExecution('ASR-NBest', 'Starting alternative transcription request', {
+      audioFile: audioFilePath.split('/').pop() || 'unknown',
       startTime: startTime.toFixed(3),
       endTime: endTime.toFixed(3),
       duration: (endTime - startTime).toFixed(3),
-      originalText: originalText.substring(0, 50) + (originalText.length > 50 ? '...' : ''),
+      originalTextPreview: originalText.substring(0, 50) + (originalText.length > 50 ? '...' : ''),
+      nBest
     });
 
     // Validate timing bounds
     if (startTime < 0) {
-      console.error(`Invalid startTime: ${startTime} (must be >= 0)`);
+      await logger?.logToolExecution('ASR-NBest', 'Invalid startTime parameter', { startTime, error: 'must be >= 0' });
       throw new Error(`Invalid startTime: ${startTime} seconds (must be >= 0)`);
     }
 
     if (endTime <= startTime) {
-      console.error(`Invalid time range: startTime=${startTime}, endTime=${endTime}`);
+      await logger?.logToolExecution('ASR-NBest', 'Invalid time range', { startTime, endTime, error: 'endTime must be > startTime' });
       throw new Error(`Invalid time range: endTime (${endTime}s) must be greater than startTime (${startTime}s)`);
     }
 
     const duration = endTime - startTime;
     if (duration < 0.1) {
-      console.warn(`Very short segment duration: ${duration}s - ASR may not produce meaningful results`);
+      await logger?.logToolExecution('ASR-NBest', 'Warning: very short segment duration', { duration, warning: 'ASR may not produce meaningful results' });
     }
 
     if (duration > 120) {
-      console.warn(`Long segment duration: ${duration}s - consider splitting into smaller segments for better ASR accuracy`);
+      await logger?.logToolExecution('ASR-NBest', 'Warning: long segment duration', { duration, warning: 'consider splitting for better accuracy' });
     }
 
     let sliceResult;
     try {
-      console.log(`Slicing audio from ${startTime.toFixed(3)}s to ${endTime.toFixed(3)}s (duration: ${duration.toFixed(3)}s)`);
+      await logger?.logToolExecution('ASR-NBest', 'Slicing audio segment', {
+        startTime: startTime.toFixed(3),
+        endTime: endTime.toFixed(3), 
+        duration: duration.toFixed(3)
+      });
       
       // Initialize audioSlicer if needed
       await this.initializeAudioSlicer();
@@ -103,25 +110,32 @@ export class ASRNBestServerNodeTool {
         format: 'wav', // Use WAV for better ASR compatibility
       });
 
-      console.log(`Audio slice successful:`, {
-        tempFilePath: sliceResult.tempFilePath,
+      await logger?.logToolExecution('ASR-NBest', 'Audio slice completed successfully', {
+        tempFilePath: sliceResult.tempFilePath.split('/').pop() || 'unknown',
         sliceDuration: sliceResult.duration,
         expectedDuration: duration,
-        durationDiff: Math.abs(sliceResult.duration - duration),
+        durationDiff: Math.abs(sliceResult.duration - duration)
       });
 
       // Use curl to upload the file - this is more reliable for multipart uploads
       const url = `${this.asrEndpoint}?n_best=${nBest}`;
-      console.log(`Making ASR request using curl to: ${url}`);
+      await logger?.logToolExecution('ASR-NBest', 'Making ASR API request', {
+        endpoint: url
+      });
       
       // Add -L to follow redirects and -v for verbose output to debug
       const curlCommand = `curl -L -X POST "${url}" -F "file=@${sliceResult.tempFilePath}" -H "Accept: application/json" 2>&1`;
-      console.log(`Curl command: ${curlCommand}`);
+      await logger?.logToolExecution('ASR-NBest', 'Executing curl command', {
+        command: curlCommand.replace(sliceResult.tempFilePath, '[temp-file]')
+      });
       
       const { stdout, stderr } = await execAsync(curlCommand);
       
       // Since we're using 2>&1, all output including verbose info will be in stdout
-      console.log(`Curl full output: ${stdout}`);
+      await logger?.logToolExecution('ASR-NBest', 'Received curl output', {
+        outputLength: stdout.length,
+        outputPreview: stdout.substring(0, 200) + (stdout.length > 200 ? '...' : '')
+      });
       
       // Extract JSON response from curl output
       // The response may have progress bars and other output mixed in
@@ -131,7 +145,9 @@ export class ASRNBestServerNodeTool {
       // Try to extract JSON starting from the first { to the last }
       const firstBrace = stdout.indexOf('{');
       if (firstBrace === -1) {
-        console.error('No JSON found in curl output');
+        await logger?.logToolExecution('ASR-NBest', 'No JSON found in curl output', {
+          stdout: stdout.substring(0, 500)
+        });
         throw new Error(`No JSON response found in curl output: ${stdout}`);
       }
       
@@ -173,7 +189,9 @@ export class ASRNBestServerNodeTool {
       }
       
       if (lastCloseBrace === -1) {
-        console.error('Could not find matching closing brace for JSON');
+        await logger?.logToolExecution('ASR-NBest', 'Could not find matching JSON braces', {
+          preview: stdout.substring(firstBrace, Math.min(firstBrace + 500, stdout.length))
+        });
         throw new Error(`Malformed JSON in curl output: ${stdout.substring(firstBrace, Math.min(firstBrace + 500, stdout.length))}...`);
       }
       
@@ -188,12 +206,16 @@ export class ASRNBestServerNodeTool {
         return '';
       });
       
-      console.log(`ASR API raw response length: ${jsonResponse.length}`);
+      await logger?.logToolExecution('ASR-NBest', 'Processing ASR API response', {
+        responseLength: jsonResponse.length
+      });
       
       const parseResult = robustJsonParse(jsonResponse);
       if (!parseResult.success) {
-        console.error('Failed to parse ASR response as JSON:', parseResult.error);
-        console.error('First 500 chars of response:', jsonResponse.substring(0, 500));
+        await logger?.logToolExecution('ASR-NBest', 'Failed to parse ASR response JSON', {
+          error: parseResult.error,
+          responsePreview: jsonResponse.substring(0, 500)
+        });
         throw new Error(`Invalid ASR response format: ${parseResult.error}`);
       }
       const asrResult = parseResult.data;
@@ -228,13 +250,13 @@ export class ASRNBestServerNodeTool {
         duration: asrResult.duration || sliceResult.duration,
       };
 
-      // Log the actual ASR response for debugging
-      console.log('ASR API response structure:', {
+      await logger?.logToolExecution('ASR-NBest', 'Parsed ASR API response structure', {
         hasText: !!asrResult.text,
         hasAlternatives: !!asrResult.alternatives,
         alternativesCount: asrResult.alternatives?.length || 0,
         hasError: !!asrResult.error,
         keys: Object.keys(asrResult),
+        primaryText: result.primaryText.substring(0, 100) + (result.primaryText.length > 100 ? '...' : '')
       });
 
       // Save the result to a file for debugging and future reference
@@ -266,16 +288,22 @@ export class ASRNBestServerNodeTool {
         };
 
         await writeFile(filepath, JSON.stringify(dataToSave, null, 2));
-        console.log(`ASR N-best results saved to: ${filepath}`);
+        await logger?.logToolExecution('ASR-NBest', 'Saved results to debug file', {
+          filepath: filepath.split('/').pop() || 'unknown'
+        });
       } catch (saveError) {
-        console.error('Failed to save ASR N-best results to file:', saveError);
+        await logger?.logToolExecution('ASR-NBest', 'Failed to save debug file', {
+          error: saveError instanceof Error ? saveError.message : saveError
+        });
         // Don't throw - this is just for debugging, shouldn't break the main flow
       }
 
       return result;
 
     } catch (error) {
-      console.error('ASR N-best error:', error);
+      await logger?.logToolExecution('ASR-NBest', 'Failed to get ASR alternatives', {
+        error: error instanceof Error ? { message: error.message, stack: error.stack } : error
+      });
       throw new Error(`Failed to get ASR alternatives: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       // Always cleanup temp file

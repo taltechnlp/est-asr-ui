@@ -19,12 +19,14 @@ import {
 	formatParsingErrorForLLM,
 	validateJsonStructure
 } from './utils/jsonParser';
+import { getAgentFileLogger, type AgentFileLogger } from '$lib/utils/agentFileLogger';
 
 export interface SegmentAnalysisRequest {
 	fileId: string;
 	segment: SegmentWithTiming;
 	summary: TranscriptSummary;
 	audioFilePath: string;
+	transcriptFilePath?: string;
 	uiLanguage?: string;
 }
 
@@ -167,6 +169,7 @@ export class CoordinatingAgentSimple {
 	private tiptapTool: TipTapTransactionToolDirect;
 	private editor: Editor | null = null;
 	private debugMode: boolean = false;
+	private logger: AgentFileLogger | null = null;
 
 	constructor(modelName: string = OPENROUTER_MODELS.GPT_4O) {
 		this.model = createOpenRouterChat({
@@ -191,7 +194,7 @@ export class CoordinatingAgentSimple {
 					'https://tekstiks.ee/asr/transcribe/alternatives'
 				);
 			} catch (e) {
-				console.error('Failed to load ASR tool:', e);
+				await this.logger?.logGeneral('warn', 'Failed to load ASR tool', { error: e });
 			}
 		}
 	}
@@ -204,9 +207,9 @@ export class CoordinatingAgentSimple {
 			try {
 				const { createPhoneticAnalyzerTool } = await import('./tools/phoneticAnalyzer');
 				this.phoneticTool = createPhoneticAnalyzerTool();
-				console.log('PhoneticAnalyzerTool initialized successfully');
+				await this.logger?.logGeneral('info', 'PhoneticAnalyzerTool initialized successfully');
 			} catch (e) {
-				console.error('Failed to load PhoneticAnalyzer tool:', e);
+				await this.logger?.logGeneral('warn', 'Failed to load PhoneticAnalyzer tool', { error: e });
 			}
 		}
 	}
@@ -219,9 +222,9 @@ export class CoordinatingAgentSimple {
 			try {
 				const { createSignalQualityAssessorTool } = await import('./tools/signalQualityAssessor');
 				this.signalQualityTool = createSignalQualityAssessorTool();
-				console.log('SignalQualityAssessorTool initialized successfully');
+				await this.logger?.logGeneral('info', 'SignalQualityAssessorTool initialized successfully');
 			} catch (e) {
-				console.error('Failed to load SignalQualityAssessor tool:', e);
+				await this.logger?.logGeneral('warn', 'Failed to load SignalQualityAssessor tool', { error: e });
 			}
 		}
 	}
@@ -235,6 +238,12 @@ export class CoordinatingAgentSimple {
 		this.debugMode = enabled;
 	}
 
+	private initializeLogger(transcriptFilePath: string, fileId: string): void {
+		if (!this.logger && transcriptFilePath) {
+			this.logger = getAgentFileLogger(transcriptFilePath, fileId);
+		}
+	}
+
 	async runTests() {
 		if (!this.editor) {
 			throw new Error('Editor not set');
@@ -244,31 +253,21 @@ export class CoordinatingAgentSimple {
 
 	debugSearchText(searchText: string) {
 		if (!this.editor) {
-			console.error('Editor not set');
+			this.logger?.logGeneral('error', 'Editor not set for debug search');
 			return;
 		}
 
 		const snapshot = createEditorSnapshot(this.editor);
 		const results = searchInSnapshot(snapshot, searchText);
 
-		console.group(`🔍 Debug Search: "${searchText}"`);
-		console.log('Results:', results);
-
-		if (results.exactMatch) {
-			console.log(
-				'✅ Exact match found at positions:',
-				results.locations.map((l) => l.position)
-			);
-		} else if (results.found) {
-			console.log('⚠️ All words found but not as exact phrase');
-			console.log('Found words:', results.wordAnalysis.foundWords);
-			console.log('Word positions:', Array.from(results.wordAnalysis.wordPositions.entries()));
-		} else {
-			console.log('❌ Not found');
-			console.log('Missing words:', results.wordAnalysis.missingWords);
-		}
-
-		console.groupEnd();
+		this.logger?.logGeneral('debug', `Debug search for "${searchText}"`, {
+			results,
+			exactMatch: results.exactMatch,
+			found: results.found,
+			locations: results.exactMatch ? results.locations.map((l) => l.position) : undefined,
+			foundWords: results.wordAnalysis?.foundWords,
+			missingWords: results.wordAnalysis?.missingWords
+		});
 		return results;
 	}
 
@@ -290,39 +289,38 @@ export class CoordinatingAgentSimple {
 		expectedStructure: string[],
 		maxRetries: number = 2
 	): Promise<any> {
-		console.group('🔍 JSON Parsing Attempt');
-		console.log('Response length:', response.length);
-		console.log('First 200 chars:', response.substring(0, 200));
+		await this.logger?.logGeneral('debug', 'JSON parsing attempt', {
+			responseLength: response.length,
+			responsePreview: response.substring(0, 200)
+		});
 
 		// First attempt: Use robust parsing utility
 		const parseResult = robustJsonParse(response);
 
 		if (parseResult.success) {
-			console.log('✅ JSON parsed successfully on first attempt');
-			if (parseResult.fixesApplied && parseResult.fixesApplied.length > 0) {
-				console.log('Fixes applied:', parseResult.fixesApplied);
-			}
+			await this.logger?.logGeneral('debug', 'JSON parsed successfully on first attempt', {
+				fixesApplied: parseResult.fixesApplied
+			});
 
 			// Validate structure
 			if (validateJsonStructure(parseResult.data, expectedStructure)) {
-				console.groupEnd();
 				return parseResult.data;
 			} else {
-				console.warn(
-					'⚠️ JSON structure validation failed, missing keys:',
-					expectedStructure.filter((key) => !(key in parseResult.data))
-				);
+				const missingKeys = expectedStructure.filter((key) => !(key in parseResult.data));
+				await this.logger?.logGeneral('warn', 'JSON structure validation failed', {
+					missingKeys
+				});
 			}
 		} else {
-			console.warn('⚠️ Initial JSON parsing failed:', parseResult.error);
-			if (parseResult.extractedJson) {
-				console.log('Extracted JSON attempt:', parseResult.extractedJson.substring(0, 200));
-			}
+			await this.logger?.logGeneral('warn', 'Initial JSON parsing failed', {
+				error: parseResult.error,
+				extractedJsonPreview: parseResult.extractedJson?.substring(0, 200)
+			});
 		}
 
 		// Retry with LLM self-correction
 		for (let retry = 1; retry <= maxRetries; retry++) {
-			console.group(`🔄 Retry ${retry}/${maxRetries}: Requesting JSON correction from LLM`);
+			await this.logger?.logGeneral('debug', `Retry ${retry}/${maxRetries}: Requesting JSON correction from LLM`);
 
 			const correctionPrompt = `${formatParsingErrorForLLM(
 				parseResult.error || 'Invalid JSON structure',
@@ -349,7 +347,7 @@ Please provide ONLY valid JSON that matches this exact structure:
 
 CRITICAL: Return ONLY the JSON object. No explanations, no text before or after, no markdown code blocks.`;
 
-			console.log('Sending correction prompt to LLM');
+			await this.logger?.logGeneral('debug', 'Sending correction prompt to LLM');
 
 			try {
 				const correctedResponse = await this.model.invoke([
@@ -357,31 +355,29 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 				]);
 
 				const correctedContent = correctedResponse.content as string;
-				console.log('LLM correction response length:', correctedContent.length);
+				await this.logger?.logGeneral('debug', 'LLM correction response received', {
+					responseLength: correctedContent.length
+				});
 
 				const retryResult = robustJsonParse(correctedContent);
 
 				if (retryResult.success) {
-					console.log(`✅ JSON parsed successfully on retry ${retry}`);
-					if (retryResult.fixesApplied && retryResult.fixesApplied.length > 0) {
-						console.log('Fixes applied:', retryResult.fixesApplied);
-					}
-					console.groupEnd(); // End retry group
-					console.groupEnd(); // End main parsing group
+					await this.logger?.logGeneral('debug', `JSON parsed successfully on retry ${retry}`, {
+						fixesApplied: retryResult.fixesApplied
+					});
 					return retryResult.data;
 				} else {
-					console.warn(`⚠️ Retry ${retry} failed:`, retryResult.error);
+					await this.logger?.logGeneral('warn', `Retry ${retry} failed`, {
+						error: retryResult.error
+					});
 				}
 			} catch (error) {
-				console.error(`❌ Retry ${retry} error:`, error);
+				await this.logger?.logGeneral('error', `Retry ${retry} error`, { error });
 			}
-
-			console.groupEnd(); // End retry group
 		}
 
 		// Fallback after all retries failed
-		console.error('❌ All JSON parsing attempts failed, using fallback structure');
-		console.groupEnd(); // End main parsing group
+		await this.logger?.logGeneral('error', 'All JSON parsing attempts failed, using fallback structure');
 
 		return {
 			analysis: response.substring(0, 1000),
@@ -394,7 +390,17 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 
 	async analyzeSegment(request: SegmentAnalysisRequest): Promise<SegmentAnalysisResult> {
 		try {
-			const { segment, summary, audioFilePath, fileId, uiLanguage } = request;
+			const { segment, summary, audioFilePath, fileId, uiLanguage, transcriptFilePath } = request;
+
+			// Initialize logger if transcript path is provided
+			if (transcriptFilePath) {
+				this.initializeLogger(transcriptFilePath, fileId);
+				await this.logger?.logGeneral('info', `Starting analysis for segment ${segment.index}`, {
+					segmentText: segment.text.substring(0, 100) + (segment.text.length > 100 ? '...' : ''),
+					speaker: segment.speakerName || segment.speakerTag,
+					duration: (segment.endTime - segment.startTime).toFixed(2) + 's'
+				}, segment.index);
+			}
 
 			// Normalize UI language and get language name
 			const normalizedLanguage = normalizeLanguageCode(uiLanguage);
@@ -406,17 +412,25 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 			let dynamicConfidenceThreshold = 0.7;
 			
 			try {
-				console.log('Assessing signal quality for analysis strategy');
+				await this.logger?.logGeneral('info', 'Assessing signal quality for analysis strategy', { segmentIndex: segment.index });
 				
 				// Initialize signal quality tool if needed
 				await this.initializeSignalQualityTool();
 				
 				if (this.signalQualityTool) {
-					const qualityData = await this.signalQualityTool.assessSignalQuality({
+					const signalQualityStartTime = Date.now();
+					const qualityInput = {
 						audioFilePath,
 						startTime: segment.startTime,
 						endTime: segment.endTime
-					});
+					};
+					
+					await this.logger?.logToolCall('SignalQualityAssessor', qualityInput, segment.index);
+					
+					const qualityData = await this.signalQualityTool.assessSignalQuality(qualityInput);
+					
+					const signalQualityDuration = Date.now() - signalQualityStartTime;
+					await this.logger?.logToolResponse('SignalQualityAssessor', qualityData, signalQualityDuration, segment.index);
 					
 					signalQuality = qualityData;
 					
@@ -425,17 +439,19 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 					analysisStrategy = strategy.strategy;
 					dynamicConfidenceThreshold = strategy.confidenceThreshold;
 					
-					console.log('✅ Signal quality assessment completed:');
-					console.log(`  - SNR: ${qualityData.snr_db.toFixed(2)} dB`);
-					console.log(`  - Quality: ${qualityData.quality_category}`);
-					console.log(`  - Strategy: ${analysisStrategy}`);
-					console.log(`  - Dynamic threshold: ${dynamicConfidenceThreshold}`);
+					await this.logger?.logGeneral('info', 'Signal quality assessment completed', {
+						snrDb: qualityData.snr_db,
+						qualityCategory: qualityData.quality_category,
+						strategy: analysisStrategy,
+						dynamicThreshold: dynamicConfidenceThreshold
+					}, segment.index);
 					
 				} else {
-					console.log('Signal quality tool not available, using default strategy');
+					await this.logger?.logGeneral('info', 'Signal quality tool not available, using default strategy', {}, segment.index);
 				}
 			} catch (qualityError) {
-				console.error('Signal quality assessment failed:', qualityError);
+				// Error logged by logger below
+				await this.logger?.logGeneral('error', 'Signal quality assessment failed', qualityError, segment.index);
 				// Continue with default strategy
 			}
 
@@ -478,27 +494,26 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 				.replace('{responseLanguage}', responseLanguage);
 
 			// Log the analysis request
-			console.group('🤖 LLM Analysis Request');
-			console.log('Segment:', segment.speakerName || segment.speakerTag);
-			console.log('Text length:', segment.text.length);
-			console.log('Duration:', (segment.endTime - segment.startTime).toFixed(2), 'seconds');
-			console.log(
-				'Alternatives available:',
-				segment.alternatives ? segment.alternatives.length : 0
-			);
-			if (segment.alternatives && segment.alternatives.length > 0) {
-				console.log(
-					'Alternative texts:',
-					segment.alternatives.map((alt) => alt.text)
-				);
-			}
-			console.groupEnd();
+			await this.logger?.logGeneral('info', 'Starting LLM analysis request', {
+				speaker: segment.speakerName || segment.speakerTag,
+				textLength: segment.text.length,
+				duration: (segment.endTime - segment.startTime).toFixed(2) + 's',
+				alternativesCount: segment.alternatives ? segment.alternatives.length : 0,
+				alternativeTexts: segment.alternatives?.map((alt) => alt.text) || []
+			}, segment.index);
 
 			// Get initial analysis
+			const llmStartTime = Date.now();
+			await this.logger?.logLLMRequest(prompt, 'GPT-4O', segment.index);
+			
 			const response = await this.model.invoke([new HumanMessage({ content: prompt })]);
+			
+			const llmDuration = Date.now() - llmStartTime;
+			await this.logger?.logLLMResponse(response.content as string, llmDuration, segment.index);
 
-			console.group('📝 LLM Response Processing');
-			console.log('Raw response received, length:', (response.content as string).length);
+			await this.logger?.logGeneral('debug', 'Processing LLM response', {
+				responseLength: (response.content as string).length
+			}, segment.index);
 
 			// Parse the response with robust error recovery and retry
 			const expectedKeys = [
@@ -513,9 +528,9 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 				expectedKeys
 			);
 
-			console.log('Analysis data extracted successfully');
-			console.log('Suggestions count:', analysisData.suggestions?.length || 0);
-			console.groupEnd();
+			await this.logger?.logGeneral('debug', 'Analysis data extracted successfully', {
+				suggestionsCount: analysisData.suggestions?.length || 0
+			}, segment.index);
 
 			let nBestResults = null;
 
@@ -524,41 +539,56 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 				(signalQuality && signalQuality.snr_db < 15); // Aggressive ASR for poor audio
 			
 			if (shouldUseASR) {
+				let asrStartTime: number;
 				try {
 					// Initialize ASR tool if not already done
 					await this.initializeASRTool();
 
 					if (this.asrTool) {
-						console.log('Calling ASR N-best tool for segment:', {
-							audioFilePath,
+						await this.logger?.logToolExecution('ASRNBestTool', 'Calling ASR N-best tool for segment', {
+							audioFilePath: audioFilePath?.split('/').pop() || 'unknown',
 							startTime: segment.startTime,
 							endTime: segment.endTime
-						});
-						const asrResult = await this.asrTool._call({
+						}, segment.index);
+						
+						asrStartTime = Date.now();
+						const asrInput = {
 							audioFilePath,
 							startTime: segment.startTime,
 							endTime: segment.endTime,
 							nBest: 5
-						});
+						};
+						
+						await this.logger?.logToolCall('ASR-NBest', asrInput, segment.index);
+						
+						const asrResult = await this.asrTool._call(asrInput);
+						
+						const asrDuration = Date.now() - asrStartTime;
 						nBestResults = JSON.parse(asrResult);
-						console.log('ASR N-best results received:', nBestResults);
+						await this.logger?.logToolResponse('ASR-NBest', nBestResults, asrDuration, segment.index);
+						
+						await this.logger?.logToolExecution('ASRNBestTool', 'ASR N-best results received', {
+							resultCount: nBestResults?.alternatives?.length || 0
+						}, segment.index);
 					} else {
-						console.log('ASR tool not available (client-side context)');
+						await this.logger?.logToolExecution('ASRNBestTool', 'ASR tool not available (client-side context)', {}, segment.index);
 					}
 				} catch (e) {
-					console.error('ASR N-best tool error:', e);
+					await this.logger?.logToolError('ASRNBestTool', e, 0, segment.index);
+					const asrDuration = Date.now() - (asrStartTime || Date.now());
+					await this.logger?.logToolError('ASR-NBest', e, asrDuration, segment.index);
 				}
 			}
 
 			// If we have ASR results, perform enhanced analysis
 			if (nBestResults && nBestResults.alternatives && nBestResults.alternatives.length > 0) {
 				try {
-					console.log(
-						'Performing enhanced analysis with ASR results for segment:',
-						segment.speakerName
-					);
-					console.log('Original text:', segment.text);
-					console.log('ASR alternatives:', nBestResults.alternatives);
+					await this.logger?.logGeneral('info', 'Performing enhanced analysis with ASR results', {
+						speaker: segment.speakerName,
+						originalText: segment.text.substring(0, 100) + (segment.text.length > 100 ? '...' : ''),
+						alternativeCount: nBestResults?.alternatives?.length || 0,
+						segmentIndex: segment.index
+					});
 
 					// Format ASR alternatives for the prompt
 					const asrAlternativesText = nBestResults.alternatives
@@ -574,18 +604,23 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 						.replace('{asrAlternatives}', asrAlternativesText)
 						.replace('{responseLanguage}', responseLanguage);
 
-					console.group('🔬 Enhanced Analysis with ASR Results');
-					console.log('Sending enhanced prompt to LLM');
+					await this.logger?.logGeneral('debug', 'Sending enhanced prompt to LLM', { segmentIndex: segment.index });
 
 					// Get enhanced analysis
+					const enhancedLlmStartTime = Date.now();
+					await this.logger?.logLLMRequest(enhancedPrompt, 'GPT-4O (Enhanced Analysis)', segment.index);
+					
 					const enhancedResponse = await this.model.invoke([
 						new HumanMessage({ content: enhancedPrompt })
 					]);
 
-					console.log(
-						'Enhanced response received, length:',
-						(enhancedResponse.content as string).length
-					);
+					const enhancedLlmDuration = Date.now() - enhancedLlmStartTime;
+					await this.logger?.logLLMResponse(enhancedResponse.content as string, enhancedLlmDuration, segment.index);
+
+					await this.logger?.logGeneral('debug', 'Enhanced response received', {
+						responseLength: (enhancedResponse.content as string).length,
+						segmentIndex: segment.index
+					});
 
 					// Parse enhanced response with retry mechanism
 					const enhancedData = await this.parseResponseWithRetry(
@@ -594,31 +629,28 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 					);
 
 					if (enhancedData.suggestions && enhancedData.suggestions.length > 0) {
-						console.log(
-							'✅ Enhanced analysis produced',
-							enhancedData.suggestions.length,
-							'suggestions'
-						);
+						await this.logger?.logGeneral('info', 'Enhanced analysis successful', {
+							suggestionsCount: enhancedData.suggestions.length,
+							segmentIndex: segment.index
+						});
 						// Update analysis data with enhanced suggestions
 						analysisData.suggestions = enhancedData.suggestions;
 						analysisData.analysis = enhancedData.analysis || analysisData.analysis;
 						analysisData.confidence = enhancedData.confidence || analysisData.confidence;
 					} else {
-						console.log('⚠️ Enhanced analysis produced no suggestions');
+						await this.logger?.logGeneral('warn', 'Enhanced analysis produced no suggestions', { segmentIndex: segment.index });
 					}
-
-					console.groupEnd();
 				} catch (e) {
-					console.error('Enhanced analysis error:', e);
+					await this.logger?.logGeneral('error', 'Enhanced analysis error', { error: e, segmentIndex: segment.index });
 				}
 			} else {
-				console.log('No ASR results available for enhanced analysis');
+				await this.logger?.logGeneral('info', 'No ASR results available for enhanced analysis', { segmentIndex: segment.index });
 			}
 
 			// Perform phonetic analysis on high-confidence suggestions
 			if (analysisData.suggestions && Array.isArray(analysisData.suggestions) && analysisData.suggestions.length > 0) {
 				try {
-					console.log('Performing phonetic analysis on suggestions');
+					await this.logger?.logGeneral('info', 'Performing phonetic analysis on suggestions', { segmentIndex: segment.index });
 					
 					// Initialize phonetic tool if needed
 					await this.initializePhoneticTool();
@@ -627,13 +659,25 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 						// Analyze each suggestion that has both original and suggested text
 						for (const suggestion of analysisData.suggestions) {
 							if (suggestion.originalText && suggestion.suggestedText) {
+								let phoneticStartTime: number;
 								try {
-									console.log(`Analyzing phonetic similarity: "${suggestion.originalText}" vs "${suggestion.suggestedText}"`);
+									await this.logger?.logToolExecution('PhoneticAnalyzer', 'Analyzing phonetic similarity', {
+										original: suggestion.originalText?.substring(0, 100),
+										suggested: suggestion.suggestedText?.substring(0, 100)
+									}, segment.index);
 									
-									const phoneticData = await this.phoneticTool.analyzePhoneticSimilarity({
+									phoneticStartTime = Date.now();
+									const phoneticInput = {
 										text: suggestion.originalText,
 										candidate: suggestion.suggestedText
-									});
+									};
+									
+									await this.logger?.logToolCall('PhoneticAnalyzer', phoneticInput, segment.index);
+									
+									const phoneticData = await this.phoneticTool.analyzePhoneticSimilarity(phoneticInput);
+									
+									const phoneticDuration = Date.now() - phoneticStartTime;
+									await this.logger?.logToolResponse('PhoneticAnalyzer', phoneticData, phoneticDuration, segment.index);
 									
 									// Enhance suggestion with phonetic analysis
 									suggestion.phoneticAnalysis = {
@@ -656,22 +700,30 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 											`${suggestion.explanation} ${phoneticExplanation}` : 
 											phoneticExplanation;
 										
-										console.log(`✅ Phonetic boost applied: confidence ${originalConfidence.toFixed(2)} → ${suggestion.confidence.toFixed(2)}`);
+										await this.logger?.logToolExecution('PhoneticAnalyzer', 'Phonetic boost applied', {
+											originalConfidence: originalConfidence,
+											newConfidence: suggestion.confidence,
+											similarityScore: phoneticData.similarity_score
+										}, segment.index);
 									} else {
-										console.log(`⚠️ Low phonetic similarity (${phoneticData.similarity_score.toFixed(2)}), no confidence boost`);
+										await this.logger?.logToolExecution('PhoneticAnalyzer', 'Low phonetic similarity, no confidence boost', {
+											similarityScore: phoneticData.similarity_score
+										}, segment.index);
 									}
 									
 								} catch (phoneticError) {
-									console.error(`Phonetic analysis failed for "${suggestion.originalText}" vs "${suggestion.suggestedText}":`, phoneticError);
+									await this.logger?.logToolError('PhoneticAnalyzer', phoneticError, 0, segment.index);
+									const phoneticErrorDuration = Date.now() - phoneticStartTime;
+									await this.logger?.logToolError('PhoneticAnalyzer', phoneticError, phoneticErrorDuration, segment.index);
 									// Continue with other suggestions even if one fails
 								}
 							}
 						}
 					} else {
-						console.log('Phonetic tool not available, skipping phonetic analysis');
+						await this.logger?.logGeneral('info', 'Phonetic tool not available, skipping phonetic analysis', { segmentIndex: segment.index });
 					}
 				} catch (phoneticError) {
-					console.error('Phonetic analysis error:', phoneticError);
+					await this.logger?.logGeneral('error', 'Phonetic analysis error', { error: phoneticError, segmentIndex: segment.index });
 					// Don't fail the entire analysis if phonetic analysis fails
 				}
 			}
@@ -685,9 +737,9 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 							language: summary.language
 						});
 						// Could enhance analysis with search results
-						console.log(`Web search for "${term}":`, searchResult);
+						await this.logger?.logToolExecution('WebSearch', `Web search for "${term}"`, { results: searchResult }, segment.index);
 					} catch (e) {
-						console.error(`Web search error for "${term}":`, e);
+						await this.logger?.logToolError('WebSearch', e, 0, segment.index);
 					}
 				}
 			}
@@ -720,9 +772,14 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 							// These are character positions within the segment text
 							from = index;
 							to = index + searchText.length;
-							console.log(`📍 Found position for "${searchText}": [${from}, ${to}] in segment`);
+							await this.logger?.logGeneral('debug', 'Found position for suggestion', {
+								text: searchText.substring(0, 50),
+								position: [from, to]
+							}, segment.index);
 						} else {
-							console.log(`⚠️ Could not find position for "${searchText}" in segment`);
+							await this.logger?.logGeneral('warn', 'Could not find position for suggestion', {
+								text: searchText.substring(0, 50)
+							}, segment.index);
 						}
 					}
 
@@ -740,9 +797,11 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 							applied: false,
 							requiresManualReview: false
 						});
-						console.log(
-							`✅ Marked for auto-apply: "${suggestion.originalText}" → "${suggestion.suggestedText}"`
-						);
+						await this.logger?.logGeneral('info', 'Marked for auto-apply', {
+							original: suggestion.originalText?.substring(0, 50),
+							suggested: suggestion.suggestedText?.substring(0, 50),
+							confidence: suggestion.confidence
+						}, segment.index);
 					} else {
 						// Low confidence suggestions require manual review
 						processedSuggestions.push({
@@ -754,19 +813,20 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 							applied: false,
 							requiresManualReview: true
 						});
-						console.log(
-							`⚠️ Marked for manual review: "${suggestion.originalText}" → "${suggestion.suggestedText}"`
-						);
+						await this.logger?.logGeneral('info', 'Marked for manual review', {
+							original: suggestion.originalText?.substring(0, 50),
+							suggested: suggestion.suggestedText?.substring(0, 50),
+							confidence: suggestion.confidence
+						}, segment.index);
 					}
 				}
 
-				console.log(`📊 Processed ${processedSuggestions.length} suggestions:`);
-				console.log(
-					`  - ${processedSuggestions.filter((s) => s.shouldAutoApply).length} marked for auto-apply`
-				);
-				console.log(
-					`  - ${processedSuggestions.filter((s) => s.requiresManualReview).length} require manual review`
-				);
+				await this.logger?.logGeneral('info', 'Suggestions processing complete', {
+					totalSuggestions: processedSuggestions.length,
+					autoApply: processedSuggestions.filter((s) => s.shouldAutoApply).length,
+					manualReview: processedSuggestions.filter((s) => s.requiresManualReview).length,
+					segmentIndex: segment.index
+				});
 			}
 
 			// Save to database
@@ -802,6 +862,15 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 				}
 			});
 
+			// Log successful completion
+			await this.logger?.logGeneral('info', `Completed analysis for segment ${segment.index}`, {
+				suggestionsCount: processedSuggestions.length > 0 ? processedSuggestions.length : (analysisData.suggestions?.length || 0),
+				confidence: analysisData.confidence,
+				strategy: analysisStrategy,
+				hasASRResults: !!nBestResults,
+				hasSignalQuality: !!signalQuality
+			}, segment.index);
+
 			return {
 				segmentIndex: segment.index,
 				analysis: analysisData.analysis,
@@ -814,7 +883,7 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 				dynamicConfidenceThreshold
 			};
 		} catch (error) {
-			console.error('Segment analysis error:', error);
+			await this.logger?.logGeneral('error', 'Analysis failed for segment', { error });
 			throw new Error(
 				`Failed to analyze segment: ${error instanceof Error ? error.message : 'Unknown error'}`
 			);
@@ -850,7 +919,7 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 			if (parseResult.success) {
 				return parseResult.data;
 			} else {
-				console.error('Failed to parse transaction result:', parseResult.error);
+				await this.logger?.logGeneral('error', 'Failed to parse transaction result', { error: parseResult.error });
 				return {
 					success: false,
 					error: `JSON parsing failed: ${parseResult.error}`

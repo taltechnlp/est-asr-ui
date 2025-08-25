@@ -4,6 +4,7 @@ import { promisify } from "util";
 import { join } from "path";
 import { TranscriptAnalysisTool } from "./base";
 import { robustJsonParse } from '../utils/jsonParser';
+import { getCurrentLogger } from '../../utils/agentFileLogger';
 
 const execAsync = promisify(exec);
 
@@ -67,9 +68,7 @@ Output: Detailed phonetic analysis including similarity score and confidence ass
     this.pythonCommand = pythonCommand;
     this.scriptPath = scriptPath || join(process.cwd(), 'scripts', 'phonetic_analyzer.py');
     
-    console.log(`PhoneticAnalyzerTool initialized:`);
-    console.log(`  - Python command: ${this.pythonCommand}`);
-    console.log(`  - Script path: ${this.scriptPath}`);
+    // Initialization logging moved to file logger when analysis starts
     
     // Test availability on initialization (don't await in constructor)
     this.testAvailability().catch(() => {
@@ -85,14 +84,11 @@ Output: Detailed phonetic analysis including similarity score and confidence ass
       // Try to parse the output
       const parseResult = robustJsonParse(stdout);
       if (parseResult.success) {
-        console.log('✅ PhoneticAnalyzerTool is available and working');
         this.isAvailable = true;
       } else {
-        console.warn('⚠️ PhoneticAnalyzerTool output parsing failed:', parseResult.error);
         this.isAvailable = false;
       }
     } catch (error) {
-      console.warn('⚠️ PhoneticAnalyzerTool not available:', error instanceof Error ? error.message : 'Unknown error');
       this.isAvailable = false;
     }
   }
@@ -107,12 +103,17 @@ Output: Detailed phonetic analysis including similarity score and confidence ass
    */
   async analyzePhoneticSimilarity(input: z.infer<typeof PhoneticAnalyzerSchema>): Promise<PhoneticAnalysisResult> {
     const { text, candidate } = input;
+    const logger = getCurrentLogger();
 
-    console.group(`🔊 Phonetic Analysis: "${text}" vs "${candidate}"`);
+    await logger?.logToolExecution('PhoneticAnalyzer', 'Starting phonetic similarity analysis', {
+      originalText: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
+      candidateText: candidate.substring(0, 100) + (candidate.length > 100 ? '...' : ''),
+      originalLength: text.length,
+      candidateLength: candidate.length
+    });
     
     if (!this.isAvailable) {
-      console.warn('PhoneticAnalyzerTool not available, returning fallback result');
-      console.groupEnd();
+      await logger?.logToolExecution('PhoneticAnalyzer', 'Tool not available, using fallback result');
       return this.createFallbackResult(text, candidate);
     }
 
@@ -123,8 +124,11 @@ Output: Detailed phonetic analysis including similarity score and confidence ass
       
       const command = `${this.pythonCommand} "${this.scriptPath}" analyze "${escapedText}" "${escapedCandidate}"`;
       
-      console.log('Executing phonetic analysis command');
-      console.log('Command:', command.replace(this.scriptPath, '[script]'));
+      await logger?.logToolExecution('PhoneticAnalyzer', 'Executing phonetic analysis command', {
+        command: command.replace(this.scriptPath, '[script]'),
+        timeout: '10s',
+        maxBuffer: '1MB'
+      });
       
       const { stdout, stderr } = await execAsync(command, {
         timeout: 10000, // 10 second timeout
@@ -132,16 +136,23 @@ Output: Detailed phonetic analysis including similarity score and confidence ass
       });
 
       if (stderr) {
-        console.warn('Python script warnings:', stderr);
+        await logger?.logToolExecution('PhoneticAnalyzer', 'Python script generated warnings', {
+          warnings: stderr
+        });
       }
 
-      console.log('Raw Python output:', stdout.substring(0, 200) + (stdout.length > 200 ? '...' : ''));
+      await logger?.logToolExecution('PhoneticAnalyzer', 'Received Python output', {
+        outputLength: stdout.length,
+        outputPreview: stdout.substring(0, 200) + (stdout.length > 200 ? '...' : '')
+      });
 
       // Parse the JSON response
       const parseResult = robustJsonParse(stdout);
       if (!parseResult.success) {
-        console.error('Failed to parse phonetic analysis result:', parseResult.error);
-        console.error('Raw output:', stdout);
+        await logger?.logToolExecution('PhoneticAnalyzer', 'Failed to parse JSON response', {
+          error: parseResult.error,
+          rawOutput: stdout.substring(0, 500)
+        });
         throw new Error(`Invalid phonetic analysis response: ${parseResult.error}`);
       }
 
@@ -149,26 +160,31 @@ Output: Detailed phonetic analysis including similarity score and confidence ass
 
       // Validate the response structure
       if (!result.similarity_score && result.similarity_score !== 0) {
+        await logger?.logToolExecution('PhoneticAnalyzer', 'Invalid response structure', {
+          error: 'missing similarity_score',
+          result
+        });
         throw new Error('Invalid response: missing similarity_score');
       }
 
-      console.log('✅ Phonetic analysis completed successfully:');
-      console.log(`  - Original phonetic: ${result.original_phonetic}`);
-      console.log(`  - Candidate phonetic: ${result.candidate_phonetic}`);
-      console.log(`  - Similarity score: ${result.similarity_score}`);
-      console.log(`  - Confidence: ${result.confidence}`);
-      console.log(`  - Likely ASR error: ${result.is_likely_asr_error}`);
-      console.log(`  - Method: ${result.method}`);
+      await logger?.logToolExecution('PhoneticAnalyzer', 'Analysis completed successfully', {
+        originalPhonetic: result.original_phonetic,
+        candidatePhonetic: result.candidate_phonetic,
+        similarityScore: result.similarity_score,
+        confidence: result.confidence,
+        isLikelyASRError: result.is_likely_asr_error,
+        method: result.method
+      });
       
-      console.groupEnd();
       return result;
 
     } catch (error) {
-      console.error('Phonetic analysis error:', error);
-      console.groupEnd();
+      await logger?.logToolExecution('PhoneticAnalyzer', 'Analysis failed with error', {
+        error: error instanceof Error ? { message: error.message, stack: error.stack } : error
+      });
       
       // Return fallback result instead of throwing
-      console.log('Returning fallback phonetic analysis result');
+      await logger?.logToolExecution('PhoneticAnalyzer', 'Returning fallback result due to error');
       return this.createFallbackResult(text, candidate);
     }
   }
@@ -236,7 +252,7 @@ Output: Detailed phonetic analysis including similarity score and confidence ass
       
       throw new Error('Invalid encode response');
     } catch (error) {
-      console.warn('Phonetic encoding failed, using fallback:', error);
+      // Phonetic encoding failed, using fallback
       return text.toUpperCase().replace(/[^A-ZÜÕÄÖ]/g, ' ').trim();
     }
   }
