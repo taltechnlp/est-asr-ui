@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { SECRET_UPLOAD_DIR } from '$env/static/private';
+import { getCurrentLogger } from '$lib/utils/agentFileLogger';
 
 export interface AudioSliceOptions {
   startTime: number; // in seconds
@@ -28,7 +29,10 @@ export class AudioSlicer {
     try {
       await fs.mkdir(this.tempDir, { recursive: true });
     } catch (error) {
-      console.error('Failed to create temp directory:', error);
+      const logger = getCurrentLogger();
+      if (logger) {
+        await logger.logGeneral('error', 'Failed to create temp directory', { error });
+      }
     }
   }
 
@@ -42,13 +46,16 @@ export class AudioSlicer {
     const duration = endTime - startTime;
     
     // Log slicing parameters
-    console.log(`AudioSlicer: Slicing audio file`, {
-      inputPath,
-      startTime: startTime.toFixed(3),
-      endTime: endTime.toFixed(3),
-      duration: duration.toFixed(3),
-      format,
-    });
+    const logger = getCurrentLogger();
+    if (logger) {
+      await logger.logToolExecution('AudioSlicer', 'Slicing audio file', {
+        inputPath: path.basename(inputPath),
+        startTime: startTime.toFixed(3),
+        endTime: endTime.toFixed(3),
+        duration: duration.toFixed(3),
+        format,
+      });
+    }
 
     // Validate parameters
     if (duration <= 0) {
@@ -88,7 +95,11 @@ export class AudioSlicer {
             tempFilePath
           ];
 
-      console.log(`AudioSlicer: Running ffmpeg with args:`, args.join(' '));
+      if (logger) {
+        await logger.logToolExecution('AudioSlicer', 'Running ffmpeg', {
+          args: args.join(' ').replace(inputPath, path.basename(inputPath))
+        });
+      }
 
       const ffmpeg = spawn('ffmpeg', args);
       
@@ -111,13 +122,15 @@ export class AudioSlicer {
             await fs.access(tempFilePath);
             const stats = await fs.stat(tempFilePath);
             
-            console.log(`AudioSlicer: Slice completed successfully`, {
-              tempFilePath,
-              fileSize: stats.size,
-              duration: duration.toFixed(3),
-              elapsedMs,
-              elapsedSeconds: (elapsedMs / 1000).toFixed(3),
-            });
+            if (logger) {
+              await logger.logToolExecution('AudioSlicer', 'Slice completed successfully', {
+                tempFilePath: path.basename(tempFilePath),
+                fileSize: stats.size,
+                duration: duration.toFixed(3),
+                elapsedMs,
+                elapsedSeconds: (elapsedMs / 1000).toFixed(3),
+              });
+            }
             
             resolve({
               tempFilePath,
@@ -125,22 +138,37 @@ export class AudioSlicer {
               cleanup: async () => {
                 try {
                   await fs.unlink(tempFilePath);
-                  console.log(`AudioSlicer: Cleaned up temp file: ${tempFilePath}`);
+                  const logger = getCurrentLogger();
+                  if (logger) {
+                    await logger.logToolExecution('AudioSlicer', 'Cleaned up temp file', {
+                      tempFilePath: path.basename(tempFilePath)
+                    });
+                  }
                 } catch (error) {
-                  console.error('Failed to cleanup temp file:', error);
+                  const logger = getCurrentLogger();
+                  if (logger) {
+                    await logger.logGeneral('error', 'Failed to cleanup temp file', { error });
+                  }
                 }
               }
             });
           } catch (error) {
-            console.error(`AudioSlicer: Output file verification failed`, { tempFilePath, error });
+            if (logger) {
+              await logger.logGeneral('error', 'AudioSlicer output file verification failed', {
+                tempFilePath: path.basename(tempFilePath),
+                error
+              });
+            }
             reject(new Error('Output file was not created'));
           }
         } else {
-          console.error(`AudioSlicer: FFmpeg failed`, {
-            exitCode: code,
-            elapsedMs,
-            stderr: stderr.substring(stderr.length - 1000), // Last 1000 chars of stderr
-          });
+          if (logger) {
+            await logger.logGeneral('error', 'AudioSlicer FFmpeg failed', {
+              exitCode: code,
+              elapsedMs,
+              stderr: stderr.substring(stderr.length - 1000), // Last 1000 chars of stderr
+            });
+          }
           reject(new Error(`FFmpeg exited with code ${code}: ${stderr}`));
         }
       });
@@ -212,7 +240,10 @@ export class AudioSlicer {
                 try {
                   await fs.unlink(tempFilePath);
                 } catch (error) {
-                  console.error('Failed to cleanup temp file:', error);
+                  const logger = getCurrentLogger();
+                  if (logger) {
+                    await logger.logGeneral('error', 'Failed to cleanup temp file', { error });
+                  }
                 }
               }
             });
@@ -239,11 +270,17 @@ export class AudioSlicer {
         
         if (now - stats.mtimeMs > maxAge) {
           await fs.unlink(filePath);
-          console.log(`Cleaned up old temp file: ${file}`);
+          const logger = getCurrentLogger();
+          if (logger) {
+            await logger.logToolExecution('AudioSlicer', 'Cleaned up old temp file', { file });
+          }
         }
       }
     } catch (error) {
-      console.error('Error cleaning up temp files:', error);
+      const logger = getCurrentLogger();
+      if (logger) {
+        await logger.logGeneral('error', 'Error cleaning up temp files', { error });
+      }
     }
   }
 }

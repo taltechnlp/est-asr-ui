@@ -45,7 +45,10 @@ export class ASRNBestServerNodeTool {
         const module = await import("$lib/services/audioSlicer");
         this.audioSlicer = module.getAudioSlicer();
       } catch (e) {
-        console.warn('Failed to load AudioSlicer:', e);
+        const logger = getCurrentLogger();
+        if (logger) {
+          await logger.logGeneral('warn', 'Failed to load AudioSlicer', { error: e });
+        }
         throw new Error('AudioSlicer not available - this tool can only be used server-side');
       }
     } else {
