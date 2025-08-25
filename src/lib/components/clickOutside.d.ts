@@ -1,5 +1,5 @@
 declare namespace svelte.JSX {
-    interface HTMLAttributes<T> {
-        onoutclick?: () => void
-    }
-  }
+	interface HTMLAttributes<T> {
+		onoutclick?: () => void;
+	}
+}

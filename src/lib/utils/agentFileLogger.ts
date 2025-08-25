@@ -21,7 +21,7 @@ export class AgentFileLogger {
 
 	constructor(transcriptFilePath: string, fileId: string) {
 		this.fileId = fileId;
-		
+
 		// Generate log file path from transcript path
 		const dir = path.dirname(transcriptFilePath);
 		const basename = path.basename(transcriptFilePath, path.extname(transcriptFilePath));
@@ -34,7 +34,7 @@ export class AgentFileLogger {
 		try {
 			// Create directory if it doesn't exist
 			await fs.mkdir(path.dirname(this.logFilePath), { recursive: true });
-			
+
 			// Check if log file exists
 			try {
 				await fs.access(this.logFilePath);
@@ -48,7 +48,7 @@ export class AgentFileLogger {
 				};
 				await fs.writeFile(this.logFilePath, JSON.stringify(initialData, null, 2));
 			}
-			
+
 			this.initialized = true;
 		} catch (error) {
 			console.error('Failed to initialize agent log file:', error);
@@ -99,14 +99,13 @@ export class AgentFileLogger {
 						entries: []
 					};
 				}
-				
+
 				// Add new entry
 				logData.entries.push(logEntry);
-				
+
 				// Write back to file with error recovery
 				const newContent = JSON.stringify(logData, null, 2);
 				await fs.writeFile(this.logFilePath, newContent);
-
 			} catch (error) {
 				console.error('Failed to write to agent log file:', error);
 				// Don't throw - logging should never break the main flow
@@ -162,7 +161,12 @@ export class AgentFileLogger {
 		});
 	}
 
-	async logToolExecution(toolName: string, message: string, data?: any, segmentIndex?: number): Promise<void> {
+	async logToolExecution(
+		toolName: string,
+		message: string,
+		data?: any,
+		segmentIndex?: number
+	): Promise<void> {
 		await this.log({
 			level: 'info',
 			type: 'tool_call',
@@ -175,7 +179,12 @@ export class AgentFileLogger {
 		});
 	}
 
-	async logToolResponse(toolName: string, output: any, duration: number, segmentIndex?: number): Promise<void> {
+	async logToolResponse(
+		toolName: string,
+		output: any,
+		duration: number,
+		segmentIndex?: number
+	): Promise<void> {
 		await this.log({
 			level: 'info',
 			type: 'tool_response',
@@ -190,7 +199,12 @@ export class AgentFileLogger {
 		});
 	}
 
-	async logToolError(toolName: string, error: any, duration: number, segmentIndex?: number): Promise<void> {
+	async logToolError(
+		toolName: string,
+		error: any,
+		duration: number,
+		segmentIndex?: number
+	): Promise<void> {
 		await this.log({
 			level: 'error',
 			type: 'tool_response',
@@ -205,7 +219,12 @@ export class AgentFileLogger {
 		});
 	}
 
-	async logGeneral(level: LogEntry['level'], message: string, data?: any, segmentIndex?: number): Promise<void> {
+	async logGeneral(
+		level: LogEntry['level'],
+		message: string,
+		data?: any,
+		segmentIndex?: number
+	): Promise<void> {
 		await this.log({
 			level,
 			type: 'general',
@@ -228,11 +247,11 @@ let currentActiveLogger: AgentFileLogger | null = null;
 
 export function getAgentFileLogger(transcriptFilePath: string, fileId: string): AgentFileLogger {
 	const key = `${fileId}-${transcriptFilePath}`;
-	
+
 	if (!loggerRegistry.has(key)) {
 		loggerRegistry.set(key, new AgentFileLogger(transcriptFilePath, fileId));
 	}
-	
+
 	const logger = loggerRegistry.get(key)!;
 	currentActiveLogger = logger; // Set as active for tools
 	return logger;

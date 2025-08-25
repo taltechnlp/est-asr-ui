@@ -1,5 +1,5 @@
 import { Mark, markInputRule, markPasteRule, mergeAttributes } from '@tiptap/core';
-import {v4 as uuidv4} from "uuid";
+import { v4 as uuidv4 } from 'uuid';
 
 export interface WordOptions {
 	HTMLAttributes: Record<string, any>;
@@ -34,16 +34,16 @@ export const Word = Mark.create<WordOptions>({
 				default: ''
 			},
 			end: {
-				default: '' 
+				default: ''
 			},
 			id: {
 				default: uuidv4().substring(32 - 12)
 			},
 			lang: {
-				default: "et"
+				default: 'et'
 			},
 			spellcheck: {
-				default: "false"
+				default: 'false'
 			}
 		};
 	},

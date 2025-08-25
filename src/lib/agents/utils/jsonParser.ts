@@ -25,7 +25,7 @@ export function robustJsonParse(input: string): ParseResult {
 	}
 
 	const fixesApplied: string[] = [];
-	
+
 	// Strategy 1: Try direct parsing first
 	try {
 		const data = JSON.parse(input);
@@ -43,7 +43,7 @@ export function robustJsonParse(input: string): ParseResult {
 	let extracted = extractJsonFromMixedContent(input);
 	if (extracted) {
 		fixesApplied.push('Extracted JSON from mixed content');
-		
+
 		// Try parsing the extracted content
 		try {
 			const data = JSON.parse(extracted);
@@ -64,7 +64,7 @@ export function robustJsonParse(input: string): ParseResult {
 
 	// Strategy 3: Apply fixes and try parsing
 	const fixed = applyJsonFixes(extracted, fixesApplied);
-	
+
 	try {
 		const data = JSON.parse(fixed);
 		return {
@@ -93,7 +93,7 @@ export function robustJsonParse(input: string): ParseResult {
 				// Fall through to error
 			}
 		}
-		
+
 		return {
 			success: false,
 			error: `Failed to parse JSON: ${parseError}`,
@@ -151,19 +151,19 @@ function extractJsonArray(input: string): string | null {
 function findBalancedBraces(text: string, open: string, close: string): string[] {
 	const results: string[] = [];
 	let start = 0;
-	
+
 	while (start < text.length) {
 		const openIdx = text.indexOf(open, start);
 		if (openIdx === -1) break;
-		
+
 		let depth = 1;
 		let current = openIdx + 1;
 		let inString = false;
 		let escapeNext = false;
-		
+
 		while (current < text.length && depth > 0) {
 			const char = text[current];
-			
+
 			if (escapeNext) {
 				escapeNext = false;
 			} else if (char === '\\') {
@@ -177,17 +177,17 @@ function findBalancedBraces(text: string, open: string, close: string): string[]
 					depth--;
 				}
 			}
-			
+
 			current++;
 		}
-		
+
 		if (depth === 0) {
 			results.push(text.substring(openIdx, current));
 		}
-		
+
 		start = openIdx + 1;
 	}
-	
+
 	return results;
 }
 
@@ -196,34 +196,32 @@ function findBalancedBraces(text: string, open: string, close: string): string[]
  */
 function applyJsonFixes(json: string, fixesApplied: string[]): string {
 	let fixed = json;
-	
+
 	// Remove BOM if present
-	if (fixed.charCodeAt(0) === 0xFEFF) {
+	if (fixed.charCodeAt(0) === 0xfeff) {
 		fixed = fixed.slice(1);
 		fixesApplied.push('Removed BOM');
 	}
-	
+
 	// Remove control characters except valid JSON whitespace
 	const beforeControl = fixed;
 	fixed = fixed.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ' ');
 	if (fixed !== beforeControl) {
 		fixesApplied.push('Removed control characters');
 	}
-	
+
 	// Replace non-breaking spaces
 	if (fixed.includes('\u00A0')) {
 		fixed = fixed.replace(/\u00A0/g, ' ');
 		fixesApplied.push('Replaced non-breaking spaces');
 	}
-	
+
 	// Fix quotes - normalize smart quotes
 	if (fixed.match(/[\u2018\u2019\u201C\u201D]/)) {
-		fixed = fixed
-			.replace(/[\u2018\u2019]/g, "'")
-			.replace(/[\u201C\u201D]/g, '"');
+		fixed = fixed.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"');
 		fixesApplied.push('Normalized smart quotes');
 	}
-	
+
 	// Fix single quotes in JSON keys and values (but not inside strings)
 	// This is a simplified approach - be careful with it
 	const singleQuotePattern = /(?<!")'\s*:\s*'/g;
@@ -231,21 +229,21 @@ function applyJsonFixes(json: string, fixesApplied: string[]): string {
 		fixed = fixed.replace(/(?<!")'/g, '"');
 		fixesApplied.push('Replaced single quotes with double quotes');
 	}
-	
+
 	// Remove trailing commas in objects
 	const trailingCommaObject = /,\s*}/g;
 	if (fixed.match(trailingCommaObject)) {
 		fixed = fixed.replace(trailingCommaObject, '}');
 		fixesApplied.push('Removed trailing commas in objects');
 	}
-	
+
 	// Remove trailing commas in arrays
 	const trailingCommaArray = /,\s*\]/g;
 	if (fixed.match(trailingCommaArray)) {
 		fixed = fixed.replace(trailingCommaArray, ']');
 		fixesApplied.push('Removed trailing commas in arrays');
 	}
-	
+
 	// Remove comments (// and /* */)
 	const beforeComments = fixed;
 	fixed = fixed
@@ -254,7 +252,7 @@ function applyJsonFixes(json: string, fixesApplied: string[]): string {
 	if (fixed !== beforeComments) {
 		fixesApplied.push('Removed comments');
 	}
-	
+
 	// Escape unescaped quotes inside string values (basic approach)
 	// This is complex and might need more sophisticated handling
 	try {
@@ -277,7 +275,7 @@ function applyJsonFixes(json: string, fixesApplied: string[]): string {
 	} catch (e) {
 		// Skip if regex fails
 	}
-	
+
 	// Remove any text before first { or [
 	const jsonStart = Math.min(
 		fixed.indexOf('{') !== -1 ? fixed.indexOf('{') : Infinity,
@@ -287,12 +285,9 @@ function applyJsonFixes(json: string, fixesApplied: string[]): string {
 		fixed = fixed.substring(jsonStart);
 		fixesApplied.push('Removed text before JSON');
 	}
-	
+
 	// Remove any text after last } or ]
-	const lastClose = Math.max(
-		fixed.lastIndexOf('}'),
-		fixed.lastIndexOf(']')
-	);
+	const lastClose = Math.max(fixed.lastIndexOf('}'), fixed.lastIndexOf(']'));
 	if (lastClose !== -1 && lastClose < fixed.length - 1) {
 		// Check if there's meaningful content after
 		const after = fixed.substring(lastClose + 1).trim();
@@ -301,7 +296,7 @@ function applyJsonFixes(json: string, fixesApplied: string[]): string {
 			fixesApplied.push('Removed text after JSON');
 		}
 	}
-	
+
 	return fixed.trim();
 }
 
@@ -312,7 +307,7 @@ export function validateJsonStructure(data: any, expectedKeys?: string[]): boole
 	if (!data || typeof data !== 'object') {
 		return false;
 	}
-	
+
 	if (expectedKeys) {
 		for (const key of expectedKeys) {
 			if (!(key in data)) {
@@ -320,7 +315,7 @@ export function validateJsonStructure(data: any, expectedKeys?: string[]): boole
 			}
 		}
 	}
-	
+
 	return true;
 }
 
@@ -329,7 +324,7 @@ export function validateJsonStructure(data: any, expectedKeys?: string[]): boole
  */
 export function formatParsingErrorForLLM(error: string, input: string): string {
 	const preview = input.length > 500 ? input.substring(0, 500) + '...' : input;
-	
+
 	return `JSON Parsing Error:
 ${error}
 

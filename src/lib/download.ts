@@ -4,14 +4,20 @@ export const handleSave = async (editor, fileId) => {
 	const result = await fetch(`/api/files/${fileId}`, {
 		method: 'PUT',
 		body: JSON.stringify(editor.getJSON())
-	}).catch(e=> console.error("Saving file failed", fileId))
+	}).catch((e) => console.error('Saving file failed', fileId));
 	if (!result || !result.ok) {
 		return false;
 	}
 	return true;
 };
 
-export const downloadHandler = (content: MyEditorContent, author, title, exportNames, exportTimeCodes) => {
+export const downloadHandler = (
+	content: MyEditorContent,
+	author,
+	title,
+	exportNames,
+	exportTimeCodes
+) => {
 	const doc = new Document({
 		creator: author,
 		title,
@@ -30,19 +36,15 @@ export const downloadHandler = (content: MyEditorContent, author, title, exportN
 };
 
 const mapSentences = (sentence: Sentence) => {
-	let text = "";
+	let text = '';
 	if (sentence && sentence.content) {
 		text = sentence.content.reduce((sum, word) => {
 			if (word.text) return sum + word.text;
 			else return sum;
-		}, '')
+		}, '');
 	}
 	return new Paragraph({
-		children: [
-			new TextRun(
-				text
-			)
-		]
+		children: [new TextRun(text)]
 	});
 };
 
@@ -59,30 +61,38 @@ const processContent = (content, exportNames, exportTimeCodes) => {
 			}
 			if (exportTimeCodes && val.content && val.content.length > 0) {
 				let startTime = undefined;
-				val.content.find(element => {
-					if (element.marks) element.marks.find(mark=> {
-						if (mark.attrs && mark.attrs.start) {
-							startTime = mark.attrs.start;
-							return true;
-						} else return false
-					})
+				val.content.find((element) => {
+					if (element.marks)
+						element.marks.find((mark) => {
+							if (mark.attrs && mark.attrs.start) {
+								startTime = mark.attrs.start;
+								return true;
+							} else return false;
+						});
 					else return false;
-				})
+				});
 				if (startTime) {
 					const time = new Date(0);
 					time.setSeconds(startTime);
 					acc = acc.concat(
 						new Paragraph({
-							children: [new TextRun(startTime < 3600 ? time.toISOString().substr(14, 5) : time.toISOString().substr(11, 8))]
+							children: [
+								new TextRun(
+									startTime < 3600
+										? time.toISOString().substr(14, 5)
+										: time.toISOString().substr(11, 8)
+								)
+							]
 						})
 					);
 				}
 			}
 			return acc.concat(mapSentences(val));
-		}, [])
-	} else children = new Paragraph({
-		children: [new TextRun("")]
-	});
+		}, []);
+	} else
+		children = new Paragraph({
+			children: [new TextRun('')]
+		});
 	return [
 		{
 			properties: {

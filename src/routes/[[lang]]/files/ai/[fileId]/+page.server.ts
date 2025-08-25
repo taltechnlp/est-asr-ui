@@ -1,32 +1,32 @@
-import { prisma } from "$lib/db/client";
+import { prisma } from '$lib/db/client';
 import type { PageServerLoad } from './$types';
 import { promises as fs } from 'fs';
 import { error } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
-    const file = await prisma.file.findUnique({
-        where: {
-            id: params.fileId
-        },
-        include: {
-            User: {
-                select: {
-                    id: true,
-                    email: true
-                }
-            }
-        }
-    })
-    const session = await locals.auth();
-    if (!session || !session.user.id) {
-        error(401, 'unauthorized');
-    } 
-    if (session.user.id !== file.User.id ) {
-        return error(401, 'unauthorized');
-    }
-        const content = await fs.readFile(file.initialTranscriptionPath, 'utf8');
+	const file = await prisma.file.findUnique({
+		where: {
+			id: params.fileId
+		},
+		include: {
+			User: {
+				select: {
+					id: true,
+					email: true
+				}
+			}
+		}
+	});
+	const session = await locals.auth();
+	if (!session || !session.user.id) {
+		error(401, 'unauthorized');
+	}
+	if (session.user.id !== file.User.id) {
+		return error(401, 'unauthorized');
+	}
+	const content = await fs.readFile(file.initialTranscriptionPath, 'utf8');
 
-        /* let peaksExist = true;
+	/* let peaksExist = true;
         let peaksPath = file.path + '.json';
         await fs.access(file.path + ".json").catch(e => peaksExist = false);
         if (!peaksExist) {
@@ -93,17 +93,17 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
         }
         let peaks = null;
         if (peaksExist) peaks = await fs.readFile(peaksPath, 'utf-8'); */
-        return {
-            file: {
-                id: file.id,
-                state: file.state,
-                content: content,
-                path: file.path,
-                name: file.filename,
-                uploadedAt: file.uploadedAt,
-                text: file.text,
-                language: file.language
-            },
-            url: url.origin,
-        }
-}
+	return {
+		file: {
+			id: file.id,
+			state: file.state,
+			content: content,
+			path: file.path,
+			name: file.filename,
+			uploadedAt: file.uploadedAt,
+			text: file.text,
+			language: file.language
+		},
+		url: url.origin
+	};
+};

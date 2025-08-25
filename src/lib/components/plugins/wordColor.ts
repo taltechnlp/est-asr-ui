@@ -81,8 +81,7 @@ export const WordColor = Extension.create({
 						view.state.doc.nodeAt(pos).marks[0]
 					) {
 						const attrs = view.state.doc.nodeAt(pos).marks[0].attrs;
-						if (attrs.start && ws && ws.player)
-							ws.player.seek(attrs.start);
+						if (attrs.start && ws && ws.player) ws.player.seek(attrs.start);
 					}
 					// console.log(pos, view.state.doc.nodeAt(pos).marks, view.state.doc.resolve(pos).textOffset, view.state.doc.nodeAt(pos).nodeSize)
 

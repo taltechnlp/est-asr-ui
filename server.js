@@ -14,9 +14,9 @@ function start() {
 	setTimeout(async function () {
 		// console.log('Backup polling.');
 
-      // Again
-      start();
-/*       const files = await prisma.file.findMany({
+		// Again
+		start();
+		/*       const files = await prisma.file.findMany({
         where: {
           state: {
             equals: "READY"
@@ -24,8 +24,8 @@ function start() {
         }
       })
       console.log(files); */
-      // Every 30 sec
-    }, 30000);
+		// Every 30 sec
+	}, 30000);
 }
 
 // Start infinite backup polling

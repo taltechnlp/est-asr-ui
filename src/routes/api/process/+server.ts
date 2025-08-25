@@ -232,21 +232,33 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 									fetch(`${ORIGIN}/api/transcript-analysis/auto-analyze`, {
 										method: 'POST',
 										headers: {
-											'Content-Type': 'application/json',
+											'Content-Type': 'application/json'
 										},
 										body: JSON.stringify({ fileId: file.id })
-									}).then(async response => {
-										if (response.ok) {
-											console.log(`Auto-analysis initiated successfully for file: ${file.filename}`);
-										} else {
-											const errorText = await response.text();
-											console.error(`Failed to initiate auto-analysis for file: ${file.filename} - Status: ${response.status}, Error: ${errorText}`);
-										}
-									}).catch(error => {
-										console.error(`Error initiating auto-analysis for file: ${file.filename}`, error);
-									});
+									})
+										.then(async (response) => {
+											if (response.ok) {
+												console.log(
+													`Auto-analysis initiated successfully for file: ${file.filename}`
+												);
+											} else {
+												const errorText = await response.text();
+												console.error(
+													`Failed to initiate auto-analysis for file: ${file.filename} - Status: ${response.status}, Error: ${errorText}`
+												);
+											}
+										})
+										.catch((error) => {
+											console.error(
+												`Error initiating auto-analysis for file: ${file.filename}`,
+												error
+											);
+										});
 								} catch (error) {
-									console.error(`Failed to trigger auto-analysis for file: ${file.filename}`, error);
+									console.error(
+										`Failed to trigger auto-analysis for file: ${file.filename}`,
+										error
+									);
 								}
 							}
 
@@ -292,21 +304,33 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 									fetch(`${ORIGIN}/api/transcript-analysis/auto-analyze`, {
 										method: 'POST',
 										headers: {
-											'Content-Type': 'application/json',
+											'Content-Type': 'application/json'
 										},
 										body: JSON.stringify({ fileId: file.id })
-									}).then(async response => {
-										if (response.ok) {
-											console.log(`Auto-analysis initiated successfully for file: ${file.filename}`);
-										} else {
-											const errorText = await response.text();
-											console.error(`Failed to initiate auto-analysis for file: ${file.filename} - Status: ${response.status}, Error: ${errorText}`);
-										}
-									}).catch(error => {
-										console.error(`Error initiating auto-analysis for file: ${file.filename}`, error);
-									});
+									})
+										.then(async (response) => {
+											if (response.ok) {
+												console.log(
+													`Auto-analysis initiated successfully for file: ${file.filename}`
+												);
+											} else {
+												const errorText = await response.text();
+												console.error(
+													`Failed to initiate auto-analysis for file: ${file.filename} - Status: ${response.status}, Error: ${errorText}`
+												);
+											}
+										})
+										.catch((error) => {
+											console.error(
+												`Error initiating auto-analysis for file: ${file.filename}`,
+												error
+											);
+										});
 								} catch (error) {
-									console.error(`Failed to trigger auto-analysis for file: ${file.filename}`, error);
+									console.error(
+										`Failed to trigger auto-analysis for file: ${file.filename}`,
+										error
+									);
 								}
 							}
 

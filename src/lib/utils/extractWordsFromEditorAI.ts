@@ -98,7 +98,7 @@ export function extractFullTextWithSpeakers(content: TipTapEditorContent): strin
 						// Add plain text (spaces, etc.)
 						paragraphText += node.text;
 					}
-					
+
 					if (node.content && Array.isArray(node.content)) {
 						for (const child of node.content) {
 							collectText(child);
@@ -190,7 +190,7 @@ export function extractSpeakerSegments(content: TipTapEditorContent): SegmentWit
 			if (speakerNode.type === 'speaker') {
 				const speakerName = speakerNode.attrs?.['data-name'] || 'Unknown Speaker';
 				const speakerId = speakerNode.attrs?.id || `speaker_${segments.length}`;
-				
+
 				let segmentText = '';
 				let firstTime: number | null = null;
 				let lastTime: number | null = null;
@@ -200,7 +200,7 @@ export function extractSpeakerSegments(content: TipTapEditorContent): SegmentWit
 				const collectData = (node: EditorNode) => {
 					if (node.type === 'wordNode') {
 						wordCount++;
-						
+
 						// Extract text
 						if (node.content && Array.isArray(node.content)) {
 							for (const child of node.content) {
@@ -209,13 +209,19 @@ export function extractSpeakerSegments(content: TipTapEditorContent): SegmentWit
 								}
 							}
 						}
-						
+
 						// Track timing
 						if (node.attrs) {
-							if (node.attrs.start !== undefined && (firstTime === null || node.attrs.start < firstTime)) {
+							if (
+								node.attrs.start !== undefined &&
+								(firstTime === null || node.attrs.start < firstTime)
+							) {
 								firstTime = node.attrs.start;
 							}
-							if (node.attrs.end !== undefined && (lastTime === null || node.attrs.end > lastTime)) {
+							if (
+								node.attrs.end !== undefined &&
+								(lastTime === null || node.attrs.end > lastTime)
+							) {
 								lastTime = node.attrs.end;
 							}
 						}
@@ -223,7 +229,7 @@ export function extractSpeakerSegments(content: TipTapEditorContent): SegmentWit
 						// Add spaces and other text
 						segmentText += node.text;
 					}
-					
+
 					if (node.content && Array.isArray(node.content)) {
 						for (const child of node.content) {
 							collectData(child);

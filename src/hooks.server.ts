@@ -1,6 +1,6 @@
 import type { Handle } from '@sveltejs/kit';
-import { sequence } from "@sveltejs/kit/hooks";
-import { auth } from "$lib/auth";
+import { sequence } from '@sveltejs/kit/hooks';
+import { auth } from '$lib/auth';
 
 // Create Better Auth handle that also provides locals.auth() compatibility
 const authHandle: Handle = async ({ event, resolve }) => {
@@ -12,7 +12,7 @@ const authHandle: Handle = async ({ event, resolve }) => {
 			const betterAuthSession = await auth.api.getSession({
 				headers: event.request.headers
 			});
-			
+
 			// If Better Auth has a session, use it
 			if (betterAuthSession) {
 				return {
@@ -23,14 +23,14 @@ const authHandle: Handle = async ({ event, resolve }) => {
 					expires: betterAuthSession.session.expiresAt.toISOString()
 				};
 			}
-			
+
 			// If no Better Auth session, check for our simple session cookie
 			const sessionCookie = event.cookies.get('session');
-			
+
 			if (sessionCookie) {
 				try {
 					const sessionData = JSON.parse(sessionCookie);
-					
+
 					// Validate that it has the expected structure and is logged in
 					if (sessionData.loggedIn && sessionData.userId && sessionData.email) {
 						return {
@@ -49,7 +49,7 @@ const authHandle: Handle = async ({ event, resolve }) => {
 					event.cookies.delete('session', { path: '/' });
 				}
 			}
-			
+
 			// No valid session found
 			return null;
 		} catch (error) {
@@ -57,7 +57,7 @@ const authHandle: Handle = async ({ event, resolve }) => {
 			return null;
 		}
 	};
-	
+
 	return resolve(event);
 };
 

@@ -45,13 +45,13 @@ The tool is integrated into the coordinating agent via `SignalQualityAssessorToo
 
 Based on theory.md specifications, the tool implements dynamic analysis strategies:
 
-| SNR Range | Quality | Strategy | Confidence Threshold | Behavior |
-|-----------|---------|----------|---------------------|----------|
-| ≥30 dB | Excellent | Conservative | 0.9 | Very selective corrections |
-| 20-30 dB | Good | Balanced | 0.8 | Standard approach |
-| 15-20 dB | Fair | Balanced | 0.7 | Moderate corrections |
-| 10-15 dB | Poor | Aggressive | 0.6 | More corrections |
-| <10 dB | Very Poor | Very Aggressive | 0.5 | Maximum corrections |
+| SNR Range | Quality   | Strategy        | Confidence Threshold | Behavior                   |
+| --------- | --------- | --------------- | -------------------- | -------------------------- |
+| ≥30 dB    | Excellent | Conservative    | 0.9                  | Very selective corrections |
+| 20-30 dB  | Good      | Balanced        | 0.8                  | Standard approach          |
+| 15-20 dB  | Fair      | Balanced        | 0.7                  | Moderate corrections       |
+| 10-15 dB  | Poor      | Aggressive      | 0.6                  | More corrections           |
+| <10 dB    | Very Poor | Very Aggressive | 0.5                  | Maximum corrections        |
 
 ## Test Results
 
@@ -92,9 +92,9 @@ The signal quality assessor is integrated into `CoordinatingAgentSimple.analyzeS
 ```typescript
 // Step 1: Assess signal quality
 const qualityResult = await this.signalQualityTool.assessSignalQuality({
-    audioFilePath,
-    startTime: segment.startTime,
-    endTime: segment.endTime
+	audioFilePath,
+	startTime: segment.startTime,
+	endTime: segment.endTime
 });
 
 // Step 2: Adjust strategy based on quality
@@ -103,8 +103,8 @@ const dynamicThreshold = strategy.confidenceThreshold;
 
 // Step 3: Use quality data in analysis
 if (qualityData.snr_db < 15) {
-    // Trigger ASR alternatives for poor quality audio
-    shouldUseASR = true;
+	// Trigger ASR alternatives for poor quality audio
+	shouldUseASR = true;
 }
 ```
 
@@ -114,31 +114,33 @@ The tool returns structured JSON with comprehensive quality metrics:
 
 ```json
 {
-  "snr_db": 19.00,
-  "quality_category": "fair",
-  "reliability": "medium",
-  "suggested_confidence_threshold": 0.7,
-  "method": "duration_estimation",
-  "duration": 5.0,
-  "sample_rate": null,
-  "segment_info": {
-    "start_time": 0.0,
-    "end_time": 5.0,
-    "duration": 5.0
-  },
-  "peak_amplitude": 0.123,
-  "rms_energy": 0.045,
-  "is_clipped": false,
-  "clipping_ratio": 0.0
+	"snr_db": 19.0,
+	"quality_category": "fair",
+	"reliability": "medium",
+	"suggested_confidence_threshold": 0.7,
+	"method": "duration_estimation",
+	"duration": 5.0,
+	"sample_rate": null,
+	"segment_info": {
+		"start_time": 0.0,
+		"end_time": 5.0,
+		"duration": 5.0
+	},
+	"peak_amplitude": 0.123,
+	"rms_energy": 0.045,
+	"is_clipped": false,
+	"clipping_ratio": 0.0
 }
 ```
 
 ## Dependencies
 
 ### Required (Always Available)
+
 - Python 3.x standard library
 
 ### Optional (Enhanced Functionality)
+
 - **PyTorch** (`torch>=1.9.0`) - Advanced audio processing
 - **TorchAudio** (`torchaudio>=0.9.0`) - Audio loading
 - **TorchMetrics** (`torchmetrics>=0.11.0`) - Accurate SNR calculation

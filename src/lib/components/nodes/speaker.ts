@@ -6,9 +6,9 @@ import Segment from './Segment.svelte';
 import { waveform } from '$lib/stores.svelte';
 
 let ws;
-waveform.subscribe(w => {
-    ws = w;
-})
+waveform.subscribe((w) => {
+	ws = w;
+});
 
 export interface SpeakerOptions {
 	HTMLAttributes: Record<string, any>;
@@ -43,9 +43,9 @@ export const Speaker = Node.create<SpeakerOptions>({
 	addAttributes() {
 		return {
 			'data-name': '',
-			id: "",
-			topic: "",
-			alternatives: "" // JSON string of Alternative[] for this segment 
+			id: '',
+			topic: '',
+			alternatives: '' // JSON string of Alternative[] for this segment
 		};
 	},
 	addNodeView() {
@@ -53,7 +53,7 @@ export const Speaker = Node.create<SpeakerOptions>({
 	},
 	addKeyboardShortcuts() {
 		return {
-			'Tab': () => {
+			Tab: () => {
 				if (ws) {
 					ws.playPause();
 				}
@@ -70,7 +70,7 @@ export const Speaker = Node.create<SpeakerOptions>({
 					ws.skipForward(5);
 				}
 				return true;
-			},
-		}
-	},
+			}
+		};
+	}
 });

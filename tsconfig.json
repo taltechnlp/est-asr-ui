@@ -5,6 +5,9 @@
 		"allowSyntheticDefaultImports": true,
 		"typeRoots": ["./node_modules/@types", "./src/types"],
 		"esModuleInterop": true,
-		"moduleResolution": "bundler"
-	}
+		"moduleResolution": "bundler",
+		"skipLibCheck": true,
+		"types": ["vitest/globals"]
+	},
+	"exclude": ["node_modules/bun-types"]
 }

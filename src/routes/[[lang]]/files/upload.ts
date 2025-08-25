@@ -1,45 +1,48 @@
 import { readFile, writeFile } from 'fs/promises';
 import { SECRET_UPLOAD_DIR, FIN_ASR_UPLOAD_URL, EST_ASR_URL } from '$env/static/private';
-import { statSync} from 'fs';
-import type { FinUploadResult, EstUploadResult } from "$lib/helpers/api.d";
-import { promises as fs } from 'fs'; 
+import { statSync } from 'fs';
+import type { FinUploadResult, EstUploadResult } from '$lib/helpers/api.d';
+import { promises as fs } from 'fs';
 import axios from 'axios';
 import Form from 'form-data';
 
-export const UPLOAD_LIMIT = 1024 * 1024 * 1000  // 1000MB
+export const UPLOAD_LIMIT = 1024 * 1024 * 1000; // 1000MB
 export const uploadResult = {
-    0: "failed", 
-    1: "network_error", 
-    2: "ok"
- } as const satisfies {[index: number]: string;};
-type UploadResult = (typeof uploadResult)[keyof typeof uploadResult]
+	0: 'failed',
+	1: 'network_error',
+	2: 'ok'
+} as const satisfies { [index: number]: string };
+type UploadResult = (typeof uploadResult)[keyof typeof uploadResult];
 
 type UploadToService = (
-    filePath: string,
-    filename: string,
- ) => Promise<{
-    externalId?: string;
-    uploadedAt: Date;
-    result: UploadResult;
-}> 
+	filePath: string,
+	filename: string
+) => Promise<{
+	externalId?: string;
+	uploadedAt: Date;
+	result: UploadResult;
+}>;
 
 interface TranscriberError {
-    code: number;
-    message: string;
-    log: string;
+	code: number;
+	message: string;
+	log: string;
 }
 
-type FileSaveResult = boolean | {
-    fileData: {
-    id: string;
-    filename: string;
-    mimetype: string;
-    encoding: string;
-    path: string;
-}}
+type FileSaveResult =
+	| boolean
+	| {
+			fileData: {
+				id: string;
+				filename: string;
+				mimetype: string;
+				encoding: string;
+				path: string;
+			};
+	  };
 
 export const uploadToFinnishAsr: UploadToService = async (filePath, filename) => {
-    const stats = statSync(filePath);
+	const stats = statSync(filePath);
 	// const fileSizeInBytes = stats.size;
 	const uploadedAt = stats.ctime;
 	const form = new Form();
@@ -49,26 +52,26 @@ export const uploadToFinnishAsr: UploadToService = async (filePath, filename) =>
 		headers: {
 			...form.getHeaders()
 		},
-        maxBodyLength: UPLOAD_LIMIT,
-        maxContentLength: UPLOAD_LIMIT 
+		maxBodyLength: UPLOAD_LIMIT,
+		maxContentLength: UPLOAD_LIMIT
 	});
 
-    // Network error or service down
-    if (result.status !== 200) {
-        await fs.unlink(filePath);
-        console.log(result.status, result.statusText)
-        return { externalId: "", uploadedAt, result: uploadResult[1] };
-    }
+	// Network error or service down
+	if (result.status !== 200) {
+		await fs.unlink(filePath);
+		console.log(result.status, result.statusText);
+		return { externalId: '', uploadedAt, result: uploadResult[1] };
+	}
 	const body = result.data as FinUploadResult;
-    // Error in the service
+	// Error in the service
 	if (body.error) {
 		await fs.unlink(filePath);
-        console.log(body.error)
-		return { externalId: "", uploadedAt, result: uploadResult[0] };
+		console.log(body.error);
+		return { externalId: '', uploadedAt, result: uploadResult[0] };
 	}
-    // Ok
-	return { externalId: body.jobid, uploadedAt, result: uploadResult[2]};
-}
+	// Ok
+	return { externalId: body.jobid, uploadedAt, result: uploadResult[2] };
+};
 
 /* export const uploadToBark: UploadToService = async (filePath, filename) => {
     const extension = filename
@@ -108,33 +111,31 @@ export const uploadToFinnishAsr: UploadToService = async (filePath, filename) =>
 }; */
 
 export const uploadToEstAsr: UploadToService = async (filePath, filename) => {
-    const extension = filename
-        .split(".")
-        .pop()
-        .toLowerCase();
-    const stats = statSync(filePath);
-    // const fileSizeInBytes = stats.size;
-    const uploadedAt = stats.ctime;
-    const file = await readFile(filePath);
-    const form = new Form();
+	const extension = filename.split('.').pop().toLowerCase();
+	const stats = statSync(filePath);
+	// const fileSizeInBytes = stats.size;
+	const uploadedAt = stats.ctime;
+	const file = await readFile(filePath);
+	const form = new Form();
 	form.append('file', file, filename);
 	const result = await axios.post(`${EST_ASR_URL}/upload`, form, {
 		headers: {
 			...form.getHeaders()
 		},
-        maxBodyLength: UPLOAD_LIMIT,
-        maxContentLength: UPLOAD_LIMIT 
+		maxBodyLength: UPLOAD_LIMIT,
+		maxContentLength: UPLOAD_LIMIT
 	});
-    const body = result.data as EstUploadResult;
-    // Upload rejected
-    if (result.status !== 201 || !body.success && body.requestId) {
-        await fs.unlink(filePath);
+	const body = result.data as EstUploadResult;
+	// Upload rejected
+	if (result.status !== 201 || (!body.success && body.requestId)) {
+		await fs.unlink(filePath);
 		return { externalId: body.requestId, uploadedAt, result: uploadResult[0] };
 	}
-    // Network error
-    else if (!body.requestId) { // Network error or server down 
-        return { uploadedAt, result: uploadResult[1] };
-    }
-    // Ok
-	else return { externalId: body.requestId, uploadedAt, result: uploadResult[2]};
+	// Network error
+	else if (!body.requestId) {
+		// Network error or server down
+		return { uploadedAt, result: uploadResult[1] };
+	}
+	// Ok
+	else return { externalId: body.requestId, uploadedAt, result: uploadResult[2] };
 };

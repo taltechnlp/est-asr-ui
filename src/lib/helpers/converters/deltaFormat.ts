@@ -1,5 +1,5 @@
 import type { Speaker, Word } from './types';
-import { v4 as uuidv4 } from "uuid";
+import { v4 as uuidv4 } from 'uuid';
 type InsertContent = string | { speaker: string };
 type Op = {
 	insert?: InsertContent;
@@ -15,8 +15,7 @@ type Delta = {
 	ops: Op[];
 };
 
-const nameExists = (names: Array<Speaker>, name: string) => names.find(n=>n.name===name);
-
+const nameExists = (names: Array<Speaker>, name: string) => names.find((n) => n.name === name);
 
 const speakers: Array<Speaker> = [];
 const words: Array<Word> = [];
@@ -26,26 +25,25 @@ function mapOps(op) {
 			return '</speaker>';
 		} else {
 			const id = uuidv4().substring(36 - 12);
-			const start = op.attributes && op.attributes.start ? `start="${op.attributes.start}"` : null
-			const end = op.attributes && op.attributes.end ? `end="${op.attributes.end}"` : null
-			words.push({ id, start: parseInt(start), end: parseInt(end) })
-			return `<span ${start} ${end}>${op.insert
-				}</span>`;
+			const start = op.attributes && op.attributes.start ? `start="${op.attributes.start}"` : null;
+			const end = op.attributes && op.attributes.end ? `end="${op.attributes.end}"` : null;
+			words.push({ id, start: parseInt(start), end: parseInt(end) });
+			return `<span ${start} ${end}>${op.insert}</span>`;
 		}
 	} else if (op.insert && op.insert.speaker) {
 		// Always generate a unique ID for each speaker segment
 		const id = uuidv4().substring(36 - 12);
-		speakers.push({ name: op.insert.speaker, start: 0, id })
-		return `<speaker data-name="${op.insert.speaker}" id="${id}">`
-	};
-};
+		speakers.push({ name: op.insert.speaker, start: 0, id });
+		return `<speaker data-name="${op.insert.speaker}" id="${id}">`;
+	}
+}
 
 export const fromDelta = (delta: Delta) => {
 	return {
-		transcription: delta.ops.map(x => mapOps(x)).join(' '),
+		transcription: delta.ops.map((x) => mapOps(x)).join(' '),
 		words,
 		speakers
-	}
+	};
 };
 
 export const deltaTest: Delta = {

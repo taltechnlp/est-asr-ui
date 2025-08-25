@@ -19,7 +19,7 @@ export const WordColorAI = Extension.create({
 					let posMap = [];
 					let posOffset = 0;
 					let limit = editorState.doc.nodeSize - 2;
-					
+
 					// Find all Word nodes and track their positions
 					editorState.doc.nodesBetween(0, limit, (node, pos, parent) => {
 						if (node.type.name === 'wordNode') {
@@ -60,7 +60,7 @@ export const WordColorAI = Extension.create({
 						// Update posMap after document changes
 						let newPosMap = [];
 						let limit = tr.doc.nodeSize - 2;
-						
+
 						tr.doc.nodesBetween(0, limit, (node, pos, parent) => {
 							if (node.type.name === 'wordNode') {
 								newPosMap.push({
@@ -71,7 +71,7 @@ export const WordColorAI = Extension.create({
 								});
 							}
 						});
-						
+
 						return {
 							set: state.set.map(tr.mapping, tr.doc),
 							lastPos: state.lastPos,
@@ -91,7 +91,7 @@ export const WordColorAI = Extension.create({
 					// Check if we clicked on a Word node
 					const $pos = view.state.doc.resolve(pos);
 					const node = view.state.doc.nodeAt(pos);
-					
+
 					// Also check parent in case we clicked on text inside the Word node
 					let wordNode = null;
 					if (node && node.type.name === 'wordNode') {
@@ -105,7 +105,7 @@ export const WordColorAI = Extension.create({
 							wordNode = parentNode;
 						}
 					}
-					
+
 					if (wordNode) {
 						const attrs = wordNode.attrs;
 						if (attrs.start !== null && attrs.start !== undefined && ws && ws.player) {

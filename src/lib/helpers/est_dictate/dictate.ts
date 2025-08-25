@@ -5,23 +5,23 @@
     }
     let audioSourceConstraints: AudioConstraints = {}; */
 
-export const getMedia = async () =>{
-    const constraints = {
-        audio: true,
-        video: false
-    }
-    let stream = null;
-    try {
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
-        /* use the stream */
-        console.log("stream created", stream)
-    } catch (err) {
-        /* handle the error */
-        console.log("stream creation error", err)
-    }
-}
+export const getMedia = async () => {
+	const constraints = {
+		audio: true,
+		video: false
+	};
+	let stream = null;
+	try {
+		stream = await navigator.mediaDevices.getUserMedia(constraints);
+		/* use the stream */
+		console.log('stream created', stream);
+	} catch (err) {
+		/* handle the error */
+		console.log('stream creation error', err);
+	}
+};
 
-    /* try {
+/* try {
         window.AudioContext = window.AudioContext || window.webkitAudioContext;
         navigator.mediaDevices.getUserMedia = navigator.mediaDevices.getUserMedia || navigator.mediaDevices.webkitGetUserMedia || navigator.mediaDevices.mozGetUserMedia;
         window.URL = window.URL || window.webkitURL;
@@ -50,4 +50,3 @@ export const getMedia = async () =>{
         } catch (e) {
             console.error("Error initializing Web Audio browser: " + e);
         } */
-    

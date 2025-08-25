@@ -32,7 +32,10 @@ export class CoordinatingAgentClient {
 		this.tiptapTool.setEditor(editor);
 	}
 
-	async applySuggestionManually(suggestion: any, segmentId?: string): Promise<{ success: boolean; error?: string }> {
+	async applySuggestionManually(
+		suggestion: any,
+		segmentId?: string
+	): Promise<{ success: boolean; error?: string }> {
 		try {
 			if (!suggestion.originalText || !suggestion.suggestedText) {
 				return { success: false, error: 'Missing original or suggested text' };

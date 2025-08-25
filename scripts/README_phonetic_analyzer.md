@@ -61,16 +61,18 @@ When running the test suite, you should see results like:
 ## Setup Instructions
 
 1. **Basic Setup** (fallback mode):
+
    ```bash
    chmod +x setup_phonetic_analyzer.sh
    ./setup_phonetic_analyzer.sh
    ```
 
 2. **Full Setup** (with et-g2p-fst):
+
    ```bash
    # Install pynini
    pip install pynini
-   
+
    # Clone and setup et-g2p-fst
    git clone https://github.com/alumae/et-g2p-fst.git
    cd et-g2p-fst
@@ -87,7 +89,7 @@ The phonetic analyzer is automatically used by the coordinating agent when:
 
 ### Example Integration Flow
 
-1. Agent identifies potential error: "protocol" 
+1. Agent identifies potential error: "protocol"
 2. Suggests correction: "prototype"
 3. Phonetic analyzer calculates similarity: 0.583
 4. Based on similarity, agent adjusts confidence and explanation
@@ -99,17 +101,17 @@ The tool returns structured JSON with:
 
 ```json
 {
-  "original_text": "käima",
-  "candidate_text": "kaima", 
-  "original_phonetic": "K AE I M A",
-  "candidate_phonetic": "K A I M A",
-  "similarity_score": 0.760,
-  "confidence": "medium",
-  "is_homophone": false,
-  "is_likely_asr_error": true,
-  "phoneme_count_original": 5,
-  "phoneme_count_candidate": 5,
-  "method": "fallback"
+	"original_text": "käima",
+	"candidate_text": "kaima",
+	"original_phonetic": "K AE I M A",
+	"candidate_phonetic": "K A I M A",
+	"similarity_score": 0.76,
+	"confidence": "medium",
+	"is_homophone": false,
+	"is_likely_asr_error": true,
+	"phoneme_count_original": 5,
+	"phoneme_count_candidate": 5,
+	"method": "fallback"
 }
 ```
 

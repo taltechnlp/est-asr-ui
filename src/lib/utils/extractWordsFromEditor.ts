@@ -160,18 +160,18 @@ export function extractSegmentsWithTiming(
 
 	for (let i = 0; i < words.length; i += wordsPerSegment) {
 		const segmentWords = words.slice(i, Math.min(i + wordsPerSegment, words.length));
-		
+
 		if (segmentWords.length > 0) {
 			// Get the speaker from the first word in the segment
 			const speakerTag = segmentWords[0].speakerTag || 'Unknown Speaker';
-			
+
 			segments.push({
 				index: Math.floor(i / wordsPerSegment),
 				startTime: segmentWords[0].start,
 				endTime: segmentWords[segmentWords.length - 1].end,
 				startWord: i,
 				endWord: Math.min(i + wordsPerSegment - 1, words.length - 1),
-				text: segmentWords.map(w => w.text).join(' '),
+				text: segmentWords.map((w) => w.text).join(' '),
 				speakerTag,
 				words: segmentWords
 			});
@@ -246,9 +246,11 @@ export function extractSpeakerSegments(content: TipTapEditorContent): SegmentWit
 
 			// Validate timing
 			if (endTime <= startTime) {
-				console.warn(`Invalid timing for speaker ${speakerName}: start=${startTime}, end=${endTime}`);
+				console.warn(
+					`Invalid timing for speaker ${speakerName}: start=${startTime}, end=${endTime}`
+				);
 				// Try to fix by using the maximum end time from all words
-				const maxEnd = Math.max(...speakerWords.map(w => w.end));
+				const maxEnd = Math.max(...speakerWords.map((w) => w.end));
 				if (maxEnd > startTime) {
 					endTime = maxEnd;
 				}
@@ -260,7 +262,7 @@ export function extractSpeakerSegments(content: TipTapEditorContent): SegmentWit
 				endTime,
 				startWord: globalWordIndex,
 				endWord: globalWordIndex + speakerWords.length - 1,
-				text: speakerWords.map(w => w.text).join(' '),
+				text: speakerWords.map((w) => w.text).join(' '),
 				speakerTag: speakerName,
 				speakerName: speakerName,
 				words: speakerWords

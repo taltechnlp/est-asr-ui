@@ -8,28 +8,28 @@ import type { Editor } from '@tiptap/core';
 import { getLanguageName, normalizeLanguageCode } from '$lib/utils/language';
 import { robustJsonParse } from './utils/jsonParser';
 import {
-  extractSpeakerSegmentsWithPositions,
-  formatSegmentsForLLM,
-  type PositionAwareSegment
+	extractSpeakerSegmentsWithPositions,
+	formatSegmentsForLLM,
+	type PositionAwareSegment
 } from '$lib/services/positionAwareExtractor';
 import { getReconciliationService } from '$lib/services/editReconciliation';
 import { getPositionMapper } from '$lib/services/positionMapper';
 
 export interface PositionAwareAnalysisRequest {
-  fileId: string;
-  segments: PositionAwareSegment[];
-  summary: TranscriptSummary;
-  audioFilePath: string;
-  uiLanguage?: string;
+	fileId: string;
+	segments: PositionAwareSegment[];
+	summary: TranscriptSummary;
+	audioFilePath: string;
+	uiLanguage?: string;
 }
 
 export interface PositionAwareAnalysisResult {
-  segmentIds: string[];
-  analysis: string;
-  suggestions: any[];
-  nBestResults?: any;
-  confidence: number;
-  positionsUsed: boolean;
+	segmentIds: string[];
+	analysis: string;
+	suggestions: any[];
+	nBestResults?: any;
+	confidence: number;
+	positionsUsed: boolean;
 }
 
 const POSITION_AWARE_ANALYSIS_PROMPT = `You are an expert transcript analyst specializing in Estonian and Finnish languages.
@@ -127,107 +127,111 @@ Create suggestions using the same position-based format:
 Provide your enhanced analysis in {responseLanguage} language.`;
 
 export class CoordinatingAgentPosition {
-  private model;
-  private asrTool: any = null;
-  private webSearchTool;
-  private positionTool: PositionAwareTipTapToolDirect;
-  private editor: Editor | null = null;
-  private reconciliationService: any = null;
-  private currentSegments: PositionAwareSegment[] = [];
-  
-  constructor(modelName: string = OPENROUTER_MODELS.GPT_4O) {
-    this.model = createOpenRouterChat({
-      modelName,
-      temperature: 0.3,
-      maxTokens: 2000
-    });
-    
-    this.webSearchTool = createWebSearchTool();
-    this.positionTool = new PositionAwareTipTapToolDirect();
-  }
-  
-  private async initializeASRTool() {
-    if (this.asrTool) return;
-    
-    if (typeof window === 'undefined') {
-      try {
-        const { createASRNBestServerNodeTool } = await import('./tools/asrNBestServerNode');
-        this.asrTool = createASRNBestServerNodeTool('https://tekstiks.ee/asr/transcribe/alternatives');
-      } catch (e) {
-        console.error('Failed to load ASR tool:', e);
-      }
-    }
-  }
-  
-  setEditor(editor: Editor) {
-    this.editor = editor;
-    this.positionTool.setEditor(editor);
-    this.reconciliationService = getReconciliationService(editor);
-  }
-  
-  private cleanJsonString(str: string): string {
-    return str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ' ')
-      .replace(/\u00A0/g, ' ')
-      .replace(/[\u2018\u2019]/g, "'")
-      .replace(/[\u201C\u201D]/g, '"');
-  }
-  
-  async analyzeWithPositions(request: PositionAwareAnalysisRequest): Promise<PositionAwareAnalysisResult> {
-    try {
-      const { segments, summary, audioFilePath, fileId, uiLanguage } = request;
-      
-      // Store current segments for position mapping
-      this.currentSegments = segments;
-      this.positionTool.setSegments(segments);
-      
-      // Get document version for tracking
-      const mapper = this.editor ? getPositionMapper(this.editor) : null;
-      const documentVersion = mapper?.getVersion();
-      
-      // Normalize language
-      const normalizedLanguage = normalizeLanguageCode(uiLanguage);
-      const responseLanguage = getLanguageName(normalizedLanguage);
-      
-      // Format segments for LLM
-      const formattedSegments = formatSegmentsForLLM(segments);
-      const segmentsJson = JSON.stringify(formattedSegments, null, 2);
-      
-      // Build position-aware prompt
-      const prompt = POSITION_AWARE_ANALYSIS_PROMPT
-        .replace('{summary}', summary.summary)
-        .replace('{segments}', segmentsJson)
-        .replace('{responseLanguage}', responseLanguage);
-      
-      // Get initial analysis
-      console.log('Sending position-aware analysis request...');
-      const response = await this.model.invoke([new HumanMessage({ content: prompt })]);
-      
-      // Parse response
-      let analysisData;
-      try {
-        const content = response.content as string;
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-          throw new Error('No JSON found in response');
-        }
-        const parseResult = robustJsonParse(jsonMatch[0]);
-        if (parseResult.success) {
-          analysisData = parseResult.data;
-        } else {
-          throw new Error(`JSON parsing failed: ${parseResult.error}`);
-        }
-      } catch (e) {
-        console.error('Failed to parse position-aware analysis:', e);
-        analysisData = {
-          analysis: response.content,
-          confidence: 0.7,
-          suggestions: []
-        };
-      }
-      
-      // ASR alternatives disabled for now - can be re-enabled when needed
-      let nBestResults = null;
-      /* 
+	private model;
+	private asrTool: any = null;
+	private webSearchTool;
+	private positionTool: PositionAwareTipTapToolDirect;
+	private editor: Editor | null = null;
+	private reconciliationService: any = null;
+	private currentSegments: PositionAwareSegment[] = [];
+
+	constructor(modelName: string = OPENROUTER_MODELS.GPT_4O) {
+		this.model = createOpenRouterChat({
+			modelName,
+			temperature: 0.3,
+			maxTokens: 2000
+		});
+
+		this.webSearchTool = createWebSearchTool();
+		this.positionTool = new PositionAwareTipTapToolDirect();
+	}
+
+	private async initializeASRTool() {
+		if (this.asrTool) return;
+
+		if (typeof window === 'undefined') {
+			try {
+				const { createASRNBestServerNodeTool } = await import('./tools/asrNBestServerNode');
+				this.asrTool = createASRNBestServerNodeTool(
+					'https://tekstiks.ee/asr/transcribe/alternatives'
+				);
+			} catch (e) {
+				console.error('Failed to load ASR tool:', e);
+			}
+		}
+	}
+
+	setEditor(editor: Editor) {
+		this.editor = editor;
+		this.positionTool.setEditor(editor);
+		this.reconciliationService = getReconciliationService(editor);
+	}
+
+	private cleanJsonString(str: string): string {
+		return str
+			.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ' ')
+			.replace(/\u00A0/g, ' ')
+			.replace(/[\u2018\u2019]/g, "'")
+			.replace(/[\u201C\u201D]/g, '"');
+	}
+
+	async analyzeWithPositions(
+		request: PositionAwareAnalysisRequest
+	): Promise<PositionAwareAnalysisResult> {
+		try {
+			const { segments, summary, audioFilePath, fileId, uiLanguage } = request;
+
+			// Store current segments for position mapping
+			this.currentSegments = segments;
+			this.positionTool.setSegments(segments);
+
+			// Get document version for tracking
+			const mapper = this.editor ? getPositionMapper(this.editor) : null;
+			const documentVersion = mapper?.getVersion();
+
+			// Normalize language
+			const normalizedLanguage = normalizeLanguageCode(uiLanguage);
+			const responseLanguage = getLanguageName(normalizedLanguage);
+
+			// Format segments for LLM
+			const formattedSegments = formatSegmentsForLLM(segments);
+			const segmentsJson = JSON.stringify(formattedSegments, null, 2);
+
+			// Build position-aware prompt
+			const prompt = POSITION_AWARE_ANALYSIS_PROMPT.replace('{summary}', summary.summary)
+				.replace('{segments}', segmentsJson)
+				.replace('{responseLanguage}', responseLanguage);
+
+			// Get initial analysis
+			console.log('Sending position-aware analysis request...');
+			const response = await this.model.invoke([new HumanMessage({ content: prompt })]);
+
+			// Parse response
+			let analysisData;
+			try {
+				const content = response.content as string;
+				const jsonMatch = content.match(/\{[\s\S]*\}/);
+				if (!jsonMatch) {
+					throw new Error('No JSON found in response');
+				}
+				const parseResult = robustJsonParse(jsonMatch[0]);
+				if (parseResult.success) {
+					analysisData = parseResult.data;
+				} else {
+					throw new Error(`JSON parsing failed: ${parseResult.error}`);
+				}
+			} catch (e) {
+				console.error('Failed to parse position-aware analysis:', e);
+				analysisData = {
+					analysis: response.content,
+					confidence: 0.7,
+					suggestions: []
+				};
+			}
+
+			// ASR alternatives disabled for now - can be re-enabled when needed
+			let nBestResults = null;
+			/* 
       if (segments.length > 0 && segments[0].startTime !== undefined) {
         try {
           await this.initializeASRTool();
@@ -288,191 +292,191 @@ export class CoordinatingAgentPosition {
         }
       }
       */
-      
-      // Apply position-based suggestions
-      const appliedSuggestions = [];
-      let positionsUsedCount = 0;
-      
-      if (analysisData.suggestions && Array.isArray(analysisData.suggestions)) {
-        for (const suggestion of analysisData.suggestions) {
-          if (suggestion.confidence >= 0.5 && 
-              suggestion.segmentId && 
-              suggestion.startChar !== undefined && 
-              suggestion.endChar !== undefined) {
-            
-            try {
-              console.log(`Applying position-based suggestion in segment ${suggestion.segmentId}:`);
-              console.log(`  Position: ${suggestion.startChar}-${suggestion.endChar}`);
-              console.log(`  Original: "${suggestion.originalText}"`);
-              console.log(`  Suggested: "${suggestion.suggestedText}"`);
-              
-              const result = await this.positionTool.applyPositionBasedChange({
-                segmentId: suggestion.segmentId,
-                startChar: suggestion.startChar,
-                endChar: suggestion.endChar,
-                originalText: suggestion.originalText || '',
-                suggestedText: suggestion.suggestedText || '',
-                changeType: suggestion.type || 'text_replacement',
-                confidence: suggestion.confidence,
-                context: suggestion.explanation || suggestion.text || ''
-              });
-              
-              const parseResult = robustJsonParse(result);
-              if (!parseResult.success) {
-                console.error('Failed to parse position result:', parseResult.error);
-                continue;
-              }
-              const positionResult = parseResult.data;
-              
-              if (positionResult.success) {
-                positionsUsedCount++;
-                appliedSuggestions.push({
-                  ...suggestion,
-                  applied: true,
-                  positionBased: true,
-                  mappingConfidence: positionResult.mappingConfidence,
-                  fallbackUsed: positionResult.fallbackUsed,
-                  diffId: positionResult.diffId
-                });
-                
-                // Track in reconciliation service
-                if (this.reconciliationService && documentVersion) {
-                  this.reconciliationService.addPendingEdit({
-                    id: positionResult.diffId,
-                    type: 'suggestion',
-                    from: positionResult.appliedAt,
-                    to: positionResult.appliedAt + (suggestion.suggestedText?.length || 0),
-                    originalText: suggestion.originalText,
-                    suggestedText: suggestion.suggestedText,
-                    segmentId: suggestion.segmentId,
-                    confidence: suggestion.confidence,
-                    version: documentVersion
-                  });
-                }
-              } else {
-                console.warn('Failed to apply position-based suggestion:', positionResult.error);
-                appliedSuggestions.push({
-                  ...suggestion,
-                  applied: false,
-                  positionBased: true,
-                  error: positionResult.error
-                });
-              }
-            } catch (error) {
-              console.error('Error applying position-based suggestion:', error);
-              appliedSuggestions.push({
-                ...suggestion,
-                applied: false,
-                positionBased: true,
-                error: error instanceof Error ? error.message : 'Unknown error'
-              });
-            }
-          } else {
-            // No position information or low confidence
-            appliedSuggestions.push({
-              ...suggestion,
-              applied: false,
-              positionBased: false,
-              requiresManualReview: true
-            });
-          }
-        }
-      }
-      
-      // Save to database
-      const segmentIds = segments.map(s => s.id);
-      
-      for (const segment of segments) {
-        if (segment.speakerId) {
-          await prisma.analysisSegment.upsert({
-            where: {
-              fileId_segmentIndex: {
-                fileId,
-                segmentIndex: parseInt(segment.id.replace('speaker_', ''))
-              }
-            },
-            create: {
-              fileId,
-              segmentIndex: parseInt(segment.id.replace('speaker_', '')),
-              startTime: segment.startTime || 0,
-              endTime: segment.endTime || 0,
-              startWord: 0,
-              endWord: segment.text.split(' ').length,
-              originalText: segment.text,
-              speakerName: segment.speakerName || 'Unknown',
-              analysis: analysisData.analysis,
-              suggestions: appliedSuggestions,
-              nBestResults,
-              status: 'analyzed'
-            },
-            update: {
-              analysis: analysisData.analysis,
-              suggestions: appliedSuggestions,
-              nBestResults,
-              status: 'analyzed'
-            }
-          });
-        }
-      }
-      
-      return {
-        segmentIds,
-        analysis: analysisData.analysis,
-        suggestions: appliedSuggestions,
-        nBestResults,
-        confidence: analysisData.confidence,
-        positionsUsed: positionsUsedCount > 0
-      };
-      
-    } catch (error) {
-      console.error('Position-aware analysis error:', error);
-      throw new Error(
-        `Failed to analyze with positions: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
-  }
-  
-  async getAnalyzedSegments(fileId: string): Promise<AnalysisSegment[]> {
-    return prisma.analysisSegment.findMany({
-      where: { fileId },
-      orderBy: { segmentIndex: 'asc' }
-    });
-  }
-  
-  /**
-   * Reconcile pending suggestions after document changes
-   */
-  async reconcilePendingSuggestions(): Promise<{
-    reconciled: number;
-    failed: number;
-  }> {
-    if (!this.reconciliationService) {
-      return { reconciled: 0, failed: 0 };
-    }
-    
-    const results = await this.reconciliationService.reconcileAllPending();
-    
-    let reconciled = 0;
-    let failed = 0;
-    
-    results.forEach(result => {
-      if (result.success) {
-        reconciled++;
-      } else {
-        failed++;
-      }
-    });
-    
-    return { reconciled, failed };
-  }
+
+			// Apply position-based suggestions
+			const appliedSuggestions = [];
+			let positionsUsedCount = 0;
+
+			if (analysisData.suggestions && Array.isArray(analysisData.suggestions)) {
+				for (const suggestion of analysisData.suggestions) {
+					if (
+						suggestion.confidence >= 0.5 &&
+						suggestion.segmentId &&
+						suggestion.startChar !== undefined &&
+						suggestion.endChar !== undefined
+					) {
+						try {
+							console.log(`Applying position-based suggestion in segment ${suggestion.segmentId}:`);
+							console.log(`  Position: ${suggestion.startChar}-${suggestion.endChar}`);
+							console.log(`  Original: "${suggestion.originalText}"`);
+							console.log(`  Suggested: "${suggestion.suggestedText}"`);
+
+							const result = await this.positionTool.applyPositionBasedChange({
+								segmentId: suggestion.segmentId,
+								startChar: suggestion.startChar,
+								endChar: suggestion.endChar,
+								originalText: suggestion.originalText || '',
+								suggestedText: suggestion.suggestedText || '',
+								changeType: suggestion.type || 'text_replacement',
+								confidence: suggestion.confidence,
+								context: suggestion.explanation || suggestion.text || ''
+							});
+
+							const parseResult = robustJsonParse(result);
+							if (!parseResult.success) {
+								console.error('Failed to parse position result:', parseResult.error);
+								continue;
+							}
+							const positionResult = parseResult.data;
+
+							if (positionResult.success) {
+								positionsUsedCount++;
+								appliedSuggestions.push({
+									...suggestion,
+									applied: true,
+									positionBased: true,
+									mappingConfidence: positionResult.mappingConfidence,
+									fallbackUsed: positionResult.fallbackUsed,
+									diffId: positionResult.diffId
+								});
+
+								// Track in reconciliation service
+								if (this.reconciliationService && documentVersion) {
+									this.reconciliationService.addPendingEdit({
+										id: positionResult.diffId,
+										type: 'suggestion',
+										from: positionResult.appliedAt,
+										to: positionResult.appliedAt + (suggestion.suggestedText?.length || 0),
+										originalText: suggestion.originalText,
+										suggestedText: suggestion.suggestedText,
+										segmentId: suggestion.segmentId,
+										confidence: suggestion.confidence,
+										version: documentVersion
+									});
+								}
+							} else {
+								console.warn('Failed to apply position-based suggestion:', positionResult.error);
+								appliedSuggestions.push({
+									...suggestion,
+									applied: false,
+									positionBased: true,
+									error: positionResult.error
+								});
+							}
+						} catch (error) {
+							console.error('Error applying position-based suggestion:', error);
+							appliedSuggestions.push({
+								...suggestion,
+								applied: false,
+								positionBased: true,
+								error: error instanceof Error ? error.message : 'Unknown error'
+							});
+						}
+					} else {
+						// No position information or low confidence
+						appliedSuggestions.push({
+							...suggestion,
+							applied: false,
+							positionBased: false,
+							requiresManualReview: true
+						});
+					}
+				}
+			}
+
+			// Save to database
+			const segmentIds = segments.map((s) => s.id);
+
+			for (const segment of segments) {
+				if (segment.speakerId) {
+					await prisma.analysisSegment.upsert({
+						where: {
+							fileId_segmentIndex: {
+								fileId,
+								segmentIndex: parseInt(segment.id.replace('speaker_', ''))
+							}
+						},
+						create: {
+							fileId,
+							segmentIndex: parseInt(segment.id.replace('speaker_', '')),
+							startTime: segment.startTime || 0,
+							endTime: segment.endTime || 0,
+							startWord: 0,
+							endWord: segment.text.split(' ').length,
+							originalText: segment.text,
+							speakerName: segment.speakerName || 'Unknown',
+							analysis: analysisData.analysis,
+							suggestions: appliedSuggestions,
+							nBestResults,
+							status: 'analyzed'
+						},
+						update: {
+							analysis: analysisData.analysis,
+							suggestions: appliedSuggestions,
+							nBestResults,
+							status: 'analyzed'
+						}
+					});
+				}
+			}
+
+			return {
+				segmentIds,
+				analysis: analysisData.analysis,
+				suggestions: appliedSuggestions,
+				nBestResults,
+				confidence: analysisData.confidence,
+				positionsUsed: positionsUsedCount > 0
+			};
+		} catch (error) {
+			console.error('Position-aware analysis error:', error);
+			throw new Error(
+				`Failed to analyze with positions: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
+	}
+
+	async getAnalyzedSegments(fileId: string): Promise<AnalysisSegment[]> {
+		return prisma.analysisSegment.findMany({
+			where: { fileId },
+			orderBy: { segmentIndex: 'asc' }
+		});
+	}
+
+	/**
+	 * Reconcile pending suggestions after document changes
+	 */
+	async reconcilePendingSuggestions(): Promise<{
+		reconciled: number;
+		failed: number;
+	}> {
+		if (!this.reconciliationService) {
+			return { reconciled: 0, failed: 0 };
+		}
+
+		const results = await this.reconciliationService.reconcileAllPending();
+
+		let reconciled = 0;
+		let failed = 0;
+
+		results.forEach((result) => {
+			if (result.success) {
+				reconciled++;
+			} else {
+				failed++;
+			}
+		});
+
+		return { reconciled, failed };
+	}
 }
 
 // Singleton instance
 let positionAgentInstance: CoordinatingAgentPosition | null = null;
 
 export function getPositionAwareAgent(modelName?: string): CoordinatingAgentPosition {
-  if (!positionAgentInstance || modelName) {
-    positionAgentInstance = new CoordinatingAgentPosition(modelName);
-  }
-  return positionAgentInstance;
+	if (!positionAgentInstance || modelName) {
+		positionAgentInstance = new CoordinatingAgentPosition(modelName);
+	}
+	return positionAgentInstance;
 }

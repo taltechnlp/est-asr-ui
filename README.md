@@ -23,9 +23,9 @@ Prisma is able to generate an API to interact with the database. After the initi
 
 `npx prisma generate`
 
-The audio player consumes much less memory if the soundwave is generated server-side. For this `python`, `ffmpeg` and `audiowaveform` have to be available in path as both are executed. Instructions for installing Audiowaveform: https://github.com/bbc/audiowaveform . 
+The audio player consumes much less memory if the soundwave is generated server-side. For this `python`, `ffmpeg` and `audiowaveform` have to be available in path as both are executed. Instructions for installing Audiowaveform: https://github.com/bbc/audiowaveform .
 
-Node LTS versions can be used only. 16.x and 18.x have been tested. 
+Node LTS versions can be used only. 16.x and 18.x have been tested.
 
 ## Developing
 

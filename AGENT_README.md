@@ -16,11 +16,13 @@ The transcript analysis agent system provides intelligent analysis of transcript
 ### Core Components
 
 #### 1. Summary Generator (`/src/lib/agents/summaryGenerator.ts`)
+
 - Uses OpenRouter API to access various LLMs (Claude, GPT-4, etc.)
 - Generates summaries with key topics, speaker count, and language detection
 - Stores summaries in database for reuse
 
 #### 2. Coordinating Agent (`/src/lib/agents/coordinatingAgent.ts`)
+
 - Built with LangGraph for state management
 - Orchestrates the analysis workflow
 - Uses summary as context for segment analysis
@@ -29,11 +31,13 @@ The transcript analysis agent system provides intelligent analysis of transcript
 #### 3. Tools
 
 ##### ASR N-best Tool (`/src/lib/agents/tools/asrNBest.ts`)
+
 - Slices audio files using FFmpeg
 - Sends segments to ASR API
 - Returns alternative transcriptions
 
 ##### Web Search Tool (`/src/lib/agents/tools/webSearch.ts`)
+
 - Searches for information about specific terms
 - Language-aware search (Estonian, Finnish, English)
 - Falls back gracefully if search fails
@@ -41,11 +45,13 @@ The transcript analysis agent system provides intelligent analysis of transcript
 ### UI Components
 
 #### Summary Accordion (`/src/lib/components/transcript-summary/SummaryAccordion.svelte`)
+
 - Collapsible summary display
 - Shows key topics as tags
 - Regenerate functionality
 
 #### Segment Control (`/src/lib/components/transcript-analysis/SegmentControl.svelte`)
+
 - Navigate through transcript segments
 - Manual analysis trigger
 - Display results and alternatives
@@ -63,6 +69,7 @@ The transcript analysis agent system provides intelligent analysis of transcript
 ### Environment Variables
 
 Add to your `.env` file:
+
 ```
 OPENROUTER_API_KEY=your-openrouter-api-key
 ```
@@ -72,6 +79,7 @@ Get your API key from [OpenRouter](https://openrouter.ai/).
 ### Database Migration
 
 Run the migration to create new tables:
+
 ```bash
 npx prisma migrate deploy
 ```
@@ -108,6 +116,7 @@ The TranscriptChat component now includes three tabs:
 ### Modifying Analysis Prompts
 
 Edit prompts in:
+
 - `/src/lib/agents/summaryGenerator.ts` - Summary generation prompt
 - `/src/lib/agents/coordinatingAgent.ts` - Segment analysis prompt
 

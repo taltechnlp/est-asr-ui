@@ -7,9 +7,9 @@ import type { LayoutLoad } from './$types';
 export const load: LayoutLoad = async ({ fetch, parent, data }) => {
 	await waitLocale();
 	if (data && data.user) {
-		userState.id = data.user.id || ""; 
-		userState.email = data.user.email || "";
-		userState.name = data.user.name || "";
+		userState.id = data.user.id || '';
+		userState.email = data.user.email || '';
+		userState.name = data.user.name || '';
 	}
 	return { language: data.language };
 };

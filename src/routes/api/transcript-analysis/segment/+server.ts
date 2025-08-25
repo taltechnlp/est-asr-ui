@@ -1,166 +1,179 @@
-import type { RequestHandler } from "./$types";
-import { json } from "@sveltejs/kit";
-import { getCoordinatingAgent } from "$lib/agents/coordinatingAgentSimple";
-import { prisma } from "$lib/db/client";
-import { z } from "zod";
-import type { SegmentWithTiming } from "$lib/utils/extractWordsFromEditor";
-import { isSupportedLanguage } from "$lib/utils/language";
+import type { RequestHandler } from './$types';
+import { json } from '@sveltejs/kit';
+import { getCoordinatingAgent } from '$lib/agents/coordinatingAgentSimple';
+import { prisma } from '$lib/db/client';
+import { z } from 'zod';
+import type { SegmentWithTiming } from '$lib/utils/extractWordsFromEditor';
+import { isSupportedLanguage } from '$lib/utils/language';
 
 const AnalyzeSegmentSchema = z.object({
-  fileId: z.string(),
-  segment: z.object({
-    index: z.number(),
-    startTime: z.number(),
-    endTime: z.number(),
-    startWord: z.number(),
-    endWord: z.number(),
-    text: z.string(),
-    speakerTag: z.string(),
-    words: z.array(z.object({
-      text: z.string(),
-      start: z.number(),
-      end: z.number(),
-      speakerTag: z.string(),
-    })),
-    alternatives: z.array(z.object({
-      rank: z.number(),
-      text: z.string(),
-      avg_logprob: z.number(),
-    })).optional(), // ASR alternative hypotheses
-  }),
-  summaryId: z.string(),
-  audioFilePath: z.string(),
-  uiLanguage: z.string().optional(),
-  usePositions: z.boolean().optional().default(false),
-  extractedSegments: z.array(z.any()).optional(), // Client-extracted segments for position mapping
+	fileId: z.string(),
+	segment: z.object({
+		index: z.number(),
+		startTime: z.number(),
+		endTime: z.number(),
+		startWord: z.number(),
+		endWord: z.number(),
+		text: z.string(),
+		speakerTag: z.string(),
+		words: z.array(
+			z.object({
+				text: z.string(),
+				start: z.number(),
+				end: z.number(),
+				speakerTag: z.string()
+			})
+		),
+		alternatives: z
+			.array(
+				z.object({
+					rank: z.number(),
+					text: z.string(),
+					avg_logprob: z.number()
+				})
+			)
+			.optional() // ASR alternative hypotheses
+	}),
+	summaryId: z.string(),
+	audioFilePath: z.string(),
+	uiLanguage: z.string().optional(),
+	usePositions: z.boolean().optional().default(false),
+	extractedSegments: z.array(z.any()).optional() // Client-extracted segments for position mapping
 });
 
 export const POST: RequestHandler = async ({ request, locals }) => {
-  try {
-    // Check authentication
-    const session = await locals.auth();
-    if (!session?.user) {
-      return json({ error: "Unauthorized" }, { status: 401 });
-    }
+	try {
+		// Check authentication
+		const session = await locals.auth();
+		if (!session?.user) {
+			return json({ error: 'Unauthorized' }, { status: 401 });
+		}
 
-    // Parse and validate request
-    const body = await request.json();
-    const { fileId, segment, summaryId, audioFilePath, uiLanguage, usePositions, extractedSegments } = AnalyzeSegmentSchema.parse(body);
-    
-    // Validate UI language if provided
-    if (uiLanguage && !isSupportedLanguage(uiLanguage)) {
-      return json({ error: "Unsupported UI language" }, { status: 400 });
-    }
+		// Parse and validate request
+		const body = await request.json();
+		const {
+			fileId,
+			segment,
+			summaryId,
+			audioFilePath,
+			uiLanguage,
+			usePositions,
+			extractedSegments
+		} = AnalyzeSegmentSchema.parse(body);
 
-    // Verify file ownership
-    const file = await prisma.file.findUnique({
-      where: { id: fileId },
-      select: { 
-        uploader: true,
-        path: true,
-      },
-    });
+		// Validate UI language if provided
+		if (uiLanguage && !isSupportedLanguage(uiLanguage)) {
+			return json({ error: 'Unsupported UI language' }, { status: 400 });
+		}
 
-    if (!file) {
-      return json({ error: "File not found" }, { status: 404 });
-    }
+		// Verify file ownership
+		const file = await prisma.file.findUnique({
+			where: { id: fileId },
+			select: {
+				uploader: true,
+				path: true
+			}
+		});
 
-    if (file.uploader !== session.user.id) {
-      return json({ error: "Unauthorized" }, { status: 403 });
-    }
+		if (!file) {
+			return json({ error: 'File not found' }, { status: 404 });
+		}
 
-    // Get summary
-    const summary = await prisma.transcriptSummary.findUnique({
-      where: { id: summaryId },
-    });
+		if (file.uploader !== session.user.id) {
+			return json({ error: 'Unauthorized' }, { status: 403 });
+		}
 
-    if (!summary || summary.fileId !== fileId) {
-      return json({ error: "Summary not found" }, { status: 404 });
-    }
+		// Get summary
+		const summary = await prisma.transcriptSummary.findUnique({
+			where: { id: summaryId }
+		});
 
-    // Use the actual file path from database if audioFilePath is not provided correctly
-    const actualAudioPath = audioFilePath || file.path;
+		if (!summary || summary.fileId !== fileId) {
+			return json({ error: 'Summary not found' }, { status: 404 });
+		}
 
-    let result;
-    
-    if (usePositions && extractedSegments && extractedSegments.length > 0) {
-      // Use position-based approach with client-extracted segments
-      
-      // Find the matching segment from extracted segments
-      const targetSegment = extractedSegments.find((s: any) => s.index === segment.index);
-      
-      if (!targetSegment) {
-        console.warn(`Segment ${segment.index} not found in extracted segments, falling back to text-based`);
-        // Fall back to text-based approach
-        const agent = getCoordinatingAgent();
-        result = await agent.analyzeSegment({
-          fileId,
-          segment: segment as SegmentWithTiming,
-          summary,
-          audioFilePath: actualAudioPath,
-          uiLanguage,
-        });
-      } else {
-        // Create suggestion with position information
-        // The suggestions will be applied client-side using the position-aware client
-        const agent = getCoordinatingAgent();
-        result = await agent.analyzeSegment({
-          fileId,
-          segment: targetSegment as SegmentWithTiming,
-          summary,
-          audioFilePath: actualAudioPath,
-          uiLanguage,
-        });
-        
-        // Enhance suggestions with position hints if available
-        if (result.suggestions && Array.isArray(result.suggestions)) {
-          result.suggestions = result.suggestions.map((suggestion: any) => ({
-            ...suggestion,
-            segmentIndex: segment.index,
-            usePositions: true,
-            // The client will handle position mapping using the reconciliation service
-          }));
-        }
-      }
-    } else {
-      // Use text-based approach (default)
-      const agent = getCoordinatingAgent();
-      result = await agent.analyzeSegment({
-        fileId,
-        segment: segment as SegmentWithTiming,
-        summary,
-        audioFilePath: actualAudioPath,
-        uiLanguage,
-      });
-    }
+		// Use the actual file path from database if audioFilePath is not provided correctly
+		const actualAudioPath = audioFilePath || file.path;
 
-    // Get the saved analysis segment
-    const analysisSegment = await prisma.analysisSegment.findUnique({
-      where: {
-        fileId_segmentIndex: {
-          fileId,
-          segmentIndex: segment.index,
-        },
-      },
-    });
+		let result;
 
-    return json({
-      ...result,
-      analysisSegment,
-    });
-  } catch (error) {
-    console.error("Analyze segment error:", error);
-    
-    if (error instanceof z.ZodError) {
-      return json(
-        { error: "Invalid request", details: error.errors },
-        { status: 400 }
-      );
-    }
+		if (usePositions && extractedSegments && extractedSegments.length > 0) {
+			// Use position-based approach with client-extracted segments
 
-    return json(
-      { error: error instanceof Error ? error.message : "Failed to analyze segment" },
-      { status: 500 }
-    );
-  }
+			// Find the matching segment from extracted segments
+			const targetSegment = extractedSegments.find((s: any) => s.index === segment.index);
+
+			if (!targetSegment) {
+				console.warn(
+					`Segment ${segment.index} not found in extracted segments, falling back to text-based`
+				);
+				// Fall back to text-based approach
+				const agent = getCoordinatingAgent();
+				result = await agent.analyzeSegment({
+					fileId,
+					segment: segment as SegmentWithTiming,
+					summary,
+					audioFilePath: actualAudioPath,
+					uiLanguage
+				});
+			} else {
+				// Create suggestion with position information
+				// The suggestions will be applied client-side using the position-aware client
+				const agent = getCoordinatingAgent();
+				result = await agent.analyzeSegment({
+					fileId,
+					segment: targetSegment as SegmentWithTiming,
+					summary,
+					audioFilePath: actualAudioPath,
+					uiLanguage
+				});
+
+				// Enhance suggestions with position hints if available
+				if (result.suggestions && Array.isArray(result.suggestions)) {
+					result.suggestions = result.suggestions.map((suggestion: any) => ({
+						...suggestion,
+						segmentIndex: segment.index,
+						usePositions: true
+						// The client will handle position mapping using the reconciliation service
+					}));
+				}
+			}
+		} else {
+			// Use text-based approach (default)
+			const agent = getCoordinatingAgent();
+			result = await agent.analyzeSegment({
+				fileId,
+				segment: segment as SegmentWithTiming,
+				summary,
+				audioFilePath: actualAudioPath,
+				uiLanguage
+			});
+		}
+
+		// Get the saved analysis segment
+		const analysisSegment = await prisma.analysisSegment.findUnique({
+			where: {
+				fileId_segmentIndex: {
+					fileId,
+					segmentIndex: segment.index
+				}
+			}
+		});
+
+		return json({
+			...result,
+			analysisSegment
+		});
+	} catch (error) {
+		console.error('Analyze segment error:', error);
+
+		if (error instanceof z.ZodError) {
+			return json({ error: 'Invalid request', details: error.errors }, { status: 400 });
+		}
+
+		return json(
+			{ error: error instanceof Error ? error.message : 'Failed to analyze segment' },
+			{ status: 500 }
+		);
+	}
 };

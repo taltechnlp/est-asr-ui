@@ -224,7 +224,9 @@ export class CoordinatingAgentSimple {
 				this.signalQualityTool = createSignalQualityAssessorTool();
 				await this.logger?.logGeneral('info', 'SignalQualityAssessorTool initialized successfully');
 			} catch (e) {
-				await this.logger?.logGeneral('warn', 'Failed to load SignalQualityAssessor tool', { error: e });
+				await this.logger?.logGeneral('warn', 'Failed to load SignalQualityAssessor tool', {
+					error: e
+				});
 			}
 		}
 	}
@@ -320,7 +322,10 @@ export class CoordinatingAgentSimple {
 
 		// Retry with LLM self-correction
 		for (let retry = 1; retry <= maxRetries; retry++) {
-			await this.logger?.logGeneral('debug', `Retry ${retry}/${maxRetries}: Requesting JSON correction from LLM`);
+			await this.logger?.logGeneral(
+				'debug',
+				`Retry ${retry}/${maxRetries}: Requesting JSON correction from LLM`
+			);
 
 			const correctionPrompt = `${formatParsingErrorForLLM(
 				parseResult.error || 'Invalid JSON structure',
@@ -377,7 +382,10 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 		}
 
 		// Fallback after all retries failed
-		await this.logger?.logGeneral('error', 'All JSON parsing attempts failed, using fallback structure');
+		await this.logger?.logGeneral(
+			'error',
+			'All JSON parsing attempts failed, using fallback structure'
+		);
 
 		return {
 			analysis: response.substring(0, 1000),
@@ -395,11 +403,16 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 			// Initialize logger if transcript path is provided
 			if (transcriptFilePath) {
 				this.initializeLogger(transcriptFilePath, fileId);
-				await this.logger?.logGeneral('info', `Starting analysis for segment ${segment.index}`, {
-					segmentText: segment.text.substring(0, 100) + (segment.text.length > 100 ? '...' : ''),
-					speaker: segment.speakerName || segment.speakerTag,
-					duration: (segment.endTime - segment.startTime).toFixed(2) + 's'
-				}, segment.index);
+				await this.logger?.logGeneral(
+					'info',
+					`Starting analysis for segment ${segment.index}`,
+					{
+						segmentText: segment.text.substring(0, 100) + (segment.text.length > 100 ? '...' : ''),
+						speaker: segment.speakerName || segment.speakerTag,
+						duration: (segment.endTime - segment.startTime).toFixed(2) + 's'
+					},
+					segment.index
+				);
 			}
 
 			// Normalize UI language and get language name
@@ -410,13 +423,15 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 			let signalQuality = null;
 			let analysisStrategy = 'balanced';
 			let dynamicConfidenceThreshold = 0.7;
-			
+
 			try {
-				await this.logger?.logGeneral('info', 'Assessing signal quality for analysis strategy', { segmentIndex: segment.index });
-				
+				await this.logger?.logGeneral('info', 'Assessing signal quality for analysis strategy', {
+					segmentIndex: segment.index
+				});
+
 				// Initialize signal quality tool if needed
 				await this.initializeSignalQualityTool();
-				
+
 				if (this.signalQualityTool) {
 					const signalQualityStartTime = Date.now();
 					const qualityInput = {
@@ -424,34 +439,53 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 						startTime: segment.startTime,
 						endTime: segment.endTime
 					};
-					
+
 					await this.logger?.logToolCall('SignalQualityAssessor', qualityInput, segment.index);
-					
+
 					const qualityData = await this.signalQualityTool.assessSignalQuality(qualityInput);
-					
+
 					const signalQualityDuration = Date.now() - signalQualityStartTime;
-					await this.logger?.logToolResponse('SignalQualityAssessor', qualityData, signalQualityDuration, segment.index);
-					
+					await this.logger?.logToolResponse(
+						'SignalQualityAssessor',
+						qualityData,
+						signalQualityDuration,
+						segment.index
+					);
+
 					signalQuality = qualityData;
-					
+
 					// Get analysis strategy based on SNR
 					const strategy = this.signalQualityTool.getAnalysisStrategy(qualityData.snr_db);
 					analysisStrategy = strategy.strategy;
 					dynamicConfidenceThreshold = strategy.confidenceThreshold;
-					
-					await this.logger?.logGeneral('info', 'Signal quality assessment completed', {
-						snrDb: qualityData.snr_db,
-						qualityCategory: qualityData.quality_category,
-						strategy: analysisStrategy,
-						dynamicThreshold: dynamicConfidenceThreshold
-					}, segment.index);
-					
+
+					await this.logger?.logGeneral(
+						'info',
+						'Signal quality assessment completed',
+						{
+							snrDb: qualityData.snr_db,
+							qualityCategory: qualityData.quality_category,
+							strategy: analysisStrategy,
+							dynamicThreshold: dynamicConfidenceThreshold
+						},
+						segment.index
+					);
 				} else {
-					await this.logger?.logGeneral('info', 'Signal quality tool not available, using default strategy', {}, segment.index);
+					await this.logger?.logGeneral(
+						'info',
+						'Signal quality tool not available, using default strategy',
+						{},
+						segment.index
+					);
 				}
 			} catch (qualityError) {
 				// Error logged by logger below
-				await this.logger?.logGeneral('error', 'Signal quality assessment failed', qualityError, segment.index);
+				await this.logger?.logGeneral(
+					'error',
+					'Signal quality assessment failed',
+					qualityError,
+					segment.index
+				);
 				// Continue with default strategy
 			}
 
@@ -477,9 +511,15 @@ Consider these alternatives when analyzing for potential transcription errors.`;
 - Analysis Strategy: ${analysisStrategy}
 - Recommended confidence threshold: ${dynamicConfidenceThreshold}
 
-Based on this audio quality, you should be ${analysisStrategy === 'conservative' ? 'very conservative' : 
-	analysisStrategy === 'aggressive' ? 'more aggressive' : 
-	analysisStrategy === 'very_aggressive' ? 'very aggressive' : 'balanced'} with corrections.`;
+Based on this audio quality, you should be ${
+					analysisStrategy === 'conservative'
+						? 'very conservative'
+						: analysisStrategy === 'aggressive'
+							? 'more aggressive'
+							: analysisStrategy === 'very_aggressive'
+								? 'very aggressive'
+								: 'balanced'
+				} with corrections.`;
 			}
 
 			// Build the analysis prompt
@@ -494,26 +534,36 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 				.replace('{responseLanguage}', responseLanguage);
 
 			// Log the analysis request
-			await this.logger?.logGeneral('info', 'Starting LLM analysis request', {
-				speaker: segment.speakerName || segment.speakerTag,
-				textLength: segment.text.length,
-				duration: (segment.endTime - segment.startTime).toFixed(2) + 's',
-				alternativesCount: segment.alternatives ? segment.alternatives.length : 0,
-				alternativeTexts: segment.alternatives?.map((alt) => alt.text) || []
-			}, segment.index);
+			await this.logger?.logGeneral(
+				'info',
+				'Starting LLM analysis request',
+				{
+					speaker: segment.speakerName || segment.speakerTag,
+					textLength: segment.text.length,
+					duration: (segment.endTime - segment.startTime).toFixed(2) + 's',
+					alternativesCount: segment.alternatives ? segment.alternatives.length : 0,
+					alternativeTexts: segment.alternatives?.map((alt) => alt.text) || []
+				},
+				segment.index
+			);
 
 			// Get initial analysis
 			const llmStartTime = Date.now();
 			await this.logger?.logLLMRequest(prompt, 'GPT-4O', segment.index);
-			
+
 			const response = await this.model.invoke([new HumanMessage({ content: prompt })]);
-			
+
 			const llmDuration = Date.now() - llmStartTime;
 			await this.logger?.logLLMResponse(response.content as string, llmDuration, segment.index);
 
-			await this.logger?.logGeneral('debug', 'Processing LLM response', {
-				responseLength: (response.content as string).length
-			}, segment.index);
+			await this.logger?.logGeneral(
+				'debug',
+				'Processing LLM response',
+				{
+					responseLength: (response.content as string).length
+				},
+				segment.index
+			);
 
 			// Parse the response with robust error recovery and retry
 			const expectedKeys = [
@@ -528,16 +578,21 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 				expectedKeys
 			);
 
-			await this.logger?.logGeneral('debug', 'Analysis data extracted successfully', {
-				suggestionsCount: analysisData.suggestions?.length || 0
-			}, segment.index);
+			await this.logger?.logGeneral(
+				'debug',
+				'Analysis data extracted successfully',
+				{
+					suggestionsCount: analysisData.suggestions?.length || 0
+				},
+				segment.index
+			);
 
 			let nBestResults = null;
 
 			// Use ASR N-best tool when the LLM determines it's needed OR when signal quality is poor
-			const shouldUseASR = analysisData.needsAlternatives || 
-				(signalQuality && signalQuality.snr_db < 15); // Aggressive ASR for poor audio
-			
+			const shouldUseASR =
+				analysisData.needsAlternatives || (signalQuality && signalQuality.snr_db < 15); // Aggressive ASR for poor audio
+
 			if (shouldUseASR) {
 				let asrStartTime: number;
 				try {
@@ -545,12 +600,17 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 					await this.initializeASRTool();
 
 					if (this.asrTool) {
-						await this.logger?.logToolExecution('ASRNBestTool', 'Calling ASR N-best tool for segment', {
-							audioFilePath: audioFilePath?.split('/').pop() || 'unknown',
-							startTime: segment.startTime,
-							endTime: segment.endTime
-						}, segment.index);
-						
+						await this.logger?.logToolExecution(
+							'ASRNBestTool',
+							'Calling ASR N-best tool for segment',
+							{
+								audioFilePath: audioFilePath?.split('/').pop() || 'unknown',
+								startTime: segment.startTime,
+								endTime: segment.endTime
+							},
+							segment.index
+						);
+
 						asrStartTime = Date.now();
 						const asrInput = {
 							audioFilePath,
@@ -558,20 +618,35 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 							endTime: segment.endTime,
 							nBest: 5
 						};
-						
+
 						await this.logger?.logToolCall('ASR-NBest', asrInput, segment.index);
-						
+
 						const asrResult = await this.asrTool._call(asrInput);
-						
+
 						const asrDuration = Date.now() - asrStartTime;
 						nBestResults = JSON.parse(asrResult);
-						await this.logger?.logToolResponse('ASR-NBest', nBestResults, asrDuration, segment.index);
-						
-						await this.logger?.logToolExecution('ASRNBestTool', 'ASR N-best results received', {
-							resultCount: nBestResults?.alternatives?.length || 0
-						}, segment.index);
+						await this.logger?.logToolResponse(
+							'ASR-NBest',
+							nBestResults,
+							asrDuration,
+							segment.index
+						);
+
+						await this.logger?.logToolExecution(
+							'ASRNBestTool',
+							'ASR N-best results received',
+							{
+								resultCount: nBestResults?.alternatives?.length || 0
+							},
+							segment.index
+						);
 					} else {
-						await this.logger?.logToolExecution('ASRNBestTool', 'ASR tool not available (client-side context)', {}, segment.index);
+						await this.logger?.logToolExecution(
+							'ASRNBestTool',
+							'ASR tool not available (client-side context)',
+							{},
+							segment.index
+						);
 					}
 				} catch (e) {
 					await this.logger?.logToolError('ASRNBestTool', e, 0, segment.index);
@@ -604,18 +679,28 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 						.replace('{asrAlternatives}', asrAlternativesText)
 						.replace('{responseLanguage}', responseLanguage);
 
-					await this.logger?.logGeneral('debug', 'Sending enhanced prompt to LLM', { segmentIndex: segment.index });
+					await this.logger?.logGeneral('debug', 'Sending enhanced prompt to LLM', {
+						segmentIndex: segment.index
+					});
 
 					// Get enhanced analysis
 					const enhancedLlmStartTime = Date.now();
-					await this.logger?.logLLMRequest(enhancedPrompt, 'GPT-4O (Enhanced Analysis)', segment.index);
-					
+					await this.logger?.logLLMRequest(
+						enhancedPrompt,
+						'GPT-4O (Enhanced Analysis)',
+						segment.index
+					);
+
 					const enhancedResponse = await this.model.invoke([
 						new HumanMessage({ content: enhancedPrompt })
 					]);
 
 					const enhancedLlmDuration = Date.now() - enhancedLlmStartTime;
-					await this.logger?.logLLMResponse(enhancedResponse.content as string, enhancedLlmDuration, segment.index);
+					await this.logger?.logLLMResponse(
+						enhancedResponse.content as string,
+						enhancedLlmDuration,
+						segment.index
+					);
 
 					await this.logger?.logGeneral('debug', 'Enhanced response received', {
 						responseLength: (enhancedResponse.content as string).length,
@@ -638,47 +723,71 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 						analysisData.analysis = enhancedData.analysis || analysisData.analysis;
 						analysisData.confidence = enhancedData.confidence || analysisData.confidence;
 					} else {
-						await this.logger?.logGeneral('warn', 'Enhanced analysis produced no suggestions', { segmentIndex: segment.index });
+						await this.logger?.logGeneral('warn', 'Enhanced analysis produced no suggestions', {
+							segmentIndex: segment.index
+						});
 					}
 				} catch (e) {
-					await this.logger?.logGeneral('error', 'Enhanced analysis error', { error: e, segmentIndex: segment.index });
+					await this.logger?.logGeneral('error', 'Enhanced analysis error', {
+						error: e,
+						segmentIndex: segment.index
+					});
 				}
 			} else {
-				await this.logger?.logGeneral('info', 'No ASR results available for enhanced analysis', { segmentIndex: segment.index });
+				await this.logger?.logGeneral('info', 'No ASR results available for enhanced analysis', {
+					segmentIndex: segment.index
+				});
 			}
 
 			// Perform phonetic analysis on high-confidence suggestions
-			if (analysisData.suggestions && Array.isArray(analysisData.suggestions) && analysisData.suggestions.length > 0) {
+			if (
+				analysisData.suggestions &&
+				Array.isArray(analysisData.suggestions) &&
+				analysisData.suggestions.length > 0
+			) {
 				try {
-					await this.logger?.logGeneral('info', 'Performing phonetic analysis on suggestions', { segmentIndex: segment.index });
-					
+					await this.logger?.logGeneral('info', 'Performing phonetic analysis on suggestions', {
+						segmentIndex: segment.index
+					});
+
 					// Initialize phonetic tool if needed
 					await this.initializePhoneticTool();
-					
+
 					if (this.phoneticTool) {
 						// Analyze each suggestion that has both original and suggested text
 						for (const suggestion of analysisData.suggestions) {
 							if (suggestion.originalText && suggestion.suggestedText) {
 								let phoneticStartTime: number;
 								try {
-									await this.logger?.logToolExecution('PhoneticAnalyzer', 'Analyzing phonetic similarity', {
-										original: suggestion.originalText?.substring(0, 100),
-										suggested: suggestion.suggestedText?.substring(0, 100)
-									}, segment.index);
-									
+									await this.logger?.logToolExecution(
+										'PhoneticAnalyzer',
+										'Analyzing phonetic similarity',
+										{
+											original: suggestion.originalText?.substring(0, 100),
+											suggested: suggestion.suggestedText?.substring(0, 100)
+										},
+										segment.index
+									);
+
 									phoneticStartTime = Date.now();
 									const phoneticInput = {
 										text: suggestion.originalText,
 										candidate: suggestion.suggestedText
 									};
-									
+
 									await this.logger?.logToolCall('PhoneticAnalyzer', phoneticInput, segment.index);
-									
-									const phoneticData = await this.phoneticTool.analyzePhoneticSimilarity(phoneticInput);
-									
+
+									const phoneticData =
+										await this.phoneticTool.analyzePhoneticSimilarity(phoneticInput);
+
 									const phoneticDuration = Date.now() - phoneticStartTime;
-									await this.logger?.logToolResponse('PhoneticAnalyzer', phoneticData, phoneticDuration, segment.index);
-									
+									await this.logger?.logToolResponse(
+										'PhoneticAnalyzer',
+										phoneticData,
+										phoneticDuration,
+										segment.index
+									);
+
 									// Enhance suggestion with phonetic analysis
 									suggestion.phoneticAnalysis = {
 										similarity_score: phoneticData.similarity_score,
@@ -687,43 +796,69 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 										original_phonetic: phoneticData.original_phonetic,
 										candidate_phonetic: phoneticData.candidate_phonetic
 									};
-									
+
 									// Boost confidence for high phonetic similarity
 									if (phoneticData.similarity_score >= 0.7) {
 										const originalConfidence = suggestion.confidence || 0.5;
 										const phoneticBoost = (phoneticData.similarity_score - 0.7) * 0.5; // 0.0 to 0.15 boost
 										suggestion.confidence = Math.min(1.0, originalConfidence + phoneticBoost);
-										
+
 										// Add explanation about phonetic similarity
 										const phoneticExplanation = `Phonetic analysis shows ${Math.round(phoneticData.similarity_score * 100)}% similarity, suggesting this could be an ASR error.`;
-										suggestion.explanation = suggestion.explanation ? 
-											`${suggestion.explanation} ${phoneticExplanation}` : 
-											phoneticExplanation;
-										
-										await this.logger?.logToolExecution('PhoneticAnalyzer', 'Phonetic boost applied', {
-											originalConfidence: originalConfidence,
-											newConfidence: suggestion.confidence,
-											similarityScore: phoneticData.similarity_score
-										}, segment.index);
+										suggestion.explanation = suggestion.explanation
+											? `${suggestion.explanation} ${phoneticExplanation}`
+											: phoneticExplanation;
+
+										await this.logger?.logToolExecution(
+											'PhoneticAnalyzer',
+											'Phonetic boost applied',
+											{
+												originalConfidence: originalConfidence,
+												newConfidence: suggestion.confidence,
+												similarityScore: phoneticData.similarity_score
+											},
+											segment.index
+										);
 									} else {
-										await this.logger?.logToolExecution('PhoneticAnalyzer', 'Low phonetic similarity, no confidence boost', {
-											similarityScore: phoneticData.similarity_score
-										}, segment.index);
+										await this.logger?.logToolExecution(
+											'PhoneticAnalyzer',
+											'Low phonetic similarity, no confidence boost',
+											{
+												similarityScore: phoneticData.similarity_score
+											},
+											segment.index
+										);
 									}
-									
 								} catch (phoneticError) {
-									await this.logger?.logToolError('PhoneticAnalyzer', phoneticError, 0, segment.index);
+									await this.logger?.logToolError(
+										'PhoneticAnalyzer',
+										phoneticError,
+										0,
+										segment.index
+									);
 									const phoneticErrorDuration = Date.now() - phoneticStartTime;
-									await this.logger?.logToolError('PhoneticAnalyzer', phoneticError, phoneticErrorDuration, segment.index);
+									await this.logger?.logToolError(
+										'PhoneticAnalyzer',
+										phoneticError,
+										phoneticErrorDuration,
+										segment.index
+									);
 									// Continue with other suggestions even if one fails
 								}
 							}
 						}
 					} else {
-						await this.logger?.logGeneral('info', 'Phonetic tool not available, skipping phonetic analysis', { segmentIndex: segment.index });
+						await this.logger?.logGeneral(
+							'info',
+							'Phonetic tool not available, skipping phonetic analysis',
+							{ segmentIndex: segment.index }
+						);
 					}
 				} catch (phoneticError) {
-					await this.logger?.logGeneral('error', 'Phonetic analysis error', { error: phoneticError, segmentIndex: segment.index });
+					await this.logger?.logGeneral('error', 'Phonetic analysis error', {
+						error: phoneticError,
+						segmentIndex: segment.index
+					});
 					// Don't fail the entire analysis if phonetic analysis fails
 				}
 			}
@@ -737,7 +872,12 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 							language: summary.language
 						});
 						// Could enhance analysis with search results
-						await this.logger?.logToolExecution('WebSearch', `Web search for "${term}"`, { results: searchResult }, segment.index);
+						await this.logger?.logToolExecution(
+							'WebSearch',
+							`Web search for "${term}"`,
+							{ results: searchResult },
+							segment.index
+						);
 					} catch (e) {
 						await this.logger?.logToolError('WebSearch', e, 0, segment.index);
 					}
@@ -772,14 +912,24 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 							// These are character positions within the segment text
 							from = index;
 							to = index + searchText.length;
-							await this.logger?.logGeneral('debug', 'Found position for suggestion', {
-								text: searchText.substring(0, 50),
-								position: [from, to]
-							}, segment.index);
+							await this.logger?.logGeneral(
+								'debug',
+								'Found position for suggestion',
+								{
+									text: searchText.substring(0, 50),
+									position: [from, to]
+								},
+								segment.index
+							);
 						} else {
-							await this.logger?.logGeneral('warn', 'Could not find position for suggestion', {
-								text: searchText.substring(0, 50)
-							}, segment.index);
+							await this.logger?.logGeneral(
+								'warn',
+								'Could not find position for suggestion',
+								{
+									text: searchText.substring(0, 50)
+								},
+								segment.index
+							);
 						}
 					}
 
@@ -787,7 +937,11 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 					// These will be applied as diff nodes on the client-side
 					// Use dynamic confidence threshold based on signal quality
 					const autoApplyThreshold = Math.max(0.5, dynamicConfidenceThreshold - 0.2); // Slightly lower than analysis threshold
-					if (suggestion.confidence >= autoApplyThreshold && suggestion.originalText && suggestion.suggestedText) {
+					if (
+						suggestion.confidence >= autoApplyThreshold &&
+						suggestion.originalText &&
+						suggestion.suggestedText
+					) {
 						processedSuggestions.push({
 							...suggestion,
 							from, // Character position in segment
@@ -797,11 +951,16 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 							applied: false,
 							requiresManualReview: false
 						});
-						await this.logger?.logGeneral('info', 'Marked for auto-apply', {
-							original: suggestion.originalText?.substring(0, 50),
-							suggested: suggestion.suggestedText?.substring(0, 50),
-							confidence: suggestion.confidence
-						}, segment.index);
+						await this.logger?.logGeneral(
+							'info',
+							'Marked for auto-apply',
+							{
+								original: suggestion.originalText?.substring(0, 50),
+								suggested: suggestion.suggestedText?.substring(0, 50),
+								confidence: suggestion.confidence
+							},
+							segment.index
+						);
 					} else {
 						// Low confidence suggestions require manual review
 						processedSuggestions.push({
@@ -813,11 +972,16 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 							applied: false,
 							requiresManualReview: true
 						});
-						await this.logger?.logGeneral('info', 'Marked for manual review', {
-							original: suggestion.originalText?.substring(0, 50),
-							suggested: suggestion.suggestedText?.substring(0, 50),
-							confidence: suggestion.confidence
-						}, segment.index);
+						await this.logger?.logGeneral(
+							'info',
+							'Marked for manual review',
+							{
+								original: suggestion.originalText?.substring(0, 50),
+								suggested: suggestion.suggestedText?.substring(0, 50),
+								confidence: suggestion.confidence
+							},
+							segment.index
+						);
 					}
 				}
 
@@ -863,13 +1027,21 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 			});
 
 			// Log successful completion
-			await this.logger?.logGeneral('info', `Completed analysis for segment ${segment.index}`, {
-				suggestionsCount: processedSuggestions.length > 0 ? processedSuggestions.length : (analysisData.suggestions?.length || 0),
-				confidence: analysisData.confidence,
-				strategy: analysisStrategy,
-				hasASRResults: !!nBestResults,
-				hasSignalQuality: !!signalQuality
-			}, segment.index);
+			await this.logger?.logGeneral(
+				'info',
+				`Completed analysis for segment ${segment.index}`,
+				{
+					suggestionsCount:
+						processedSuggestions.length > 0
+							? processedSuggestions.length
+							: analysisData.suggestions?.length || 0,
+					confidence: analysisData.confidence,
+					strategy: analysisStrategy,
+					hasASRResults: !!nBestResults,
+					hasSignalQuality: !!signalQuality
+				},
+				segment.index
+			);
 
 			return {
 				segmentIndex: segment.index,
@@ -919,7 +1091,9 @@ Based on this audio quality, you should be ${analysisStrategy === 'conservative'
 			if (parseResult.success) {
 				return parseResult.data;
 			} else {
-				await this.logger?.logGeneral('error', 'Failed to parse transaction result', { error: parseResult.error });
+				await this.logger?.logGeneral('error', 'Failed to parse transaction result', {
+					error: parseResult.error
+				});
 				return {
 					success: false,
 					error: `JSON parsing failed: ${parseResult.error}`

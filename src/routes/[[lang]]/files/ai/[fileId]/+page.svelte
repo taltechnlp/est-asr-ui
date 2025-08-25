@@ -93,8 +93,7 @@
 
 	// Broadcast sidebar collapsed state so inline controls can adapt
 	$effect(() => {
-		const collapsedState = sidebarCollapsed;
-		window.dispatchEvent(new CustomEvent('transcriptSidebarCollapsed', { detail: { collapsed: collapsedState } }));
+		window.dispatchEvent(new CustomEvent('transcriptSidebarCollapsed', { detail: { collapsed: sidebarCollapsed } }));
 	});
 </script>
 
