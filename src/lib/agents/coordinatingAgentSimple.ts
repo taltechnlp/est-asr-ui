@@ -37,7 +37,9 @@ export interface SegmentAnalysisResult {
 	dynamicConfidenceThreshold?: number;
 }
 
-const SEGMENT_ANALYSIS_PROMPT = `You are an expert transcript analyst specializing in Estonian language.
+const SEGMENT_ANALYSIS_PROMPT = `🇪🇪 CRITICAL LANGUAGE REQUIREMENT: You MUST respond ONLY in {responseLanguage} language. Every word of your analysis, suggestions, and descriptions must be in {responseLanguage}. NO ENGLISH ALLOWED.
+
+You are an expert transcript analyst specializing in Estonian language.
 
 Context from full transcript summary:
 {summary}
@@ -52,7 +54,7 @@ ASR N-best list: {alternativesSection}
 
 This is a complete speaker turn - analyze the entire utterance from {speaker}.
 
-Your task:
+Your task (REMEMBER: respond only in {responseLanguage}):
 1. Analyze this complete speaker turn for quality, accuracy, and coherence
 2. Consider the context from the full transcript summary
 3. Identify potential transcription errors or unclear passages within this speaker's utterance
@@ -67,7 +69,7 @@ Focus on:
 - Punctuation and formatting
 - Phonetic plausibility of words (especially for potential homophones or ASR errors)
 
-IMPORTANT: Provide your analysis and all suggestions in {responseLanguage} language.
+🚨 LANGUAGE ENFORCEMENT: Your analysis text, suggestion descriptions, and ALL text fields must be written in {responseLanguage}. This is NON-NEGOTIABLE.
 
 CRITICAL FORMATTING REQUIREMENTS:
 - Keep originalText and suggestedText SHORT and FOCUSED (typically 1-5 words, maximum 1-2 sentences)
@@ -77,6 +79,8 @@ CRITICAL FORMATTING REQUIREMENTS:
 
 CRITICAL: You MUST respond with ONLY valid JSON. No explanations, no text before or after the JSON.
 Do NOT include markdown code blocks. Just the raw JSON object.
+
+🇪🇪 FINAL REMINDER: Write your entire response in {responseLanguage} - including analysis text and all suggestion descriptions.
 
 Provide a detailed analysis with actionable suggestions in exactly this JSON format:
 {
@@ -98,7 +102,9 @@ Provide a detailed analysis with actionable suggestions in exactly this JSON for
 
 Remember: Return ONLY the JSON object above with your analysis. Nothing else.`;
 
-const ENHANCED_ANALYSIS_PROMPT = `You are an expert transcript analyst. You have already performed an initial analysis of a transcript segment.
+const ENHANCED_ANALYSIS_PROMPT = `🇪🇪 CRITICAL LANGUAGE REQUIREMENT: You MUST respond ONLY in {responseLanguage} language. Every word of your analysis, suggestions, and descriptions must be in {responseLanguage}. NO ENGLISH ALLOWED.
+
+You are an expert transcript analyst. You have already performed an initial analysis of a transcript segment.
 Now you have access to additional ASR (Automatic Speech Recognition) alternative transcriptions from a different model that provides additional hypothesis.
 
 Original transcript segment:
@@ -117,7 +123,7 @@ CRITICAL INSIGHTS ABOUT THE ALTERNATIVE ASR MODEL:
 - Focus on identifying unique words or phrases that were NOT recognized by the original model
 - Look for words/hints that only appear in the alternative model's output
 
-Based on these ASR alternatives, please:
+Based on these ASR alternatives, please (REMEMBER: respond only in {responseLanguage}):
 1. FOCUS PRIMARILY on unique words or phrases that appear ONLY in the alternative ASR results
 2. Investigate words/hints that the original model completely missed or misrecognized
 3. Pay special attention to segments where the alternative model provides completely different word choices
@@ -136,14 +142,18 @@ CRITICAL FORMATTING REQUIREMENTS:
 - Focus on the minimal text span that needs correction
 - Avoid copying large portions of text - be precise and concise
 
+🚨 LANGUAGE ENFORCEMENT: Your analysis text, suggestion descriptions, and ALL text fields must be written in {responseLanguage}. This is NON-NEGOTIABLE.
+
 IMPORTANT: 
 - Put MORE EMPHASIS on words/hints that are unique to the alternative model
 - Investigate segments where the two models produced completely different results
 - Focus on unique vocabulary, names, or technical terms only captured by the alternative
-- Provide your updated analysis and suggestions in {responseLanguage} language
+- Write every word of your analysis and suggestions in {responseLanguage}
 
 CRITICAL: You MUST respond with ONLY valid JSON. No explanations, no text before or after the JSON.
 Do NOT include markdown code blocks, notes, or any other text. Just the raw JSON object.
+
+🇪🇪 FINAL REMINDER: Write your entire response in {responseLanguage} - including analysis text and all suggestion descriptions.
 
 Return your enhanced analysis in exactly this format:
 {
