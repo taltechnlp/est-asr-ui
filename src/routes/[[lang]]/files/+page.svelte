@@ -216,14 +216,14 @@
 						</td>
 						<td class="status-cell">
 							{#if file.oldSystem}
-							<div class="badge badge-sm badge-info px-1 text-xs truncate max-w-full">{$_('files.statusOld')}</div>
+							<div class="badge badge-sm badge-info px-2 py-1 text-xs">{$_('files.statusOld')}</div>
 							{:else if file.state == 'READY'}
-								<div class="badge badge-sm badge-success px-1 text-xs truncate max-w-full">{$_('files.statusReady')}</div>
+								<div class="badge badge-sm badge-success px-2 py-1 text-xs">{$_('files.statusReady')}</div>
 							{:else if file.state == 'PROCESSING_ERROR'}
-								<div class="badge badge-sm badge-error px-1 text-xs truncate max-w-full">{$_('files.statusError')}</div>
+								<div class="badge badge-sm badge-error px-2 py-1 text-xs">{$_('files.statusError')}</div>
 							{:else if file.state == 'PROCESSING'}
 								<div class="flex flex-col sm:flex-row sm:items-center gap-1">
-									<div class="badge badge-sm badge-accent px-1 text-xs truncate max-w-full">
+									<div class="badge badge-sm badge-accent px-2 py-1 text-xs">
 										<span class="hidden sm:inline">{$_('files.statusProcessing')}</span>
 										<span class="sm:hidden">PROC</span>
 										{#if file.progress >= 0}
@@ -234,7 +234,7 @@
 								</div>
 							{:else if file.state == 'UPLOADED' && file.queued}
 								<div class="flex flex-col sm:flex-row sm:items-center gap-1">
-									<div class="badge badge-sm badge-info px-1 text-xs truncate max-w-full">
+									<div class="badge badge-sm badge-info px-2 py-1 text-xs">
 										<span class="hidden sm:inline">{$_('files.statusUploaded')}</span>
 										<span class="sm:hidden">UPL</span>
 									</div>
@@ -242,7 +242,7 @@
 								</div>
 							{:else if file.state == 'UPLOADED'}
 								<div class="flex flex-col sm:flex-row sm:items-center gap-1">
-									<div class="badge badge-sm badge-info px-1 text-xs truncate max-w-full">
+									<div class="badge badge-sm badge-info px-2 py-1 text-xs">
 										<span class="hidden sm:inline">{$_('files.statusUploaded')}</span>
 										<span class="sm:hidden">UPL</span>
 									</div>
@@ -435,8 +435,8 @@
 	}
 	
 	.table th:nth-child(3), .table td:nth-child(3) {
-		width: 8rem; /* Status */
-		min-width: 6rem;
+		width: 10rem; /* Status */
+		min-width: 8rem;
 	}
 	
 	.table th:nth-child(4), .table td:nth-child(4) {
@@ -451,8 +451,7 @@
 	
 	/* Status cell improvements */
 	.status-cell {
-		max-width: 0; /* Force text truncation within fixed width */
-		overflow: hidden;
+		overflow: visible; /* Allow content to be visible */
 	}
 	
 	/* Badge improvements for mobile */
@@ -461,14 +460,15 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		min-width: 0;
-		flex-shrink: 1;
+		flex-shrink: 0; /* Prevent shrinking */
+		max-width: 100%;
 	}
 	
 	/* Mobile responsive adjustments */
 	@media (max-width: 640px) {
 		.table th:nth-child(3), .table td:nth-child(3) {
-			width: 5rem;
-			min-width: 4rem;
+			width: 6rem;
+			min-width: 5rem;
 		}
 		
 		.table th:nth-child(4), .table td:nth-child(4) {
@@ -496,8 +496,8 @@
 		}
 		
 		.table th:nth-child(3), .table td:nth-child(3) {
-			width: 4rem;
-			min-width: 3.5rem;
+			width: 5rem;
+			min-width: 4.5rem;
 		}
 		
 		.badge {
