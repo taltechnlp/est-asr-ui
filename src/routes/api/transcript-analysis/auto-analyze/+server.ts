@@ -196,7 +196,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         console.log(`Summary generated successfully for file ${fileId}`);
       }
 
-      // Step 2: Extract first 5 segments
+      // Step 2: Extract segments
       console.log(`Step 2: Extracting segments for file ${fileId}`);
       
       if (!transcriptContent) {
@@ -277,17 +277,16 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         }
       }
 
-      // Take only first 5 segments
-      const firstFiveSegments = segments.slice(0, 5);
-      console.log(`Extracted ${firstFiveSegments.length} segments for analysis`);
+      // Process all segments
+      console.log(`Extracted ${segments.length} segments for analysis`);
 
-      // Step 3: Launch concurrent analysis for first 5 segments
-      console.log(`Step 3: Starting concurrent analysis for ${firstFiveSegments.length} segments`);
+      // Step 3: Launch concurrent analysis for all segments
+      console.log(`Step 3: Starting concurrent analysis for ${segments.length} segments`);
       
       const agent = getCoordinatingAgent();
-      const analysisPromises = firstFiveSegments.map(async (segment, index) => {
+      const analysisPromises = segments.map(async (segment, index) => {
         try {
-          console.log(`Starting analysis for segment ${index + 1}/${firstFiveSegments.length}: ${segment.text.substring(0, 100)}...`);
+          console.log(`Starting analysis for segment ${index + 1}/${segments.length}: ${segment.text.substring(0, 100)}...`);
           
           const result = await agent.analyzeSegment({
             fileId: file.id,
@@ -312,8 +311,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       const failedAnalyses = analysisResults.filter(r => !r.success);
 
       console.log(`Auto-analysis completed for file ${fileId}:`);
-      console.log(`  - Successful: ${successfulAnalyses.length}/${firstFiveSegments.length} segments`);
-      console.log(`  - Failed: ${failedAnalyses.length}/${firstFiveSegments.length} segments`);
+      console.log(`  - Successful: ${successfulAnalyses.length}/${segments.length} segments`);
+      console.log(`  - Failed: ${failedAnalyses.length}/${segments.length} segments`);
 
       if (failedAnalyses.length > 0) {
         console.log("Failed analyses:", failedAnalyses.map(f => f.error));
