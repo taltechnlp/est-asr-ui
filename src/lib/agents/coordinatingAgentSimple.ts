@@ -8,11 +8,7 @@ import { prisma } from '$lib/db/client';
 import type { SegmentWithTiming } from '$lib/utils/extractWordsFromEditor';
 import type { Editor } from '@tiptap/core';
 import { getLanguageName, normalizeLanguageCode } from '$lib/utils/language';
-import {
-	logEditorSnapshot,
-	createEditorSnapshot,
-	searchInSnapshot
-} from '$lib/services/editorDebugger';
+import { createEditorSnapshot, searchInSnapshot } from '$lib/services/editorDebugger';
 import { runAutomatedTestSuite } from '$lib/services/textReplacementTestHarness';
 import {
 	robustJsonParse,
@@ -41,7 +37,7 @@ export interface SegmentAnalysisResult {
 	dynamicConfidenceThreshold?: number;
 }
 
-const SEGMENT_ANALYSIS_PROMPT = `You are an expert transcript analyst specializing in Estonian and Finnish languages.
+const SEGMENT_ANALYSIS_PROMPT = `You are an expert transcript analyst specializing in Estonian language.
 
 Context from full transcript summary:
 {summary}
@@ -52,7 +48,7 @@ Text: {text}
 Duration: {duration} seconds
 Word count: {wordCount} words
 
-{alternativesSection}
+ASR N-best list: {alternativesSection}
 
 This is a complete speaker turn - analyze the entire utterance from {speaker}.
 
@@ -60,21 +56,24 @@ Your task:
 1. Analyze this complete speaker turn for quality, accuracy, and coherence
 2. Consider the context from the full transcript summary
 3. Identify potential transcription errors or unclear passages within this speaker's utterance
-4. Check if the speaker boundaries are appropriate (does it seem like one coherent turn?)
-5. Note if you would need alternative transcriptions or additional context
-6. Provide specific improvement suggestions for this speaker's turn. Do not suggest speaker labeling changes
+4. Provide specific improvement suggestions for this speaker's turn. Do not suggest speaker labeling changes
 
 Focus on:
 - Grammar and language correctness throughout the speaker's turn
 - Internal coherence within this speaker's utterance
 - Consistency with the overall transcript context
 - Proper nouns and technical terms accuracy
-- Speaker attribution accuracy (is this all from the same speaker?)
-- Natural speech patterns and turn-taking
+- Natural speech patterns
 - Punctuation and formatting
 - Phonetic plausibility of words (especially for potential homophones or ASR errors)
 
 IMPORTANT: Provide your analysis and all suggestions in {responseLanguage} language.
+
+CRITICAL FORMATTING REQUIREMENTS:
+- Keep originalText and suggestedText SHORT and FOCUSED (typically 1-5 words, maximum 1-2 sentences)
+- Target only the specific problematic part, not entire sentences or paragraphs
+- Focus on the minimal text span that needs correction
+- Avoid copying large portions of text - be precise and concise
 
 CRITICAL: You MUST respond with ONLY valid JSON. No explanations, no text before or after the JSON.
 Do NOT include markdown code blocks. Just the raw JSON object.
@@ -90,8 +89,8 @@ Provide a detailed analysis with actionable suggestions in exactly this JSON for
       "type": "grammar|punctuation|clarity|consistency|speaker|boundary",
       "severity": "low|medium|high",
       "text": "Description of the issue",
-      "originalText": "exact problematic text from the segment",
-      "suggestedText": "corrected text to replace it with",
+      "originalText": "SHORT exact problematic text from the segment (1-5 words typically)",
+      "suggestedText": "SHORT corrected text to replace it with (1-5 words typically)",
       "confidence": 0.9
     }
   ]
@@ -100,7 +99,7 @@ Provide a detailed analysis with actionable suggestions in exactly this JSON for
 Remember: Return ONLY the JSON object above with your analysis. Nothing else.`;
 
 const ENHANCED_ANALYSIS_PROMPT = `You are an expert transcript analyst. You have already performed an initial analysis of a transcript segment.
-Now you have access to additional ASR (Automatic Speech Recognition) alternative transcriptions from a specialized model that excels at recognizing English and mixed-language content.
+Now you have access to additional ASR (Automatic Speech Recognition) alternative transcriptions from a different model that provides additional hypothesis.
 
 Original transcript segment:
 {originalText}
@@ -108,33 +107,40 @@ Original transcript segment:
 Your initial analysis identified these potential issues:
 {initialAnalysis}
 
-Alternative transcriptions from ASR (ranked by confidence):
+Alternative transcriptions from different ASR model (ranked by confidence):
 {asrAlternatives}
 
-CRITICAL INSIGHTS ABOUT THE ASR MODEL:
-- This specialized ASR model is particularly good at recognizing also English words and phrases
-- It handles code-switching (mixing languages) better than the primary model
-- It can be more accurate with technical terms, brand names, and proper nouns
-- The primary model that produced the original transcript has no English capability
+CRITICAL INSIGHTS ABOUT THE ALTERNATIVE ASR MODEL:
+- This alternative ASR model provides different transcription hypotheses from the main model
+- Both the main model and this alternative model now return n-best lists, so this is not the only source of alternatives
+- The main value from this alternative model is getting completely different recognition hypotheses
+- Focus on identifying unique words or phrases that were NOT recognized by the original model
+- Look for words/hints that only appear in the alternative model's output
 
 Based on these ASR alternatives, please:
-1. ACTIVELY LOOK for places where the ASR alternatives contain English words that make more sense
-   Example: If original has "haud Hazdić vahe" and ASR has "how does it work", the ASR is likely correct
-2. Check for misrecognized English phrases that appear as nonsensical Estonian/Finnish
-3. Identify technical terms or proper nouns that ASR recognized better
-4. Replace any garbled or unclear segments with clearer ASR alternatives
-5. When ASR shows English text with high confidence, strongly consider using it
+1. FOCUS PRIMARILY on unique words or phrases that appear ONLY in the alternative ASR results
+2. Investigate words/hints that the original model completely missed or misrecognized
+3. Pay special attention to segments where the alternative model provides completely different word choices
+4. Look for technical terms, proper nouns, or specific vocabulary that only the alternative model captured
+5. Identify cases where the alternative model provides clarity for unclear or garbled segments
 
-Create new suggestions that incorporate the best ASR alternatives. For each suggestion:
-- Set originalText to the problematic segment from the original
-- Set suggestedText to the better alternative from ASR (if applicable)
-- Explain why the ASR alternative is better (e.g., "ASR correctly identified English phrase")
-- Set high confidence (0.8+) when ASR clearly shows English or technical terms
+Create new suggestions that emphasize unique insights from the alternative model. For each suggestion:
+- Set originalText to the problematic segment from the original (keep SHORT - typically 1-5 words)
+- Set suggestedText to the alternative when it provides unique words/hints not in the original (keep SHORT)
+- Explain why the alternative provides valuable new information (focus on unique words/phrases)
+- Set higher confidence when the alternative reveals completely different word choices that make more sense
+
+CRITICAL FORMATTING REQUIREMENTS:
+- Keep originalText and suggestedText SHORT and FOCUSED (typically 1-5 words, maximum 1-2 sentences)
+- Target only the specific problematic part, not entire sentences or paragraphs
+- Focus on the minimal text span that needs correction
+- Avoid copying large portions of text - be precise and concise
 
 IMPORTANT: 
-- The ASR alternatives often reveal English content that was misrecognized as Estonian/Finnish
+- Put MORE EMPHASIS on words/hints that are unique to the alternative model
+- Investigate segments where the two models produced completely different results
+- Focus on unique vocabulary, names, or technical terms only captured by the alternative
 - Provide your updated analysis and suggestions in {responseLanguage} language
-- Be aggressive in suggesting ASR alternatives when they contain sensible English text
 
 CRITICAL: You MUST respond with ONLY valid JSON. No explanations, no text before or after the JSON.
 Do NOT include markdown code blocks, notes, or any other text. Just the raw JSON object.
@@ -150,8 +156,8 @@ Return your enhanced analysis in exactly this format:
       "type": "grammar|punctuation|clarity|consistency|speaker|boundary",
       "severity": "low|medium|high",
       "text": "Description of the issue with explanation of why ASR alternative is better",
-      "originalText": "exact text from original transcript",
-      "suggestedText": "better alternative from ASR or your correction",
+      "originalText": "SHORT exact text from original transcript (1-5 words typically)",
+      "suggestedText": "SHORT better alternative from ASR or your correction (1-5 words typically)",
       "confidence": 0.9,
       "explanation": "Optional: why the ASR alternative is more accurate"
     }
