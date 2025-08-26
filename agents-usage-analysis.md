@@ -6,8 +6,8 @@
 
 1. **`coordinatingAgent.ts`**
 
-   - Used by: `/api/transcript-analysis/segment/+server.ts`
-   - Purpose: Main agent for segment analysis (text-based approach)
+   - Used by: `/api/transcript-analysis/segment/+server.ts`, `/api/transcript-analysis/auto-analyze/+server.ts`
+   - Purpose: Main agent for segment analysis (direct LLM implementation)
    - Status: **ACTIVELY USED**
 
 2. **`coordinatingAgentPosition.ts`**
@@ -31,7 +31,7 @@
 
 5. **`summaryGenerator.ts`**
 
-   - Used by: `/api/transcript-summary/generate/+server.ts`
+   - Used by: `/api/transcript-summary/generate/+server.ts`, `/api/transcript-analysis/auto-analyze/+server.ts`
    - Purpose: Generates transcript summaries
    - Status: **ACTIVELY USED** (for summary generation)
 
@@ -65,87 +65,94 @@
     - Purpose: Web search capabilities
     - Status: **ACTIVELY USED**
 
+11. **`tools/phoneticAnalyzer.ts`**
+    - Used by: `coordinatingAgent.ts`
+    - Purpose: Estonian phonetic similarity analysis for ASR error detection
+    - Status: **ACTIVELY USED**
+
+12. **`tools/signalQualityAssessor.ts`**
+    - Used by: `coordinatingAgent.ts`
+    - Purpose: Audio signal quality assessment for adaptive correction strategies
+    - Status: **ACTIVELY USED**
+
 ### Utilities (In Active Use)
 
-11. **`utils/jsonParser.ts`**
+13. **`utils/jsonParser.ts`**
 
     - Used by: `coordinatingAgent.ts`
     - Purpose: Robust JSON parsing with LLM feedback
     - Status: **ACTIVELY USED**
 
-12. **`prompts/transcriptAnalysis.ts`**
+14. **`prompts/transcriptAnalysis.ts`**
 
     - Used by: Various agents
     - Purpose: Prompt templates
     - Status: **ACTIVELY USED**
 
-13. **`schemas/transcript.ts`**
+15. **`schemas/transcript.ts`**
     - Used by: Various agents
     - Purpose: TypeScript schemas
     - Status: **ACTIVELY USED**
 
-## Potentially Unused Files ❌
+### Tool Infrastructure
 
-### 1. **`coordinatingAgent.ts`** 🔴
-
-- **Status: LIKELY UNUSED**
-- Evidence:
-  - Uses LangGraph state management (StateGraph, END, START)
-  - No imports found in current codebase
-  - Replaced by `coordinatingAgent.ts`
-- **Recommendation: Can be removed**
-
-### 2. **`tools/asrNBestServer.ts`** 🔴
-
-- **Status: LIKELY UNUSED**
-- Evidence:
-  - No imports found in codebase
-  - Replaced by `asrNBestServerNode.ts` which has better error handling
-- **Recommendation: Can be removed**
-
-### 3. **`tools/base.ts`** ✅
+16. **`tools/base.ts`** ✅
 
 - **Status: ACTIVELY USED**
 - Evidence: Used by `positionAwareTiptapTool.ts`, `tiptapTransaction.ts`, `webSearch.ts`
 - Purpose: Base class for LangChain tools
 - **Recommendation: Keep**
 
-### 4. **`tools/index.ts`** ✅
+17. **`tools/index.ts`** ✅
 
 - **Status: ACTIVELY USED**
 - Evidence: Imported by `coordinatingAgent.ts`, `coordinatingAgentPosition.ts`, `transcriptAnalyzer.ts`
-- Purpose: Barrel export for tools
-- **Recommendation: Keep** (but can remove exports for unused tools)
+- Purpose: Barrel export for client-safe tools
+- **Recommendation: Keep**
 
 ## Summary
 
-### Files Safe to Remove 🗑️:
+### Current Architecture Status ✅
 
-1. **Old `coordinatingAgent.ts`** - Old LangGraph implementation, replaced by current `coordinatingAgent.ts`
-2. **`tools/asrNBestServer.ts`** - Replaced by `asrNBestServerNode.ts` with better error handling
+The agents folder is now in a clean, optimized state with:
 
-### Files to Keep (Actively Used) ✅:
+- **4 Core Agents**: Main coordinating agent plus specialized position-aware and client variants
+- **2 Supporting Agents**: Summary generation and full transcript analysis
+- **6 Specialized Tools**: ASR N-best, TipTap manipulation, web search, phonetic analysis, signal quality assessment
+- **Clean Tool Organization**: Proper client/server separation with appropriate exports
+- **Complete Utilities**: JSON parsing, prompts, and schemas supporting the agent ecosystem
 
-- All `*Simple.ts`, `*Position*.ts`, and `*Client.ts` agents
+### Files to Keep (All Actively Used) ✅:
+
+- All agent files (`coordinatingAgent.ts`, `*Position*.ts`, `*Client.ts`)
 - `summaryGenerator.ts` and `transcriptAnalyzer.ts`
 - `tools/base.ts` - Base class for tools
-- `tools/index.ts` - Barrel exports (can clean up unused exports)
-- `tools/asrNBestServerNode.ts` - Current ASR implementation
-- `tools/tiptapTransaction.ts` and `tools/positionAwareTiptapTool.ts`
-- `tools/webSearch.ts`
+- `tools/index.ts` - Clean barrel exports with client/server separation
+- `tools/asrNBestServerNode.ts` - Current ASR implementation with audio slicing
+- `tools/tiptapTransaction.ts` and `tools/positionAwareTiptapTool.ts` - Editor manipulation
+- `tools/webSearch.ts` - Web search capabilities
+- `tools/phoneticAnalyzer.ts` - Estonian phonetic analysis
+- `tools/signalQualityAssessor.ts` - Audio quality assessment
 - All utilities (`utils/jsonParser.ts`) and schemas
 
-### Cleanup Recommendations:
+### Architecture Evolution Completed:
 
-1. Remove `coordinatingAgent.ts` - no longer needed
-2. Remove `tools/asrNBestServer.ts` - superseded version
-3. Update `tools/index.ts` to remove exports for deleted tools
-4. Consider archiving old implementations in a separate folder if needed for reference
+The codebase has successfully evolved to:
 
-### Migration Notes:
+- **Direct LLM Implementation**: Streamlined from complex LangGraph state management
+- **Specialized Tool Ecosystem**: Each tool serves a specific, well-defined purpose
+- **Client/Server Separation**: Clear boundaries with appropriate tool availability
+- **Audio Quality Adaptation**: Dynamic correction strategies based on signal analysis
+- **Phonetic Validation**: Estonian-specific error detection capabilities
+- **Robust Error Handling**: Comprehensive JSON parsing and retry mechanisms
 
-The codebase has evolved from:
+### Current Capabilities:
 
-- LangGraph-based (old coordinatingAgent.ts) → Direct implementation (current coordinatingAgent.ts)
-- Single ASR tool → Separate Node.js version with better error handling
-- Server-only agents → Separate client and server agents for better separation of concerns
+1. **Adaptive Analysis**: Signal quality-based correction strategies
+2. **Multi-tool Validation**: ASR alternatives, phonetic similarity, web search
+3. **Language Support**: Estonian, English, Finnish with proper localization
+4. **Client/Server Architecture**: Appropriate tool distribution and security
+5. **Comprehensive Logging**: Full audit trail for debugging and analysis
+6. **Position-aware Operations**: Precise editor manipulation capabilities
+
+The agent system is production-ready with a clean, maintainable architecture.
