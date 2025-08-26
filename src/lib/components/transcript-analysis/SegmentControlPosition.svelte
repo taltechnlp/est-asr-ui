@@ -169,25 +169,6 @@
 <div class="segment-control-position">
   <div class="control-header">
     <h3>{$_('transcript.analysis.positionBasedAnalysis')}</h3>
-    <div class="method-toggle">
-      <label class="toggle-label">
-        <input 
-          type="checkbox" 
-          bind:checked={positionMethod}
-          class="toggle-input"
-        />
-        <span class="toggle-text">
-          {positionMethod ? $_('transcript.analysis.usePositions') : $_('transcript.analysis.useText')}
-        </span>
-      </label>
-    </div>
-  </div>
-
-  <div class="analysis-info">
-    <div class="info-card">
-      <Icon data={info} />
-      <p>{$_('transcript.analysis.positionInfo')}</p>
-    </div>
   </div>
 
   <div class="control-actions">
@@ -336,32 +317,6 @@
     margin-bottom: 1rem;
   }
 
-  .method-toggle {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .toggle-label {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-  }
-
-  .toggle-input {
-    margin-right: 0.5rem;
-  }
-
-  .info-card {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem;
-    background: var(--surface-2);
-    border-radius: 0.25rem;
-    margin-bottom: 1rem;
-    color: var(--text-2);
-  }
 
   .analyze-btn {
     padding: 0.5rem 1rem;

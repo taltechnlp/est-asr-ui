@@ -13,7 +13,6 @@
   import refresh from 'svelte-awesome/icons/refresh';
   import exclamationTriangle from 'svelte-awesome/icons/exclamationTriangle';
   import wrench from 'svelte-awesome/icons/wrench';
-  import SegmentControlPosition from '../transcript-analysis/SegmentControlPosition.svelte';
   import ToolProgressDisplay from '../transcript-analysis/ToolProgressDisplay.svelte';
   import { _, locale } from 'svelte-i18n';
   import { selectedSegmentStore } from '$lib/stores/selectedSegmentStore';
@@ -718,11 +717,6 @@
       return;
     }
     
-    // Check if a diff has already been created for this suggestion
-    if (suggestion.diffCreated) {
-      console.log('Diff already created for this suggestion:', suggestion.diffId);
-      return;
-    }
     
     applyingStates[index] = true;
     
@@ -782,15 +776,6 @@
           segmentTo: segmentContentEnd ?? undefined,
           callback: (result: any) => {
             if (result.success) {
-              // Mark as having diff created
-              if (segmentAnalysisResult?.suggestions) {
-                segmentAnalysisResult.suggestions[index] = {
-                  ...suggestion,
-                  diffCreated: true,
-                  diffId: result.diffId,
-                  appliedAt: result.appliedAt
-                };
-              }
               console.log(`✅ Manual diff created: ${result.diffId}`);
             } else {
               console.error('Failed to create diff:', result.error);
@@ -937,11 +922,10 @@
                           >
                             {$_(`transcript.severity.${suggestion?.severity || 'low'}`)}
                           </span>
-                          {#if suggestion?.diffCreated}
-                            <span class="diff-badge">{$_('transcript.suggestion.diffCreated') || 'Diff Created'}</span>
-                          {:else if suggestion?.applied}
+                          {#if suggestion?.applied}
                             <span class="applied-badge">{$_('transcript.suggestion.applied')}</span>
-                          {:else if suggestion?.originalText && suggestion?.suggestedText}
+                          {/if}
+                          {#if suggestion?.originalText && suggestion?.suggestedText}
                             <button 
                               class="apply-suggestion-btn"
                               onclick={() => applySuggestion(suggestion, index)}
@@ -977,14 +961,6 @@
                 </div>
               {/if}
               
-              <!-- Original SegmentControlPosition component (if needed) -->
-              <SegmentControlPosition
-                {fileId}
-                {editorContent}
-                {audioFilePath}
-                {summary}
-                onSegmentAnalyzed={onSegmentAnalyzed}
-              />
             </div>
           {/if}
         </div>
@@ -1245,14 +1221,6 @@
     font-weight: 500;
   }
   
-  .diff-badge {
-    font-size: 0.75rem;
-    padding: 0.125rem 0.5rem;
-    background: #fef3c7;
-    color: #92400e;
-    border-radius: 0.25rem;
-    font-weight: 500;
-  }
   
   .apply-suggestion-btn {
     display: inline-flex;
