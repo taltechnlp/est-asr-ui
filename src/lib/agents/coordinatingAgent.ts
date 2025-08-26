@@ -352,7 +352,7 @@ Return your enhanced analysis in exactly this format:
 
 Remember: Return ONLY the JSON object. No other text whatsoever.`;
 
-export class CoordinatingAgentSimple {
+export class CoordinatingAgent {
 	private model;
 	private asrTool: any = null;
 	private phoneticTool: any = null;
@@ -1684,11 +1684,11 @@ Word count: ${segment.words.length} words${alternativesSection}`;
 }
 
 // Singleton instance
-let coordinatingAgentInstance: CoordinatingAgentSimple | null = null;
+let coordinatingAgentInstance: CoordinatingAgent | null = null;
 
-export function getCoordinatingAgent(modelName?: string): CoordinatingAgentSimple {
+export function getCoordinatingAgent(modelName?: string): CoordinatingAgent {
 	if (!coordinatingAgentInstance || modelName) {
-		coordinatingAgentInstance = new CoordinatingAgentSimple(modelName);
+		coordinatingAgentInstance = new CoordinatingAgent(modelName);
 	}
 	return coordinatingAgentInstance;
 }

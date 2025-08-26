@@ -258,29 +258,31 @@
 							{toTime(file.uploadedAt)}
 						</td>
 						<td class="">
-							{#if file.oldSystem}
-							    <a href="https://tekstiks.ee/files">
-									<button class="btn btn-outline btn-xs">{$_('files.toOldSystem')}</button>
-								</a>
-							{:else if file.state == 'READY'}
-								<button class="btn btn-outline btn-xs">{$_('files.openButton')}</button>
-							{/if}
-							
-							<button
-								class="btn btn-outline btn-xs"
-								onclick={(e) => {
-									delFileId = file.id;
-									e.stopPropagation();
-									(document.getElementById('del-file-modal') as HTMLInputElement).checked = true;
-								}}
-								onkeydown={(e) => {
-									if (e.key === 'Enter') {
+							<div class="flex flex-wrap gap-1">
+								{#if file.oldSystem}
+								    <a href="https://tekstiks.ee/files">
+										<button class="btn btn-outline btn-xs">{$_('files.toOldSystem')}</button>
+									</a>
+								{:else if file.state == 'READY'}
+									<button class="btn btn-outline btn-xs">{$_('files.openButton')}</button>
+								{/if}
+								
+								<button
+									class="btn btn-outline btn-xs"
+									onclick={(e) => {
 										delFileId = file.id;
 										e.stopPropagation();
 										(document.getElementById('del-file-modal') as HTMLInputElement).checked = true;
-									}
-								}}
-								>{$_('files.deleteButton')}</button>
+									}}
+									onkeydown={(e) => {
+										if (e.key === 'Enter') {
+											delFileId = file.id;
+											e.stopPropagation();
+											(document.getElementById('del-file-modal') as HTMLInputElement).checked = true;
+										}
+									}}
+									>{$_('files.deleteButton')}</button>
+							</div>
 						</td>
 					</tr>
 				{/each}
@@ -433,8 +435,8 @@
 	}
 	
 	.table th:nth-child(5), .table td:nth-child(5) {
-		width: 8rem; /* Actions */
-		min-width: 6rem;
+		width: 10rem; /* Actions */
+		min-width: 8rem;
 	}
 	
 	/* Status cell improvements */
@@ -466,8 +468,8 @@
 		}
 		
 		.table th:nth-child(5), .table td:nth-child(5) {
-			width: 6rem;
-			min-width: 5rem;
+			width: 8rem;
+			min-width: 7rem;
 		}
 		
 		/* Make badges even smaller on mobile */

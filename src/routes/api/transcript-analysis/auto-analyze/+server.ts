@@ -4,7 +4,7 @@ import { prisma } from '$lib/db/client';
 import { z } from 'zod';
 import { extractWordsFromEditor } from '$lib/utils/extractWordsFromEditor';
 import { fromNewEstFormatAI } from '$lib/helpers/converters/newEstFormatAI';
-import { getCoordinatingAgent } from '$lib/agents/coordinatingAgentSimple';
+import { getCoordinatingAgent } from '$lib/agents/coordinatingAgent';
 import { getSummaryGenerator } from '$lib/agents/summaryGenerator';
 import { extractFullTextWithSpeakers } from '$lib/utils/extractWordsFromEditor';
 import { isNewFormat } from '$lib/helpers/converters/newEstFormat';

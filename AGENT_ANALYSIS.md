@@ -6,7 +6,7 @@ This document provides a comprehensive analysis of the agent-based transcript an
 
 ## Agents Used in Current Code
 
-### 1. CoordinatingAgentSimple (`src/lib/agents/coordinatingAgentSimple.ts:355`)
+### 1. CoordinatingAgent (`src/lib/agents/coordinatingAgent.ts:355`)
 
 The main agent responsible for transcript analysis. Used in two contexts:
 
@@ -27,7 +27,7 @@ A prerequisite agent used before detailed segment analysis:
 - Only runs once per file, reuses existing summaries
 - Essential for contextual understanding of individual segments
 
-## Tools Available to CoordinatingAgentSimple
+## Tools Available to CoordinatingAgent
 
 The coordinating agent has access to 6 specialized tools:
 
@@ -124,7 +124,7 @@ The coordinating agent follows a sophisticated decision tree:
 ```mermaid
 sequenceDiagram
     participant Client as Client/API
-    participant Agent as CoordinatingAgentSimple
+    participant Agent as CoordinatingAgent
     participant SQA as SignalQualityAssessorTool
     participant LLM as Claude 3.5 Sonnet
     participant ASR as ASRNBestTool

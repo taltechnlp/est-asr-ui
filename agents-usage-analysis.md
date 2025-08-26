@@ -4,7 +4,7 @@
 
 ### Core Agent Files (In Active Use)
 
-1. **`coordinatingAgentSimple.ts`**
+1. **`coordinatingAgent.ts`**
 
    - Used by: `/api/transcript-analysis/segment/+server.ts`
    - Purpose: Main agent for segment analysis (text-based approach)
@@ -44,7 +44,7 @@
 
 7. **`tools/asrNBestServerNode.ts`**
 
-   - Used by: `coordinatingAgentSimple.ts`
+   - Used by: `coordinatingAgent.ts`
    - Purpose: Node.js version of ASR tool with audio slicing
    - Status: **ACTIVELY USED**
 
@@ -69,7 +69,7 @@
 
 11. **`utils/jsonParser.ts`**
 
-    - Used by: `coordinatingAgentSimple.ts`
+    - Used by: `coordinatingAgent.ts`
     - Purpose: Robust JSON parsing with LLM feedback
     - Status: **ACTIVELY USED**
 
@@ -92,7 +92,7 @@
 - Evidence:
   - Uses LangGraph state management (StateGraph, END, START)
   - No imports found in current codebase
-  - Replaced by `coordinatingAgentSimple.ts`
+  - Replaced by `coordinatingAgent.ts`
 - **Recommendation: Can be removed**
 
 ### 2. **`tools/asrNBestServer.ts`** 🔴
@@ -113,7 +113,7 @@
 ### 4. **`tools/index.ts`** ✅
 
 - **Status: ACTIVELY USED**
-- Evidence: Imported by `coordinatingAgentSimple.ts`, `coordinatingAgentPosition.ts`, `transcriptAnalyzer.ts`, `coordinatingAgent.ts`
+- Evidence: Imported by `coordinatingAgent.ts`, `coordinatingAgentPosition.ts`, `transcriptAnalyzer.ts`
 - Purpose: Barrel export for tools
 - **Recommendation: Keep** (but can remove exports for unused tools)
 
@@ -121,7 +121,7 @@
 
 ### Files Safe to Remove 🗑️:
 
-1. **`coordinatingAgent.ts`** - Old LangGraph implementation, replaced by `coordinatingAgentSimple.ts`
+1. **Old `coordinatingAgent.ts`** - Old LangGraph implementation, replaced by current `coordinatingAgent.ts`
 2. **`tools/asrNBestServer.ts`** - Replaced by `asrNBestServerNode.ts` with better error handling
 
 ### Files to Keep (Actively Used) ✅:
@@ -146,6 +146,6 @@
 
 The codebase has evolved from:
 
-- LangGraph-based (`coordinatingAgent.ts`) → Direct implementation (`coordinatingAgentSimple.ts`)
+- LangGraph-based (old coordinatingAgent.ts) → Direct implementation (current coordinatingAgent.ts)
 - Single ASR tool → Separate Node.js version with better error handling
 - Server-only agents → Separate client and server agents for better separation of concerns

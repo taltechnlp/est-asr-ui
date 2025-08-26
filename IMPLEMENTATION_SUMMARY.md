@@ -42,7 +42,7 @@ Successfully integrated support for alternative hypotheses from the new Estonian
 - Updated `SegmentWithTiming` interfaces in both regular and AI extractors
 - Added optional `alternatives` field to segment data structures
 
-### 7. AI Agent Integration (`src/lib/agents/coordinatingAgentSimple.ts`)
+### 7. AI Agent Integration (`src/lib/agents/coordinatingAgent.ts`)
 
 - Modified analysis prompt to include alternatives section when available
 - Displays alternative transcriptions with confidence scores
@@ -128,7 +128,7 @@ Successfully integrated support for alternative hypotheses from the new Estonian
 - `src/lib/components/nodes/Segment.svelte` - Extract and use alternatives
 - `src/lib/utils/extractWordsFromEditor.ts` - Extended SegmentWithTiming interface
 - `src/lib/utils/extractWordsFromEditorAI.ts` - Extended SegmentWithTiming interface
-- `src/lib/agents/coordinatingAgentSimple.ts` - Enhanced AI analysis with alternatives
+- `src/lib/agents/coordinatingAgent.ts` - Enhanced AI analysis with alternatives
 - `src/routes/api/transcript-analysis/segment/+server.ts` - Updated API schema
 - `src/lib/helpers/converters/estFormat.ts` - Added universal format detection
 

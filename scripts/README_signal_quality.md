@@ -77,7 +77,7 @@ The signal quality assessor enhances the coordinating agent by:
 
 ## Integration with Coordinating Agent
 
-The signal quality assessor is integrated into `CoordinatingAgentSimple.analyzeSegment()`:
+The signal quality assessor is integrated into `CoordinatingAgent.analyzeSegment()`:
 
 ### Analysis Flow
 

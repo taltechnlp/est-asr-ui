@@ -1,6 +1,6 @@
 import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
-import { getCoordinatingAgent } from '$lib/agents/coordinatingAgentSimple';
+import { getCoordinatingAgent } from '$lib/agents/coordinatingAgent';
 import { prisma } from '$lib/db/client';
 import { z } from 'zod';
 import type { SegmentWithTiming } from '$lib/utils/extractWordsFromEditor';

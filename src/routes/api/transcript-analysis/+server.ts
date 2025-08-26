@@ -1,6 +1,6 @@
 import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
-// import { getCoordinatingAgent } from "$lib/agents/coordinatingAgentSimple";
+// import { getCoordinatingAgent } from "$lib/agents/coordinatingAgent";
 // import { TranscriptAnalysisRequestSchema } from "$lib/agents/schemas/transcript";
 import { OPENROUTER_MODELS } from '$lib/llm/openrouter-direct';
 import { z } from 'zod';
