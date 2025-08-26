@@ -221,6 +221,7 @@ export const getFiles = async (id) => {
 					path: true,
 					language: true,
 					initialTranscriptionPath: true,
+					autoAnalyze: true,
 					workflows: {
 						take: 1,
 						select: {
@@ -276,6 +277,7 @@ export const getFiles = async (id) => {
 					path: file.path,
 					language: file.language,
 					userId: user.id,
+					autoAnalyze: file.autoAnalyze,
 					progress
 				};
 			})

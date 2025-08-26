@@ -128,12 +128,16 @@
 		);
 	};
 
-	function openFile(fileId, fileState, isOld) {
+	function openFile(fileId, fileState, isOld, autoAnalyze) {
 		if (isOld) {
 			window.location.href = `https://tekstiks.ee/files/`;
 		}
 		else if (fileState == 'READY') {
-			goto(`/files/${fileId}`);
+			if (autoAnalyze) {
+				goto(`/files/ai/${fileId}`);
+			} else {
+				goto(`/files/${fileId}`);
+			}
 		}
 	}
 	let donePolling;
@@ -206,7 +210,7 @@
 				{#each data.files as file, index}
 					<tr
 						class="{file.state == 'READY' ? 'cursor-pointer' : ''} hover"
-						onclick={() => openFile(file.id, file.state, file.oldSystem)}
+						onclick={() => openFile(file.id, file.state, file.oldSystem, file.autoAnalyze)}
 					>
 						<th>{index + 1}</th>
 						<td class="">
@@ -260,22 +264,6 @@
 								</a>
 							{:else if file.state == 'READY'}
 								<button class="btn btn-outline btn-xs">{$_('files.openButton')}</button>
-								<button 
-									class="btn btn-accent btn-xs ml-1"
-									onclick={(e) => {
-										e.stopPropagation();
-										goto(`/files/ai/${file.id}`);
-									}}
-									onkeydown={(e) => {
-										if (e.key === 'Enter') {
-											e.stopPropagation();
-											goto(`/files/ai/${file.id}`);
-										}
-									}}
-									title="Open in AI Editor (Beta) - Uses Word Nodes"
-								>
-									AI Editor
-								</button>
 							{/if}
 							
 							<button

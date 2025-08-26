@@ -38,6 +38,7 @@ export const load: PageServerLoad = async ({ locals, fetch, depends }) => {
 					textTitle: file.textTitle,
 					initialTranscription: file.initialTranscription,
 					progress: file.progress,
+					autoAnalyze: file.autoAnalyze,
 					oldSystem: file.path.includes('/mnt/volume1/')
 				};
 			});
