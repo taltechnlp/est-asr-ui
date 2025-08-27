@@ -76,16 +76,18 @@ function convertAnalysisSegmentSuggestions(analysisSegments: AnalysisSegment[]):
  * Build a character position map of the editor content
  */
 function buildPositionMap(content: TipTapEditorContent): Array<{
-	charIndex: number;
+	charStart: number;
+	charEnd: number;
 	nodeType: string;
 	nodePos: { speakerIndex: number; contentIndex: number };
-	nodeText?: string;
+	nodeText: string;
 }> {
 	const positionMap: Array<{
-		charIndex: number;
+		charStart: number;
+		charEnd: number;
 		nodeType: string;
 		nodePos: { speakerIndex: number; contentIndex: number };
-		nodeText?: string;
+		nodeText: string;
 	}> = [];
 
 	let charIndex = 0;
@@ -100,7 +102,8 @@ function buildPositionMap(content: TipTapEditorContent): Array<{
 		speakerNode.content.forEach((node, contentIndex) => {
 			if (node.type === 'text' && node.text) {
 				positionMap.push({
-					charIndex,
+					charStart: charIndex,
+					charEnd: charIndex + node.text.length,
 					nodeType: 'text',
 					nodePos: { speakerIndex, contentIndex },
 					nodeText: node.text
@@ -108,7 +111,8 @@ function buildPositionMap(content: TipTapEditorContent): Array<{
 				charIndex += node.text.length;
 			} else if (node.type === 'wordNode' && node.attrs?.text) {
 				positionMap.push({
-					charIndex,
+					charStart: charIndex,
+					charEnd: charIndex + node.attrs.text.length,
 					nodeType: 'wordNode',
 					nodePos: { speakerIndex, contentIndex },
 					nodeText: node.attrs.text
@@ -128,13 +132,9 @@ function findNodeAtPosition(
 	positionMap: ReturnType<typeof buildPositionMap>,
 	charPos: number
 ): { entry: typeof positionMap[0]; offset: number } | null {
-	for (let i = 0; i < positionMap.length; i++) {
-		const entry = positionMap[i];
-		const nodeLength = entry.nodeText?.length || 0;
-		const endPos = entry.charIndex + nodeLength;
-
-		if (charPos >= entry.charIndex && charPos < endPos) {
-			return { entry, offset: charPos - entry.charIndex };
+	for (const entry of positionMap) {
+		if (charPos >= entry.charStart && charPos < entry.charEnd) {
+			return { entry, offset: charPos - entry.charStart };
 		}
 	}
 	return null;
@@ -179,11 +179,31 @@ function applySuggestionToJson(
 			const endNode = findNodeAtPosition(positionMap, suggestion.to - 1);
 
 			if (!startNode || !endNode) {
+				// Debug logging for position issues
+				console.log('Position not found:', {
+					from: suggestion.from,
+					to: suggestion.to,
+					originalText: suggestion.originalText,
+					positionMapLength: positionMap.length,
+					totalChars: positionMap.length > 0 ? positionMap[positionMap.length - 1].charIndex : 0
+				});
 				return { success: false, error: 'Position not found in document structure' };
 			}
 
-			// Check if we're within the same speaker
+			// Debug logging for cross-speaker detection
 			if (startNode.entry.nodePos.speakerIndex !== endNode.entry.nodePos.speakerIndex) {
+				console.log('Cross-speaker detection:', {
+					originalText: suggestion.originalText,
+					suggestedText: suggestion.suggestedText,
+					from: suggestion.from,
+					to: suggestion.to,
+					startSpeaker: startNode.entry.nodePos.speakerIndex,
+					endSpeaker: endNode.entry.nodePos.speakerIndex,
+					startChar: startNode.entry.charStart,
+					endChar: endNode.entry.charStart,
+					startNodeText: startNode.entry.nodeText,
+					endNodeText: endNode.entry.nodeText
+				});
 				return { success: false, error: 'Cross-speaker replacement not supported' };
 			}
 
@@ -261,7 +281,7 @@ function applyMultiNodeReplacement(
 
 		// Calculate the suggested replacement length for the end node
 		const originalLength = suggestion.to - suggestion.from;
-		const endOffset = endNode.offset + (originalLength - (endNode.entry.charIndex - startNode.entry.charIndex + startNode.offset));
+		const endOffset = endNode.offset + (originalLength - (endNode.entry.charStart - startNode.entry.charStart + startNode.offset));
 
 		// Modify the start node (keep text before the suggestion)
 		const startNodeContent = speakerNode.content[startContentIndex];
