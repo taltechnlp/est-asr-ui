@@ -182,32 +182,41 @@ function applySuggestionToJson(
 				return { success: false, error: 'Position not found in document structure' };
 			}
 
-			// For simple case where suggestion is within a single node
-			if (startNode.entry.nodePos.speakerIndex === endNode.entry.nodePos.speakerIndex &&
-				startNode.entry.nodePos.contentIndex === endNode.entry.nodePos.contentIndex) {
-				
-				const speakerNode = content.content![startNode.entry.nodePos.speakerIndex];
-				const targetNode = speakerNode.content![startNode.entry.nodePos.contentIndex];
+			// Check if we're within the same speaker
+			if (startNode.entry.nodePos.speakerIndex !== endNode.entry.nodePos.speakerIndex) {
+				return { success: false, error: 'Cross-speaker replacement not supported' };
+			}
+
+			const speakerIndex = startNode.entry.nodePos.speakerIndex;
+			const speakerNode = content.content![speakerIndex];
+
+			// Single node replacement (simple case)
+			if (startNode.entry.nodePos.contentIndex === endNode.entry.nodePos.contentIndex) {
+				const contentIndex = startNode.entry.nodePos.contentIndex;
+				const targetNode = speakerNode.content![contentIndex];
 
 				if (targetNode.type === 'text' && targetNode.text) {
-					// Replace text within the text node
 					const originalLength = suggestion.to - suggestion.from;
 					const before = targetNode.text.substring(0, startNode.offset);
 					const after = targetNode.text.substring(startNode.offset + originalLength);
 					targetNode.text = before + suggestion.suggestedText + after;
 					return { success: true };
 				} else if (targetNode.type === 'wordNode' && targetNode.attrs?.text) {
-					// Replace text within the wordNode
 					const originalLength = suggestion.to - suggestion.from;
 					const before = targetNode.attrs.text.substring(0, startNode.offset);
 					const after = targetNode.attrs.text.substring(startNode.offset + originalLength);
 					targetNode.attrs.text = before + suggestion.suggestedText + after;
 					return { success: true };
 				}
+			} else {
+				// Multi-node replacement within the same speaker
+				return applyMultiNodeReplacement(
+					speakerNode, 
+					startNode, 
+					endNode, 
+					suggestion
+				);
 			}
-
-			// Multi-node replacement is more complex, skip for now
-			return { success: false, error: 'Multi-node replacement not implemented' };
 		}
 
 		// Fallback to text-based matching
@@ -229,6 +238,69 @@ function applySuggestionToJson(
 		return { 
 			success: false, 
 			error: error instanceof Error ? error.message : 'Unknown error applying suggestion' 
+		};
+	}
+}
+
+/**
+ * Apply a suggestion that spans multiple nodes within the same speaker
+ */
+function applyMultiNodeReplacement(
+	speakerNode: any,
+	startNode: { entry: any; offset: number },
+	endNode: { entry: any; offset: number },
+	suggestion: JsonSuggestion
+): { success: boolean; error?: string } {
+	try {
+		const startContentIndex = startNode.entry.nodePos.contentIndex;
+		const endContentIndex = endNode.entry.nodePos.contentIndex;
+		
+		if (!speakerNode.content) {
+			return { success: false, error: 'Speaker node has no content' };
+		}
+
+		// Calculate the suggested replacement length for the end node
+		const originalLength = suggestion.to - suggestion.from;
+		const endOffset = endNode.offset + (originalLength - (endNode.entry.charIndex - startNode.entry.charIndex + startNode.offset));
+
+		// Modify the start node (keep text before the suggestion)
+		const startNodeContent = speakerNode.content[startContentIndex];
+		if (startNodeContent.type === 'text' && startNodeContent.text) {
+			startNodeContent.text = startNodeContent.text.substring(0, startNode.offset) + suggestion.suggestedText;
+		} else if (startNodeContent.type === 'wordNode' && startNodeContent.attrs?.text) {
+			startNodeContent.attrs.text = startNodeContent.attrs.text.substring(0, startNode.offset) + suggestion.suggestedText;
+		}
+
+		// Modify the end node (keep text after the suggestion)  
+		const endNodeContent = speakerNode.content[endContentIndex];
+		if (endNodeContent.type === 'text' && endNodeContent.text) {
+			endNodeContent.text = endNodeContent.text.substring(endOffset);
+		} else if (endNodeContent.type === 'wordNode' && endNodeContent.attrs?.text) {
+			endNodeContent.attrs.text = endNodeContent.attrs.text.substring(endOffset);
+		}
+
+		// Remove all nodes between start and end (they're completely replaced)
+		if (endContentIndex > startContentIndex + 1) {
+			speakerNode.content.splice(startContentIndex + 1, endContentIndex - startContentIndex - 1);
+		}
+
+		// If the end node is now empty, remove it
+		const updatedEndIndex = startContentIndex + 1;
+		if (updatedEndIndex < speakerNode.content.length) {
+			const updatedEndNode = speakerNode.content[updatedEndIndex];
+			const isEmpty = (updatedEndNode.type === 'text' && (!updatedEndNode.text || updatedEndNode.text === '')) ||
+							(updatedEndNode.type === 'wordNode' && (!updatedEndNode.attrs?.text || updatedEndNode.attrs.text === ''));
+			
+			if (isEmpty) {
+				speakerNode.content.splice(updatedEndIndex, 1);
+			}
+		}
+
+		return { success: true };
+	} catch (error) {
+		return { 
+			success: false, 
+			error: error instanceof Error ? error.message : 'Multi-node replacement failed' 
 		};
 	}
 }
