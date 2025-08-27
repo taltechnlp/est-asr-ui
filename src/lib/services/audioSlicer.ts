@@ -104,7 +104,7 @@ export class AudioSlicer {
 						];
 
 			if (logger) {
-				await logger.logToolExecution('AudioSlicer', 'Running ffmpeg', {
+				logger.logToolExecution('AudioSlicer', 'Running ffmpeg', {
 					args: args.join(' ').replace(inputPath, path.basename(inputPath))
 				});
 			}

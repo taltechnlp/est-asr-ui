@@ -323,9 +323,15 @@ export function extractSpeakerSegments(content: TipTapEditorContent): SegmentWit
 				}
 			}
 
-			// Reconstruct text more carefully to preserve punctuation
-			// Instead of just joining with spaces, we need to handle punctuation properly
-			const reconstructedText = reconstructTextFromWords(speakerWords);
+			// Normalize text to match how AI suggestions were generated:
+			// 1. Join words with single spaces
+			// 2. Normalize multiple whitespace to single spaces
+			// 3. Trim leading/trailing whitespace
+			const reconstructedText = speakerWords
+				.map(w => w.text)
+				.join(' ')
+				.replace(/\s+/g, ' ')
+				.trim();
 
 			segments.push({
 				index: segmentIndex,

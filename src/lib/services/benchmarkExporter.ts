@@ -4,7 +4,6 @@
  */
 
 import type { AnalysisSegment } from '@prisma/client';
-import { applySuggestionsToJson } from './jsonSuggestionApplier';
 import { extractSpeakerSegments } from '$lib/utils/extractWordsFromEditor';
 import type { TipTapEditorContent } from '../../types';
 
@@ -31,8 +30,133 @@ export interface BenchmarkExportResult {
 
 
 /**
+ * Apply suggestions to segment text using simple string replacement
+ */
+function applySegmentSuggestions(
+	segmentText: string,
+	suggestions: any[],
+	options: { minConfidence: number; applyAll: boolean }
+): { 
+	modifiedText: string; 
+	appliedCount: number; 
+	skippedCount: number;
+	appliedSuggestions: string[];
+	skippedSuggestions: { originalText: string; suggestedText: string; reason: string }[];
+} {
+	let modifiedText = segmentText;
+	let appliedCount = 0;
+	let skippedCount = 0;
+	const appliedSuggestions: string[] = [];
+	const skippedSuggestions: { originalText: string; suggestedText: string; reason: string }[] = [];
+
+	// Helper function to normalize text for comparison
+	const normalizeForComparison = (text: string): string => {
+		return text.replace(/\s+/g, ' ').trim();
+	};
+
+	for (const [index, suggestion] of suggestions.entries()) {
+		// Skip suggestions below confidence threshold
+		if (suggestion.confidence < options.minConfidence) {
+			skippedCount++;
+			skippedSuggestions.push({
+				originalText: suggestion.originalText,
+				suggestedText: suggestion.suggestedText,
+				reason: `Confidence ${suggestion.confidence} below threshold ${options.minConfidence}`
+			});
+			continue;
+		}
+
+		// Skip suggestions not marked for auto-apply if applyAll is false
+		if (!options.applyAll && !suggestion.shouldAutoApply) {
+			skippedCount++;
+			skippedSuggestions.push({
+				originalText: suggestion.originalText,
+				suggestedText: suggestion.suggestedText,
+				reason: 'shouldAutoApply is false'
+			});
+			continue;
+		}
+
+		const originalText = suggestion.originalText;
+		const normalizedOriginal = normalizeForComparison(originalText);
+		const normalizedSegment = normalizeForComparison(modifiedText);
+
+		// Try exact string match first
+		if (modifiedText.includes(originalText)) {
+			modifiedText = modifiedText.replace(originalText, suggestion.suggestedText);
+			appliedCount++;
+			appliedSuggestions.push(`"${originalText}" -> "${suggestion.suggestedText}" [severity: ${suggestion.severity || 'N/A'}, order: ${index + 1}]`);
+		}
+		// Try normalized match (handles spacing differences)
+		else if (normalizedSegment.includes(normalizedOriginal)) {
+			// Find the position in the normalized text
+			const normalizedIndex = normalizedSegment.indexOf(normalizedOriginal);
+			
+			// Map back to original text to find the actual text to replace
+			// This is tricky, so let's use a simpler approach: split and rejoin
+			const words = modifiedText.split(/\s+/);
+			const normalizedWords = originalText.split(/\s+/);
+			
+			// Find sequence of words that matches
+			for (let i = 0; i <= words.length - normalizedWords.length; i++) {
+				const candidateWords = words.slice(i, i + normalizedWords.length);
+				const candidateText = candidateWords.join(' ');
+				
+				if (normalizeForComparison(candidateText) === normalizedOriginal) {
+					// Found the match - replace these words
+					const before = words.slice(0, i);
+					const after = words.slice(i + normalizedWords.length);
+					const replacement = suggestion.suggestedText.split(/\s+/);
+					
+					const newWords = [...before, ...replacement, ...after];
+					modifiedText = newWords.join(' ');
+					appliedCount++;
+					appliedSuggestions.push(`"${candidateText}" -> "${suggestion.suggestedText}" [severity: ${suggestion.severity || 'N/A'}, order: ${index + 1}]`);
+					break;
+				}
+			}
+			
+			// If we didn't find a word-based match, fall back to case-insensitive
+			if (appliedSuggestions.length === appliedCount - 1) {
+				const lowerText = modifiedText.toLowerCase();
+				const lowerSearch = originalText.toLowerCase();
+				const index = lowerText.indexOf(lowerSearch);
+				
+				if (index !== -1) {
+					const actualText = modifiedText.substring(index, index + originalText.length);
+					modifiedText = modifiedText.replace(actualText, suggestion.suggestedText);
+					appliedSuggestions.push(`"${actualText}" -> "${suggestion.suggestedText}" [severity: ${suggestion.severity || 'N/A'}, order: ${index + 1}]`);
+				} else {
+					appliedCount--; // Revert the increment
+				}
+			}
+		}
+		// Try case-insensitive match
+		else if (modifiedText.toLowerCase().includes(originalText.toLowerCase())) {
+			const lowerText = modifiedText.toLowerCase();
+			const lowerSearch = originalText.toLowerCase();
+			const idx = lowerText.indexOf(lowerSearch);
+			const actualText = modifiedText.substring(idx, idx + originalText.length);
+			
+			modifiedText = modifiedText.replace(actualText, suggestion.suggestedText);
+			appliedCount++;
+			appliedSuggestions.push(`"${actualText}" -> "${suggestion.suggestedText}" [severity: ${suggestion.severity || 'N/A'}, order: ${index + 1}]`);
+		} else {
+			skippedCount++;
+			skippedSuggestions.push({
+				originalText: suggestion.originalText,
+				suggestedText: suggestion.suggestedText,
+				reason: 'Text not found in segment'
+			});
+		}
+	}
+
+	return { modifiedText, appliedCount, skippedCount, appliedSuggestions, skippedSuggestions };
+}
+
+/**
  * Apply all ASR correction suggestions to editor content and export as plain text
- * This new approach applies suggestions directly to the editor JSON first, then extracts text
+ * Simple segment-based approach using string replacement
  */
 export function exportWithSuggestionsApplied(
 	editorContent: TipTapEditorContent,
@@ -47,65 +171,132 @@ export function exportWithSuggestionsApplied(
 	const { minConfidence = 0.0, applyAll = true, includeStats = true } = options;
 
 	try {
-		console.log(`Starting JSON-based suggestion application for ${analysisSegments.length} segments`);
+		console.log(`Starting segment-based suggestion application for ${analysisSegments.length} analysis segments`);
 
-		// Apply all suggestions directly to the editor JSON structure
-		const jsonResult = applySuggestionsToJson(editorContent, analysisSegments, {
-			minConfidence,
-			applyAll
-		});
+		// Extract speaker segments from editor content
+		const segments = extractSpeakerSegments(editorContent);
+		console.log(`Extracted ${segments.length} speaker segments from editor content`);
 
-		console.log(`JSON application result: ${jsonResult.appliedCount} applied, ${jsonResult.skippedCount} skipped`);
+		// Create a map of suggestions by segment index
+		const suggestionsBySegment = new Map<number, any[]>();
+		let totalSuggestions = 0;
 
-		// Extract plain text from the modified JSON
-		const segments = extractSpeakerSegments(jsonResult.modifiedContent);
-		const plainTextSegments = segments.map(segment => segment.text.trim()).filter(text => text.length > 0);
-		const plainText = plainTextSegments.join('\n');
-
-		// Calculate total suggestions for stats
-		const totalSuggestions = analysisSegments.reduce((sum, seg) => {
+		for (const analysisSegment of analysisSegments) {
 			try {
-				const parsed = typeof seg.suggestions === 'string' ? 
-							   JSON.parse(seg.suggestions) : seg.suggestions;
-				return sum + (Array.isArray(parsed) ? parsed.length : 
-							 (parsed?.suggestions?.length || 0));
-			} catch {
-				return sum;
-			}
-		}, 0);
+				let parsedSuggestions = analysisSegment.suggestions;
+				if (typeof parsedSuggestions === 'string') {
+					parsedSuggestions = JSON.parse(parsedSuggestions);
+				}
 
-		// Generate segment details from original vs modified
-		const originalSegments = extractSpeakerSegments(editorContent);
-		const segmentDetails = originalSegments.map((originalSegment, index) => {
-			const modifiedSegment = segments[index];
+				let suggestionArray: any[] = [];
+				if (Array.isArray(parsedSuggestions)) {
+					suggestionArray = parsedSuggestions;
+				} else if (parsedSuggestions && typeof parsedSuggestions === 'object' && 'suggestions' in parsedSuggestions) {
+					const wrapped = parsedSuggestions as any;
+					if (Array.isArray(wrapped.suggestions)) {
+						suggestionArray = wrapped.suggestions;
+					}
+				}
+
+				if (suggestionArray.length > 0) {
+					suggestionsBySegment.set(analysisSegment.segmentIndex, suggestionArray);
+					totalSuggestions += suggestionArray.length;
+				}
+			} catch (error) {
+				console.error(`Error parsing suggestions for segment ${analysisSegment.segmentIndex}:`, error);
+			}
+		}
+
+		console.log(`Parsed suggestions for ${suggestionsBySegment.size} segments, total ${totalSuggestions} suggestions`);
+
+		// Apply suggestions to each segment
+		const modifiedSegments: string[] = [];
+		let totalApplied = 0;
+		let totalSkipped = 0;
+		const allAppliedSuggestions: string[] = [];
+		const allSkippedSuggestions: { originalText: string; suggestedText: string; reason: string }[] = [];
+
+		const segmentDetails = segments.map((segment) => {
+			const suggestions = suggestionsBySegment.get(segment.index) || [];
+			
+			// Debug logging for problematic segments
+			if (suggestions.length > 0 && segment.index < 5) {
+				console.log(`\nSegment ${segment.index} text:`, JSON.stringify(segment.text));
+				console.log(`Suggestions for segment ${segment.index}:`);
+				suggestions.slice(0, 3).forEach((s, i) => {
+					console.log(`  ${i + 1}. "${s.originalText}" -> "${s.suggestedText}" | Severity: ${s.severity || 'N/A'}`);
+				});
+			}
+			
+			// Sort suggestions by severity (higher first), then by original text length (shorter first)
+			// This prevents overlapping suggestions from interfering with each other
+			const sortedSuggestions = [...suggestions].sort((a, b) => {
+				// First, sort by severity (higher severity first)
+				const severityA = a.severity || 0;
+				const severityB = b.severity || 0;
+				if (severityA !== severityB) {
+					return severityB - severityA; // Higher severity first
+				}
+				
+				// If severity is equal, sort by original text length (shorter first)
+				// Shorter replacements are less likely to conflict with longer ones
+				const lengthA = a.originalText ? a.originalText.length : 0;
+				const lengthB = b.originalText ? b.originalText.length : 0;
+				return lengthA - lengthB; // Shorter first
+			});
+			
+			const result = applySegmentSuggestions(segment.text, sortedSuggestions, {
+				minConfidence,
+				applyAll
+			});
+
+			modifiedSegments.push(result.modifiedText.trim());
+			totalApplied += result.appliedCount;
+			totalSkipped += result.skippedCount;
+			allAppliedSuggestions.push(...result.appliedSuggestions);
+			allSkippedSuggestions.push(...result.skippedSuggestions);
+
 			return {
-				segmentIndex: originalSegment.index,
-				originalText: originalSegment.text.substring(0, 100) + (originalSegment.text.length > 100 ? '...' : ''),
-				modifiedText: modifiedSegment ? 
-					(modifiedSegment.text.substring(0, 100) + (modifiedSegment.text.length > 100 ? '...' : '')) :
-					originalSegment.text.substring(0, 100) + (originalSegment.text.length > 100 ? '...' : ''),
-				suggestionsApplied: 0, // We don't track per-segment anymore with JSON approach
-				suggestionsSkipped: 0  // We don't track per-segment anymore with JSON approach
+				segmentIndex: segment.index,
+				originalText: segment.text.substring(0, 100) + (segment.text.length > 100 ? '...' : ''),
+				modifiedText: result.modifiedText.substring(0, 100) + (result.modifiedText.length > 100 ? '...' : ''),
+				suggestionsApplied: result.appliedCount,
+				suggestionsSkipped: result.skippedCount
 			};
 		});
 
+		// Join all modified segments
+		const plainText = modifiedSegments.filter(text => text.length > 0).join('\n');
 		const processingTimeMs = Date.now() - startTime;
 
-		console.log('JSON-based benchmark export completed:', {
+		console.log('Segment-based benchmark export completed:', {
 			totalSegments: segments.length,
 			totalSuggestions,
-			appliedSuggestions: jsonResult.appliedCount,
-			skippedSuggestions: jsonResult.skippedCount,
+			appliedSuggestions: totalApplied,
+			skippedSuggestions: totalSkipped,
 			processingTimeMs,
 			textLength: plainText.length
 		});
 
-		// Log some sample skipped suggestions for debugging
-		if (jsonResult.skippedSuggestions.length > 0) {
-			console.log('Sample skipped suggestions:');
-			jsonResult.skippedSuggestions.slice(0, 5).forEach((skipped, index) => {
-				console.log(`${index + 1}. "${skipped.suggestion.originalText}" -> "${skipped.suggestion.suggestedText}" | Reason: ${skipped.reason}`);
+		// Log some sample applied and skipped suggestions
+		if (allAppliedSuggestions.length > 0) {
+			console.log('Sample applied suggestions:');
+			allAppliedSuggestions.slice(0, 5).forEach((applied, index) => {
+				console.log(`${index + 1}. ${applied}`);
 			});
+		}
+
+		if (allSkippedSuggestions.length > 0) {
+			console.log('Sample skipped suggestions:');
+			allSkippedSuggestions.slice(0, 5).forEach((skipped, index) => {
+				console.log(`${index + 1}. "${skipped.originalText}" -> "${skipped.suggestedText}" | Reason: ${skipped.reason}`);
+			});
+			
+			console.log('\n=== ALL UNSUCCESSFUL SUGGESTIONS ===');
+			allSkippedSuggestions.forEach((skipped, index) => {
+				console.log(`${index + 1}. "${skipped.originalText}" -> "${skipped.suggestedText}" | Reason: ${skipped.reason}`);
+			});
+			console.log('=== END UNSUCCESSFUL SUGGESTIONS ===\n');
 		}
 
 		return {
@@ -115,8 +306,8 @@ export function exportWithSuggestionsApplied(
 			exportStats: {
 				totalSegments: segments.length,
 				totalSuggestions,
-				appliedSuggestions: jsonResult.appliedCount,
-				skippedSuggestions: jsonResult.skippedCount,
+				appliedSuggestions: totalApplied,
+				skippedSuggestions: totalSkipped,
 				processingTimeMs
 			},
 			segmentDetails
@@ -124,7 +315,7 @@ export function exportWithSuggestionsApplied(
 
 	} catch (error) {
 		const processingTimeMs = Date.now() - startTime;
-		console.error('JSON-based benchmark export failed:', error);
+		console.error('Segment-based benchmark export failed:', error);
 
 		return {
 			success: false,
