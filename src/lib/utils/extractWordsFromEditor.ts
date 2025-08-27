@@ -71,6 +71,39 @@ export function extractWordsFromEditor(content: TipTapEditorContent): ExtractedW
 	return words;
 }
 
+/**
+ * Reconstruct text from words preserving punctuation and spacing
+ * This handles the case where words might include punctuation that shouldn't be separated by spaces
+ */
+function reconstructTextFromWords(words: ExtractedWord[]): string {
+	if (words.length === 0) return '';
+	
+	let result = '';
+	
+	for (let i = 0; i < words.length; i++) {
+		const word = words[i];
+		const wordText = word.text || '';
+		
+		if (i === 0) {
+			// First word - no space before
+			result = wordText;
+		} else {
+			// Check if the current word starts with punctuation that shouldn't have space before it
+			const startsWithNonSpacePunctuation = /^[.,;:!?)\]}"'»]/.test(wordText);
+			
+			if (startsWithNonSpacePunctuation) {
+				// No space before punctuation
+				result += wordText;
+			} else {
+				// Add space before word
+				result += ' ' + wordText;
+			}
+		}
+	}
+	
+	return result;
+}
+
 export function extractFullTextWithSpeakers(content: TipTapEditorContent): string {
 	const paragraphs: string[] = [];
 
@@ -214,6 +247,7 @@ export function extractSpeakerSegments(content: TipTapEditorContent): SegmentWit
 
 		// Extract all words from this speaker block
 		function extractWordsFromNode(node: EditorNode) {
+			// Handle regular text nodes with word marks (original format)
 			if (node.type === 'text' && node.marks) {
 				const wordMark = node.marks.find((mark: EditorMark) => mark.type === 'word');
 				if (wordMark && wordMark.attrs && node.text) {
@@ -228,7 +262,36 @@ export function extractSpeakerSegments(content: TipTapEditorContent): SegmentWit
 					});
 				}
 			}
+			
+			// Handle wordNode type (AI editor format)
+			if (node.type === 'wordNode' && node.attrs) {
+				const text = node.attrs.text || node.textContent || '';
+				const start = node.attrs.start || 0;
+				const end = node.attrs.end || 0;
+				
+				if (text) {
+					speakerWords.push({
+						text: text,
+						start,
+						end,
+						speakerTag: speakerName
+					});
+				}
+			}
+			
+			// Handle plain text nodes (might contain spaces or punctuation)
+			if (node.type === 'text' && node.text && !node.marks) {
+				// For plain text nodes without marks, we can't get timing info
+				// but we should still include the text
+				speakerWords.push({
+					text: node.text,
+					start: 0,
+					end: 0,
+					speakerTag: speakerName
+				});
+			}
 
+			// Recursively process child nodes
 			if (node.content && Array.isArray(node.content)) {
 				for (const child of node.content) {
 					extractWordsFromNode(child);
@@ -256,13 +319,17 @@ export function extractSpeakerSegments(content: TipTapEditorContent): SegmentWit
 				}
 			}
 
+			// Reconstruct text more carefully to preserve punctuation
+			// Instead of just joining with spaces, we need to handle punctuation properly
+			const reconstructedText = reconstructTextFromWords(speakerWords);
+
 			segments.push({
 				index: segmentIndex,
 				startTime,
 				endTime,
 				startWord: globalWordIndex,
 				endWord: globalWordIndex + speakerWords.length - 1,
-				text: speakerWords.map((w) => w.text).join(' '),
+				text: reconstructedText,
 				speakerTag: speakerName,
 				speakerName: speakerName,
 				words: speakerWords

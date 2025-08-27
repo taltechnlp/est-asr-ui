@@ -732,6 +732,9 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 					`Starting analysis for segment ${segment.index}`,
 					{
 						segmentText: segment.text.substring(0, 100) + (segment.text.length > 100 ? '...' : ''),
+						fullSegmentText: segment.text, // Full text to see punctuation issues
+						textEndsWithPunctuation: /[.!?]$/.test(segment.text.trim()),
+						textLastChar: segment.text.trim().charAt(segment.text.trim().length - 1),
 						speaker: segment.speakerName || segment.speakerTag,
 						duration: (segment.endTime - segment.startTime).toFixed(2) + 's'
 					},

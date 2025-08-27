@@ -21,6 +21,60 @@
 	let autoAnalyze = false;
 
 	let delFileId;
+	let exportingFileIds = $state(new Set());
+
+	const applyAndExport = async (fileId) => {
+		if (exportingFileIds.has(fileId)) return;
+		
+		exportingFileIds.add(fileId);
+		
+		try {
+			const response = await fetch('/api/benchmark/apply-and-export', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					fileId,
+					minConfidence: 0.0,
+					applyAll: true,
+					includeReport: false
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(errorData.error || 'Export failed');
+			}
+
+			const result = await response.json();
+			
+			if (!result.success) {
+				throw new Error(result.error || 'Export failed');
+			}
+
+			// Create and download the text file
+			const blob = new Blob([result.plainText], { type: 'text/plain' });
+			const url = window.URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = result.fileName || `corrected_transcript_${fileId}.txt`;
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			window.URL.revokeObjectURL(url);
+
+			// Log success stats
+			console.log('Export completed:', result.stats);
+			
+		} catch (error) {
+			console.error('Export failed:', error);
+			alert(`Export failed: ${error.message}`);
+		} finally {
+			exportingFileIds.delete(fileId);
+		}
+	};
+
 	const delFile = async (fileId) => {
 		const response = await fetch('/api/files/' + fileId, {
 			method: 'DELETE'
@@ -265,6 +319,24 @@
 									</a>
 								{:else if file.state == 'READY'}
 									<button class="btn btn-outline btn-xs">{$_('files.openButton')}</button>
+									
+									{#if file.autoAnalyze}
+										<button
+											class="btn btn-accent btn-xs {exportingFileIds.has(file.id) ? 'loading' : ''}"
+											onclick={(e) => {
+												e.stopPropagation();
+												applyAndExport(file.id);
+											}}
+											disabled={exportingFileIds.has(file.id)}
+											title="Apply all ASR corrections and export as plain text for benchmarking"
+										>
+											{#if exportingFileIds.has(file.id)}
+												Exporting...
+											{:else}
+												Apply & Export
+											{/if}
+										</button>
+									{/if}
 								{/if}
 								
 								<button
