@@ -1,5 +1,4 @@
 import { Document, Packer, Paragraph, TextRun, SectionType } from 'docx';
-import { extractSpeakerSegments } from '$lib/utils/extractWordsFromEditor';
 import type { TipTapEditorContent } from '../types';
 
 export const handleSave = async (editor, fileId) => {
@@ -42,14 +41,45 @@ export const downloadTxtHandler = (
 	title: string
 ) => {
 	try {
-		// Extract speaker segments using existing utility
-		const segments = extractSpeakerSegments(content);
+		// Extract text directly from the editor content preserving original spacing
+		const segments: string[] = [];
+		
+		if (content && content.content) {
+			for (const speakerNode of content.content) {
+				if (speakerNode.type === 'speaker') {
+					// Extract all text content from this speaker block
+					let speakerText = '';
+					
+					const extractTextFromNode = (node: any) => {
+						// Handle text nodes (contain spaces, punctuation, etc.)
+						if (node.type === 'text' && node.text) {
+							speakerText += node.text;
+						}
+						// Handle wordNode elements (contain the actual words)
+						else if (node.type === 'wordNode' && node.attrs?.text) {
+							speakerText += node.attrs.text;
+						}
+						
+						// Recursively process child nodes
+						if (node.content && Array.isArray(node.content)) {
+							for (const child of node.content) {
+								extractTextFromNode(child);
+							}
+						}
+					};
+					
+					extractTextFromNode(speakerNode);
+					
+					// Add this speaker's text if it's not empty
+					if (speakerText.trim()) {
+						segments.push(speakerText.trim());
+					}
+				}
+			}
+		}
 		
 		// Join all segments with line breaks (no speaker names for benchmarking)
-		const plainText = segments
-			.map(segment => segment.text.trim())
-			.filter(text => text.length > 0)
-			.join('\n');
+		const plainText = segments.join('\n');
 
 		// Create and download the text file
 		const blob = new Blob([plainText], { type: 'text/plain;charset=utf-8' });
