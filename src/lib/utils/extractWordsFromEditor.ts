@@ -13,9 +13,13 @@ interface EditorNode {
 		'data-name'?: string;
 		id?: string;
 		topic?: string | null;
+		text?: string;
+		start?: number;
+		end?: number;
 	};
 	content?: EditorNode[];
 	text?: string;
+	textContent?: string;
 	marks?: EditorMark[];
 }
 

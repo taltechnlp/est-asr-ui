@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { _ } from 'svelte-i18n';
     import { editor } from '$lib/stores.svelte';
-    import { downloadHandler } from '$lib/download';
+    import { downloadHandler, downloadTxtHandler } from '$lib/download';
     let { fileName } = $props();
 	let downloadOptions = [
 		{ id: 1, text: `Word (.docx)` },
-		{ id: 2, text: `JSON` }
+		{ id: 2, text: `Plain Text (.txt)` },
+		{ id: 3, text: `JSON` }
 	];
 	let format = $state();
     let includeNames = $state(true);
@@ -49,13 +50,19 @@
             <div class="mt-5 flex justify-between">
                 <label for="download-modal" class="btn btn-primary"
                 onclick={() => {
-                    if (format.id === 1) downloadHandler($editor.getJSON(), '', fileName, includeNames, includeTimeCodes);
-                    else {
+                    if (format.id === 1) {
+                        // DOCX export
+                        downloadHandler($editor.getJSON(), '', fileName, includeNames, includeTimeCodes);
+                    } else if (format.id === 2) {
+                        // TXT export
+                        downloadTxtHandler($editor.getJSON(), fileName);
+                    } else if (format.id === 3) {
+                        // JSON export
                         const blob = new Blob([JSON.stringify($editor.getJSON())], {type: "application/json"});
                         const url = window.URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
-                        a.download = 'transkriptsioon.json';
+                        a.download = `${fileName || 'transkriptsioon'}.json`;
                         document.body.appendChild(a); // need to append the element to the dom -> otherwise it will not work in firefox
                         a.click();
                         a.remove();
