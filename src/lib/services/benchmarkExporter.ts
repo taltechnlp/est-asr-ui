@@ -4,9 +4,9 @@
  */
 
 import type { AnalysisSegment } from '@prisma/client';
-import { applySuggestionsToSegments, cleanTextForExport, type Suggestion } from './suggestionApplier';
-import { extractFullTextWithSpeakers } from '$lib/utils/extractWordsFromEditor';
+import { applySuggestionsToJson } from './jsonSuggestionApplier';
 import { extractSpeakerSegments } from '$lib/utils/extractWordsFromEditor';
+import type { TipTapEditorContent } from '../../types';
 
 export interface BenchmarkExportResult {
 	success: boolean;
@@ -29,134 +29,13 @@ export interface BenchmarkExportResult {
 	error?: string;
 }
 
-/**
- * Extract plain text segments from editor JSON content
- * Handles both new ASR format and TipTap editor format
- */
-export function extractPlainTextSegments(editorContent: any): Array<{
-	index: number;
-	text: string;
-	speakerName?: string;
-}> {
-	const segments: Array<{ index: number; text: string; speakerName?: string }> = [];
-
-	try {
-		// Handle TipTap editor format (type: 'doc', content: [...])
-		if (editorContent && editorContent.type === 'doc' && editorContent.content) {
-			// Extract segments using existing utility
-			const speakerSegments = extractSpeakerSegments(editorContent);
-			
-			return speakerSegments.map((segment, index) => ({
-				index: segment.index,
-				text: segment.text,
-				speakerName: segment.speakerName
-			}));
-		}
-
-		// Check if it might be ASR format with sections and turns
-		if (editorContent && editorContent.best_hypothesis && editorContent.best_hypothesis.sections) {
-			const sections = editorContent.best_hypothesis.sections || [];
-			let segmentIndex = 0;
-			
-			sections.forEach((section) => {
-				if (section.type === 'speech' && section.turns) {
-					section.turns.forEach((turn) => {
-						if (turn.transcript) {
-							segments.push({
-								index: segmentIndex++,
-								text: turn.transcript,
-								speakerName: editorContent.best_hypothesis.speakers?.[turn.speaker]?.name || turn.speaker
-							});
-						}
-					});
-				}
-			});
-			return segments;
-		}
-
-		// Handle raw text or other formats
-		if (typeof editorContent === 'string') {
-			segments.push({
-				index: 0,
-				text: editorContent,
-				speakerName: 'Unknown Speaker'
-			});
-		} else if (editorContent && typeof editorContent === 'object') {
-			// Try to extract text from any object structure
-			const text = JSON.stringify(editorContent);
-			segments.push({
-				index: 0,
-				text: text,
-				speakerName: 'Unknown Speaker'
-			});
-		}
-
-		return segments;
-	} catch (error) {
-		console.error('Error extracting plain text segments:', error);
-		return [{
-			index: 0,
-			text: 'Error extracting text content',
-			speakerName: 'Error'
-		}];
-	}
-}
-
-/**
- * Convert AnalysisSegment suggestions to Suggestion format
- */
-export function convertAnalysisSegmentSuggestions(analysisSegments: AnalysisSegment[]): Map<number, Suggestion[]> {
-	const segmentSuggestions = new Map<number, Suggestion[]>();
-
-	for (const segment of analysisSegments) {
-		try {
-			const suggestions: Suggestion[] = [];
-			
-			// Parse suggestions JSON
-			let parsedSuggestions = segment.suggestions;
-			if (typeof parsedSuggestions === 'string') {
-				parsedSuggestions = JSON.parse(parsedSuggestions);
-			}
-
-			// Handle both array format and object format
-			let suggestionArray: any[] = [];
-			if (Array.isArray(parsedSuggestions)) {
-				suggestionArray = parsedSuggestions;
-			} else if (parsedSuggestions && Array.isArray(parsedSuggestions.suggestions)) {
-				// Handle wrapped format: { suggestions: [...] }
-				suggestionArray = parsedSuggestions.suggestions;
-			}
-
-			for (const rawSuggestion of suggestionArray) {
-				if (rawSuggestion.originalText && rawSuggestion.suggestedText) {
-					suggestions.push({
-						originalText: rawSuggestion.originalText,
-						suggestedText: rawSuggestion.suggestedText,
-						confidence: rawSuggestion.confidence || 0.5,
-						from: rawSuggestion.from,
-						to: rawSuggestion.to,
-						segmentIndex: segment.segmentIndex,
-						shouldAutoApply: rawSuggestion.shouldAutoApply !== false
-					});
-				}
-			}
-
-			if (suggestions.length > 0) {
-				segmentSuggestions.set(segment.segmentIndex, suggestions);
-			}
-		} catch (error) {
-			console.error(`Error parsing suggestions for segment ${segment.segmentIndex}:`, error);
-		}
-	}
-
-	return segmentSuggestions;
-}
 
 /**
  * Apply all ASR correction suggestions to editor content and export as plain text
+ * This new approach applies suggestions directly to the editor JSON first, then extracts text
  */
 export function exportWithSuggestionsApplied(
-	editorContent: any,
+	editorContent: TipTapEditorContent,
 	analysisSegments: AnalysisSegment[],
 	options: {
 		minConfidence?: number;
@@ -168,77 +47,76 @@ export function exportWithSuggestionsApplied(
 	const { minConfidence = 0.0, applyAll = true, includeStats = true } = options;
 
 	try {
-		// Extract plain text segments from editor content
-		const textSegments = extractPlainTextSegments(editorContent);
-		console.log(`Extracted ${textSegments.length} text segments from editor content`);
+		console.log(`Starting JSON-based suggestion application for ${analysisSegments.length} segments`);
 
-		// Convert analysis segments to suggestions map
-		const segmentSuggestionsMap = convertAnalysisSegmentSuggestions(analysisSegments);
-		console.log(`Found suggestions for ${segmentSuggestionsMap.size} segments`);
-
-		// Prepare segments with their suggestions
-		const segmentsWithSuggestions = textSegments.map(textSegment => ({
-			text: textSegment.text,
-			suggestions: segmentSuggestionsMap.get(textSegment.index) || []
-		}));
-
-		// Apply suggestions to all segments
-		const applyResult = applySuggestionsToSegments(segmentsWithSuggestions, {
+		// Apply all suggestions directly to the editor JSON structure
+		const jsonResult = applySuggestionsToJson(editorContent, analysisSegments, {
 			minConfidence,
 			applyAll
 		});
 
-		// Clean and join segments for export (no speaker names, just text)
-		const cleanedSegments = applyResult.modifiedSegments.map(text => cleanTextForExport(text));
-		const plainText = cleanedSegments.filter(text => text.length > 0).join('\n');
+		console.log(`JSON application result: ${jsonResult.appliedCount} applied, ${jsonResult.skippedCount} skipped`);
 
-		// Generate detailed statistics
-		const segmentDetails = textSegments.map((segment, index) => ({
-			segmentIndex: segment.index,
-			originalText: segment.text.substring(0, 100) + (segment.text.length > 100 ? '...' : ''),
-			modifiedText: applyResult.modifiedSegments[index]?.substring(0, 100) + 
-						 (applyResult.modifiedSegments[index]?.length > 100 ? '...' : ''),
-			suggestionsApplied: applyResult.segmentResults[index]?.appliedCount || 0,
-			suggestionsSkipped: applyResult.segmentResults[index]?.skippedCount || 0
-		}));
+		// Extract plain text from the modified JSON
+		const segments = extractSpeakerSegments(jsonResult.modifiedContent);
+		const plainTextSegments = segments.map(segment => segment.text.trim()).filter(text => text.length > 0);
+		const plainText = plainTextSegments.join('\n');
+
+		// Calculate total suggestions for stats
+		const totalSuggestions = analysisSegments.reduce((sum, seg) => {
+			try {
+				const parsed = typeof seg.suggestions === 'string' ? 
+							   JSON.parse(seg.suggestions) : seg.suggestions;
+				return sum + (Array.isArray(parsed) ? parsed.length : 
+							 (parsed?.suggestions?.length || 0));
+			} catch {
+				return sum;
+			}
+		}, 0);
+
+		// Generate segment details from original vs modified
+		const originalSegments = extractSpeakerSegments(editorContent);
+		const segmentDetails = originalSegments.map((originalSegment, index) => {
+			const modifiedSegment = segments[index];
+			return {
+				segmentIndex: originalSegment.index,
+				originalText: originalSegment.text.substring(0, 100) + (originalSegment.text.length > 100 ? '...' : ''),
+				modifiedText: modifiedSegment ? 
+					(modifiedSegment.text.substring(0, 100) + (modifiedSegment.text.length > 100 ? '...' : '')) :
+					originalSegment.text.substring(0, 100) + (originalSegment.text.length > 100 ? '...' : ''),
+				suggestionsApplied: 0, // We don't track per-segment anymore with JSON approach
+				suggestionsSkipped: 0  // We don't track per-segment anymore with JSON approach
+			};
+		});
 
 		const processingTimeMs = Date.now() - startTime;
 
-		console.log('Benchmark export completed:', {
-			totalSegments: textSegments.length,
-			totalSuggestions: analysisSegments.reduce((sum, seg) => {
-				try {
-					const parsed = typeof seg.suggestions === 'string' ? 
-								   JSON.parse(seg.suggestions) : seg.suggestions;
-					return sum + (Array.isArray(parsed) ? parsed.length : 
-								 (parsed?.suggestions?.length || 0));
-				} catch {
-					return sum;
-				}
-			}, 0),
-			appliedSuggestions: applyResult.totalApplied,
-			skippedSuggestions: applyResult.totalSkipped,
-			processingTimeMs
+		console.log('JSON-based benchmark export completed:', {
+			totalSegments: segments.length,
+			totalSuggestions,
+			appliedSuggestions: jsonResult.appliedCount,
+			skippedSuggestions: jsonResult.skippedCount,
+			processingTimeMs,
+			textLength: plainText.length
 		});
+
+		// Log some sample skipped suggestions for debugging
+		if (jsonResult.skippedSuggestions.length > 0) {
+			console.log('Sample skipped suggestions:');
+			jsonResult.skippedSuggestions.slice(0, 5).forEach((skipped, index) => {
+				console.log(`${index + 1}. "${skipped.suggestion.originalText}" -> "${skipped.suggestion.suggestedText}" | Reason: ${skipped.reason}`);
+			});
+		}
 
 		return {
 			success: true,
 			plainText,
 			fileName: `corrected_transcript_${Date.now()}.txt`,
 			exportStats: {
-				totalSegments: textSegments.length,
-				totalSuggestions: analysisSegments.reduce((sum, seg) => {
-					try {
-						const parsed = typeof seg.suggestions === 'string' ? 
-									   JSON.parse(seg.suggestions) : seg.suggestions;
-						return sum + (Array.isArray(parsed) ? parsed.length : 
-									 (parsed?.suggestions?.length || 0));
-					} catch {
-						return sum;
-					}
-				}, 0),
-				appliedSuggestions: applyResult.totalApplied,
-				skippedSuggestions: applyResult.totalSkipped,
+				totalSegments: segments.length,
+				totalSuggestions,
+				appliedSuggestions: jsonResult.appliedCount,
+				skippedSuggestions: jsonResult.skippedCount,
 				processingTimeMs
 			},
 			segmentDetails
@@ -246,7 +124,7 @@ export function exportWithSuggestionsApplied(
 
 	} catch (error) {
 		const processingTimeMs = Date.now() - startTime;
-		console.error('Benchmark export failed:', error);
+		console.error('JSON-based benchmark export failed:', error);
 
 		return {
 			success: false,
