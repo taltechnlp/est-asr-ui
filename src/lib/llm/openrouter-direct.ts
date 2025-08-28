@@ -110,14 +110,13 @@ export class OpenRouterChat {
 						exclude: false // Keep reasoning visible for debugging, but limit tokens
 					};
 					console.log(`Applied Gemini reasoning limits: max_tokens=${completionParams.reasoning.max_tokens}`);
-				} else if (this.modelName.includes('gpt-5') || this.modelName.includes('o1') || this.modelName.includes('o3')) {
-					// For GPT-5, o1, o3 series: use minimal effort to minimize thinking tokens
+				} else if (this.modelName.includes('gpt-5')) {
+					// For GPT-5: use low effort only (can't combine with max_tokens)
 					completionParams.reasoning = {
 						effort: "low", // Use low effort - equivalent to ~20% of max tokens for thinking
-						max_tokens: Math.min(1024, Math.floor(this.maxTokens * 0.2)), // Additional limit: max 20% for thinking
 						exclude: false // Keep reasoning visible for debugging
 					};
-					console.log(`Applied GPT-5/o1/o3 low-effort reasoning: effort=low, max_tokens=${completionParams.reasoning.max_tokens}`);
+					console.log(`Applied GPT-5 low-effort reasoning: effort=low`);
 				}
 
 				const completion = await this.client.chat.completions.create(completionParams);
