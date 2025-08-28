@@ -47,12 +47,19 @@ export class OpenRouterChat {
 		// Only initialize OpenAI client on server side
 		if (typeof window === 'undefined') {
 			if (!OPENROUTER_API_KEY) {
+				console.error('OPENROUTER_API_KEY environment check failed:', {
+					hasKey: !!process.env.OPENROUTER_API_KEY,
+					keyLength: process.env.OPENROUTER_API_KEY?.length || 0,
+					env: process.env.NODE_ENV
+				});
 				throw new Error(
 					'OPENROUTER_API_KEY environment variable is not set. ' +
 						'Please add it to your .env file. ' +
 						'Get your API key from https://openrouter.ai/'
 				);
 			}
+
+			console.log(`OpenRouter client initialized: ${config.modelName || DEFAULT_MODEL}`);
 
 			this.client = new OpenAI({
 				baseURL: 'https://openrouter.ai/api/v1',
@@ -203,19 +210,49 @@ export function createOpenRouterChat(config: OpenRouterConfig = {}) {
 				throw new Error('OpenRouter API calls can only be made from server-side code');
 			}
 
-			// Convert LangChain message format to OpenRouter format
-			const formattedMessages = messages.map((msg) => {
-				if (msg.content) {
-					return {
-						role: msg._getType() === 'human' ? 'user' : 'assistant',
-						content: msg.content
-					};
+			// Convert LangChain message format to OpenRouter format with proper role mapping
+			console.log(`Converting ${messages.length} LangChain messages to OpenRouter format`);
+
+			const formattedMessages = messages.map((msg, index) => {
+				const type = msg._getType();
+				let role: 'user' | 'assistant' | 'system';
+				
+				switch (type) {
+					case 'human':
+						role = 'user';
+						break;
+					case 'ai':
+						role = 'assistant';
+						break;
+					case 'system':
+						role = 'system';
+						break;
+					default:
+						console.error(`Invalid message at index ${index}:`, {
+							type,
+							hasGetType: typeof msg._getType === 'function',
+							messageKeys: Object.keys(msg),
+							message: msg
+						});
+						throw new Error(`Unsupported LangChain message type: ${type}. Expected 'human', 'ai', or 'system'.`);
 				}
+
+				if (typeof msg.content !== 'string') {
+					console.error(`Invalid content at index ${index}:`, {
+						contentType: typeof msg.content,
+						content: msg.content,
+						messageType: type
+					});
+					throw new Error(`Message content must be a string. Received: ${typeof msg.content} - ${JSON.stringify(msg.content)}`);
+				}
+
 				return {
-					role: 'user',
-					content: String(msg)
+					role: role,
+					content: msg.content
 				};
 			});
+
+			console.log(`Formatted messages: ${formattedMessages.map(m => `${m.role}(${m.content.length})`).join(', ')}`);
 
 			const response = await client.invoke(formattedMessages);
 
@@ -229,7 +266,7 @@ export function createOpenRouterChat(config: OpenRouterConfig = {}) {
 		},
 
 		// Add bindTools method for compatibility
-		bindTools(tools: any[]) {
+		bindTools(_tools: any[]) {
 			console.warn('Tools not supported in direct OpenRouter implementation');
 			return this;
 		}
