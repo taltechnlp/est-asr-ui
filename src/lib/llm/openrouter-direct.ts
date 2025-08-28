@@ -111,12 +111,12 @@ export class OpenRouterChat {
 					};
 					console.log(`Applied Gemini reasoning limits: max_tokens=${completionParams.reasoning.max_tokens}`);
 				} else if (this.modelName.includes('gpt-5')) {
-					// For GPT-5: use low effort only (can't combine with max_tokens)
+					// For GPT-5: use medium effort only (can't combine with max_tokens)
 					completionParams.reasoning = {
-						effort: "low", // Use low effort - equivalent to ~20% of max tokens for thinking
+						effort: "medium", // Use medium effort - equivalent to ~50% of max tokens for thinking
 						exclude: false // Keep reasoning visible for debugging
 					};
-					console.log(`Applied GPT-5 low-effort reasoning: effort=low`);
+					console.log(`Applied GPT-5 medium-effort reasoning: effort=medium`);
 				}
 
 				const completion = await this.client.chat.completions.create(completionParams);
