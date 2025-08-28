@@ -1,4 +1,4 @@
-import { createOpenRouterChat, DEFAULT_MODEL, DEFAULT_MODEL_NAME } from '$lib/llm/openrouter-direct';
+import { createOpenRouterChat, DEFAULT_MODEL, DEFAULT_MODEL_NAME, OPENROUTER_MODELS } from '$lib/llm/openrouter-direct';
 import { HumanMessage } from '@langchain/core/messages';
 import { createWebSearchTool } from './tools';
 // ASR tool will be loaded conditionally to avoid client-side issues
@@ -58,6 +58,8 @@ export interface MultiSegmentAnalysisResult {
 
 export class CoordinatingAgent {
 	private model;
+	private fallbackModel;
+	private primaryModelName: string;
 	private asrTool: any = null;
 	private phoneticTool: any = null;
 	private signalQualityTool: any = null;
@@ -70,11 +72,22 @@ export class CoordinatingAgent {
 	private prompts: ReturnType<typeof getPrompts>;
 
 	constructor(modelName: string = DEFAULT_MODEL, promptStrategy: PromptStrategy = 'wer_focused') {
+		this.primaryModelName = modelName;
 		this.model = createOpenRouterChat({
 			modelName,
 			temperature: 0.3,
 			maxTokens: 2000
 		});
+
+		// Create fallback model (Claude 3.5 Sonnet) if primary model is different
+		const fallbackModelName = OPENROUTER_MODELS.CLAUDE_3_5_SONNET;
+		if (modelName !== fallbackModelName) {
+			this.fallbackModel = createOpenRouterChat({
+				modelName: fallbackModelName,
+				temperature: 0.3,
+				maxTokens: 2000
+			});
+		}
 
 		// Set prompt strategy and load corresponding prompts
 		this.promptStrategy = promptStrategy;
@@ -83,6 +96,60 @@ export class CoordinatingAgent {
 		// The ASR, phonetic, and signal quality tools will be loaded lazily when needed (server-side only)
 		this.webSearchTool = createWebSearchTool();
 		this.tiptapTool = new TipTapTransactionToolDirect();
+	}
+
+	/**
+	 * Invoke model with automatic fallback to Claude 3.5 Sonnet on empty responses
+	 */
+	private async invokeWithFallback(messages: any[], segmentIndex?: number): Promise<any> {
+		try {
+			const response = await this.model.invoke(messages);
+			
+			// Check for empty or whitespace-only responses
+			const content = response.content as string;
+			if (!content || content.trim().length === 0) {
+				throw new Error(`Empty response from ${this.primaryModelName}`);
+			}
+			
+			return response;
+		} catch (error: any) {
+			const isEmptyResponse = error?.message?.includes('Empty response') || 
+								   error?.message?.includes('model configuration issue');
+			
+			if (isEmptyResponse && this.fallbackModel) {
+				await this.logger?.logGeneral(
+					'warn', 
+					`Primary model ${this.primaryModelName} failed with empty response, falling back to Claude 3.5 Sonnet`,
+					{ error: error.message },
+					segmentIndex
+				);
+				
+				try {
+					const fallbackResponse = await this.fallbackModel.invoke(messages);
+					await this.logger?.logGeneral(
+						'info',
+						'Successfully fell back to Claude 3.5 Sonnet',
+						{ responseLength: (fallbackResponse.content as string).length },
+						segmentIndex
+					);
+					return fallbackResponse;
+				} catch (fallbackError: any) {
+					await this.logger?.logGeneral(
+						'error',
+						'Both primary and fallback models failed',
+						{ 
+							primaryError: error.message,
+							fallbackError: fallbackError.message 
+						},
+						segmentIndex
+					);
+					throw new Error(`Both ${this.primaryModelName} and Claude 3.5 Sonnet failed: ${fallbackError.message}`);
+				}
+			}
+			
+			// Re-throw non-empty response errors
+			throw error;
+		}
 	}
 
 	private async initializeASRTool() {
@@ -277,7 +344,7 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 			await this.logger?.logGeneral('debug', 'Sending multi-segment correction prompt to LLM');
 
 			try {
-				const correctedResponse = await this.model.invoke([
+				const correctedResponse = await this.invokeWithFallback([
 					new HumanMessage({ content: correctionPrompt })
 				]);
 
@@ -404,7 +471,7 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 			await this.logger?.logGeneral('debug', 'Sending correction prompt to LLM');
 
 			try {
-				const correctedResponse = await this.model.invoke([
+				const correctedResponse = await this.invokeWithFallback([
 					new HumanMessage({ content: correctionPrompt })
 				]);
 
@@ -611,7 +678,7 @@ Based on this audio quality, you should be ${
 			const llmStartTime = Date.now();
 			await this.logger?.logLLMRequest(prompt, DEFAULT_MODEL_NAME, segment.index);
 
-			const response = await this.model.invoke([new HumanMessage({ content: prompt })]);
+			const response = await this.invokeWithFallback([new HumanMessage({ content: prompt })], segment.index);
 
 			const llmDuration = Date.now() - llmStartTime;
 			await this.logger?.logLLMResponse(response.content as string, llmDuration, segment.index);
@@ -751,9 +818,9 @@ Based on this audio quality, you should be ${
 						segment.index
 					);
 
-					const enhancedResponse = await this.model.invoke([
+					const enhancedResponse = await this.invokeWithFallback([
 						new HumanMessage({ content: enhancedPrompt })
-					]);
+					], segment.index);
 
 					const enhancedLlmDuration = Date.now() - enhancedLlmStartTime;
 					await this.logger?.logLLMResponse(
@@ -1207,7 +1274,7 @@ Word count: ${segment.words.length} words${alternativesSection}`;
 			const llmStartTime = Date.now();
 			await this.logger?.logLLMRequest(prompt, `${DEFAULT_MODEL_NAME} (Multi-Segment)`, 0);
 
-			const response = await this.model.invoke([new HumanMessage({ content: prompt })]);
+			const response = await this.invokeWithFallback([new HumanMessage({ content: prompt })], 0);
 
 			const llmDuration = Date.now() - llmStartTime;
 			await this.logger?.logLLMResponse(response.content as string, llmDuration, 0);

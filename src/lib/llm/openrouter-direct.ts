@@ -104,17 +104,25 @@ export class OpenRouterChat {
 					throw new Error('No response from OpenRouter');
 				}
 
-				return { content: data.choices[0].message.content };
+				const content = data.choices[0].message.content;
+				
+				// Check for empty or whitespace-only responses
+				if (!content || content.trim().length === 0) {
+					throw new Error(`Empty response from model ${this.modelName}. This may be a model configuration issue.`);
+				}
+
+				return { content };
 			} catch (error: any) {
 				const isLastAttempt = attempt === maxRetries - 1;
 				const isTimeout = error?.name === 'AbortError' || error?.code === 'ETIMEDOUT';
 				const isNetworkError =
 					error?.cause?.code === 'ETIMEDOUT' || error?.message?.includes('fetch failed');
+				const isEmptyResponse = error?.message?.includes('Empty response from model');
 
-				if (isTimeout || isNetworkError) {
+				if (isTimeout || isNetworkError || isEmptyResponse) {
 					console.error(
 						`OpenRouter API attempt ${attempt + 1}/${maxRetries} failed:`,
-						isTimeout ? 'Request timeout' : 'Network error'
+						isTimeout ? 'Request timeout' : isNetworkError ? 'Network error' : 'Empty response'
 					);
 
 					if (!isLastAttempt) {
@@ -126,6 +134,13 @@ export class OpenRouterChat {
 					}
 
 					// Final attempt failed
+					if (isEmptyResponse) {
+						throw new Error(
+							`Model ${this.modelName} returned empty responses after ${maxRetries} attempts. ` +
+							`This may be a model configuration issue on OpenRouter.`
+						);
+					}
+					
 					throw new Error(
 						`OpenRouter API failed after ${maxRetries} attempts. ` +
 							`${isTimeout ? 'Request timed out' : 'Network connectivity issue'}. ` +
