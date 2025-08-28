@@ -16,6 +16,7 @@ import {
 	validateJsonStructure
 } from './utils/jsonParser';
 import { getAgentFileLogger, type AgentFileLogger } from '$lib/utils/agentFileLogger';
+import { getPrompts, type PromptStrategy } from './prompts';
 
 export interface SegmentAnalysisRequest {
 	fileId: string;
@@ -51,306 +52,8 @@ export interface MultiSegmentAnalysisResult {
 	overallAnalysis: string;
 }
 
-const SEGMENT_ANALYSIS_PROMPT = `🇪🇪 CRITICAL LANGUAGE REQUIREMENT: You MUST respond ONLY in {responseLanguage} language. Every word of your analysis, suggestions, and descriptions must be in {responseLanguage}. NO ENGLISH ALLOWED.
+// Prompts are now loaded from external files via getPrompts() function
 
-You are an expert transcript analyst specializing in Estonian language.
-
-Context from full transcript summary:
-{summary}
-
-Current speaker segment to analyze (speaker turn {segmentIndex} of {totalSegments}):
-Speaker: {speaker}
-Text: {text}
-Duration: {duration} seconds
-Word count: {wordCount} words
-
-ASR N-best list: {alternativesSection}
-
-This is a complete speaker turn - analyze the entire utterance from {speaker}.
-
-Your task (REMEMBER: respond only in {responseLanguage}):
-1. Analyze this complete speaker turn for quality, accuracy, and coherence
-2. Consider the context from the full transcript summary
-3. Identify potential transcription errors or unclear passages within this speaker's utterance
-4. Provide specific improvement suggestions for this speaker's turn. Do not suggest speaker labeling changes
-
-Focus on:
-- Grammar and language correctness throughout the speaker's turn
-- Internal coherence within this speaker's utterance
-- Consistency with the overall transcript context
-- Proper nouns and technical terms accuracy
-- Natural speech patterns
-- Punctuation and formatting
-- Phonetic plausibility of words (especially for potential homophones or ASR errors)
-
-🚨 LANGUAGE ENFORCEMENT: Your analysis text, suggestion descriptions, and ALL text fields must be written in {responseLanguage}. This is NON-NEGOTIABLE.
-
-CRITICAL FORMATTING REQUIREMENTS:
-- Keep originalText and suggestedText SHORT and FOCUSED (typically 1-5 words, maximum 1-2 sentences)
-- Target only the specific problematic part, not entire sentences or paragraphs
-- Focus on the minimal text span that needs correction
-- Avoid copying large portions of text - be precise and concise
-
-CRITICAL: You MUST respond with ONLY valid JSON. No explanations, no text before or after the JSON.
-Do NOT include markdown code blocks. Just the raw JSON object.
-
-🇪🇪 FINAL REMINDER: Write your entire response in {responseLanguage} - including analysis text and all suggestion descriptions.
-
-Provide a detailed analysis with actionable suggestions in exactly this JSON format:
-{
-  "analysis": "Your detailed analysis of this speaker's complete turn",
-  "confidence": 0.85,
-  "needsAlternatives": false,
-  "needsWebSearch": [],
-  "suggestions": [
-    {
-      "type": "grammar|punctuation|clarity|consistency|speaker|boundary",
-      "severity": "low|medium|high",
-      "text": "Description of the issue",
-      "originalText": "SHORT exact problematic text from the segment (1-5 words typically)",
-      "suggestedText": "SHORT corrected text to replace it with (1-5 words typically)",
-      "confidence": 0.9
-    }
-  ]
-}
-
-Remember: Return ONLY the JSON object above with your analysis. Nothing else.`;
-
-const ENHANCED_ANALYSIS_PROMPT = `🇪🇪 CRITICAL LANGUAGE REQUIREMENT: You MUST respond ONLY in {responseLanguage} language. Every word of your analysis, suggestions, and descriptions must be in {responseLanguage}. NO ENGLISH ALLOWED.
-
-You are an expert transcript analyst. You have already performed an initial analysis of a transcript segment.
-Now you have access to additional ASR (Automatic Speech Recognition) alternative transcriptions from a different model that provides additional hypothesis.
-
-Original transcript segment:
-{originalText}
-
-Your initial analysis identified these potential issues:
-{initialAnalysis}
-
-Alternative transcriptions from different ASR model (ranked by confidence):
-{asrAlternatives}
-
-CRITICAL INSIGHTS ABOUT THE ALTERNATIVE ASR MODEL:
-- This alternative ASR model provides different transcription hypotheses from the main model
-- Both the main model and this alternative model now return n-best lists, so this is not the only source of alternatives
-- The main value from this alternative model is getting completely different recognition hypotheses
-- Focus on identifying unique words or phrases that were NOT recognized by the original model
-- Look for words/hints that only appear in the alternative model's output
-
-Based on these ASR alternatives, please (REMEMBER: respond only in {responseLanguage}):
-1. FOCUS PRIMARILY on unique words or phrases that appear ONLY in the alternative ASR results
-2. Investigate words/hints that the original model completely missed or misrecognized
-3. Pay special attention to segments where the alternative model provides completely different word choices
-4. Look for technical terms, proper nouns, or specific vocabulary that only the alternative model captured
-5. Identify cases where the alternative model provides clarity for unclear or garbled segments
-
-Create new suggestions that emphasize unique insights from the alternative model. For each suggestion:
-- Set originalText to the problematic segment from the original (keep SHORT - typically 1-5 words)
-- Set suggestedText to the alternative when it provides unique words/hints not in the original (keep SHORT)
-- Explain why the alternative provides valuable new information (focus on unique words/phrases)
-- Set higher confidence when the alternative reveals completely different word choices that make more sense
-
-CRITICAL FORMATTING REQUIREMENTS:
-- Keep originalText and suggestedText SHORT and FOCUSED (typically 1-5 words, maximum 1-2 sentences)
-- Target only the specific problematic part, not entire sentences or paragraphs
-- Focus on the minimal text span that needs correction
-- Avoid copying large portions of text - be precise and concise
-
-🚨 LANGUAGE ENFORCEMENT: Your analysis text, suggestion descriptions, and ALL text fields must be written in {responseLanguage}. This is NON-NEGOTIABLE.
-
-IMPORTANT: 
-- Put MORE EMPHASIS on words/hints that are unique to the alternative model
-- Investigate segments where the two models produced completely different results
-- Focus on unique vocabulary, names, or technical terms only captured by the alternative
-- Write every word of your analysis and suggestions in {responseLanguage}
-
-CRITICAL: You MUST respond with ONLY valid JSON. No explanations, no text before or after the JSON.
-Do NOT include markdown code blocks, notes, or any other text. Just the raw JSON object.
-
-🇪🇪 FINAL REMINDER: Write your entire response in {responseLanguage} - including analysis text and all suggestion descriptions.
-
-Return your enhanced analysis in exactly this format:
-{
-  "analysis": "Your enhanced analysis incorporating ASR alternatives",
-  "confidence": 0.85,
-  "needsAlternatives": false,
-  "needsWebSearch": [],
-  "suggestions": [
-    {
-      "type": "grammar|punctuation|clarity|consistency|speaker|boundary",
-      "severity": "low|medium|high",
-      "text": "Description of the issue with explanation of why ASR alternative is better",
-      "originalText": "SHORT exact text from original transcript (1-5 words typically)",
-      "suggestedText": "SHORT better alternative from ASR or your correction (1-5 words typically)",
-      "confidence": 0.9,
-      "explanation": "Optional: why the ASR alternative is more accurate"
-    }
-  ]
-}
-
-Remember: Return ONLY the JSON object. No other text whatsoever.`;
-
-const MULTI_SEGMENT_ANALYSIS_PROMPT = `🇪🇪 CRITICAL LANGUAGE REQUIREMENT: You MUST respond ONLY in {responseLanguage} language. Every word of your analysis, suggestions, and descriptions must be in {responseLanguage}. NO ENGLISH ALLOWED.
-
-You are an expert transcript analyst specializing in Estonian language.
-
-Context from full transcript summary:
-{summary}
-
-Multiple segments to analyze together (speaker turns {segmentIndexRange} of {totalSegments}):
-
-{segmentsContent}
-
-These are complete speaker turns - analyze each segment individually AND consider their relationship to each other.
-
-Your task (REMEMBER: respond only in {responseLanguage}):
-1. Analyze each individual segment for quality, accuracy, and coherence
-2. Consider cross-segment consistency (speaker consistency, topic flow, terminology)
-3. Identify potential transcription errors or unclear passages within each segment
-4. Provide specific improvement suggestions for each segment
-
-Focus on:
-- Grammar and language correctness throughout each segment
-- Internal coherence within each speaker's utterance  
-- Cross-segment consistency and flow
-- Consistency with the overall transcript context
-- Proper nouns and technical terms accuracy
-- Natural speech patterns
-- Punctuation and formatting
-- Phonetic plausibility of words (especially for potential homophones or ASR errors)
-
-🚨 LANGUAGE ENFORCEMENT: Your analysis text, suggestion descriptions, and ALL text fields must be written in {responseLanguage}. This is NON-NEGOTIABLE.
-
-CRITICAL FORMATTING REQUIREMENTS:
-- Keep originalText and suggestedText SHORT and FOCUSED (typically 1-5 words, maximum 1-2 sentences)
-- Target only the specific problematic part, not entire sentences or paragraphs
-- Focus on the minimal text span that needs correction
-- Avoid copying large portions of text - be precise and concise
-
-CRITICAL SEGMENT IDENTIFICATION:
-- You MUST include "segmentNumber" (1-{segmentCount}) in each suggestion to identify which segment it applies to
-- segmentNumber corresponds to the numbered segments above (SEGMENT 1, SEGMENT 2, etc.)
-- Suggestions without valid segmentNumber will be rejected
-
-CRITICAL: You MUST respond with ONLY valid JSON. No explanations, no text before or after the JSON.
-Do NOT include markdown code blocks. Just the raw JSON object.
-
-🇪🇪 FINAL REMINDER: Write your entire response in {responseLanguage} - including analysis text and all suggestion descriptions.
-
-Provide your analysis in exactly this JSON format:
-{
-  "overallAnalysis": "Your analysis considering all segments together and their relationships",
-  "segmentAnalyses": [
-    {
-      "segmentNumber": 1,
-      "analysis": "Detailed analysis of segment 1",
-      "confidence": 0.85,
-      "needsAlternatives": false,
-      "needsWebSearch": [],
-      "suggestions": [
-        {
-          "segmentNumber": 1,
-          "type": "grammar|punctuation|clarity|consistency|speaker|boundary",
-          "severity": "low|medium|high", 
-          "text": "Description of the issue",
-          "originalText": "SHORT exact problematic text from segment 1 (1-5 words typically)",
-          "suggestedText": "SHORT corrected text to replace it with (1-5 words typically)",
-          "confidence": 0.9
-        }
-      ]
-    }
-  ]
-}
-
-Remember: Return ONLY the JSON object above with your analysis. Nothing else.`;
-
-const MULTI_SEGMENT_ENHANCED_ANALYSIS_PROMPT = `🇪🇪 CRITICAL LANGUAGE REQUIREMENT: You MUST respond ONLY in {responseLanguage} language. Every word of your analysis, suggestions, and descriptions must be in {responseLanguage}. NO ENGLISH ALLOWED.
-
-You are an expert transcript analyst. You have already performed an initial analysis of multiple transcript segments.
-Now you have access to additional ASR (Automatic Speech Recognition) alternative transcriptions from a different model that provides additional hypothesis for these segments.
-
-Original transcript segments:
-{originalSegments}
-
-Your initial analysis identified these potential issues:
-{initialAnalysis}
-
-Alternative transcriptions from different ASR model (ranked by confidence):
-{asrAlternatives}
-
-CRITICAL INSIGHTS ABOUT THE ALTERNATIVE ASR MODEL:
-- This alternative ASR model provides different transcription hypotheses from the main model
-- Both the main model and this alternative model now return n-best lists, so this is not the only source of alternatives
-- The main value from this alternative model is getting completely different recognition hypotheses
-- Focus on identifying unique words or phrases that were NOT recognized by the original model
-- Look for words/hints that only appear in the alternative model's output
-
-Based on these ASR alternatives, please (REMEMBER: respond only in {responseLanguage}):
-1. FOCUS PRIMARILY on unique words or phrases that appear ONLY in the alternative ASR results
-2. Investigate words/hints that the original model completely missed or misrecognized
-3. Pay special attention to segments where the alternative model provides completely different word choices
-4. Look for technical terms, proper nouns, or specific vocabulary that only the alternative model captured
-5. Identify cases where the alternative model provides clarity for unclear or garbled segments
-6. Consider cross-segment consistency when the alternative model provides different alternatives
-
-Create enhanced suggestions that emphasize unique insights from the alternative model. For each suggestion:
-- Include "segmentNumber" (1-{segmentCount}) to identify which segment it applies to
-- Set originalText to the problematic segment from the original (keep SHORT - typically 1-5 words)
-- Set suggestedText to the alternative when it provides unique words/hints not in the original (keep SHORT)
-- Explain why the alternative provides valuable new information (focus on unique words/phrases)
-- Set higher confidence when the alternative reveals completely different word choices that make more sense
-
-CRITICAL FORMATTING REQUIREMENTS:
-- Keep originalText and suggestedText SHORT and FOCUSED (typically 1-5 words, maximum 1-2 sentences)
-- Target only the specific problematic part, not entire sentences or paragraphs
-- Focus on the minimal text span that needs correction
-- Avoid copying large portions of text - be precise and concise
-
-CRITICAL SEGMENT IDENTIFICATION:
-- You MUST include "segmentNumber" (1-{segmentCount}) in each suggestion to identify which segment it applies to
-- segmentNumber corresponds to the original segment numbering
-- Suggestions without valid segmentNumber will be rejected
-
-🚨 LANGUAGE ENFORCEMENT: Your analysis text, suggestion descriptions, and ALL text fields must be written in {responseLanguage}. This is NON-NEGOTIABLE.
-
-IMPORTANT: 
-- Put MORE EMPHASIS on words/hints that are unique to the alternative model
-- Investigate segments where the two models produced completely different results
-- Focus on unique vocabulary, names, or technical terms only captured by the alternative
-- Write every word of your analysis and suggestions in {responseLanguage}
-
-CRITICAL: You MUST respond with ONLY valid JSON. No explanations, no text before or after the JSON.
-Do NOT include markdown code blocks, notes, or any other text. Just the raw JSON object.
-
-🇪🇪 FINAL REMINDER: Write your entire response in {responseLanguage} - including analysis text and all suggestion descriptions.
-
-Return your enhanced analysis in exactly this format:
-{
-  "overallAnalysis": "Your enhanced analysis incorporating ASR alternatives across all segments",
-  "segmentAnalyses": [
-    {
-      "segmentNumber": 1,
-      "analysis": "Enhanced analysis for segment 1 incorporating ASR alternatives",
-      "confidence": 0.85,
-      "needsAlternatives": false,
-      "needsWebSearch": [],
-      "suggestions": [
-        {
-          "segmentNumber": 1,
-          "type": "grammar|punctuation|clarity|consistency|speaker|boundary",
-          "severity": "low|medium|high",
-          "text": "Description of the issue with explanation of why ASR alternative is better",
-          "originalText": "SHORT exact text from original transcript (1-5 words typically)",
-          "suggestedText": "SHORT better alternative from ASR or your correction (1-5 words typically)",
-          "confidence": 0.9,
-          "explanation": "Optional: why the ASR alternative is more accurate"
-        }
-      ]
-    }
-  ]
-}
-
-Remember: Return ONLY the JSON object. No other text whatsoever.`;
 
 export class CoordinatingAgent {
 	private model;
@@ -362,13 +65,19 @@ export class CoordinatingAgent {
 	private editor: Editor | null = null;
 	private debugMode: boolean = false;
 	private logger: AgentFileLogger | null = null;
+	private promptStrategy: PromptStrategy = 'wer_focused';
+	private prompts: ReturnType<typeof getPrompts>;
 
-	constructor(modelName: string = OPENROUTER_MODELS.CLAUDE_3_5_SONNET) {
+	constructor(modelName: string = OPENROUTER_MODELS.CLAUDE_3_5_SONNET, promptStrategy: PromptStrategy = 'wer_focused') {
 		this.model = createOpenRouterChat({
 			modelName,
 			temperature: 0.3,
 			maxTokens: 2000
 		});
+
+		// Set prompt strategy and load corresponding prompts
+		this.promptStrategy = promptStrategy;
+		this.prompts = getPrompts(promptStrategy);
 
 		// The ASR, phonetic, and signal quality tools will be loaded lazily when needed (server-side only)
 		this.webSearchTool = createWebSearchTool();
@@ -430,6 +139,21 @@ export class CoordinatingAgent {
 
 	setDebugMode(enabled: boolean) {
 		this.debugMode = enabled;
+	}
+
+	/**
+	 * Set the prompt strategy and reload prompts
+	 */
+	setPromptStrategy(strategy: PromptStrategy) {
+		this.promptStrategy = strategy;
+		this.prompts = getPrompts(strategy);
+	}
+
+	/**
+	 * Get current prompt strategy
+	 */
+	getPromptStrategy(): PromptStrategy {
+		return this.promptStrategy;
 	}
 
 	private initializeLogger(transcriptFilePath: string, fileId: string): void {
@@ -857,8 +581,8 @@ Based on this audio quality, you should be ${
 				} with corrections.`;
 			}
 
-			// Build the analysis prompt
-			const prompt = SEGMENT_ANALYSIS_PROMPT.replace('{summary}', summary.summary)
+			// Build the analysis prompt using current strategy
+			const prompt = this.prompts.SEGMENT_ANALYSIS_PROMPT.replace('{summary}', summary.summary)
 				.replace('{segmentIndex}', (segment.index + 1).toString())
 				.replace('{totalSegments}', 'TBD')
 				.replace(/\{speaker\}/g, segment.speakerName || segment.speakerTag) // Replace all occurrences
@@ -1008,8 +732,8 @@ Based on this audio quality, you should be ${
 						)
 						.join('\n');
 
-					// Create enhanced analysis prompt
-					const enhancedPrompt = ENHANCED_ANALYSIS_PROMPT.replace('{originalText}', segment.text)
+					// Create enhanced analysis prompt using current strategy
+					const enhancedPrompt = this.prompts.ENHANCED_ANALYSIS_PROMPT.replace('{originalText}', segment.text)
 						.replace('{initialAnalysis}', JSON.stringify(analysisData.suggestions || []))
 						.replace('{asrAlternatives}', asrAlternativesText)
 						.replace('{responseLanguage}', responseLanguage);
@@ -1457,8 +1181,8 @@ Word count: ${segment.words.length} words${alternativesSection}`;
 				? `${segments[0].index + 1}-${segments[segments.length - 1].index + 1}`
 				: `${segments[0].index + 1}`;
 
-			// Build the multi-segment analysis prompt
-			const prompt = MULTI_SEGMENT_ANALYSIS_PROMPT
+			// Build the multi-segment analysis prompt using current strategy
+			const prompt = this.prompts.MULTI_SEGMENT_ANALYSIS_PROMPT
 				.replace('{summary}', summary.summary)
 				.replace('{segmentIndexRange}', segmentIndexRange)
 				.replace('{totalSegments}', 'TBD')
@@ -1689,9 +1413,9 @@ Word count: ${segment.words.length} words${alternativesSection}`;
 // Singleton instance
 let coordinatingAgentInstance: CoordinatingAgent | null = null;
 
-export function getCoordinatingAgent(modelName?: string): CoordinatingAgent {
-	if (!coordinatingAgentInstance || modelName) {
-		coordinatingAgentInstance = new CoordinatingAgent(modelName);
+export function getCoordinatingAgent(modelName?: string, promptStrategy?: PromptStrategy): CoordinatingAgent {
+	if (!coordinatingAgentInstance || modelName || promptStrategy) {
+		coordinatingAgentInstance = new CoordinatingAgent(modelName, promptStrategy);
 	}
 	return coordinatingAgentInstance;
 }
