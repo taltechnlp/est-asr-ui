@@ -3,7 +3,7 @@
  * Creates a clean copy of the transcript with all suggestions applied
  */
 
-import type { AnalysisSegment } from '@prisma/client';
+import type { AnalysisSegment, TranscriptCorrection } from '@prisma/client';
 import { extractSpeakerSegments } from '$lib/utils/extractWordsFromEditor';
 import type { TipTapEditorContent } from '../../types';
 
@@ -28,7 +28,6 @@ export interface BenchmarkExportResult {
 	error?: string;
 }
 
-
 /**
  * Apply suggestions to segment text using simple string replacement
  */
@@ -36,9 +35,9 @@ function applySegmentSuggestions(
 	segmentText: string,
 	suggestions: any[],
 	options: { minConfidence: number; applyAll: boolean }
-): { 
-	modifiedText: string; 
-	appliedCount: number; 
+): {
+	modifiedText: string;
+	appliedCount: number;
 	skippedCount: number;
 	appliedSuggestions: string[];
 	skippedSuggestions: { originalText: string; suggestedText: string; reason: string }[];
@@ -85,47 +84,53 @@ function applySegmentSuggestions(
 		if (modifiedText.includes(originalText)) {
 			modifiedText = modifiedText.replace(originalText, suggestion.suggestedText);
 			appliedCount++;
-			appliedSuggestions.push(`"${originalText}" -> "${suggestion.suggestedText}" [severity: ${suggestion.severity || 'N/A'}, order: ${index + 1}]`);
+			appliedSuggestions.push(
+				`"${originalText}" -> "${suggestion.suggestedText}" [severity: ${suggestion.severity || 'N/A'}, order: ${index + 1}]`
+			);
 		}
 		// Try normalized match (handles spacing differences)
 		else if (normalizedSegment.includes(normalizedOriginal)) {
 			// Find the position in the normalized text
 			const normalizedIndex = normalizedSegment.indexOf(normalizedOriginal);
-			
+
 			// Map back to original text to find the actual text to replace
 			// This is tricky, so let's use a simpler approach: split and rejoin
 			const words = modifiedText.split(/\s+/);
 			const normalizedWords = originalText.split(/\s+/);
-			
+
 			// Find sequence of words that matches
 			for (let i = 0; i <= words.length - normalizedWords.length; i++) {
 				const candidateWords = words.slice(i, i + normalizedWords.length);
 				const candidateText = candidateWords.join(' ');
-				
+
 				if (normalizeForComparison(candidateText) === normalizedOriginal) {
 					// Found the match - replace these words
 					const before = words.slice(0, i);
 					const after = words.slice(i + normalizedWords.length);
 					const replacement = suggestion.suggestedText.split(/\s+/);
-					
+
 					const newWords = [...before, ...replacement, ...after];
 					modifiedText = newWords.join(' ');
 					appliedCount++;
-					appliedSuggestions.push(`"${candidateText}" -> "${suggestion.suggestedText}" [severity: ${suggestion.severity || 'N/A'}, order: ${index + 1}]`);
+					appliedSuggestions.push(
+						`"${candidateText}" -> "${suggestion.suggestedText}" [severity: ${suggestion.severity || 'N/A'}, order: ${index + 1}]`
+					);
 					break;
 				}
 			}
-			
+
 			// If we didn't find a word-based match, fall back to case-insensitive
 			if (appliedSuggestions.length === appliedCount - 1) {
 				const lowerText = modifiedText.toLowerCase();
 				const lowerSearch = originalText.toLowerCase();
 				const index = lowerText.indexOf(lowerSearch);
-				
+
 				if (index !== -1) {
 					const actualText = modifiedText.substring(index, index + originalText.length);
 					modifiedText = modifiedText.replace(actualText, suggestion.suggestedText);
-					appliedSuggestions.push(`"${actualText}" -> "${suggestion.suggestedText}" [severity: ${suggestion.severity || 'N/A'}, order: ${index + 1}]`);
+					appliedSuggestions.push(
+						`"${actualText}" -> "${suggestion.suggestedText}" [severity: ${suggestion.severity || 'N/A'}, order: ${index + 1}]`
+					);
 				} else {
 					appliedCount--; // Revert the increment
 				}
@@ -137,10 +142,12 @@ function applySegmentSuggestions(
 			const lowerSearch = originalText.toLowerCase();
 			const idx = lowerText.indexOf(lowerSearch);
 			const actualText = modifiedText.substring(idx, idx + originalText.length);
-			
+
 			modifiedText = modifiedText.replace(actualText, suggestion.suggestedText);
 			appliedCount++;
-			appliedSuggestions.push(`"${actualText}" -> "${suggestion.suggestedText}" [severity: ${suggestion.severity || 'N/A'}, order: ${index + 1}]`);
+			appliedSuggestions.push(
+				`"${actualText}" -> "${suggestion.suggestedText}" [severity: ${suggestion.severity || 'N/A'}, order: ${index + 1}]`
+			);
 		} else {
 			skippedCount++;
 			skippedSuggestions.push({
@@ -171,7 +178,9 @@ export function exportWithSuggestionsApplied(
 	const { minConfidence = 0.0, applyAll = true, includeStats = true } = options;
 
 	try {
-		console.log(`Starting segment-based suggestion application for ${analysisSegments.length} analysis segments`);
+		console.log(
+			`Starting segment-based suggestion application for ${analysisSegments.length} analysis segments`
+		);
 
 		// Extract speaker segments from editor content
 		const segments = extractSpeakerSegments(editorContent);
@@ -191,7 +200,11 @@ export function exportWithSuggestionsApplied(
 				let suggestionArray: any[] = [];
 				if (Array.isArray(parsedSuggestions)) {
 					suggestionArray = parsedSuggestions;
-				} else if (parsedSuggestions && typeof parsedSuggestions === 'object' && 'suggestions' in parsedSuggestions) {
+				} else if (
+					parsedSuggestions &&
+					typeof parsedSuggestions === 'object' &&
+					'suggestions' in parsedSuggestions
+				) {
 					const wrapped = parsedSuggestions as any;
 					if (Array.isArray(wrapped.suggestions)) {
 						suggestionArray = wrapped.suggestions;
@@ -203,31 +216,39 @@ export function exportWithSuggestionsApplied(
 					totalSuggestions += suggestionArray.length;
 				}
 			} catch (error) {
-				console.error(`Error parsing suggestions for segment ${analysisSegment.segmentIndex}:`, error);
+				console.error(
+					`Error parsing suggestions for segment ${analysisSegment.segmentIndex}:`,
+					error
+				);
 			}
 		}
 
-		console.log(`Parsed suggestions for ${suggestionsBySegment.size} segments, total ${totalSuggestions} suggestions`);
+		console.log(
+			`Parsed suggestions for ${suggestionsBySegment.size} segments, total ${totalSuggestions} suggestions`
+		);
 
 		// Apply suggestions to each segment
 		const modifiedSegments: string[] = [];
 		let totalApplied = 0;
 		let totalSkipped = 0;
 		const allAppliedSuggestions: string[] = [];
-		const allSkippedSuggestions: { originalText: string; suggestedText: string; reason: string }[] = [];
+		const allSkippedSuggestions: { originalText: string; suggestedText: string; reason: string }[] =
+			[];
 
 		const segmentDetails = segments.map((segment) => {
 			const suggestions = suggestionsBySegment.get(segment.index) || [];
-			
+
 			// Debug logging for problematic segments
 			if (suggestions.length > 0 && segment.index < 5) {
 				console.log(`\nSegment ${segment.index} text:`, JSON.stringify(segment.text));
 				console.log(`Suggestions for segment ${segment.index}:`);
 				suggestions.slice(0, 3).forEach((s, i) => {
-					console.log(`  ${i + 1}. "${s.originalText}" -> "${s.suggestedText}" | Severity: ${s.severity || 'N/A'}`);
+					console.log(
+						`  ${i + 1}. "${s.originalText}" -> "${s.suggestedText}" | Severity: ${s.severity || 'N/A'}`
+					);
 				});
 			}
-			
+
 			// Sort suggestions by severity (higher first), then by original text length (shorter first)
 			// This prevents overlapping suggestions from interfering with each other
 			const sortedSuggestions = [...suggestions].sort((a, b) => {
@@ -237,14 +258,14 @@ export function exportWithSuggestionsApplied(
 				if (severityA !== severityB) {
 					return severityB - severityA; // Higher severity first
 				}
-				
+
 				// If severity is equal, sort by original text length (shorter first)
 				// Shorter replacements are less likely to conflict with longer ones
 				const lengthA = a.originalText ? a.originalText.length : 0;
 				const lengthB = b.originalText ? b.originalText.length : 0;
 				return lengthA - lengthB; // Shorter first
 			});
-			
+
 			const result = applySegmentSuggestions(segment.text, sortedSuggestions, {
 				minConfidence,
 				applyAll
@@ -259,14 +280,15 @@ export function exportWithSuggestionsApplied(
 			return {
 				segmentIndex: segment.index,
 				originalText: segment.text.substring(0, 100) + (segment.text.length > 100 ? '...' : ''),
-				modifiedText: result.modifiedText.substring(0, 100) + (result.modifiedText.length > 100 ? '...' : ''),
+				modifiedText:
+					result.modifiedText.substring(0, 100) + (result.modifiedText.length > 100 ? '...' : ''),
 				suggestionsApplied: result.appliedCount,
 				suggestionsSkipped: result.skippedCount
 			};
 		});
 
 		// Join all modified segments
-		const plainText = modifiedSegments.filter(text => text.length > 0).join('\n');
+		const plainText = modifiedSegments.filter((text) => text.length > 0).join('\n');
 		const processingTimeMs = Date.now() - startTime;
 
 		console.log('Segment-based benchmark export completed:', {
@@ -289,12 +311,16 @@ export function exportWithSuggestionsApplied(
 		if (allSkippedSuggestions.length > 0) {
 			console.log('Sample skipped suggestions:');
 			allSkippedSuggestions.slice(0, 5).forEach((skipped, index) => {
-				console.log(`${index + 1}. "${skipped.originalText}" -> "${skipped.suggestedText}" | Reason: ${skipped.reason}`);
+				console.log(
+					`${index + 1}. "${skipped.originalText}" -> "${skipped.suggestedText}" | Reason: ${skipped.reason}`
+				);
 			});
-			
+
 			console.log('\n=== ALL UNSUCCESSFUL SUGGESTIONS ===');
 			allSkippedSuggestions.forEach((skipped, index) => {
-				console.log(`${index + 1}. "${skipped.originalText}" -> "${skipped.suggestedText}" | Reason: ${skipped.reason}`);
+				console.log(
+					`${index + 1}. "${skipped.originalText}" -> "${skipped.suggestedText}" | Reason: ${skipped.reason}`
+				);
 			});
 			console.log('=== END UNSUCCESSFUL SUGGESTIONS ===\n');
 		}
@@ -312,7 +338,6 @@ export function exportWithSuggestionsApplied(
 			},
 			segmentDetails
 		};
-
 	} catch (error) {
 		const processingTimeMs = Date.now() - startTime;
 		console.error('Segment-based benchmark export failed:', error);
@@ -341,9 +366,10 @@ export function generateExportReport(result: BenchmarkExportResult): string {
 	}
 
 	const stats = result.exportStats;
-	const successRate = stats.totalSuggestions > 0 ? 
-		((stats.appliedSuggestions / stats.totalSuggestions) * 100).toFixed(1) : 
-		'0';
+	const successRate =
+		stats.totalSuggestions > 0
+			? ((stats.appliedSuggestions / stats.totalSuggestions) * 100).toFixed(1)
+			: '0';
 
 	return `Benchmark Export Report
 =========================
@@ -368,7 +394,9 @@ export function exportWithCorrectedSegments(
 	const startTime = Date.now();
 
 	try {
-		console.log(`Starting corrected segments export for ${analysisSegments.length} analysis segments`);
+		console.log(
+			`Starting corrected segments export for ${analysisSegments.length} analysis segments`
+		);
 
 		// Extract speaker segments from editor content
 		const segments = extractSpeakerSegments(editorContent);
@@ -380,14 +408,19 @@ export function exportWithCorrectedSegments(
 
 		for (const analysisSegment of analysisSegments) {
 			if (analysisSegment.correctedSegment) {
-				correctedSegmentsByIndex.set(analysisSegment.segmentIndex, analysisSegment.correctedSegment);
+				correctedSegmentsByIndex.set(
+					analysisSegment.segmentIndex,
+					analysisSegment.correctedSegment
+				);
 				totalWithCorrectedSegments++;
 			}
 		}
 
-		console.log(`Found corrected segments for ${totalWithCorrectedSegments}/${analysisSegments.length} analysis segments`);
+		console.log(
+			`Found corrected segments for ${totalWithCorrectedSegments}/${analysisSegments.length} analysis segments`
+		);
 
-		// Build the export using corrected segments where available, original text otherwise  
+		// Build the export using corrected segments where available, original text otherwise
 		const exportSegments: string[] = [];
 		let usedCorrected = 0;
 		let usedOriginal = 0;
@@ -395,7 +428,7 @@ export function exportWithCorrectedSegments(
 		const segmentDetails = segments.map((segment, index) => {
 			const correctedText = correctedSegmentsByIndex.get(segment.index);
 			const textToUse = correctedText || segment.reconstructedText;
-			
+
 			if (correctedText) {
 				usedCorrected++;
 			} else {
@@ -417,7 +450,9 @@ export function exportWithCorrectedSegments(
 		const plainText = exportSegments.join(' ');
 		const processingTimeMs = Date.now() - startTime;
 
-		console.log(`Corrected segments export completed: ${usedCorrected} corrected, ${usedOriginal} original`);
+		console.log(
+			`Corrected segments export completed: ${usedCorrected} corrected, ${usedOriginal} original`
+		);
 
 		return {
 			success: true,
@@ -432,7 +467,6 @@ export function exportWithCorrectedSegments(
 			},
 			segmentDetails
 		};
-
 	} catch (error) {
 		const processingTimeMs = Date.now() - startTime;
 		console.error('Corrected segments export failed:', error);
@@ -450,4 +484,137 @@ export function exportWithCorrectedSegments(
 			error: error instanceof Error ? error.message : 'Unknown error'
 		};
 	}
+}
+
+/**
+ * Export transcript using WER-focused corrections from TranscriptCorrection table
+ * Removes speaker names for clean WER calculation
+ */
+export function exportWithWERCorrections(
+	transcriptCorrections: TranscriptCorrection[]
+): BenchmarkExportResult {
+	const startTime = Date.now();
+
+	try {
+		console.log(`Starting WER corrections export for ${transcriptCorrections.length} blocks`);
+
+		// Filter only completed corrections, sorted by block index
+		const completedCorrections = transcriptCorrections
+			.filter((tc) => tc.status === 'completed' && tc.correctedText)
+			.sort((a, b) => a.blockIndex - b.blockIndex);
+
+		if (completedCorrections.length === 0) {
+			throw new Error('No completed corrections found');
+		}
+
+		console.log(`Using ${completedCorrections.length} completed correction blocks`);
+
+		// Concatenate all corrected blocks
+		const correctedBlocks = completedCorrections.map((tc) => tc.correctedText!);
+
+		// Remove speaker names from the text
+		// Speaker names are in format "Speaker Name: text"
+		const plainTextBlocks = correctedBlocks.map((block) => {
+			return block
+				.split('\n')
+				.map((line) => {
+					// Remove speaker names (everything before first colon and space)
+					const colonIndex = line.indexOf(': ');
+					if (colonIndex > 0) {
+						return line.substring(colonIndex + 2);
+					}
+					// Skip lines that are just "Alternatives: ..."
+					if (line.startsWith('Alternatives: ')) {
+						return '';
+					}
+					return line;
+				})
+				.filter((line) => line.trim().length > 0) // Remove empty lines
+				.join(' '); // Join lines with spaces
+		});
+
+		// Join all blocks with newlines
+		const plainText = plainTextBlocks.filter((block) => block.trim().length > 0).join('\n');
+
+		// Calculate statistics
+		const totalCorrections = completedCorrections.reduce((sum, tc) => {
+			const suggestions = Array.isArray(tc.suggestions) ? tc.suggestions : [];
+			return sum + suggestions.length;
+		}, 0);
+
+		const processingTimeMs = Date.now() - startTime;
+
+		console.log('WER corrections export completed:', {
+			totalBlocks: transcriptCorrections.length,
+			completedBlocks: completedCorrections.length,
+			totalCorrections,
+			processingTimeMs,
+			textLength: plainText.length
+		});
+
+		// Create segment details for compatibility
+		const segmentDetails = completedCorrections.map((tc, index) => ({
+			segmentIndex: tc.blockIndex,
+			originalText: tc.originalText
+				? removeSpeakerNames(tc.originalText).substring(0, 100) + '...'
+				: 'N/A',
+			modifiedText: tc.correctedText
+				? removeSpeakerNames(tc.correctedText).substring(0, 100) + '...'
+				: 'N/A',
+			suggestionsApplied: Array.isArray(tc.suggestions) ? tc.suggestions.length : 0,
+			suggestionsSkipped: 0
+		}));
+
+		return {
+			success: true,
+			plainText,
+			fileName: `wer_corrected_transcript_${Date.now()}.txt`,
+			exportStats: {
+				totalSegments: completedCorrections.length,
+				totalSuggestions: totalCorrections,
+				appliedSuggestions: totalCorrections,
+				skippedSuggestions: 0,
+				processingTimeMs
+			},
+			segmentDetails
+		};
+	} catch (error) {
+		const processingTimeMs = Date.now() - startTime;
+		console.error('WER corrections export failed:', error);
+
+		return {
+			success: false,
+			exportStats: {
+				totalSegments: 0,
+				totalSuggestions: 0,
+				appliedSuggestions: 0,
+				skippedSuggestions: 0,
+				processingTimeMs
+			},
+			segmentDetails: [],
+			error: error instanceof Error ? error.message : 'Unknown error'
+		};
+	}
+}
+
+/**
+ * Remove speaker names from text for WER calculation
+ */
+function removeSpeakerNames(text: string): string {
+	return text
+		.split('\n')
+		.map((line) => {
+			// Remove speaker names (everything before first colon and space)
+			const colonIndex = line.indexOf(': ');
+			if (colonIndex > 0) {
+				return line.substring(colonIndex + 2);
+			}
+			// Skip lines that are just "Alternatives: ..."
+			if (line.startsWith('Alternatives: ')) {
+				return '';
+			}
+			return line;
+		})
+		.filter((line) => line.trim().length > 0)
+		.join(' ');
 }

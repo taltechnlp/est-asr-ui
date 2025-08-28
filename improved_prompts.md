@@ -1,12 +1,14 @@
 # Improved CoordinationAgent Prompts for WER Reduction
 
 ## Core Issues with Current Approach
+
 - Current prompts focus on stylistic improvements (grammar, punctuation) rather than ASR errors
-- No examples of typical Estonian ASR mistake patterns 
+- No examples of typical Estonian ASR mistake patterns
 - Treats all suggestions equally instead of prioritizing WER-reducing corrections
 - Missing focus on phonetic plausibility and recognition errors
 
 ## Key ASR Error Patterns (from testdata analysis)
+
 1. **Morphological errors**: Case endings, plural/singular forms
 2. **Phonetic substitutions**: Similar-sounding words (`noh->no`)
 3. **Compound word errors**: Missing/added prefixes (`dokumentatsiooni->igapäevadokumentatsiooni`)
@@ -41,7 +43,7 @@ TARGET THESE SPECIFIC ASR ERROR PATTERNS:
    - Plural/singular confusion
    - Verb form misrecognition
 
-2. **Phonetic Substitution Errors** 
+2. **Phonetic Substitution Errors**
    - Similar-sounding words that don't fit context ("noh" vs "no")
    - Vowel/consonant confusions in Estonian phonetics
    - Words that sound plausible but are semantically wrong
@@ -69,7 +71,7 @@ IGNORE THESE (NOT ASR ERRORS):
 
 EXAMPLES OF GOOD ASR ERROR CORRECTIONS:
 - "tuuletõmbused" → "õmblused" (phonetic substitution error)
-- "et" → "kutse" (function word misrecognition) 
+- "et" → "kutse" (function word misrecognition)
 - "käitub" → "käib" (similar sound, different meaning)
 - "sellest" → "selles" (morphological case error)
 
@@ -83,7 +85,7 @@ VALIDATION CHECK: For each suggestion, ask yourself:
 
 CRITICAL FORMATTING REQUIREMENTS:
 - Keep originalText SHORT and FOCUSED (typically 1-5 words maximum)
-- Keep suggestedText SHORT and FOCUSED (typically 1-5 words maximum) 
+- Keep suggestedText SHORT and FOCUSED (typically 1-5 words maximum)
 - Target only the specific misrecognized word/phrase, not entire sentences
 - Focus on minimal corrections that fix recognition errors
 
@@ -103,7 +105,7 @@ Provide your ASR error analysis in exactly this JSON format:
       "severity": "high|medium|low",
       "text": "Description of the ASR error pattern detected",
       "originalText": "SHORT misrecognized text (1-5 words typically)",
-      "suggestedText": "SHORT correct recognition (1-5 words typically)", 
+      "suggestedText": "SHORT correct recognition (1-5 words typically)",
       "confidence": 0.9,
       "werImpact": "positive|neutral|negative"
     }
@@ -156,7 +158,7 @@ KEY RECOGNITION ERROR PATTERNS TO DETECT:
 - Proper compound word formation
 
 **Function Word Fixes:**
-- Small Estonian words ("et", "ja", "aga") corrected in alternatives  
+- Small Estonian words ("et", "ja", "aga") corrected in alternatives
 - Context-appropriate conjunctions/particles
 - Proper preposition usage
 
@@ -184,7 +186,7 @@ Return your enhanced ASR error analysis in exactly this format:
 {
   "analysis": "Enhanced analysis focusing on ASR recognition errors found through alternatives",
   "confidence": 0.85,
-  "needsAlternatives": false, 
+  "needsAlternatives": false,
   "needsWebSearch": [],
   "suggestions": [
     {

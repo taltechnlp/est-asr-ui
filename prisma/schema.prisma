@@ -29,6 +29,7 @@ model File {
   chatSessions             ChatSession[]
   transcriptSummary        TranscriptSummary?
   analysisSegments         AnalysisSegment[]
+  transcriptCorrections    TranscriptCorrection[]
   notify                   Boolean?
   notified                 Boolean?
   autoAnalyze              Boolean?
@@ -221,4 +222,26 @@ model AnalysisSegment {
   
   @@unique([fileId, segmentIndex])
   @@index([fileId])
+}
+
+// Block-based transcript corrections for WER optimization
+model TranscriptCorrection {
+  id              String   @id @default(cuid())
+  fileId          String
+  blockIndex      Int      // Which block (0, 1, 2, etc.)
+  segmentIndices  Int[]    // Array of segment indices in this block (typically 20 segments)
+  originalText    String   @db.Text // Plain text with speaker names and alternatives
+  correctedText   String?  @db.Text // Text with corrections applied
+  suggestions     Json     @default("[]") // Array of correction suggestions
+  llmInteractions Json     @default("[]") // Array of LLM request/response pairs
+  processingTimeMs Int?    // Time taken to process this block
+  status          String   @default("pending") // pending, processing, completed, error
+  error           String?  @db.Text // Error message if processing failed
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  file            File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  
+  @@unique([fileId, blockIndex])
+  @@index([fileId])
+  @@index([fileId, status])
 }

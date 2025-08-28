@@ -10,39 +10,50 @@ async function triggerAutoAnalysis(file: any, maxRetries = 3): Promise<void> {
 		try {
 			const controller = new AbortController();
 			const timeout = setTimeout(() => controller.abort(), 120000); // 2 minute timeout for large transcripts
-			
+
 			const response = await fetch(`${ORIGIN}/api/transcript-analysis/auto-analyze`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ fileId: file.id }),
 				signal: controller.signal
 			});
-			
+
 			clearTimeout(timeout);
-			
+
 			if (response.ok) {
 				console.log(`Auto-analysis initiated successfully for file: ${file.filename}`);
 				return;
 			} else {
 				const errorText = await response.text();
 				if (attempt < maxRetries - 1) {
-					console.warn(`Auto-analysis trigger failed (attempt ${attempt + 1}/${maxRetries}) - Status: ${response.status}, Error: ${errorText}`);
+					console.warn(
+						`Auto-analysis trigger failed (attempt ${attempt + 1}/${maxRetries}) - Status: ${response.status}, Error: ${errorText}`
+					);
 				} else {
-					console.error(`Failed to initiate auto-analysis after ${maxRetries} attempts - Status: ${response.status}, Error: ${errorText}`);
+					console.error(
+						`Failed to initiate auto-analysis after ${maxRetries} attempts - Status: ${response.status}, Error: ${errorText}`
+					);
 				}
 			}
 		} catch (error: any) {
-			const isTimeout = error.name === 'AbortError' || error.message?.includes('timeout') || error.message?.includes('aborted');
+			const isTimeout =
+				error.name === 'AbortError' ||
+				error.message?.includes('timeout') ||
+				error.message?.includes('aborted');
 			const isNetworkError = error.message?.includes('fetch failed') || error.code === 'ENOTFOUND';
-			
+
 			if (attempt < maxRetries - 1) {
 				const delay = 1000 * Math.pow(2, attempt); // Exponential backoff: 1s, 2s, 4s
-				console.warn(`Auto-analysis trigger failed (attempt ${attempt + 1}/${maxRetries}): ${isTimeout ? 'Timeout (2min exceeded)' : isNetworkError ? 'Network error' : error.message}. Retrying in ${delay}ms...`);
-				await new Promise(resolve => setTimeout(resolve, delay));
+				console.warn(
+					`Auto-analysis trigger failed (attempt ${attempt + 1}/${maxRetries}): ${isTimeout ? 'Timeout (2min exceeded)' : isNetworkError ? 'Network error' : error.message}. Retrying in ${delay}ms...`
+				);
+				await new Promise((resolve) => setTimeout(resolve, delay));
 			} else {
 				// On final attempt, don't throw for timeout errors - just log as they're expected for very large files
 				if (isTimeout) {
-					console.warn(`Auto-analysis trigger timed out after ${maxRetries} attempts (file may be very large): ${error.message}`);
+					console.warn(
+						`Auto-analysis trigger timed out after ${maxRetries} attempts (file may be very large): ${error.message}`
+					);
 					return; // Return without throwing to avoid error propagation
 				} else {
 					console.error(`Error initiating auto-analysis after ${maxRetries} attempts:`, error);
@@ -276,7 +287,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 							// Trigger auto-analysis if requested
 							if (file.autoAnalyze) {
 								console.log(`Starting auto-analysis for file: ${file.filename} (${file.id})`);
-								triggerAutoAnalysis(file).catch(error => 
+								triggerAutoAnalysis(file).catch((error) =>
 									console.error(`Failed to trigger auto-analysis for file: ${file.filename}`, error)
 								);
 							}
@@ -318,7 +329,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 							// Trigger auto-analysis if requested
 							if (file.autoAnalyze) {
 								console.log(`Starting auto-analysis for file: ${file.filename} (${file.id})`);
-								triggerAutoAnalysis(file).catch(error => 
+								triggerAutoAnalysis(file).catch((error) =>
 									console.error(`Failed to trigger auto-analysis for file: ${file.filename}`, error)
 								);
 							}

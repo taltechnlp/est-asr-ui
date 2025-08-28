@@ -2,7 +2,12 @@ import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
 import { prisma } from '$lib/db/client';
 import { z } from 'zod';
-import { exportWithSuggestionsApplied, exportWithCorrectedSegments, generateExportReport } from '$lib/services/benchmarkExporter';
+import {
+	exportWithSuggestionsApplied,
+	exportWithCorrectedSegments,
+	exportWithWERCorrections,
+	generateExportReport
+} from '$lib/services/benchmarkExporter';
 import { promises as fs } from 'fs';
 import path from 'path';
 
@@ -85,58 +90,85 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			parsedContent = transcriptContent;
 		}
 
-		// Get all analysis segments for this file
-		const analysisSegments = await prisma.analysisSegment.findMany({
-			where: { 
-				fileId,
-				status: 'analyzed' // Only include completed analyses
-			},
-			orderBy: { segmentIndex: 'asc' }
+		// Check for WER corrections first (highest priority)
+		const werCorrections = await prisma.transcriptCorrection.findMany({
+			where: { fileId },
+			orderBy: { blockIndex: 'asc' }
 		});
 
-		if (analysisSegments.length === 0) {
-			return json({ 
-				error: 'No analyzed segments found. Please ensure auto-analysis has completed.' 
-			}, { status: 400 });
-		}
+		let exportResult;
+		let exportMethod = 'suggestion application'; // default
 
-		console.log(`Processing benchmark export for file ${fileId}: ${analysisSegments.length} segments`);
-
-		// Check if we have corrected segments available
-		const segmentsWithCorrectedText = analysisSegments.filter(seg => seg.correctedSegment);
-		const useCorrectedSegments = segmentsWithCorrectedText.length > 0;
-
-		console.log(`Export method: ${useCorrectedSegments ? 'corrected segments' : 'suggestion application'}`);
-		console.log(`Corrected segments available: ${segmentsWithCorrectedText.length}/${analysisSegments.length}`);
-
-		// Choose export method based on availability of corrected segments
-		const exportResult = useCorrectedSegments 
-			? exportWithCorrectedSegments(parsedContent, analysisSegments)
-			: exportWithSuggestionsApplied(parsedContent, analysisSegments, {
-				minConfidence,
-				applyAll,
-				includeStats: true
+		if (werCorrections.length > 0) {
+			// Use WER corrections if available
+			exportMethod = 'WER corrections';
+			console.log(`Using WER corrections: ${werCorrections.length} blocks found`);
+			exportResult = exportWithWERCorrections(werCorrections);
+		} else {
+			// Fallback to existing logic for backward compatibility
+			const analysisSegments = await prisma.analysisSegment.findMany({
+				where: {
+					fileId,
+					status: 'analyzed'
+				},
+				orderBy: { segmentIndex: 'asc' }
 			});
+
+			if (analysisSegments.length === 0) {
+				return json(
+					{
+						error: 'No corrections or analyzed segments found. Please run analysis first.'
+					},
+					{ status: 400 }
+				);
+			}
+
+			console.log(
+				`Processing benchmark export for file ${fileId}: ${analysisSegments.length} segments`
+			);
+
+			// Check if we have corrected segments available
+			const segmentsWithCorrectedText = analysisSegments.filter((seg) => seg.correctedSegment);
+			const useCorrectedSegments = segmentsWithCorrectedText.length > 0;
+
+			exportMethod = useCorrectedSegments ? 'corrected segments' : 'suggestion application';
+			console.log(`Export method: ${exportMethod}`);
+			console.log(
+				`Corrected segments available: ${segmentsWithCorrectedText.length}/${analysisSegments.length}`
+			);
+
+			// Choose export method based on availability of corrected segments
+			exportResult = useCorrectedSegments
+				? exportWithCorrectedSegments(parsedContent, analysisSegments)
+				: exportWithSuggestionsApplied(parsedContent, analysisSegments, {
+						minConfidence,
+						applyAll,
+						includeStats: true
+					});
+		}
 
 		if (!exportResult.success) {
 			console.error('Benchmark export failed:', exportResult.error);
-			return json({ 
-				error: `Export failed: ${exportResult.error}`,
-				stats: exportResult.exportStats
-			}, { status: 500 });
+			return json(
+				{
+					error: `Export failed: ${exportResult.error}`,
+					stats: exportResult.exportStats
+				},
+				{ status: 500 }
+			);
 		}
 
 		// Generate safe filename
 		const safeFileName = (file.filename || 'transcript')
 			.replace(/[^a-zA-Z0-9.-]/g, '_')
 			.replace(/_+/g, '_');
-		
+
 		const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 		const fileName = `${safeFileName}_corrected_${timestamp}.txt`;
 
 		console.log('Benchmark export successful:', {
 			fileName,
-			method: useCorrectedSegments ? 'corrected segments' : 'suggestion application',
+			method: exportMethod,
 			stats: exportResult.exportStats,
 			textLength: exportResult.plainText?.length
 		});
@@ -155,27 +187,32 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}
 
 		return json(response);
-
 	} catch (error) {
 		console.error('Benchmark export API error:', error);
-		
+
 		if (error instanceof z.ZodError) {
-			return json({
-				error: 'Invalid request parameters',
-				details: error.errors
-			}, { status: 400 });
+			return json(
+				{
+					error: 'Invalid request parameters',
+					details: error.errors
+				},
+				{ status: 400 }
+			);
 		}
 
-		return json({
-			error: error instanceof Error ? error.message : 'Unknown error'
-		}, { status: 500 });
+		return json(
+			{
+				error: error instanceof Error ? error.message : 'Unknown error'
+			},
+			{ status: 500 }
+		);
 	}
 };
 
 export const GET: RequestHandler = async ({ url, locals }) => {
 	try {
 		const fileId = url.searchParams.get('fileId');
-		
+
 		if (!fileId) {
 			return json({ error: 'fileId parameter required' }, { status: 400 });
 		}
@@ -200,6 +237,12 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 						segmentIndex: true,
 						status: true
 					}
+				},
+				transcriptCorrections: {
+					select: {
+						blockIndex: true,
+						status: true
+					}
 				}
 			}
 		});
@@ -213,15 +256,31 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 			return json({ error: 'Access denied' }, { status: 403 });
 		}
 
-		const analyzedSegments = file.analysisSegments.filter(seg => seg.status === 'analyzed');
+		// Check WER corrections status
+		const werCorrections = file.transcriptCorrections || [];
+		const completedWERBlocks = werCorrections.filter((tc) => tc.status === 'completed');
+		const hasWERCorrections = completedWERBlocks.length > 0;
+
+		// Fallback to analysis segments
+		const analyzedSegments = file.analysisSegments.filter((seg) => seg.status === 'analyzed');
 		const totalSegments = file.analysisSegments.length;
+
+		// Can export if we have WER corrections OR analyzed segments
+		const canExport =
+			file.state === 'READY' &&
+			(hasWERCorrections || (file.autoAnalyze && analyzedSegments.length > 0));
 
 		return json({
 			fileId: file.id,
 			fileName: file.filename,
 			state: file.state,
 			autoAnalyze: file.autoAnalyze,
-			canExport: file.state === 'READY' && file.autoAnalyze && analyzedSegments.length > 0,
+			canExport,
+			werCorrections: {
+				totalBlocks: werCorrections.length,
+				completedBlocks: completedWERBlocks.length,
+				hasCorrections: hasWERCorrections
+			},
 			analysisStatus: {
 				totalSegments,
 				analyzedSegments: analyzedSegments.length,
@@ -229,11 +288,13 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 				isComplete: analyzedSegments.length === totalSegments && totalSegments > 0
 			}
 		});
-
 	} catch (error) {
 		console.error('Benchmark export status API error:', error);
-		return json({
-			error: error instanceof Error ? error.message : 'Unknown error'
-		}, { status: 500 });
+		return json(
+			{
+				error: error instanceof Error ? error.message : 'Unknown error'
+			},
+			{ status: 500 }
+		);
 	}
 };

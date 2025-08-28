@@ -81,20 +81,20 @@ export function extractWordsFromEditor(content: TipTapEditorContent): ExtractedW
  */
 function reconstructTextFromWords(words: ExtractedWord[]): string {
 	if (words.length === 0) return '';
-	
+
 	let result = '';
-	
+
 	for (let i = 0; i < words.length; i++) {
 		const word = words[i];
 		const wordText = word.text || '';
-		
+
 		if (i === 0) {
 			// First word - no space before
 			result = wordText;
 		} else {
 			// Check if the current word starts with punctuation that shouldn't have space before it
 			const startsWithNonSpacePunctuation = /^[.,;:!?)\]}"'»]/.test(wordText);
-			
+
 			if (startsWithNonSpacePunctuation) {
 				// No space before punctuation
 				result += wordText;
@@ -104,7 +104,7 @@ function reconstructTextFromWords(words: ExtractedWord[]): string {
 			}
 		}
 	}
-	
+
 	return result;
 }
 
@@ -266,13 +266,13 @@ export function extractSpeakerSegments(content: TipTapEditorContent): SegmentWit
 					});
 				}
 			}
-			
+
 			// Handle wordNode type (AI editor format)
 			if (node.type === 'wordNode' && node.attrs) {
 				const text = node.attrs.text || node.textContent || '';
 				const start = node.attrs.start || 0;
 				const end = node.attrs.end || 0;
-				
+
 				if (text) {
 					speakerWords.push({
 						text: text,
@@ -282,7 +282,7 @@ export function extractSpeakerSegments(content: TipTapEditorContent): SegmentWit
 					});
 				}
 			}
-			
+
 			// Handle plain text nodes (might contain spaces or punctuation)
 			if (node.type === 'text' && node.text && !node.marks) {
 				// For plain text nodes without marks, we can't get timing info
@@ -328,7 +328,7 @@ export function extractSpeakerSegments(content: TipTapEditorContent): SegmentWit
 			// 2. Normalize multiple whitespace to single spaces
 			// 3. Trim leading/trailing whitespace
 			const reconstructedText = speakerWords
-				.map(w => w.text)
+				.map((w) => w.text)
 				.join(' ')
 				.replace(/\s+/g, ' ')
 				.trim();

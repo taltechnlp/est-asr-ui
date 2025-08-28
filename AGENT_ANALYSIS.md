@@ -14,6 +14,7 @@ The main agent responsible for transcript analysis. Used in two contexts:
 - **Manual analysis**: From the files/ai/[fileId] route (though the main endpoint currently returns 501 and redirects to auto-analyze)
 
 **Key Features:**
+
 - Language-aware analysis (supports Estonian, English, Finnish)
 - Adaptive correction strategy based on audio quality
 - Multi-tool integration for comprehensive analysis
@@ -23,6 +24,7 @@ The main agent responsible for transcript analysis. Used in two contexts:
 ### 2. SummaryGenerator (`getSummaryGenerator()`)
 
 A prerequisite agent used before detailed segment analysis:
+
 - Generates transcript summaries that provide context for segment analysis
 - Only runs once per file, reuses existing summaries
 - Essential for contextual understanding of individual segments
@@ -35,11 +37,13 @@ The coordinating agent has access to 6 specialized tools:
 
 **Purpose**: Retrieves alternative transcription hypotheses from the ASR system
 
-**When Used**: 
+**When Used**:
+
 - When LLM determines `needsAlternatives: true`
 - When signal quality is poor (SNR < 15dB)
 
 **Functionality**:
+
 - Slices audio segments using AudioSlicer
 - Calls EST-ASR backend API at `https://tekstiks.ee/asr/transcribe/alternatives`
 - Returns up to 5 alternative transcriptions with confidence scores
@@ -53,6 +57,7 @@ The coordinating agent has access to 6 specialized tools:
 **When Used**: Applied to all high-confidence suggestions with both original and suggested text
 
 **Functionality**:
+
 - Uses Estonian G2P (grapheme-to-phoneme) system via Python script
 - Calculates phonetic similarity scores (0.0-1.0)
 - Boosts suggestion confidence for phonetically similar alternatives (≥0.7 similarity)
@@ -60,6 +65,7 @@ The coordinating agent has access to 6 specialized tools:
 - Provides fallback analysis when Python tools unavailable
 
 **Key Thresholds**:
+
 - Similarity ≥ 0.7: Applies confidence boost
 - Maximum boost: 0.15 (when similarity = 1.0)
 - Boost formula: `(similarity_score - 0.7) * 0.5`
@@ -71,6 +77,7 @@ The coordinating agent has access to 6 specialized tools:
 **When Used**: First step in every segment analysis to determine approach
 
 **Functionality**:
+
 - Calculates Signal-to-Noise Ratio (SNR) using Python/TorchMetrics
 - Provides quality categories (excellent/good/fair/poor/very_poor)
 - Sets dynamic confidence thresholds based on audio quality
@@ -79,13 +86,13 @@ The coordinating agent has access to 6 specialized tools:
 
 **Quality Categories & Strategies**:
 
-| SNR Range | Category | Strategy | Confidence Threshold |
-|-----------|----------|----------|---------------------|
-| ≥30dB | Excellent | Conservative | 0.9 |
-| 20-30dB | Good | Balanced | 0.8 |
-| 15-20dB | Fair | Balanced | 0.7 |
-| 10-15dB | Poor | Aggressive | 0.6 |
-| <10dB | Very Poor | Very Aggressive | 0.5 |
+| SNR Range | Category  | Strategy        | Confidence Threshold |
+| --------- | --------- | --------------- | -------------------- |
+| ≥30dB     | Excellent | Conservative    | 0.9                  |
+| 20-30dB   | Good      | Balanced        | 0.8                  |
+| 15-20dB   | Fair      | Balanced        | 0.7                  |
+| 10-15dB   | Poor      | Aggressive      | 0.6                  |
+| <10dB     | Very Poor | Very Aggressive | 0.5                  |
 
 ### 4. Web Search Tool (`webSearch.ts`)
 
@@ -94,6 +101,7 @@ The coordinating agent has access to 6 specialized tools:
 **When Used**: When LLM analysis indicates `needsWebSearch` with specific terms
 
 **Functionality**:
+
 - Uses DuckDuckGo search API
 - Language-specific site restrictions (.ee for Estonian, .fi for Finnish)
 - Helps validate proper nouns and technical terms
@@ -106,6 +114,7 @@ The coordinating agent has access to 6 specialized tools:
 **When Used**: For manual suggestion application (not used in auto-analysis)
 
 **Functionality**:
+
 - Creates diff nodes showing original vs suggested text
 - Handles different change types (text replacement, speaker changes, punctuation, grammar)
 - Always requires user approval - never directly replaces text
@@ -135,7 +144,7 @@ sequenceDiagram
     Client->>Agent: analyzeSegment(request)
     Agent->>Agent: initializeLogger()
     Agent->>Agent: normalizeLanguage(uiLanguage)
-    
+
     %% Step 1: Signal Quality Assessment
     Agent->>SQA: initializeSignalQualityTool()
     Agent->>SQA: assessSignalQuality({audioPath, startTime, endTime})
@@ -155,7 +164,7 @@ sequenceDiagram
         Agent->>ASR: initializeASRTool()
         Agent->>ASR: getAlternativeTranscriptions({audioPath, startTime, endTime, nBest: 5})
         ASR-->>Agent: ASRNBestResult{alternatives[], primaryText}
-        
+
         %% Enhanced Analysis with ASR
         Agent->>Agent: buildEnhancedPrompt(originalText, initialAnalysis, asrAlternatives)
         Agent->>LLM: invoke(ENHANCED_ANALYSIS_PROMPT)
@@ -169,7 +178,7 @@ sequenceDiagram
         Agent->>PA: initializePhoneticTool()
         Agent->>PA: analyzePhoneticSimilarity({text, candidate})
         PA-->>Agent: PhoneticAnalysisResult{similarity_score, confidence}
-        
+
         alt similarity_score >= 0.7
             Agent->>Agent: boostSuggestionConfidence()
             Note over Agent: confidence = min(1.0, original + (similarity-0.7)*0.5)
@@ -192,7 +201,7 @@ sequenceDiagram
     %% Step 5: Save Results
     Agent->>DB: prisma.analysisSegment.upsert()
     DB-->>Agent: saved
-    
+
     Agent-->>Client: SegmentAnalysisResult{analysis, suggestions[], nBestResults, confidence, signalQuality}
 ```
 
@@ -201,6 +210,7 @@ sequenceDiagram
 ### Decision Point 1: Use ASR N-Best Tool?
 
 **Criteria:**
+
 - LLM sets `needsAlternatives: true` in analysis response
 - **OR** Signal quality is poor (SNR < 15dB)
 
@@ -209,6 +219,7 @@ sequenceDiagram
 ### Decision Point 2: Apply Phonetic Analysis?
 
 **Criteria:**
+
 - Suggestion has both `originalText` and `suggestedText` fields
 - PhoneticAnalyzerTool is available
 
@@ -217,6 +228,7 @@ sequenceDiagram
 ### Decision Point 3: Perform Web Search?
 
 **Criteria:**
+
 - LLM sets `needsWebSearch` array with search terms
 - WebSearchTool is available
 
@@ -225,6 +237,7 @@ sequenceDiagram
 ### Decision Point 4: Auto-apply vs Manual Review?
 
 **Criteria:**
+
 - Auto-apply threshold = `max(0.5, dynamicConfidenceThreshold - 0.2)`
 - Suggestions above threshold: `shouldAutoApply = true`
 - Suggestions below threshold: `requiresManualReview = true`
@@ -237,7 +250,7 @@ The complete analysis workflow follows these steps:
 2. **Signal Quality Assessment**: Determine analysis strategy based on audio SNR
 3. **Initial LLM Analysis**: Analyze transcript segment using Claude 3.5 Sonnet with language-specific prompts
 4. **ASR Enhancement** (conditional): Use N-best alternatives for improved analysis when needed
-5. **Phonetic Validation**: Validate all suggestions using phonetic similarity analysis  
+5. **Phonetic Validation**: Validate all suggestions using phonetic similarity analysis
 6. **Web Search** (conditional): Look up unfamiliar terms for additional context
 7. **Suggestion Processing**: Calculate thresholds and mark suggestions for auto-application or manual review
 8. **Database Storage**: Save analysis results to `AnalysisSegment` table with full metadata
@@ -246,13 +259,13 @@ The complete analysis workflow follows these steps:
 
 ### Auto-Apply Thresholds by Audio Quality
 
-| Audio Quality (SNR) | Strategy | Confidence Threshold | Auto-Apply Threshold |
-|---------------------|----------|---------------------|---------------------|
-| ≥30dB | Conservative | 0.9 | 0.7 |
-| 20-30dB | Balanced | 0.8 | 0.6 |
-| 15-20dB | Balanced | 0.7 | 0.5 |
-| 10-15dB | Aggressive | 0.6 | 0.5 |
-| <10dB | Very Aggressive | 0.5 | 0.5 |
+| Audio Quality (SNR) | Strategy        | Confidence Threshold | Auto-Apply Threshold |
+| ------------------- | --------------- | -------------------- | -------------------- |
+| ≥30dB               | Conservative    | 0.9                  | 0.7                  |
+| 20-30dB             | Balanced        | 0.8                  | 0.6                  |
+| 15-20dB             | Balanced        | 0.7                  | 0.5                  |
+| 10-15dB             | Aggressive      | 0.6                  | 0.5                  |
+| <10dB               | Very Aggressive | 0.5                  | 0.5                  |
 
 ### Tool Activation Criteria
 
@@ -308,6 +321,7 @@ This system represents a sophisticated approach to ASR error correction that ada
 ## Codebase Status
 
 ### ✅ Clean Codebase
+
 The agent system has been streamlined and all legacy files have been removed:
 
 - **Main Agent**: `CoordinatingAgent` (renamed from CoordinatingAgentSimple) in `coordinatingAgent.ts`
@@ -316,7 +330,9 @@ The agent system has been streamlined and all legacy files have been removed:
 - **Documentation**: All documentation updated to reflect current architecture
 
 ### Migration Completed
+
 The codebase has successfully migrated from:
+
 - LangGraph-based architecture → Direct LLM implementation
 - Multiple coordination patterns → Single streamlined `CoordinatingAgent`
 - Mixed tool versions → Current, well-maintained tool implementations

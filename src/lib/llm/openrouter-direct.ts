@@ -1,5 +1,10 @@
 import OpenAI from 'openai';
-import { OPENROUTER_MODELS, type OpenRouterModel, DEFAULT_MODEL, DEFAULT_MODEL_NAME } from '$lib/config/models';
+import {
+	OPENROUTER_MODELS,
+	type OpenRouterModel,
+	DEFAULT_MODEL,
+	DEFAULT_MODEL_NAME
+} from '$lib/config/models';
 
 // Conditionally import API key to avoid client-side leakage
 let OPENROUTER_API_KEY: string = '';
@@ -100,7 +105,7 @@ export class OpenRouterChat {
 				// Prepare base parameters
 				const completionParams: any = {
 					model: this.modelName,
-					messages: messages.map(msg => ({
+					messages: messages.map((msg) => ({
 						role: msg.role as 'user' | 'assistant' | 'system',
 						content: msg.content
 					})),
@@ -114,11 +119,13 @@ export class OpenRouterChat {
 						max_tokens: Math.min(1024, Math.floor(this.maxTokens * 0.1)), // Limit thinking to 10% of max tokens
 						exclude: false // Keep reasoning visible for debugging, but limit tokens
 					};
-					console.log(`Applied Gemini reasoning limits: max_tokens=${completionParams.reasoning.max_tokens}`);
+					console.log(
+						`Applied Gemini reasoning limits: max_tokens=${completionParams.reasoning.max_tokens}`
+					);
 				} else if (this.modelName.includes('gpt-5')) {
 					// For GPT-5: use medium effort only (can't combine with max_tokens)
 					completionParams.reasoning = {
-						effort: "medium", // Use medium effort - equivalent to ~50% of max tokens for thinking
+						effort: 'medium', // Use medium effort - equivalent to ~50% of max tokens for thinking
 						exclude: false // Keep reasoning visible for debugging
 					};
 					console.log(`Applied GPT-5 medium-effort reasoning: effort=medium`);
@@ -137,15 +144,17 @@ export class OpenRouterChat {
 				// Enhanced error handling based on finish_reason
 				if (!content || content.trim().length === 0) {
 					let errorMsg = `Empty response from model ${this.modelName}`;
-					
+
 					if (finishReason === 'length') {
-						errorMsg += ' - Response was truncated due to token limit. Try increasing max_tokens or reducing prompt length.';
+						errorMsg +=
+							' - Response was truncated due to token limit. Try increasing max_tokens or reducing prompt length.';
 					} else if (finishReason === 'content_filter') {
-						errorMsg += ' - Content was filtered by the model\'s safety systems.';
+						errorMsg += " - Content was filtered by the model's safety systems.";
 					} else if (finishReason === 'function_call') {
 						errorMsg += ' - Model attempted to make function calls but none were provided.';
 					} else if (!finishReason || finishReason === null) {
-						errorMsg += ' - Model may need warm-up time. This qualifies for OpenRouter\'s Zero Completion Insurance.';
+						errorMsg +=
+							" - Model may need warm-up time. This qualifies for OpenRouter's Zero Completion Insurance.";
 					} else {
 						errorMsg += ` - Finish reason: ${finishReason}`;
 					}
@@ -154,32 +163,51 @@ export class OpenRouterChat {
 				}
 
 				// Log successful completion details
-				console.log(`OpenRouter API success: Model ${this.modelName}, finish_reason: ${finishReason}, tokens: ${completion.usage?.total_tokens || 'unknown'}`);
+				console.log(
+					`OpenRouter API success: Model ${this.modelName}, finish_reason: ${finishReason}, tokens: ${completion.usage?.total_tokens || 'unknown'}`
+				);
 				return { content };
-
 			} catch (error: any) {
 				const isLastAttempt = attempt === maxRetries - 1;
 				const isTimeout = error?.code === 'ETIMEDOUT' || error?.message?.includes('timeout');
-				const isNetworkError = error?.code === 'ECONNRESET' || error?.message?.includes('network') || error?.message?.includes('fetch failed');
+				const isNetworkError =
+					error?.code === 'ECONNRESET' ||
+					error?.message?.includes('network') ||
+					error?.message?.includes('fetch failed');
 				const isEmptyResponse = error?.message?.includes('Empty response from model');
 				const isRateLimited = error?.status === 429;
-				const isAuthError = error?.status === 401 || error?.message?.includes('No auth credentials found');
+				const isAuthError =
+					error?.status === 401 || error?.message?.includes('No auth credentials found');
 				const isTerminated = error?.message === 'terminated';
 
-				if (isTimeout || isNetworkError || isEmptyResponse || isRateLimited || isAuthError || isTerminated) {
+				if (
+					isTimeout ||
+					isNetworkError ||
+					isEmptyResponse ||
+					isRateLimited ||
+					isAuthError ||
+					isTerminated
+				) {
 					console.error(
 						`OpenRouter API attempt ${attempt + 1}/${maxRetries} failed:`,
-						isTimeout ? 'Request timeout' : 
-						isNetworkError ? 'Network error' : 
-						isRateLimited ? 'Rate limited' :
-						isAuthError ? 'Authentication error (retrying)' :
-						isTerminated ? 'Connection terminated (retrying)' :
-						'Empty response'
+						isTimeout
+							? 'Request timeout'
+							: isNetworkError
+								? 'Network error'
+								: isRateLimited
+									? 'Rate limited'
+									: isAuthError
+										? 'Authentication error (retrying)'
+										: isTerminated
+											? 'Connection terminated (retrying)'
+											: 'Empty response'
 					);
 
 					if (!isLastAttempt) {
 						// Exponential backoff with jitter, extra delay for rate limiting and auth errors
-						const delay = (baseDelay * Math.pow(2, attempt) + Math.random() * 1000) * ((isRateLimited || isAuthError) ? 2 : 1);
+						const delay =
+							(baseDelay * Math.pow(2, attempt) + Math.random() * 1000) *
+							(isRateLimited || isAuthError ? 2 : 1);
 						console.log(`Retrying in ${Math.round(delay)}ms...`);
 						await new Promise((resolve) => setTimeout(resolve, delay));
 						continue;
@@ -189,34 +217,34 @@ export class OpenRouterChat {
 					if (isEmptyResponse) {
 						throw new Error(
 							`Model ${this.modelName} returned empty responses after ${maxRetries} attempts. ` +
-							`This may be due to model warm-up requirements or configuration issues. ` +
-							`Consider trying a different model or waiting a few minutes.`
+								`This may be due to model warm-up requirements or configuration issues. ` +
+								`Consider trying a different model or waiting a few minutes.`
 						);
 					}
-					
+
 					if (isRateLimited) {
 						throw new Error(
 							`Rate limit exceeded for model ${this.modelName} after ${maxRetries} attempts. ` +
-							`Please wait before making more requests or consider using a different model.`
+								`Please wait before making more requests or consider using a different model.`
 						);
 					}
-					
+
 					if (isAuthError) {
 						throw new Error(
 							`Authentication failed for model ${this.modelName} after ${maxRetries} attempts. ` +
-							`API key may be invalid or there may be temporary authentication issues. ` +
-							`Please check your OPENROUTER_API_KEY and try again.`
+								`API key may be invalid or there may be temporary authentication issues. ` +
+								`Please check your OPENROUTER_API_KEY and try again.`
 						);
 					}
-					
+
 					if (isTerminated) {
 						throw new Error(
 							`Connection terminated for model ${this.modelName} after ${maxRetries} attempts. ` +
-							`This may be due to transient network issues or server problems. ` +
-							`Please try again in a few minutes.`
+								`This may be due to transient network issues or server problems. ` +
+								`Please try again in a few minutes.`
 						);
 					}
-					
+
 					throw new Error(
 						`OpenRouter API failed after ${maxRetries} attempts. ` +
 							`${isTimeout ? 'Request timed out' : 'Network connectivity issue'}. ` +
@@ -260,7 +288,7 @@ export function createOpenRouterChat(config: OpenRouterConfig = {}) {
 			const formattedMessages = messages.map((msg, index) => {
 				const type = msg._getType();
 				let role: 'user' | 'assistant' | 'system';
-				
+
 				switch (type) {
 					case 'human':
 						role = 'user';
@@ -278,7 +306,9 @@ export function createOpenRouterChat(config: OpenRouterConfig = {}) {
 							messageKeys: Object.keys(msg),
 							message: msg
 						});
-						throw new Error(`Unsupported LangChain message type: ${type}. Expected 'human', 'ai', or 'system'.`);
+						throw new Error(
+							`Unsupported LangChain message type: ${type}. Expected 'human', 'ai', or 'system'.`
+						);
 				}
 
 				if (typeof msg.content !== 'string') {
@@ -287,7 +317,9 @@ export function createOpenRouterChat(config: OpenRouterConfig = {}) {
 						content: msg.content,
 						messageType: type
 					});
-					throw new Error(`Message content must be a string. Received: ${typeof msg.content} - ${JSON.stringify(msg.content)}`);
+					throw new Error(
+						`Message content must be a string. Received: ${typeof msg.content} - ${JSON.stringify(msg.content)}`
+					);
 				}
 
 				return {
@@ -296,7 +328,9 @@ export function createOpenRouterChat(config: OpenRouterConfig = {}) {
 				};
 			});
 
-			console.log(`Formatted messages: ${formattedMessages.map(m => `${m.role}(${m.content.length})`).join(', ')}`);
+			console.log(
+				`Formatted messages: ${formattedMessages.map((m) => `${m.role}(${m.content.length})`).join(', ')}`
+			);
 
 			const response = await client.invoke(formattedMessages);
 
@@ -318,4 +352,9 @@ export function createOpenRouterChat(config: OpenRouterConfig = {}) {
 }
 
 // Re-export from centralized config for backward compatibility
-export { OPENROUTER_MODELS, type OpenRouterModel, DEFAULT_MODEL, DEFAULT_MODEL_NAME } from '$lib/config/models';
+export {
+	OPENROUTER_MODELS,
+	type OpenRouterModel,
+	DEFAULT_MODEL,
+	DEFAULT_MODEL_NAME
+} from '$lib/config/models';

@@ -52,5 +52,5 @@ export const AVAILABLE_MODELS_FOR_UI = [
 	{ value: OPENROUTER_MODELS.GEMINI_2_5_PRO, label: 'Gemini 2.5 Pro' },
 	{ value: OPENROUTER_MODELS.CLAUDE_3_5_SONNET, label: 'Claude 3.5 Sonnet' },
 	{ value: OPENROUTER_MODELS.CLAUDE_3_5_HAIKU, label: 'Claude 3.5 Haiku (Faster)' },
-	{ value: OPENROUTER_MODELS.GPT_4O_MINI, label: 'GPT-4o Mini (Faster)' },
+	{ value: OPENROUTER_MODELS.GPT_4O_MINI, label: 'GPT-4o Mini (Faster)' }
 ] as const;

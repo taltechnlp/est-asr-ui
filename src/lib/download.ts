@@ -36,20 +36,17 @@ export const downloadHandler = (
 	});
 };
 
-export const downloadTxtHandler = (
-	content: TipTapEditorContent,
-	title: string
-) => {
+export const downloadTxtHandler = (content: TipTapEditorContent, title: string) => {
 	try {
 		// Extract text directly from the editor content preserving original spacing
 		const segments: string[] = [];
-		
+
 		if (content && content.content) {
 			for (const speakerNode of content.content) {
 				if (speakerNode.type === 'speaker') {
 					// Extract all text content from this speaker block
 					let speakerText = '';
-					
+
 					const extractTextFromNode = (node: any) => {
 						// Handle text nodes (contain spaces, punctuation, etc.)
 						if (node.type === 'text' && node.text) {
@@ -59,7 +56,7 @@ export const downloadTxtHandler = (
 						else if (node.type === 'wordNode' && node.attrs?.text) {
 							speakerText += node.attrs.text;
 						}
-						
+
 						// Recursively process child nodes
 						if (node.content && Array.isArray(node.content)) {
 							for (const child of node.content) {
@@ -67,9 +64,9 @@ export const downloadTxtHandler = (
 							}
 						}
 					};
-					
+
 					extractTextFromNode(speakerNode);
-					
+
 					// Add this speaker's text if it's not empty
 					if (speakerText.trim()) {
 						segments.push(speakerText.trim());
@@ -77,7 +74,7 @@ export const downloadTxtHandler = (
 				}
 			}
 		}
-		
+
 		// Join all segments with line breaks (no speaker names for benchmarking)
 		const plainText = segments.join('\n');
 
@@ -108,8 +105,7 @@ const mapSentences = (sentence: Sentence) => {
 			// Handle text elements with word marks (original format)
 			else if (element.text) {
 				return sum + element.text;
-			}
-			else return sum;
+			} else return sum;
 		}, '');
 	}
 	return new Paragraph({
@@ -144,8 +140,7 @@ const processContent = (content, exportNames, exportTimeCodes) => {
 								return true;
 							} else return false;
 						});
-					}
-					else return false;
+					} else return false;
 				});
 				if (startTime) {
 					const time = new Date(0);

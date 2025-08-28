@@ -5,19 +5,16 @@
 ### Core Agent Files (In Active Use)
 
 1. **`coordinatingAgent.ts`**
-
    - Used by: `/api/transcript-analysis/segment/+server.ts`, `/api/transcript-analysis/auto-analyze/+server.ts`
    - Purpose: Main agent for segment analysis (direct LLM implementation)
    - Status: **ACTIVELY USED**
 
 2. **`coordinatingAgentPosition.ts`**
-
    - Used by: `/api/transcript-analysis/segment/+server.ts`, `/api/transcript-analysis/segment-position/+server.ts`
    - Purpose: Position-aware agent for server-side analysis
    - Status: **ACTIVELY USED**
 
 3. **`coordinatingAgentClient.ts`**
-
    - Used by: `Tiptap.svelte`, `SegmentAnalysisButton.svelte`
    - Purpose: Client-side agent for applying suggestions
    - Status: **ACTIVELY USED**
@@ -30,7 +27,6 @@
 ### Supporting Files (In Active Use)
 
 5. **`summaryGenerator.ts`**
-
    - Used by: `/api/transcript-summary/generate/+server.ts`, `/api/transcript-analysis/auto-analyze/+server.ts`
    - Purpose: Generates transcript summaries
    - Status: **ACTIVELY USED** (for summary generation)
@@ -43,19 +39,16 @@
 ### Tools (In Active Use)
 
 7. **`tools/asrNBestServerNode.ts`**
-
    - Used by: `coordinatingAgent.ts`
    - Purpose: Node.js version of ASR tool with audio slicing
    - Status: **ACTIVELY USED**
 
 8. **`tools/tiptapTransaction.ts`**
-
    - Used by: Client agents
    - Purpose: Direct TipTap editor manipulation
    - Status: **ACTIVELY USED**
 
 9. **`tools/positionAwareTiptapTool.ts`**
-
    - Used by: Position-aware agents
    - Purpose: Position-based editor manipulation
    - Status: **ACTIVELY USED**
@@ -78,13 +71,11 @@
 ### Utilities (In Active Use)
 
 13. **`utils/jsonParser.ts`**
-
     - Used by: `coordinatingAgent.ts`
     - Purpose: Robust JSON parsing with LLM feedback
     - Status: **ACTIVELY USED**
 
 14. **`prompts/transcriptAnalysis.ts`**
-
     - Used by: Various agents
     - Purpose: Prompt templates
     - Status: **ACTIVELY USED**
