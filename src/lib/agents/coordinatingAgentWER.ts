@@ -1207,7 +1207,7 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 	}
 
 	/**
-	 * Format segments for LLM input
+	 * Format segments for LLM input with metadata for analysis
 	 */
 	private formatSegmentsForLLM(segments: SegmentWithTiming[]): string {
 		return segments
@@ -1231,6 +1231,18 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 				}
 
 				return segmentText;
+			})
+			.join('\n\n');
+	}
+
+	/**
+	 * Format segments as clean text without metadata for corrections application
+	 */
+	private formatSegmentsAsCleanText(segments: SegmentWithTiming[]): string {
+		return segments
+			.map((segment) => {
+				// Only include speaker and text - no metadata
+				return `${segment.speakerName || segment.speakerTag || 'Speaker'}: ${segment.text}`;
 			})
 			.join('\n\n');
 	}
@@ -1307,7 +1319,7 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 		const finalCorrections = agenticResult.corrections;
 
 		// Apply corrections to get corrected text
-		const originalText = this.formatSegmentsForLLM(segments);
+		const originalText = this.formatSegmentsAsCleanText(segments);
 		const applyResult = await this.applyCorrections(originalText, finalCorrections, blockIndex);
 
 		const processingTimeMs = Date.now() - startTime;
