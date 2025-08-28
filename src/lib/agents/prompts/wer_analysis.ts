@@ -1,7 +1,7 @@
 // Agentic prompts for WER-focused transcript analysis
 // Uses intelligent tool requesting for evidence-based corrections
 
-export const WER_AGENTIC_ANALYSIS_PROMPT = `You are analyzing a transcript for Word Error Rate (WER) improvement using an agentic approach. You can request tools to help validate corrections before making final decisions.
+export const WER_AGENTIC_ANALYSIS_PROMPT = `You are analyzing a transcript for Word Error Rate (WER) improvement using an evidence-based agentic approach. Your primary goal is to identify and correct only segments where the ASR system was acoustically uncertain, following the "do no harm" principle.
 
 TRANSCRIPT SUMMARY:
 {summary}
@@ -9,70 +9,184 @@ TRANSCRIPT SUMMARY:
 SEGMENTS TO ANALYZE:
 {segmentsText}
 
-NOTE: Each segment has precise timing metadata (startTime/endTime in seconds) for targeted analysis.
+NOTE: Each segment includes precise timing metadata and N-best hypotheses when available. Use this information to assess ASR uncertainty.
 
-AVAILABLE TOOLS:
+## CORE PRINCIPLE: N-BEST VARIANCE AS UNCERTAINTY SIGNAL
 
-1. **phoneticAnalyzer**: Check if two words sound similar (homophones)
-   Parameters: {"text": "original word", "candidate": "suggested replacement"}
-   Use for: Suspected homophone corrections like "see" vs "sea"
+The N-best list's primary value lies in the **disagreement/variance** among hypotheses, not just alternative options:
+- **High Confidence**: Top hypotheses are nearly identical → AVOID correction (risk of over-correction)
+- **High Uncertainty**: Top hypotheses show phonetic similarity but semantic divergence → PRIME correction candidate
+- **Example**: ["nist hotel", "nearest hotel", "next hotel"] = HIGH uncertainty, strong correction signal
 
-2. **signalQualityAssessor**: Assess audio quality for a segment time range
-   Parameters: {"startTime": 45.2, "endTime": 48.1}
-   Use for: When correction confidence depends on audio clarity
+## UNCERTAINTY ESTIMATION FRAMEWORK
 
-3. **webSearch**: Search for information about unfamiliar terms
-   Parameters: {"query": "search term", "language": "et"}
-   Use for: Proper nouns, technical terms, domain-specific vocabulary
+### Stage 1: Assess ASR Confidence
+1. Examine N-best hypotheses for divergence patterns
+2. Calculate semantic/lexical distance between top candidates
+3. Identify phonetically similar but contextually different alternatives
+4. Only proceed to correction if uncertainty score is HIGH
 
-4. **asrAlternatives**: Get additional N-best ASR alternatives for a segment
+### Stage 2: Evidence-Based Correction Strategy
+- Use multiple N-best sources (primary + secondary ASR via tools)
+- Look for composite solutions across hypotheses
+- Cross-reference with contextual clues and world knowledge
+
+### Stage 3: Confidence Verification
+- Validate corrections against multiple evidence sources
+- Assign confidence scores based on evidence strength
+- Reject low-confidence corrections to prevent degradation
+
+## AVAILABLE TOOLS:
+
+1. **asrAlternatives**: Get additional N-best ASR alternatives for uncertain segments
    Parameters: {"segmentIndex": 5}
-   Use for: When transcript quality is uncertain and alternatives might help
+   **PRIMARY USE**: For segments showing initial N-best disagreement or missing alternatives
+   **Strategy**: Compare primary and secondary ASR N-best lists for cross-validation
 
-AGENTIC WORKFLOW:
-1. First, analyze segments and identify potential corrections
-2. If you need tool validation, request tools with specific parameters
-3. After reviewing tool results, provide final corrections
+2. **phoneticAnalyzer**: Check phonetic similarity between candidates
+   Parameters: {"text": "original word", "candidate": "suggested replacement"}
+   **Use for**: Validating homophone corrections identified in N-best variance
 
-RESPONSE FORMAT:
+3. **signalQualityAssessor**: Assess audio quality for uncertain segments
+   Parameters: {"startTime": 45.2, "endTime": 48.1}
+   **Use for**: Understanding if uncertainty stems from poor audio quality
 
-If you need tools, respond with:
+4. **webSearch**: Validate unfamiliar terms and proper nouns
+   Parameters: {"query": "search term", "language": "et"}
+   **Use for**: Confirming existence/context of entities found in N-best alternatives
+
+## AGENTIC WORKFLOW:
+
+### Phase 1: Uncertainty Detection
+1. Analyze existing N-best hypotheses for variance patterns
+2. Identify segments with high acoustic ambiguity signals
+3. Skip segments with high ASR confidence (similar top hypotheses)
+
+### Phase 2: Evidence Gathering (Tool Usage)
+1. Request additional N-best alternatives for uncertain segments
+2. Cross-validate findings with phonetic/contextual tools
+3. Build multi-source evidence case for proposed corrections
+
+### Phase 3: Composite Correction Generation
+1. Synthesize information across all N-best hypotheses
+2. Generate corrections that combine best elements from multiple alternatives
+3. Apply only high-confidence corrections (>0.8 confidence)
+
+## RESPONSE FORMAT:
+
+### For segments requiring investigation (high N-best variance detected):
 {
-  "reasoning": "Brief explanation of what you're analyzing",
+  "reasoning": "Detailed N-best analysis showing variance patterns and uncertainty signals",
+  "uncertaintyAssessment": {
+    "divergenceScore": "high|medium|low",
+    "phoneticSimilarity": true/false,
+    "semanticDivergence": true/false,
+    "correctionRecommended": true/false
+  },
   "toolRequests": [
     {
-      "tool": "phoneticAnalyzer",
-      "params": {
-        "text": "original word",
-        "candidate": "replacement word"
-      }
+      "tool": "asrAlternatives",
+      "params": {"segmentIndex": 5},
+      "rationale": "Need secondary ASR N-best for cross-validation of acoustic ambiguity"
     }
   ],
   "needsMoreAnalysis": true,
   "corrections": []
 }
 
-For final corrections (after tool analysis or if no tools needed):
+### For final corrections (after evidence gathering):
 {
-  "reasoning": "Brief explanation of correction decisions", 
+  "reasoning": "Multi-source evidence synthesis showing how correction was derived from N-best analysis",
+  "uncertaintyAssessment": {
+    "divergenceScore": "high",
+    "evidenceSources": ["primary N-best", "secondary ASR", "phonetic analysis"],
+    "compositeCorrection": true/false
+  },
   "toolRequests": [],
   "needsMoreAnalysis": false,
   "corrections": [
     {
       "id": "c1",
       "original": "exact text to replace",
-      "replacement": "corrected text", 
-      "confidence": 0.85
+      "replacement": "corrected text",
+      "confidence": 0.95,
+      "evidenceType": "n-best_composite|phonetic_validation|contextual_verification",
+      "nBestSupport": ["hypothesis 2: nearest hotel", "hypothesis 3: next hotel"]
     }
   ]
 }
 
+### For high-confidence segments (low N-best variance):
+{
+  "reasoning": "N-best analysis shows high ASR confidence - no correction recommended",
+  "uncertaintyAssessment": {
+    "divergenceScore": "low",
+    "phoneticSimilarity": true,
+    "semanticDivergence": false,
+    "correctionRecommended": false
+  },
+  "toolRequests": [],
+  "needsMoreAnalysis": false,
+  "corrections": []
+}
+
+## CRITICAL SUCCESS FACTORS:
+
+### Uncertainty Gating Rules:
+1. **DO NOT CORRECT** segments with low N-best divergence (over-correction risk)
+2. **PRIORITIZE** segments where top 3-5 hypotheses show phonetic similarity but semantic differences
+3. **VALIDATE** corrections using multiple N-best sources (primary + secondary ASR)
+4. **COMPOSE** final corrections by combining best elements across hypotheses
+
+### Evidence Hierarchy (in order of reliability):
+1. Cross-validated N-best agreement (primary + secondary ASR)
+2. Phonetic similarity analysis with contextual plausibility
+3. World knowledge validation for proper nouns/technical terms
+4. Audio quality assessment for ambiguous cases
+
+### Confidence Scoring Guidelines:
+- **0.9-1.0**: Strong N-best convergence + contextual validation
+- **0.8-0.9**: N-best support + phonetic validation
+- **0.7-0.8**: Single N-best source + weak contextual support
+- **<0.7**: REJECT correction (insufficient evidence)
+
+## PRACTICAL EXAMPLES:
+
+### Example 1: High Uncertainty Signal (CORRECT THIS)
+**Segment**: "kus on lähim maja"
+**N-best**: ["lähim maja", "lähem maja", "lehe maja"]
+**Analysis**: High divergence - phonetically similar but semantically different
+**Action**: Request asrAlternatives for cross-validation
+**Expected Correction**: "lähim maja" (closest house - most contextually plausible)
+
+### Example 2: Low Uncertainty Signal (DO NOT CORRECT)
+**Segment**: "täna on ilus ilm"
+**N-best**: ["täna on ilus", "täna on ilus", "täna on ilusad"]
+**Analysis**: Low divergence - minimal semantic difference
+**Action**: Skip correction (high ASR confidence, over-correction risk)
+
+### Example 3: Composite Correction Strategy
+**Segment**: "ma tahan osta see maja"
+**Primary N-best**: ["tahan osta see", "tahan osata see", "tahan osta seda"]
+**Secondary N-best**: ["tahan osta seda", "tahan osta seda maja", "tahaksin osta seda"]
+**Analysis**: Clear error pattern across multiple sources
+**Correction**: Synthesize "tahan osta seda maja" from secondary validation
+
+### Example 4: Estonian Phonetic Similarity Patterns to Recognize
+- **Common confusions**: "maja" vs "marja" (house vs berry)
+- **Case endings**: "linna" vs "linnas" vs "linnast" (to city vs in city vs from city)
+- **Vowel confusion**: "kool" vs "kuul" vs "kaal" (school vs bullet vs weight)
+- **Consonant clusters**: "nädalast" vs "nädalas" (from week vs in week)
+- **Proper nouns**: "Tallinn" vs "talin" vs "taline"
+- **Numbers**: "kaks" vs "kaas" vs "kaes" (two vs lid vs in hand)
+
 IMPORTANT:
-- Only suggest corrections you are confident about (confidence > 0.7)
+- **ONLY** suggest corrections for segments showing clear N-best uncertainty signals
 - Keep corrections SHORT and FOCUSED (1-5 words typically)
 - NEVER include speaker names/tags in "original" or "replacement" fields
-- Use tools strategically - focus on 1-3 most critical corrections per block
-- Be explicit about your reasoning for requesting tools
+- Prioritize composite corrections that synthesize multiple N-best hypotheses
+- Always show your N-best analysis reasoning in the uncertainty assessment
+- When in doubt, preserve the original text (do no harm principle)
 
 Response language: {responseLanguage}`;
 
