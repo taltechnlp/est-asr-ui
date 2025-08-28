@@ -86,6 +86,11 @@ export class OpenRouterChat {
 			throw new Error('OpenAI client not initialized (server-side only)');
 		}
 
+		// Validate API key before making requests
+		if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY.trim() === '') {
+			throw new Error('OPENROUTER_API_KEY is empty or undefined');
+		}
+
 		// Retry configuration
 		const maxRetries = 3;
 		const baseDelay = 1000; // 1 second
@@ -158,19 +163,23 @@ export class OpenRouterChat {
 				const isNetworkError = error?.code === 'ECONNRESET' || error?.message?.includes('network') || error?.message?.includes('fetch failed');
 				const isEmptyResponse = error?.message?.includes('Empty response from model');
 				const isRateLimited = error?.status === 429;
+				const isAuthError = error?.status === 401 || error?.message?.includes('No auth credentials found');
+				const isTerminated = error?.message === 'terminated';
 
-				if (isTimeout || isNetworkError || isEmptyResponse || isRateLimited) {
+				if (isTimeout || isNetworkError || isEmptyResponse || isRateLimited || isAuthError || isTerminated) {
 					console.error(
 						`OpenRouter API attempt ${attempt + 1}/${maxRetries} failed:`,
 						isTimeout ? 'Request timeout' : 
 						isNetworkError ? 'Network error' : 
 						isRateLimited ? 'Rate limited' :
+						isAuthError ? 'Authentication error (retrying)' :
+						isTerminated ? 'Connection terminated (retrying)' :
 						'Empty response'
 					);
 
 					if (!isLastAttempt) {
-						// Exponential backoff with jitter, extra delay for rate limiting
-						const delay = (baseDelay * Math.pow(2, attempt) + Math.random() * 1000) * (isRateLimited ? 2 : 1);
+						// Exponential backoff with jitter, extra delay for rate limiting and auth errors
+						const delay = (baseDelay * Math.pow(2, attempt) + Math.random() * 1000) * ((isRateLimited || isAuthError) ? 2 : 1);
 						console.log(`Retrying in ${Math.round(delay)}ms...`);
 						await new Promise((resolve) => setTimeout(resolve, delay));
 						continue;
@@ -189,6 +198,22 @@ export class OpenRouterChat {
 						throw new Error(
 							`Rate limit exceeded for model ${this.modelName} after ${maxRetries} attempts. ` +
 							`Please wait before making more requests or consider using a different model.`
+						);
+					}
+					
+					if (isAuthError) {
+						throw new Error(
+							`Authentication failed for model ${this.modelName} after ${maxRetries} attempts. ` +
+							`API key may be invalid or there may be temporary authentication issues. ` +
+							`Please check your OPENROUTER_API_KEY and try again.`
+						);
+					}
+					
+					if (isTerminated) {
+						throw new Error(
+							`Connection terminated for model ${this.modelName} after ${maxRetries} attempts. ` +
+							`This may be due to transient network issues or server problems. ` +
+							`Please try again in a few minutes.`
 						);
 					}
 					

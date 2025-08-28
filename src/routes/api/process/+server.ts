@@ -4,6 +4,49 @@ import type { IWeblog } from '$lib/helpers/api.d';
 import { sendEmail, createEmail } from '$lib/email';
 import { ORIGIN } from '$env/static/private';
 
+// Reusable function to trigger auto-analysis with timeout and retry logic
+async function triggerAutoAnalysis(file: any, maxRetries = 3): Promise<void> {
+	for (let attempt = 0; attempt < maxRetries; attempt++) {
+		try {
+			const controller = new AbortController();
+			const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+			
+			const response = await fetch(`${ORIGIN}/api/transcript-analysis/auto-analyze`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ fileId: file.id }),
+				signal: controller.signal
+			});
+			
+			clearTimeout(timeout);
+			
+			if (response.ok) {
+				console.log(`Auto-analysis initiated successfully for file: ${file.filename}`);
+				return;
+			} else {
+				const errorText = await response.text();
+				if (attempt < maxRetries - 1) {
+					console.warn(`Auto-analysis trigger failed (attempt ${attempt + 1}/${maxRetries}) - Status: ${response.status}, Error: ${errorText}`);
+				} else {
+					console.error(`Failed to initiate auto-analysis after ${maxRetries} attempts - Status: ${response.status}, Error: ${errorText}`);
+				}
+			}
+		} catch (error: any) {
+			const isTimeout = error.name === 'AbortError' || error.message?.includes('timeout');
+			const isNetworkError = error.message?.includes('fetch failed') || error.code === 'ENOTFOUND';
+			
+			if (attempt < maxRetries - 1) {
+				const delay = 1000 * Math.pow(2, attempt); // Exponential backoff: 1s, 2s, 4s
+				console.warn(`Auto-analysis trigger failed (attempt ${attempt + 1}/${maxRetries}): ${isTimeout ? 'Timeout' : isNetworkError ? 'Network error' : error.message}. Retrying in ${delay}ms...`);
+				await new Promise(resolve => setTimeout(resolve, delay));
+			} else {
+				console.error(`Error initiating auto-analysis after ${maxRetries} attempts:`, error);
+				throw error; // Re-throw on final attempt for proper error handling
+			}
+		}
+	}
+}
+
 export const POST: RequestHandler = async ({ request, fetch }) => {
 	const workflow: IWeblog = await request.json();
 	if (!workflow) {
@@ -227,39 +270,9 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 							// Trigger auto-analysis if requested
 							if (file.autoAnalyze) {
 								console.log(`Starting auto-analysis for file: ${file.filename} (${file.id})`);
-								try {
-									// Call auto-analysis endpoint in background (don't await)
-									fetch(`${ORIGIN}/api/transcript-analysis/auto-analyze`, {
-										method: 'POST',
-										headers: {
-											'Content-Type': 'application/json'
-										},
-										body: JSON.stringify({ fileId: file.id })
-									})
-										.then(async (response) => {
-											if (response.ok) {
-												console.log(
-													`Auto-analysis initiated successfully for file: ${file.filename}`
-												);
-											} else {
-												const errorText = await response.text();
-												console.error(
-													`Failed to initiate auto-analysis for file: ${file.filename} - Status: ${response.status}, Error: ${errorText}`
-												);
-											}
-										})
-										.catch((error) => {
-											console.error(
-												`Error initiating auto-analysis for file: ${file.filename}`,
-												error
-											);
-										});
-								} catch (error) {
-									console.error(
-										`Failed to trigger auto-analysis for file: ${file.filename}`,
-										error
-									);
-								}
+								triggerAutoAnalysis(file).catch(error => 
+									console.error(`Failed to trigger auto-analysis for file: ${file.filename}`, error)
+								);
 							}
 
 							if (file.notify) {
@@ -299,39 +312,9 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 							// Trigger auto-analysis if requested
 							if (file.autoAnalyze) {
 								console.log(`Starting auto-analysis for file: ${file.filename} (${file.id})`);
-								try {
-									// Call auto-analysis endpoint in background (don't await)
-									fetch(`${ORIGIN}/api/transcript-analysis/auto-analyze`, {
-										method: 'POST',
-										headers: {
-											'Content-Type': 'application/json'
-										},
-										body: JSON.stringify({ fileId: file.id })
-									})
-										.then(async (response) => {
-											if (response.ok) {
-												console.log(
-													`Auto-analysis initiated successfully for file: ${file.filename}`
-												);
-											} else {
-												const errorText = await response.text();
-												console.error(
-													`Failed to initiate auto-analysis for file: ${file.filename} - Status: ${response.status}, Error: ${errorText}`
-												);
-											}
-										})
-										.catch((error) => {
-											console.error(
-												`Error initiating auto-analysis for file: ${file.filename}`,
-												error
-											);
-										});
-								} catch (error) {
-									console.error(
-										`Failed to trigger auto-analysis for file: ${file.filename}`,
-										error
-									);
-								}
+								triggerAutoAnalysis(file).catch(error => 
+									console.error(`Failed to trigger auto-analysis for file: ${file.filename}`, error)
+								);
 							}
 
 							if (file.notify) {
