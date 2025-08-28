@@ -14,6 +14,7 @@
   import { _ } from 'svelte-i18n';
   import { applySuggestion } from '$lib/handlers/applySuggestion';
   import ReplacementFeedback from './ReplacementFeedback.svelte';
+  import { DEFAULT_MODEL, AVAILABLE_MODELS_FOR_UI } from '$lib/config/models';
 
   let { 
     fileId = '',
@@ -33,17 +34,12 @@
   let isAnalyzing = $state(false);
   let analysisResult = $state<TranscriptAnalysisResult | null>(null);
   let error = $state<string | null>(null);
-  let selectedModel = $state('openai/gpt-4o');
+  let selectedModel = $state(DEFAULT_MODEL);
   let analysisType = $state<'full' | 'grammar' | 'punctuation' | 'speaker_diarization' | 'confidence' | 'context'>('full');
   let feedbackMessage = $state<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
   let activeTab = $state<'analysis' | 'legacy' | 'position'>('position');
 
-  const availableModels = [
-    { value: 'openai/gpt-4o', label: 'GPT-4o' },
-    { value: 'anthropic/claude-3.5-sonnet', label: 'Claude 3.5 Sonnet' },
-    { value: 'anthropic/claude-3.5-haiku', label: 'Claude 3.5 Haiku (Faster)' },
-    { value: 'openai/gpt-4o-mini', label: 'GPT-4o Mini (Faster)' },
-  ];
+  const availableModels = AVAILABLE_MODELS_FOR_UI;
 
   const analysisTypes = [
     { value: 'full', label: $_('transcript.analysis.full') },

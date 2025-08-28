@@ -138,9 +138,7 @@
               });
             }
             
-            // Auto-apply suggestions for existing analysis if not already applied
-            // Pass segmentAnalysisResult which has the updated positions, not existingAnalysis
-            await applyAutoSuggestions(segmentAnalysisResult);
+            // Note: Auto-application of suggestions has been disabled - existing suggestions are only displayed for manual review
           }
         }
       } catch (error) {
@@ -508,10 +506,9 @@
       }
       
       
-      // Check if suggestions have shouldAutoApply flag
+      // Log suggestion count for reference
       if (segmentAnalysisResult?.suggestions && Array.isArray(segmentAnalysisResult.suggestions)) {
-        const autoApplyCount = segmentAnalysisResult.suggestions.filter((s: any) => s.shouldAutoApply).length;
-        console.log(`Found ${autoApplyCount} suggestions marked for auto-apply out of ${segmentAnalysisResult.suggestions.length} total`);
+        console.log(`Found ${segmentAnalysisResult.suggestions.length} suggestions for manual review`);
         
         // Map suggestion positions from segment-relative to absolute, then through the PositionMapper
         const editor = $editorStore;
@@ -618,8 +615,7 @@
         { toolId: 'enhanced_analysis', status: 'completed', startTime: toolProgress[2].startTime || Date.now() - 2000, endTime: Date.now() }
       ];
       
-      // Automatically apply suggestions marked with shouldAutoApply
-      await applyAutoSuggestions(segmentAnalysisResult);
+      // Note: Auto-application of suggestions has been disabled - suggestions are only displayed for manual review
     } catch (err) {
       console.error('Segment analysis error:', err);
       analysisStateStore.setError(fileId, err instanceof Error ? err.message : 'Analysis failed');
@@ -638,40 +634,7 @@
     }
   }
   
-  async function applyAutoSuggestions(analysisResult: any) {
-    if (!analysisResult?.suggestions || !Array.isArray(analysisResult.suggestions)) {
-      return;
-    }
-    
-    const autoApplySuggestions = analysisResult.suggestions.filter(
-      (s: any) => s.shouldAutoApply && !s.applied && s.originalText && s.suggestedText
-    );
-    
-    if (autoApplySuggestions.length === 0) {
-      console.log('No suggestions marked for auto-apply');
-      return;
-    }
-    
-    console.group(`🤖 Auto-applying ${autoApplySuggestions.length} suggestions as diff nodes`);
-    
-    for (let i = 0; i < autoApplySuggestions.length; i++) {
-      const suggestion = autoApplySuggestions[i];
-      try {
-        console.log(`Creating diff: "${suggestion.originalText}" → "${suggestion.suggestedText}"`);
-        console.log(`  With positions: [${suggestion.from}, ${suggestion.to}]`);
-        
-        // Use the applySuggestion function which handles reconciliation
-        await applySuggestion(suggestion, i);
-        
-        // Small delay between creating diffs to avoid overwhelming the editor
-        await new Promise(resolve => setTimeout(resolve, 100));
-      } catch (error) {
-        console.error('Error creating diff for suggestion:', error);
-      }
-    }
-    
-    console.groupEnd();
-  }
+  // applyAutoSuggestions function has been removed - suggestions are no longer automatically applied as diffs
   
   async function reanalyzeSegment() {
     if (!selectedSegment || !summary || isReanalyzing) return;

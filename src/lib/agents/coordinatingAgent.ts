@@ -1,4 +1,4 @@
-import { createOpenRouterChat, OPENROUTER_MODELS } from '$lib/llm/openrouter-direct';
+import { createOpenRouterChat, DEFAULT_MODEL, DEFAULT_MODEL_NAME } from '$lib/llm/openrouter-direct';
 import { HumanMessage } from '@langchain/core/messages';
 import { createWebSearchTool } from './tools';
 // ASR tool will be loaded conditionally to avoid client-side issues
@@ -69,7 +69,7 @@ export class CoordinatingAgent {
 	private promptStrategy: PromptStrategy = 'wer_focused';
 	private prompts: ReturnType<typeof getPrompts>;
 
-	constructor(modelName: string = OPENROUTER_MODELS.CLAUDE_3_5_SONNET, promptStrategy: PromptStrategy = 'wer_focused') {
+	constructor(modelName: string = DEFAULT_MODEL, promptStrategy: PromptStrategy = 'wer_focused') {
 		this.model = createOpenRouterChat({
 			modelName,
 			temperature: 0.3,
@@ -609,7 +609,7 @@ Based on this audio quality, you should be ${
 
 			// Get initial analysis
 			const llmStartTime = Date.now();
-			await this.logger?.logLLMRequest(prompt, 'Claude-3.5-Sonnet', segment.index);
+			await this.logger?.logLLMRequest(prompt, DEFAULT_MODEL_NAME, segment.index);
 
 			const response = await this.model.invoke([new HumanMessage({ content: prompt })]);
 
@@ -747,7 +747,7 @@ Based on this audio quality, you should be ${
 					const enhancedLlmStartTime = Date.now();
 					await this.logger?.logLLMRequest(
 						enhancedPrompt,
-						'Claude-3.5-Sonnet (Enhanced Analysis)',
+						`${DEFAULT_MODEL_NAME} (Enhanced Analysis)`,
 						segment.index
 					);
 
@@ -1205,7 +1205,7 @@ Word count: ${segment.words.length} words${alternativesSection}`;
 
 			// Get initial multi-segment analysis
 			const llmStartTime = Date.now();
-			await this.logger?.logLLMRequest(prompt, 'Claude-3.5-Sonnet (Multi-Segment)', 0);
+			await this.logger?.logLLMRequest(prompt, `${DEFAULT_MODEL_NAME} (Multi-Segment)`, 0);
 
 			const response = await this.model.invoke([new HumanMessage({ content: prompt })]);
 

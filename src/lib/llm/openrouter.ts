@@ -1,5 +1,6 @@
 import { ChatOpenAI } from '@langchain/openai';
 import { OPENROUTER_API_KEY } from '$env/static/private';
+import { OPENROUTER_MODELS, type OpenRouterModel, DEFAULT_MODEL } from '$lib/config/models';
 
 export interface OpenRouterConfig {
 	modelName?: string;
@@ -20,7 +21,7 @@ export function createOpenRouterChat(config: OpenRouterConfig = {}) {
 		);
 	}
 
-	const { modelName = 'openai/gpt-4o', temperature = 0.7, maxTokens = 4096 } = config;
+	const { modelName = DEFAULT_MODEL, temperature = 0.7, maxTokens = 4096 } = config;
 
 	// For LangChain's OpenAI client, we need to pass configuration differently
 	const chat = new ChatOpenAI({
@@ -42,26 +43,5 @@ export function createOpenRouterChat(config: OpenRouterConfig = {}) {
 	return chat;
 }
 
-/**
- * Available models on OpenRouter for transcript analysis
- */
-export const OPENROUTER_MODELS = {
-	// Claude models - good for Estonian/Finnish language understanding
-	CLAUDE_3_5_SONNET: 'anthropic/claude-3.5-sonnet',
-	CLAUDE_3_5_HAIKU: 'anthropic/claude-3.5-haiku',
-	CLAUDE_3_OPUS: 'anthropic/claude-3-opus',
-
-	// GPT models
-	GPT_4_TURBO: 'openai/gpt-4-turbo',
-	GPT_4O: 'openai/gpt-4o',
-	GPT_4O_MINI: 'openai/gpt-4o-mini',
-
-	// Open source models
-	LLAMA_3_1_70B: 'meta-llama/llama-3.1-70b-instruct',
-	MIXTRAL_8X7B: 'mistralai/mixtral-8x7b-instruct',
-
-	// Specialized for long context
-	CLAUDE_3_5_SONNET_200K: 'anthropic/claude-3.5-sonnet-20241022'
-} as const;
-
-export type OpenRouterModel = (typeof OPENROUTER_MODELS)[keyof typeof OPENROUTER_MODELS];
+// Re-export from centralized config for backward compatibility
+export { OPENROUTER_MODELS, type OpenRouterModel, DEFAULT_MODEL } from '$lib/config/models';
