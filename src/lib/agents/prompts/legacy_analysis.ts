@@ -1,5 +1,5 @@
 // Legacy prompts from the original coordinationAgent implementation
-// Kept for reference and potential fallback usage
+// Includes ASR N-best functionality for secondary ASR model
 
 export const LEGACY_SEGMENT_ANALYSIS_PROMPT = `🇪🇪 CRITICAL LANGUAGE REQUIREMENT: You MUST respond ONLY in {responseLanguage} language. Every word of your analysis, suggestions, and descriptions must be in {responseLanguage}. NO ENGLISH ALLOWED.
 
@@ -23,6 +23,7 @@ Your task (REMEMBER: respond only in {responseLanguage}):
 2. Consider the context from the full transcript summary
 3. Identify potential transcription errors or unclear passages within this speaker's utterance
 4. Provide specific improvement suggestions for this speaker's turn. Do not suggest speaker labeling changes
+5. Determine if secondary ASR analysis would be helpful for unclear or potentially incorrect segments
 
 Focus on:
 - Grammar and language correctness throughout the speaker's turn
@@ -32,6 +33,7 @@ Focus on:
 - Natural speech patterns
 - Punctuation and formatting
 - Phonetic plausibility of words (especially for potential homophones or ASR errors)
+- Whether unclear segments would benefit from ASR N-best alternatives
 
 🚨 LANGUAGE ENFORCEMENT: Your analysis text, suggestion descriptions, and ALL text fields must be written in {responseLanguage}. This is NON-NEGOTIABLE.
 
@@ -50,7 +52,7 @@ Provide a detailed analysis with actionable suggestions in exactly this JSON for
 {
   "analysis": "Your detailed analysis of this speaker's complete turn",
   "confidence": 0.85,
-  "needsAlternatives": false,
+  "needsAlternatives": true,
   "needsWebSearch": [],
   "suggestions": [
     {

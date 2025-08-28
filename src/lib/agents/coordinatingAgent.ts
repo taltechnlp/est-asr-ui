@@ -1,4 +1,9 @@
-import { createOpenRouterChat, DEFAULT_MODEL, DEFAULT_MODEL_NAME, OPENROUTER_MODELS } from '$lib/llm/openrouter-direct';
+import {
+	createOpenRouterChat,
+	DEFAULT_MODEL,
+	DEFAULT_MODEL_NAME,
+	OPENROUTER_MODELS
+} from '$lib/llm/openrouter-direct';
 import { HumanMessage } from '@langchain/core/messages';
 import { createWebSearchTool } from './tools';
 // ASR tool will be loaded conditionally to avoid client-side issues
@@ -55,7 +60,6 @@ export interface MultiSegmentAnalysisResult {
 
 // Prompts are now loaded from external files via getPrompts() function
 
-
 export class CoordinatingAgent {
 	private model;
 	private fallbackModel;
@@ -68,10 +72,13 @@ export class CoordinatingAgent {
 	private editor: Editor | null = null;
 	private debugMode: boolean = false;
 	private logger: AgentFileLogger | null = null;
-	private promptStrategy: PromptStrategy = 'wer_focused';
+	private promptStrategy: PromptStrategy = 'legacy';
 	private prompts: ReturnType<typeof getPrompts>;
 
-	constructor(modelName: string = DEFAULT_MODEL, promptStrategy: PromptStrategy = 'no_secondary_asr') {
+	constructor(
+		modelName: string = DEFAULT_MODEL,
+		promptStrategy: PromptStrategy = 'legacy'
+	) {
 		this.primaryModelName = modelName;
 		this.model = createOpenRouterChat({
 			modelName,
@@ -104,26 +111,27 @@ export class CoordinatingAgent {
 	private async invokeWithFallback(messages: any[], segmentIndex?: number): Promise<any> {
 		try {
 			const response = await this.model.invoke(messages);
-			
+
 			// Check for empty or whitespace-only responses
 			const content = response.content as string;
 			if (!content || content.trim().length === 0) {
 				throw new Error(`Empty response from ${this.primaryModelName}`);
 			}
-			
+
 			return response;
 		} catch (error: any) {
-			const isEmptyResponse = error?.message?.includes('Empty response') || 
-								   error?.message?.includes('model configuration issue');
-			
+			const isEmptyResponse =
+				error?.message?.includes('Empty response') ||
+				error?.message?.includes('model configuration issue');
+
 			if (isEmptyResponse && this.fallbackModel) {
 				await this.logger?.logGeneral(
-					'warn', 
+					'warn',
 					`Primary model ${this.primaryModelName} failed with empty response, falling back to GPT-4o`,
 					{ error: error.message },
 					segmentIndex
 				);
-				
+
 				try {
 					const fallbackResponse = await this.fallbackModel.invoke(messages);
 					await this.logger?.logGeneral(
@@ -137,16 +145,18 @@ export class CoordinatingAgent {
 					await this.logger?.logGeneral(
 						'error',
 						'Both primary and fallback models failed',
-						{ 
+						{
 							primaryError: error.message,
-							fallbackError: fallbackError.message 
+							fallbackError: fallbackError.message
 						},
 						segmentIndex
 					);
-					throw new Error(`Both ${this.primaryModelName} and GPT-4o failed: ${fallbackError.message}`);
+					throw new Error(
+						`Both ${this.primaryModelName} and GPT-4o failed: ${fallbackError.message}`
+					);
 				}
 			}
-			
+
 			// Re-throw non-empty response errors
 			throw error;
 		}
@@ -283,9 +293,13 @@ export class CoordinatingAgent {
 		const parseResult = robustJsonParse(response);
 
 		if (parseResult.success) {
-			await this.logger?.logGeneral('debug', 'Multi-segment JSON parsed successfully on first attempt', {
-				fixesApplied: parseResult.fixesApplied
-			});
+			await this.logger?.logGeneral(
+				'debug',
+				'Multi-segment JSON parsed successfully on first attempt',
+				{
+					fixesApplied: parseResult.fixesApplied
+				}
+			);
 
 			// Validate multi-segment structure
 			if (this.validateMultiSegmentStructure(parseResult.data)) {
@@ -309,10 +323,11 @@ export class CoordinatingAgent {
 				`Multi-segment retry ${retry}/${maxRetries}: Requesting JSON correction from LLM`
 			);
 
-			const needsAlternativesField = this.promptStrategy === 'no_secondary_asr' 
-				? '' 
-				: '\n      "needsAlternatives": true or false,';
-			
+			const needsAlternativesField =
+				this.promptStrategy === 'no_secondary_asr'
+					? ''
+					: '\n      "needsAlternatives": true or false,';
+
 			const correctionPrompt = `${formatParsingErrorForLLM(
 				parseResult.error || 'Invalid JSON structure',
 				response
@@ -359,9 +374,13 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 				const retryResult = robustJsonParse(correctedContent);
 
 				if (retryResult.success && this.validateMultiSegmentStructure(retryResult.data)) {
-					await this.logger?.logGeneral('debug', `Multi-segment JSON parsed successfully on retry ${retry}`, {
-						fixesApplied: retryResult.fixesApplied
-					});
+					await this.logger?.logGeneral(
+						'debug',
+						`Multi-segment JSON parsed successfully on retry ${retry}`,
+						{
+							fixesApplied: retryResult.fixesApplied
+						}
+					);
 					return retryResult.data;
 				} else {
 					await this.logger?.logGeneral('warn', `Multi-segment retry ${retry} failed`, {
@@ -389,19 +408,21 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 		if (!data || typeof data !== 'object') return false;
 		if (!data.overallAnalysis || typeof data.overallAnalysis !== 'string') return false;
 		if (!Array.isArray(data.segmentAnalyses)) return false;
-		
+
 		// Validate each segment analysis
 		for (const segmentAnalysis of data.segmentAnalyses) {
-			if (!segmentAnalysis.segmentNumber || typeof segmentAnalysis.segmentNumber !== 'number') return false;
+			if (!segmentAnalysis.segmentNumber || typeof segmentAnalysis.segmentNumber !== 'number')
+				return false;
 			if (!segmentAnalysis.analysis || typeof segmentAnalysis.analysis !== 'string') return false;
 			if (segmentAnalysis.suggestions && Array.isArray(segmentAnalysis.suggestions)) {
 				// Validate each suggestion has segmentNumber
 				for (const suggestion of segmentAnalysis.suggestions) {
-					if (!suggestion.segmentNumber || typeof suggestion.segmentNumber !== 'number') return false;
+					if (!suggestion.segmentNumber || typeof suggestion.segmentNumber !== 'number')
+						return false;
 				}
 			}
 		}
-		
+
 		return true;
 	}
 
@@ -446,10 +467,9 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 				`Retry ${retry}/${maxRetries}: Requesting JSON correction from LLM`
 			);
 
-			const singleNeedsAlternativesField = this.promptStrategy === 'no_secondary_asr' 
-				? '' 
-				: '\n  "needsAlternatives": true or false,';
-			
+			const singleNeedsAlternativesField =
+				this.promptStrategy === 'no_secondary_asr' ? '' : '\n  "needsAlternatives": true or false,';
+
 			const correctionPrompt = `${formatParsingErrorForLLM(
 				parseResult.error || 'Invalid JSON structure',
 				response
@@ -684,7 +704,10 @@ Based on this audio quality, you should be ${
 			const llmStartTime = Date.now();
 			await this.logger?.logLLMRequest(prompt, DEFAULT_MODEL_NAME, segment.index);
 
-			const response = await this.invokeWithFallback([new HumanMessage({ content: prompt })], segment.index);
+			const response = await this.invokeWithFallback(
+				[new HumanMessage({ content: prompt })],
+				segment.index
+			);
 
 			const llmDuration = Date.now() - llmStartTime;
 			await this.logger?.logLLMResponse(response.content as string, llmDuration, segment.index);
@@ -699,9 +722,10 @@ Based on this audio quality, you should be ${
 			);
 
 			// Parse the response with robust error recovery and retry
-			const expectedKeys = this.promptStrategy === 'no_secondary_asr' 
-				? ['analysis', 'confidence', 'needsWebSearch', 'suggestions']
-				: ['analysis', 'confidence', 'needsAlternatives', 'needsWebSearch', 'suggestions'];
+			const expectedKeys =
+				this.promptStrategy === 'no_secondary_asr'
+					? ['analysis', 'confidence', 'needsWebSearch', 'suggestions']
+					: ['analysis', 'confidence', 'needsAlternatives', 'needsWebSearch', 'suggestions'];
 			const analysisData = await this.parseResponseWithRetry(
 				response.content as string,
 				expectedKeys
@@ -720,7 +744,8 @@ Based on this audio quality, you should be ${
 
 			// Use ASR N-best tool when the LLM determines it's needed OR when signal quality is poor
 			// Skip ASR entirely for no_secondary_asr strategy
-			const shouldUseASR = this.promptStrategy !== 'no_secondary_asr' && 
+			const shouldUseASR =
+				this.promptStrategy !== 'no_secondary_asr' &&
 				(analysisData.needsAlternatives || (signalQuality && signalQuality.snr_db < 15)); // Aggressive ASR for poor audio
 
 			if (shouldUseASR) {
@@ -804,7 +829,10 @@ Based on this audio quality, you should be ${
 						.join('\n');
 
 					// Create enhanced analysis prompt using current strategy
-					const enhancedPrompt = this.prompts.ENHANCED_ANALYSIS_PROMPT.replace('{originalText}', segment.text)
+					const enhancedPrompt = this.prompts.ENHANCED_ANALYSIS_PROMPT.replace(
+						'{originalText}',
+						segment.text
+					)
 						.replace('{initialAnalysis}', JSON.stringify(analysisData.suggestions || []))
 						.replace('{asrAlternatives}', asrAlternativesText)
 						.replace('{responseLanguage}', responseLanguage);
@@ -821,9 +849,10 @@ Based on this audio quality, you should be ${
 						segment.index
 					);
 
-					const enhancedResponse = await this.invokeWithFallback([
-						new HumanMessage({ content: enhancedPrompt })
-					], segment.index);
+					const enhancedResponse = await this.invokeWithFallback(
+						[new HumanMessage({ content: enhancedPrompt })],
+						segment.index
+					);
 
 					const enhancedLlmDuration = Date.now() - enhancedLlmStartTime;
 					await this.logger?.logLLMResponse(
@@ -838,9 +867,10 @@ Based on this audio quality, you should be ${
 					});
 
 					// Parse enhanced response with retry mechanism
-					const enhancedExpectedKeys = this.promptStrategy === 'no_secondary_asr' 
-						? ['analysis', 'confidence', 'needsWebSearch', 'suggestions']
-						: ['analysis', 'confidence', 'needsAlternatives', 'needsWebSearch', 'suggestions'];
+					const enhancedExpectedKeys =
+						this.promptStrategy === 'no_secondary_asr'
+							? ['analysis', 'confidence', 'needsWebSearch', 'suggestions']
+							: ['analysis', 'confidence', 'needsAlternatives', 'needsWebSearch', 'suggestions'];
 					const enhancedData = await this.parseResponseWithRetry(
 						enhancedResponse.content as string,
 						enhancedExpectedKeys
@@ -1197,7 +1227,9 @@ Based on this audio quality, you should be ${
 		}
 	}
 
-	async analyzeMultipleSegments(request: MultiSegmentAnalysisRequest): Promise<MultiSegmentAnalysisResult> {
+	async analyzeMultipleSegments(
+		request: MultiSegmentAnalysisRequest
+	): Promise<MultiSegmentAnalysisResult> {
 		try {
 			const { segments, summary, fileId, uiLanguage, transcriptFilePath } = request;
 
@@ -1216,7 +1248,7 @@ Based on this audio quality, you should be ${
 					'info',
 					`Starting multi-segment analysis for ${segments.length} segments`,
 					{
-						segmentIndices: segments.map(s => s.index),
+						segmentIndices: segments.map((s) => s.index),
 						segmentRange: `${segments[0].index}-${segments[segments.length - 1].index}`
 					}
 				);
@@ -1235,46 +1267,50 @@ Based on this audio quality, you should be ${
 			});
 
 			// Build segments content for prompt
-			const segmentsContent = segments.map((segment, idx) => {
-				const segmentNumber = idx + 1;
-				let alternativesSection = '';
-				if (segment.alternatives && segment.alternatives.length > 0) {
-					const alternativesText = segment.alternatives
-						.map((alt, altIdx) => `  ${altIdx + 1}. ${alt.text} (confidence: ${alt.avg_logprob.toFixed(3)})`)
-						.join('\n');
-					alternativesSection = `\n  Alternatives:\n${alternativesText}`;
-				}
+			const segmentsContent = segments
+				.map((segment, idx) => {
+					const segmentNumber = idx + 1;
+					let alternativesSection = '';
+					if (segment.alternatives && segment.alternatives.length > 0) {
+						const alternativesText = segment.alternatives
+							.map(
+								(alt, altIdx) =>
+									`  ${altIdx + 1}. ${alt.text} (confidence: ${alt.avg_logprob.toFixed(3)})`
+							)
+							.join('\n');
+						alternativesSection = `\n  Alternatives:\n${alternativesText}`;
+					}
 
-				return `SEGMENT ${segmentNumber} (Index: ${segment.index}):
+					return `SEGMENT ${segmentNumber} (Index: ${segment.index}):
 Speaker: ${segment.speakerName || segment.speakerTag}
 Text: ${segment.text}
 Duration: ${(segment.endTime - segment.startTime).toFixed(2)} seconds
 Word count: ${segment.words.length} words${alternativesSection}`;
-			}).join('\n\n');
+				})
+				.join('\n\n');
 
 			// Create segment index range for display
-			const segmentIndexRange = segments.length > 1 
-				? `${segments[0].index + 1}-${segments[segments.length - 1].index + 1}`
-				: `${segments[0].index + 1}`;
+			const segmentIndexRange =
+				segments.length > 1
+					? `${segments[0].index + 1}-${segments[segments.length - 1].index + 1}`
+					: `${segments[0].index + 1}`;
 
 			// Build the multi-segment analysis prompt using current strategy
-			const prompt = this.prompts.MULTI_SEGMENT_ANALYSIS_PROMPT
-				.replace('{summary}', summary.summary)
+			const prompt = this.prompts.MULTI_SEGMENT_ANALYSIS_PROMPT.replace(
+				'{summary}',
+				summary.summary
+			)
 				.replace('{segmentIndexRange}', segmentIndexRange)
 				.replace('{totalSegments}', 'TBD')
 				.replace('{segmentsContent}', segmentsContent)
 				.replace('{segmentCount}', segments.length.toString())
 				.replace('{responseLanguage}', responseLanguage);
 
-			await this.logger?.logGeneral(
-				'info',
-				'Starting multi-segment LLM analysis request',
-				{
-					segmentCount: segments.length,
-					totalTextLength: segments.reduce((sum, s) => sum + s.text.length, 0),
-					speakers: [...new Set(segments.map(s => s.speakerName || s.speakerTag))]
-				}
-			);
+			await this.logger?.logGeneral('info', 'Starting multi-segment LLM analysis request', {
+				segmentCount: segments.length,
+				totalTextLength: segments.reduce((sum, s) => sum + s.text.length, 0),
+				speakers: [...new Set(segments.map((s) => s.speakerName || s.speakerTag))]
+			});
 
 			// Get initial multi-segment analysis
 			const llmStartTime = Date.now();
@@ -1286,16 +1322,14 @@ Word count: ${segment.words.length} words${alternativesSection}`;
 			await this.logger?.logLLMResponse(response.content as string, llmDuration, 0);
 
 			// Parse the multi-segment response
-			const analysisData = await this.parseMultiSegmentResponseWithRetry(response.content as string);
-
-			await this.logger?.logGeneral(
-				'debug',
-				'Multi-segment analysis data extracted successfully',
-				{
-					overallAnalysisLength: analysisData.overallAnalysis?.length || 0,
-					segmentAnalysesCount: analysisData.segmentAnalyses?.length || 0
-				}
+			const analysisData = await this.parseMultiSegmentResponseWithRetry(
+				response.content as string
 			);
+
+			await this.logger?.logGeneral('debug', 'Multi-segment analysis data extracted successfully', {
+				overallAnalysisLength: analysisData.overallAnalysis?.length || 0,
+				segmentAnalysesCount: analysisData.segmentAnalyses?.length || 0
+			});
 
 			// Process each segment's analysis and convert to individual results
 			const results: SegmentAnalysisResult[] = [];
@@ -1303,7 +1337,7 @@ Word count: ${segment.words.length} words${alternativesSection}`;
 			for (let i = 0; i < segments.length; i++) {
 				const segment = segments[i];
 				const segmentNumber = i + 1;
-				
+
 				// Find matching segment analysis from LLM response
 				const segmentAnalysis = analysisData.segmentAnalyses?.find(
 					(sa: any) => sa.segmentNumber === segmentNumber
@@ -1313,7 +1347,7 @@ Word count: ${segment.words.length} words${alternativesSection}`;
 					await this.logger?.logGeneral('warn', `No analysis found for segment ${segmentNumber}`, {
 						segmentIndex: segment.index
 					});
-					
+
 					// Create fallback result
 					results.push({
 						segmentIndex: segment.index,
@@ -1389,7 +1423,7 @@ Word count: ${segment.words.length} words${alternativesSection}`;
 
 			// Save all results to database in batch
 			for (const result of results) {
-				const segment = segments.find(s => s.index === result.segmentIndex);
+				const segment = segments.find((s) => s.index === result.segmentIndex);
 				if (segment) {
 					await prisma.analysisSegment.upsert({
 						where: {
@@ -1435,7 +1469,6 @@ Word count: ${segment.words.length} words${alternativesSection}`;
 				results,
 				overallAnalysis: analysisData.overallAnalysis || 'Multi-segment analysis completed'
 			};
-
 		} catch (error) {
 			await this.logger?.logGeneral('error', 'Multi-segment analysis failed', { error });
 			throw new Error(
@@ -1493,7 +1526,10 @@ Word count: ${segment.words.length} words${alternativesSection}`;
 // Singleton instance
 let coordinatingAgentInstance: CoordinatingAgent | null = null;
 
-export function getCoordinatingAgent(modelName?: string, promptStrategy?: PromptStrategy): CoordinatingAgent {
+export function getCoordinatingAgent(
+	modelName?: string,
+	promptStrategy?: PromptStrategy
+): CoordinatingAgent {
 	if (!coordinatingAgentInstance || modelName || promptStrategy) {
 		coordinatingAgentInstance = new CoordinatingAgent(modelName, promptStrategy);
 	}

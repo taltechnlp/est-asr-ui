@@ -55,7 +55,7 @@ const PROMPT_STRATEGIES: Record<PromptStrategy, PromptSet> = {
 /**
  * Get prompts for a specific strategy
  */
-export function getPrompts(strategy: PromptStrategy = 'wer_focused'): PromptSet {
+export function getPrompts(strategy: PromptStrategy = 'legacy'): PromptSet {
 	return PROMPT_STRATEGIES[strategy];
 }
 
@@ -72,7 +72,7 @@ export const {
 	ENHANCED_ANALYSIS_PROMPT,
 	MULTI_SEGMENT_ANALYSIS_PROMPT,
 	MULTI_SEGMENT_ENHANCED_ANALYSIS_PROMPT
-} = getPrompts('wer_focused');
+} = getPrompts('legacy');
 
 // Export individual prompt sets for direct access
 export {
