@@ -17,6 +17,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 			filename: true,
 			initialTranscriptionPath: true,
 			initialTranscription: true,
+			originalAsrData: true, // Prioritize stored raw ASR data
 			text: true, // Also check if there's processed text
 			state: true,
 			User: {
@@ -38,6 +39,8 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		id: file.id,
 		filename: file.filename,
 		state: file.state,
+		hasOriginalAsrData: !!file.originalAsrData,
+		originalAsrDataLength: file.originalAsrData?.length || 0,
 		hasInitialTranscriptionPath: !!file.initialTranscriptionPath,
 		initialTranscriptionPath: file.initialTranscriptionPath,
 		hasInitialTranscription: !!file.initialTranscription,
@@ -48,11 +51,21 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 
 	let transcriptionData: any;
 
-	// Try to read from file path first, then fallback to database
-	if (file.initialTranscriptionPath) {
-		console.log('Checking file path:', file.initialTranscriptionPath);
+	// Priority 1: Use stored original ASR data (most reliable)
+	if (file.originalAsrData) {
+		console.log('Using stored originalAsrData (most reliable source)');
+		try {
+			transcriptionData = JSON.parse(file.originalAsrData);
+			console.log('Successfully parsed stored original ASR data');
+		} catch (parseError) {
+			console.error('Failed to parse stored originalAsrData:', parseError.message);
+			return error(500, 'Stored original ASR data is corrupted');
+		}
+	}
+	// Priority 2: Try file path (legacy support)
+	else if (file.initialTranscriptionPath) {
+		console.log('No stored originalAsrData, trying file path:', file.initialTranscriptionPath);
 		
-		// Check if file exists first
 		try {
 			await fs.access(file.initialTranscriptionPath);
 			console.log('File exists, reading from path');
@@ -62,9 +75,9 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		} catch (fileError) {
 			console.log('File does not exist or cannot be read:', fileError.code, fileError.message);
 			
-			// Try database fallback
+			// Priority 3: Database fallback
 			if (file.initialTranscription) {
-				console.log('Falling back to database transcription');
+				console.log('Falling back to database initialTranscription');
 				try {
 					transcriptionData = JSON.parse(file.initialTranscription);
 					console.log('Successfully parsed from database');
@@ -76,20 +89,23 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 				return error(404, `Transcription file not found at: ${file.initialTranscriptionPath} and no database backup available`);
 			}
 		}
-	} else if (file.initialTranscription) {
-		console.log('No file path, reading from database field');
+	}
+	// Priority 3: Database initialTranscription (legacy)
+	else if (file.initialTranscription) {
+		console.log('No file path, reading from database initialTranscription field');
 		try {
 			transcriptionData = JSON.parse(file.initialTranscription);
 			console.log('Successfully parsed from database');
 		} catch (dbError) {
 			return error(500, `Failed to parse database transcription: ${dbError.message}`);
 		}
-	} else {
-		console.log('No transcription source found, checking if processed text is available');
+	}
+	// Priority 4: Last resort - processed text (not ideal)
+	else {
+		console.log('No original ASR sources found, checking processed text as last resort');
 		
-		// Last fallback: check if there's any processed text data
 		if (file.text) {
-			console.log('Using processed text as fallback');
+			console.log('Using processed text as last resort');
 			try {
 				// Try to parse as JSON first (might be TipTap format)
 				const parsedText = JSON.parse(file.text);
@@ -103,7 +119,6 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 				transcriptionData = parsedText;
 			} catch (parseError) {
 				// If it's not JSON, treat as plain text
-				// This is not ideal since we lose timing info, but it's better than nothing
 				return new Response(file.text, {
 					headers: {
 						'Content-Type': 'text/plain; charset=utf-8',
@@ -114,6 +129,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 			}
 		} else {
 			console.log('No transcription data found anywhere:', {
+				hasOriginalAsrData: !!file.originalAsrData,
 				hasPath: !!file.initialTranscriptionPath,
 				hasDatabase: !!file.initialTranscription,
 				hasText: !!file.text,
@@ -123,6 +139,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 			
 			return error(404, `No original transcription available for this file. File state: ${file.state}. Available data: ${
 				[
+					file.originalAsrData ? 'originalAsrData' : null,
 					file.initialTranscriptionPath ? 'path (missing file)' : null,
 					file.initialTranscription ? 'database' : null,
 					file.text ? 'processed text' : null
@@ -151,10 +168,17 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 	// Extract text from original ASR format
 	const textLines: string[] = [];
 
-	if (transcriptionData.sections && Array.isArray(transcriptionData.sections)) {
+	// Handle new format with best_hypothesis wrapper
+	let dataToProcess = transcriptionData;
+	if (transcriptionData.best_hypothesis && transcriptionData.best_hypothesis.sections) {
+		console.log('Processing best_hypothesis wrapped structure');
+		dataToProcess = transcriptionData.best_hypothesis;
+	}
+
+	if (dataToProcess.sections && Array.isArray(dataToProcess.sections)) {
 		console.log('Processing sections structure');
 		// Process sections -> turns -> words structure
-		for (const section of transcriptionData.sections) {
+		for (const section of dataToProcess.sections) {
 			if (section.turns && Array.isArray(section.turns)) {
 				for (const turn of section.turns) {
 					if (turn.transcript && typeof turn.transcript === 'string') {
@@ -163,16 +187,18 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 				}
 			}
 		}
-	} else if (transcriptionData.turns && Array.isArray(transcriptionData.turns)) {
+	} else if (dataToProcess.turns && Array.isArray(dataToProcess.turns)) {
 		console.log('Processing turns structure');
 		// Direct turns structure
-		for (const turn of transcriptionData.turns) {
+		for (const turn of dataToProcess.turns) {
 			if (turn.transcript && typeof turn.transcript === 'string') {
 				textLines.push(turn.transcript.trim());
 			}
 		}
 	} else {
 		console.log('Unrecognized transcription format. Full data:', JSON.stringify(transcriptionData).substring(0, 500));
+		console.log('Available keys at root:', Object.keys(transcriptionData));
+		console.log('Available keys in processed data:', Object.keys(dataToProcess));
 		return error(400, 'Unrecognized transcription format');
 	}
 

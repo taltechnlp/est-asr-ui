@@ -15,6 +15,24 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 					email: true
 				}
 			}
+		},
+		// Include originalAsrData to check if it's already stored
+		select: {
+			id: true,
+			initialTranscriptionPath: true,
+			originalAsrData: true,
+			state: true,
+			path: true,
+			filename: true,
+			uploadedAt: true,
+			text: true,
+			language: true,
+			User: {
+				select: {
+					id: true,
+					email: true
+				}
+			}
 		}
 	});
 	const session = await locals.auth();
@@ -25,6 +43,24 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		return error(401, 'unauthorized');
 	}
 	const content = await fs.readFile(file.initialTranscriptionPath, 'utf8');
+	
+	// Store raw ASR data if not already stored (for reliable original export)
+	if (!file.originalAsrData && content) {
+		try {
+			// Validate that it's JSON to ensure it's ASR data
+			JSON.parse(content);
+			
+			// Store raw ASR data in database for reliable export
+			await prisma.file.update({
+				where: { id: file.id },
+				data: { originalAsrData: content }
+			});
+			console.log(`Stored original ASR data for file: ${file.filename}`);
+		} catch (e) {
+			// If it's not valid JSON, don't store it (might be already processed content)
+			console.log(`Skipping originalAsrData storage for file ${file.filename} - not valid JSON`);
+		}
+	}
 
 	/* let peaksExist = true;
         let peaksPath = file.path + '.json';

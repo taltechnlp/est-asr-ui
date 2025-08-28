@@ -23,6 +23,7 @@ model File {
   textTitle                String?   @db.Text()
   initialTranscriptionPath String?   @db.Text()
   initialTranscription     String?   @db.Text()
+  originalAsrData          String?   @db.Text() // Raw unprocessed ASR output for reliable export
   uploader                 String?   @db.VarChar(30)
   User                     User?     @relation(fields: [uploader], references: [id], onUpdate: NoAction, onDelete: Cascade)
   workflows                NfWorkflow[]
