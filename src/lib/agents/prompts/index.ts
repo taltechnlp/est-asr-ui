@@ -1,10 +1,7 @@
 // Centralized prompt management for coordination agents
 // Allows easy switching between different prompt strategies
 
-import {
-	WER_FOCUSED_SEGMENT_ANALYSIS_PROMPT,
-	WER_FOCUSED_ENHANCED_ANALYSIS_PROMPT
-} from './wer_focused_analysis';
+// Note: WER_FOCUSED prompts moved to wer_analysis.ts for the new agentic approach
 
 import { LEGACY_SEGMENT_ANALYSIS_PROMPT, LEGACY_ENHANCED_ANALYSIS_PROMPT } from './legacy_analysis';
 
@@ -13,7 +10,7 @@ import {
 	NO_SECONDARY_ASR_ENHANCED_ANALYSIS_PROMPT
 } from './no_secondary_asr_analysis';
 
-export type PromptStrategy = 'wer_focused' | 'legacy' | 'no_secondary_asr';
+export type PromptStrategy = 'legacy' | 'no_secondary_asr';
 
 export interface PromptSet {
 	SEGMENT_ANALYSIS_PROMPT: string;
@@ -21,10 +18,6 @@ export interface PromptSet {
 }
 
 const PROMPT_STRATEGIES: Record<PromptStrategy, PromptSet> = {
-	wer_focused: {
-		SEGMENT_ANALYSIS_PROMPT: WER_FOCUSED_SEGMENT_ANALYSIS_PROMPT,
-		ENHANCED_ANALYSIS_PROMPT: WER_FOCUSED_ENHANCED_ANALYSIS_PROMPT
-	},
 	legacy: {
 		SEGMENT_ANALYSIS_PROMPT: LEGACY_SEGMENT_ANALYSIS_PROMPT,
 		ENHANCED_ANALYSIS_PROMPT: LEGACY_ENHANCED_ANALYSIS_PROMPT
@@ -52,12 +45,7 @@ export function getAvailableStrategies(): PromptStrategy[] {
 // Default export for backwards compatibility
 export const { SEGMENT_ANALYSIS_PROMPT, ENHANCED_ANALYSIS_PROMPT } = getPrompts('legacy');
 
-// Export individual prompt sets for direct access
-export {
-	WER_FOCUSED_SEGMENT_ANALYSIS_PROMPT,
-	WER_FOCUSED_ENHANCED_ANALYSIS_PROMPT
-} from './wer_focused_analysis';
-
+// Export individual prompt sets for direct access  
 export { LEGACY_SEGMENT_ANALYSIS_PROMPT, LEGACY_ENHANCED_ANALYSIS_PROMPT } from './legacy_analysis';
 
 export {

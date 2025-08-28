@@ -31,6 +31,8 @@ export interface WERCorrection {
 	original: string;
 	replacement: string;
 	confidence: number;
+	evidenceType?: string;
+	nBestSupport?: string[];
 }
 
 export interface WERBlockAnalysisResult {
@@ -276,12 +278,23 @@ export class CoordinatingAgentWER {
 
 Please provide ONLY valid JSON that matches this exact structure:
 {
+  "reasoning": "Brief explanation of correction decisions",
+  "uncertaintyAssessment": {
+    "divergenceScore": "high|medium|low",
+    "phoneticSimilarity": true,
+    "semanticDivergence": true,
+    "correctionRecommended": true
+  },
+  "toolRequests": [],
+  "needsMoreAnalysis": false,
   "corrections": [
     {
       "id": "c1", 
       "original": "exact text to replace",
       "replacement": "corrected text",
-      "confidence": 0.85
+      "confidence": 0.85,
+      "evidenceType": "n-best_composite|phonetic_validation|contextual_verification",
+      "nBestSupport": ["hypothesis 2: example alternative"]
     }
   ]
 }
@@ -711,7 +724,7 @@ Respond in JSON format:
 	 * Execute a single tool request with proper parameter validation
 	 */
 	private async executeToolRequest(
-		toolRequest: { tool: string; params: any },
+		toolRequest: { tool: string; params: any; rationale?: string },
 		segments: SegmentWithTiming[],
 		blockIndex: number,
 		audioFilePath?: string
@@ -721,7 +734,8 @@ Respond in JSON format:
 		await this.logger?.logGeneral('info', 'Executing tool request', {
 			blockIndex,
 			tool,
-			params
+			params,
+			rationale: toolRequest.rationale || 'No rationale provided'
 		});
 
 		try {
@@ -879,7 +893,7 @@ Respond in JSON format:
 	 * Execute multiple tool requests and format results for LLM feedback
 	 */
 	private async executeToolRequests(
-		toolRequests: Array<{ tool: string; params: any }>,
+		toolRequests: Array<{ tool: string; params: any; rationale?: string }>,
 		segments: SegmentWithTiming[],
 		blockIndex: number,
 		audioFilePath?: string
@@ -1003,7 +1017,7 @@ Respond in JSON format:
 			try {
 				parsedResponse = await this.parseResponseWithRetry(
 					responseContent,
-					['reasoning', 'toolRequests', 'needsMoreAnalysis', 'corrections']
+					['reasoning', 'toolRequests', 'needsMoreAnalysis', 'corrections', 'uncertaintyAssessment']
 				);
 			} catch (error) {
 				await this.logger?.logGeneral('error', 'Failed to parse agentic response', {
@@ -1039,7 +1053,9 @@ Respond in JSON format:
 						id: c.id,
 						original: c.original,
 						replacement: c.replacement,
-						confidence: c.confidence
+						confidence: c.confidence,
+						evidenceType: c.evidenceType,
+						nBestSupport: c.nBestSupport
 					})),
 					interactions
 				};
@@ -1064,7 +1080,14 @@ ${toolResults}
 
 Now provide your final corrections in JSON format:
 {
-  "reasoning": "Brief explanation of your final decisions based on tool results",
+  "reasoning": "Brief explanation of your final decisions based on tool results and N-best analysis",
+  "uncertaintyAssessment": {
+    "divergenceScore": "high|medium|low",
+    "phoneticSimilarity": true,
+    "semanticDivergence": true,
+    "correctionRecommended": true,
+    "evidenceSources": ["primary N-best", "secondary ASR", "phonetic analysis"]
+  },
   "toolRequests": [],
   "needsMoreAnalysis": false,
   "corrections": [
@@ -1072,7 +1095,9 @@ Now provide your final corrections in JSON format:
       "id": "c1",
       "original": "exact text to replace",
       "replacement": "corrected text",
-      "confidence": 0.85
+      "confidence": 0.85,
+      "evidenceType": "n-best_composite|phonetic_validation|contextual_verification",
+      "nBestSupport": ["hypothesis 2: example alternative", "hypothesis 3: another alternative"]
     }
   ]
 }
