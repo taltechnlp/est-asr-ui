@@ -4,12 +4,27 @@ import type { IWeblog } from '$lib/helpers/api.d';
 import { sendEmail, createEmail } from '$lib/email';
 import { ORIGIN } from '$env/static/private';
 
-// Reusable function to trigger auto-analysis with timeout and retry logic
+// Reusable function to trigger auto-analysis with retry logic for actual failures
 async function triggerAutoAnalysis(file: any, maxRetries = 3): Promise<void> {
+	// Optional configurable timeout (default: no timeout)
+	const timeoutMs = process.env.AUTO_ANALYSIS_TIMEOUT_MS 
+		? parseInt(process.env.AUTO_ANALYSIS_TIMEOUT_MS) 
+		: null;
+
 	for (let attempt = 0; attempt < maxRetries; attempt++) {
 		try {
+			console.log(`Starting auto-analysis for file: ${file.filename} (attempt ${attempt + 1}/${maxRetries})${timeoutMs ? ` with ${timeoutMs/1000}s timeout` : ' with no timeout'}`);
+			
 			const controller = new AbortController();
-			const timeout = setTimeout(() => controller.abort(), 300000); // 5 minute timeout for enhanced analysis with detailed prompts
+			let timeout: NodeJS.Timeout | null = null;
+			
+			// Only set timeout if configured
+			if (timeoutMs) {
+				timeout = setTimeout(() => {
+					console.warn(`Auto-analysis timeout after ${timeoutMs/1000}s for file: ${file.filename}`);
+					controller.abort();
+				}, timeoutMs);
+			}
 
 			const response = await fetch(`${ORIGIN}/api/transcript-analysis/auto-analyze`, {
 				method: 'POST',
@@ -18,47 +33,49 @@ async function triggerAutoAnalysis(file: any, maxRetries = 3): Promise<void> {
 				signal: controller.signal
 			});
 
-			clearTimeout(timeout);
+			if (timeout) clearTimeout(timeout);
 
 			if (response.ok) {
-				console.log(`Auto-analysis initiated successfully for file: ${file.filename}`);
+				console.log(`Auto-analysis completed successfully for file: ${file.filename}`);
 				return;
 			} else {
 				const errorText = await response.text();
+				
+				// Don't retry on client errors (4xx) - these won't succeed on retry
+				if (response.status >= 400 && response.status < 500) {
+					console.error(`Auto-analysis failed with client error for file: ${file.filename} - Status: ${response.status}, Error: ${errorText}`);
+					throw new Error(`Client error ${response.status}: ${errorText}`);
+				}
+				
+				// Retry on server errors (5xx) and other issues
 				if (attempt < maxRetries - 1) {
-					console.warn(
-						`Auto-analysis trigger failed (attempt ${attempt + 1}/${maxRetries}) - Status: ${response.status}, Error: ${errorText}`
-					);
+					console.warn(`Auto-analysis server error (attempt ${attempt + 1}/${maxRetries}) for file: ${file.filename} - Status: ${response.status}, Error: ${errorText}`);
 				} else {
-					console.error(
-						`Failed to initiate auto-analysis after ${maxRetries} attempts - Status: ${response.status}, Error: ${errorText}`
-					);
+					console.error(`Auto-analysis failed after ${maxRetries} attempts for file: ${file.filename} - Status: ${response.status}, Error: ${errorText}`);
+					throw new Error(`Server error after ${maxRetries} attempts: ${errorText}`);
 				}
 			}
 		} catch (error: any) {
-			const isTimeout =
-				error.name === 'AbortError' ||
-				error.message?.includes('timeout') ||
-				error.message?.includes('aborted');
+			const isTimeout = error.name === 'AbortError' || error.message?.includes('aborted');
 			const isNetworkError = error.message?.includes('fetch failed') || error.code === 'ENOTFOUND';
+			const isClientError = error.message?.includes('Client error');
 
+			// Don't retry client errors or configured timeouts - they won't succeed
+			if (isClientError || (isTimeout && timeoutMs)) {
+				console.error(`Auto-analysis failed for file: ${file.filename} - ${error.message}`);
+				throw error;
+			}
+
+			// Retry network errors and other transient issues
 			if (attempt < maxRetries - 1) {
 				const delay = 1000 * Math.pow(2, attempt); // Exponential backoff: 1s, 2s, 4s
 				console.warn(
-					`Auto-analysis trigger failed (attempt ${attempt + 1}/${maxRetries}): ${isTimeout ? 'Timeout (5min exceeded)' : isNetworkError ? 'Network error' : error.message}. Retrying in ${delay}ms...`
+					`Auto-analysis failed (attempt ${attempt + 1}/${maxRetries}) for file: ${file.filename}: ${isNetworkError ? 'Network error' : error.message}. Retrying in ${delay}ms...`
 				);
 				await new Promise((resolve) => setTimeout(resolve, delay));
 			} else {
-				// On final attempt, don't throw for timeout errors - just log as they're expected for very large files
-				if (isTimeout) {
-					console.warn(
-						`Auto-analysis trigger timed out after ${maxRetries} attempts (file may be very large or analysis is complex): ${error.message}`
-					);
-					return; // Return without throwing to avoid error propagation
-				} else {
-					console.error(`Error initiating auto-analysis after ${maxRetries} attempts:`, error);
-					throw error; // Re-throw non-timeout errors
-				}
+				console.error(`Auto-analysis failed after ${maxRetries} attempts for file: ${file.filename}:`, error);
+				throw error;
 			}
 		}
 	}
