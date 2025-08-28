@@ -106,7 +106,7 @@ export class OpenRouterChat {
 				// Add reasoning control for thinking models to reduce token usage
 				if (this.modelName.includes('gemini')) {
 					completionParams.reasoning = {
-						max_tokens: Math.min(1024, Math.floor(this.maxTokens * 0.1)), // Limit thinking to 10% of max tokens
+						max_tokens: Math.min(2048, Math.floor(this.maxTokens * 0.2)), // Limit thinking to 20% of max tokens (doubled)
 						exclude: false // Keep reasoning visible for debugging, but limit tokens
 					};
 					console.log(`Applied Gemini reasoning limits: max_tokens=${completionParams.reasoning.max_tokens}`);
