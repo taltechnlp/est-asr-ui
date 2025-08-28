@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { TranscriptAnalysisTool } from './base';
+import { getCurrentLogger } from '../../utils/agentFileLogger';
 
 const WebSearchSchema = z.object({
 	query: z.string().describe('Search query to look up'),
@@ -11,6 +12,8 @@ export interface SearchResult {
 	title: string;
 	snippet: string;
 	url: string;
+	publishedDate?: string;
+	score?: number;
 }
 
 export interface WebSearchResult {
@@ -120,14 +123,140 @@ export class WebSearchTool extends TranscriptAnalysisTool {
 	}
 }
 
-// Alternative implementation using a more robust search API (requires API key)
+// Modern Exa search implementation (requires API key)
+export class ExaSearchTool extends TranscriptAnalysisTool {
+	private apiKey: string;
+
+	constructor(apiKey: string) {
+		super(
+			'exa_search',
+			'Search the web using Exa AI search for high-quality, semantic results',
+			WebSearchSchema,
+			async (input) => {
+				const result = await this.searchExa(input);
+				return JSON.stringify(result);
+			}
+		);
+		this.apiKey = apiKey;
+	}
+
+	async searchExa(input: z.infer<typeof WebSearchSchema>): Promise<WebSearchResult> {
+		const { query, language, maxResults } = input;
+		const logger = getCurrentLogger();
+
+		try {
+			await logger?.logToolExecution('ExaSearch', 'Starting Exa search request', {
+				query,
+				language,
+				maxResults
+			});
+
+			// Build search parameters optimized for Estonian ASR context
+			const searchParams = {
+				query: query,
+				numResults: Math.min(maxResults, 10),
+				type: 'neural', // Use neural search for better semantic understanding
+				useAutoprompt: true, // Enhance query with AI
+				contents: {
+					text: {
+						maxCharacters: 2000,
+						includeHtmlTags: false
+					}
+				},
+				// Language-specific domain preferences
+				...(language === 'et' && {
+					includeDomains: ['wikipedia.org', '.ee', 'eesti.ee', 'riik.ee']
+				}),
+				...(language === 'fi' && {
+					includeDomains: ['wikipedia.org', '.fi', 'suomi.fi']
+				})
+			};
+
+			const response = await fetch('https://api.exa.ai/search', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'x-api-key': this.apiKey
+				},
+				body: JSON.stringify(searchParams)
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				throw new Error(`Exa Search API error: ${response.status} - ${errorText}`);
+			}
+
+			const data = await response.json();
+
+			await logger?.logToolExecution('ExaSearch', 'Received Exa search response', {
+				resultsFound: data.results?.length || 0,
+				requestId: data.requestId
+			});
+
+			const results: SearchResult[] =
+				data.results?.map((result: any) => ({
+					title: result.title || 'Untitled',
+					snippet: this.extractBestSnippet(result.text || result.summary || '', query),
+					url: result.url,
+					publishedDate: result.publishedDate,
+					score: result.score
+				})) || [];
+
+			return {
+				query,
+				results,
+				totalResults: data.results?.length || 0
+			};
+		} catch (error) {
+			await logger?.logToolExecution('ExaSearch', 'Exa search failed', {
+				error: error instanceof Error ? error.message : 'Unknown error'
+			});
+
+			// Fallback to basic search if available
+			console.error('Exa search error:', error);
+			throw new Error(
+				`Failed to search: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
+	}
+
+	private extractBestSnippet(text: string, query: string): string {
+		if (!text) return 'No content available.';
+
+		const words = query.toLowerCase().split(/\s+/);
+		const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 20);
+
+		// Find sentence that contains the most query words
+		let bestSentence = sentences[0] || text.substring(0, 200);
+		let maxMatches = 0;
+
+		for (const sentence of sentences) {
+			const lowerSentence = sentence.toLowerCase();
+			const matches = words.filter(word => lowerSentence.includes(word)).length;
+			
+			if (matches > maxMatches) {
+				maxMatches = matches;
+				bestSentence = sentence;
+			}
+		}
+
+		// Trim to reasonable length
+		if (bestSentence.length > 300) {
+			bestSentence = bestSentence.substring(0, 297) + '...';
+		}
+
+		return bestSentence.trim();
+	}
+}
+
+// Legacy Bing implementation for fallback
 export class BingSearchTool extends TranscriptAnalysisTool {
 	private apiKey: string;
 
 	constructor(apiKey: string) {
 		super(
 			'bing_search',
-			'Search the web using Bing Search API for more reliable results',
+			'Search the web using Bing Search API for reliable results',
 			WebSearchSchema,
 			async (input) => {
 				const result = await this.searchBing(input);
@@ -183,10 +312,44 @@ export class BingSearchTool extends TranscriptAnalysisTool {
 	}
 }
 
-export function createWebSearchTool(): WebSearchTool {
+// Factory functions with automatic API key detection
+export function createWebSearchTool(): WebSearchTool | ExaSearchTool {
+	// Try Exa first if API key is available
+	const exaApiKey = process.env.EXA_API_KEY;
+	if (exaApiKey && typeof window === 'undefined') {
+		return new ExaSearchTool(exaApiKey);
+	}
+
+	// Fallback to basic DuckDuckGo search
 	return new WebSearchTool();
 }
 
-export function createBingSearchTool(apiKey: string): BingSearchTool {
-	return new BingSearchTool(apiKey);
+export function createExaSearchTool(apiKey?: string): ExaSearchTool {
+	const key = apiKey || process.env.EXA_API_KEY;
+	if (!key) {
+		throw new Error('Exa API key is required. Set EXA_API_KEY environment variable or provide key parameter.');
+	}
+	return new ExaSearchTool(key);
+}
+
+export function createBingSearchTool(apiKey?: string): BingSearchTool {
+	const key = apiKey || process.env.BING_SEARCH_API_KEY;
+	if (!key) {
+		throw new Error('Bing API key is required. Set BING_SEARCH_API_KEY environment variable or provide key parameter.');
+	}
+	return new BingSearchTool(key);
+}
+
+// Helper to get the best available search tool
+export function getBestSearchTool(): WebSearchTool | ExaSearchTool | BingSearchTool {
+	// Priority: Exa > Bing > DuckDuckGo
+	try {
+		return createExaSearchTool();
+	} catch {
+		try {
+			return createBingSearchTool();
+		} catch {
+			return new WebSearchTool(); // DuckDuckGo fallback (no API key needed)
+		}
+	}
 }

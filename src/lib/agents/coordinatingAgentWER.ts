@@ -5,6 +5,7 @@ import {
 	OPENROUTER_MODELS
 } from '$lib/llm/openrouter-direct';
 import { HumanMessage } from '@langchain/core/messages';
+import { createWebSearchTool } from './tools';
 import type { TranscriptSummary, TranscriptCorrection } from '@prisma/client';
 import { prisma } from '$lib/db/client';
 import type { SegmentWithTiming } from '$lib/utils/extractWordsFromEditor';
@@ -13,6 +14,7 @@ import { getAgentFileLogger, type AgentFileLogger } from '$lib/utils/agentFileLo
 import { extractSpeakerSegments } from '$lib/utils/extractWordsFromEditor';
 import type { TipTapEditorContent } from '../../types';
 import { WER_PROMPTS } from './prompts/wer_analysis';
+import { robustJsonParse, validateJsonStructure, formatParsingErrorForLLM } from './utils/jsonParser';
 
 export interface WERBlockAnalysisRequest {
 	fileId: string;
@@ -21,6 +23,7 @@ export interface WERBlockAnalysisRequest {
 	blockIndex: number;
 	uiLanguage?: string;
 	transcriptFilePath?: string;
+	audioFilePath?: string; // For ASR alternatives
 }
 
 export interface WERCorrection {
@@ -49,6 +52,7 @@ export interface WERFileAnalysisRequest {
 	summary: TranscriptSummary;
 	uiLanguage?: string;
 	transcriptFilePath?: string;
+	audioFilePath?: string; // For ASR alternatives
 }
 
 const BLOCK_SIZE = 20; // Process 20 segments at a time
@@ -63,6 +67,9 @@ export class CoordinatingAgentWER {
 	private primaryModelName: string;
 	private logger: AgentFileLogger | null = null;
 	private phoneticTool: any = null;
+	private signalQualityTool: any = null;
+	private webSearchTool;
+	private asrTool: any = null;
 
 	constructor(modelName: string = DEFAULT_MODEL) {
 		this.primaryModelName = modelName;
@@ -81,6 +88,9 @@ export class CoordinatingAgentWER {
 				maxTokens: 4000
 			});
 		}
+
+		// Initialize web search tool
+		this.webSearchTool = createWebSearchTool();
 	}
 
 	private initializeLogger(transcriptFilePath: string, fileId: string): void {
@@ -104,6 +114,47 @@ export class CoordinatingAgentWER {
 					'Failed to load PhoneticAnalyzer tool for WER analysis',
 					{ error: e }
 				);
+			}
+		}
+	}
+
+	private async initializeSignalQualityTool() {
+		if (this.signalQualityTool) return;
+
+		// Only load on server side
+		if (typeof window === 'undefined') {
+			try {
+				const { createSignalQualityAssessorTool } = await import('./tools/signalQualityAssessor');
+				this.signalQualityTool = createSignalQualityAssessorTool();
+				await this.logger?.logGeneral(
+					'info',
+					'SignalQualityAssessorTool initialized for WER analysis'
+				);
+			} catch (e) {
+				await this.logger?.logGeneral(
+					'warn',
+					'Failed to load SignalQualityAssessor tool for WER analysis',
+					{ error: e }
+				);
+			}
+		}
+	}
+
+	private async initializeASRTool() {
+		if (this.asrTool) return;
+
+		// Only load on server side
+		if (typeof window === 'undefined') {
+			try {
+				const { createASRNBestServerNodeTool } = await import('./tools/asrNBestServerNode');
+				this.asrTool = createASRNBestServerNodeTool(
+					'https://tekstiks.ee/asr/transcribe/alternatives'
+				);
+				await this.logger?.logGeneral('info', 'ASRNBestTool initialized for WER analysis');
+			} catch (e) {
+				await this.logger?.logGeneral('warn', 'Failed to load ASRNBest tool for WER analysis', {
+					error: e
+				});
 			}
 		}
 	}
@@ -156,47 +207,103 @@ export class CoordinatingAgentWER {
 	}
 
 	/**
-	 * Parse JSON response with simple error handling
+	 * Parse JSON response with robust error handling and retry capability
 	 */
-	private parseResponse(response: string): { corrections: WERCorrection[] } {
-		try {
-			// Clean the response
-			let cleanResponse = response.trim();
+	private async parseResponseWithRetry(
+		response: string,
+		expectedStructure: string[],
+		maxRetries: number = 2
+	): Promise<any> {
+		await this.logger?.logGeneral('debug', 'JSON parsing attempt', {
+			responseLength: response.length,
+			responsePreview: response.substring(0, 200)
+		});
 
-			// Remove markdown code blocks if present
-			if (cleanResponse.startsWith('```json')) {
-				cleanResponse = cleanResponse.replace(/```json\s*/, '').replace(/```\s*$/, '');
-			} else if (cleanResponse.startsWith('```')) {
-				cleanResponse = cleanResponse.replace(/```\s*/, '').replace(/```\s*$/, '');
-			}
+		// First attempt: Use robust parsing utility
+		const parseResult = robustJsonParse(response);
 
-			const parsed = JSON.parse(cleanResponse);
-
-			// Validate structure
-			if (!parsed.corrections || !Array.isArray(parsed.corrections)) {
-				throw new Error('Invalid response structure: missing corrections array');
-			}
-
-			// Validate each correction
-			for (const correction of parsed.corrections) {
-				if (!correction.id || !correction.original || !correction.replacement) {
-					throw new Error('Invalid correction structure: missing id, original, or replacement');
-				}
-				if (typeof correction.confidence !== 'number') {
-					correction.confidence = 0.7; // Default confidence
-				}
-			}
-
-			return parsed;
-		} catch (error) {
-			this.logger?.logGeneral('error', 'Failed to parse LLM response', {
-				error: error.message,
-				response: response.substring(0, 500)
+		if (parseResult.success) {
+			await this.logger?.logGeneral('debug', 'JSON parsed successfully on first attempt', {
+				fixesApplied: parseResult.fixesApplied
 			});
 
-			// Return empty corrections on parse error
-			return { corrections: [] };
+			// Validate structure
+			if (validateJsonStructure(parseResult.data, expectedStructure)) {
+				return parseResult.data;
+			} else {
+				const missingKeys = expectedStructure.filter((key) => !(key in parseResult.data));
+				await this.logger?.logGeneral('warn', 'JSON structure validation failed', {
+					missingKeys
+				});
+			}
+		} else {
+			await this.logger?.logGeneral('warn', 'Initial JSON parsing failed', {
+				error: parseResult.error,
+				extractedJsonPreview: parseResult.extractedJson?.substring(0, 200)
+			});
 		}
+
+		// Retry with LLM self-correction
+		for (let retry = 1; retry <= maxRetries; retry++) {
+			await this.logger?.logGeneral(
+				'debug',
+				`Retry ${retry}/${maxRetries}: Requesting JSON correction from LLM`
+			);
+
+			const correctionPrompt = `${formatParsingErrorForLLM(
+				parseResult.error || 'Invalid JSON structure',
+				response
+			)}
+
+Please provide ONLY valid JSON that matches this exact structure:
+{
+  "corrections": [
+    {
+      "id": "c1", 
+      "original": "exact text to replace",
+      "replacement": "corrected text",
+      "confidence": 0.85
+    }
+  ]
+}
+
+CRITICAL: Return ONLY the JSON object. No explanations, no text before or after, no markdown code blocks.`;
+
+			await this.logger?.logGeneral('debug', 'Sending correction prompt to LLM');
+
+			try {
+				const correctionResponse = await this.invokeWithFallback([
+					new HumanMessage({ content: correctionPrompt })
+				]);
+				const correctedText = correctionResponse.content as string;
+
+				await this.logger?.logGeneral('debug', 'Received correction response from LLM', {
+					responseLength: correctedText.length
+				});
+
+				// Try parsing the corrected response
+				const correctedParseResult = robustJsonParse(correctedText);
+				if (correctedParseResult.success && validateJsonStructure(correctedParseResult.data, expectedStructure)) {
+					await this.logger?.logGeneral('info', 'JSON correction successful', {
+						retry,
+						fixesApplied: correctedParseResult.fixesApplied
+					});
+					return correctedParseResult.data;
+				} else {
+					await this.logger?.logGeneral('warn', `Retry ${retry} failed`, {
+						error: correctedParseResult.error
+					});
+				}
+			} catch (retryError) {
+				await this.logger?.logGeneral('error', `Retry ${retry} LLM call failed`, {
+					error: retryError.message
+				});
+			}
+		}
+
+		// All retries failed - return fallback structure
+		await this.logger?.logGeneral('error', 'All JSON parsing attempts failed, returning empty result');
+		return { corrections: [] };
 	}
 
 	/**
@@ -285,6 +392,703 @@ export class CoordinatingAgentWER {
 		}
 
 		return corrections;
+	}
+
+	/**
+	 * Get ASR N-best alternatives for segments with uncertain corrections
+	 */
+	private async getASRAlternatives(
+		segments: SegmentWithTiming[],
+		corrections: WERCorrection[],
+		blockIndex: number,
+		audioFilePath?: string
+	): Promise<{ [segmentIndex: number]: any }> {
+		if (!this.asrTool || !audioFilePath) {
+			return {};
+		}
+
+		const alternatives: { [segmentIndex: number]: any } = {};
+
+		// Find segments that need ASR alternatives based on corrections
+		const segmentsNeedingASR = segments.filter((segment) => {
+			// Check if any correction involves text from this segment
+			return corrections.some((correction) => {
+				const segmentText = segment.text.toLowerCase();
+				const originalText = correction.original.toLowerCase();
+				return segmentText.includes(originalText) && correction.confidence < 0.8;
+			});
+		});
+
+		// Limit to 3 segments to avoid excessive API calls
+		const segmentsToProcess = segmentsNeedingASR.slice(0, 3);
+
+		for (const segment of segmentsToProcess) {
+			try {
+				// Validate segment has proper timing metadata
+				if (typeof segment.startTime !== 'number' || typeof segment.endTime !== 'number') {
+					await this.logger?.logGeneral(
+						'warn',
+						'Skipping ASR for segment without timing metadata',
+						{
+							blockIndex,
+							segmentIndex: segment.index,
+							startTime: segment.startTime,
+							endTime: segment.endTime
+						}
+					);
+					continue;
+				}
+
+				// Validate timing makes sense
+				if (segment.endTime <= segment.startTime) {
+					await this.logger?.logGeneral('warn', 'Skipping ASR for segment with invalid timing', {
+						blockIndex,
+						segmentIndex: segment.index,
+						startTime: segment.startTime,
+						endTime: segment.endTime
+					});
+					continue;
+				}
+
+				await this.logger?.logGeneral('info', 'Getting ASR alternatives for uncertain segment', {
+					blockIndex,
+					segmentIndex: segment.index,
+					startTime: segment.startTime,
+					endTime: segment.endTime,
+					duration: segment.endTime - segment.startTime
+				});
+
+				await this.initializeASRTool();
+
+				const asrInput = {
+					audioFilePath,
+					startTime: segment.startTime,
+					endTime: segment.endTime,
+					originalText: segment.text,
+					nBest: 5
+				};
+
+				await this.logger?.logToolCall('ASR-NBest-WER', asrInput, segment.index);
+
+				const asrResult = await this.asrTool._call(asrInput);
+				const parsedResult = JSON.parse(asrResult);
+
+				await this.logger?.logToolResponse('ASR-NBest-WER', parsedResult, 0, segment.index);
+
+				alternatives[segment.index] = parsedResult;
+			} catch (error) {
+				await this.logger?.logGeneral('warn', 'ASR alternatives failed for segment', {
+					blockIndex,
+					segmentIndex: segment.index,
+					error: error.message
+				});
+				// Continue with other segments
+			}
+		}
+
+		return alternatives;
+	}
+
+	/**
+	 * Incorporate all tool results into final correction decisions via feedback loop
+	 */
+	private async incorporateToolFeedback(
+		corrections: WERCorrection[],
+		asrAlternatives: { [segmentIndex: number]: any },
+		segments: SegmentWithTiming[],
+		signalQualityInfo: string,
+		blockIndex: number
+	): Promise<WERCorrection[]> {
+		if (corrections.length === 0) {
+			return corrections;
+		}
+
+		await this.logger?.logGeneral('info', 'Starting tool feedback incorporation', {
+			blockIndex,
+			initialCorrections: corrections.length,
+			asrAlternativesAvailable: Object.keys(asrAlternatives).length,
+			hasSignalQuality: signalQualityInfo.length > 0
+		});
+
+		// Build comprehensive tool results summary
+		let toolResultsSummary = '\n\nTOOL RESULTS SUMMARY:\n';
+
+		// Add signal quality context
+		if (signalQualityInfo) {
+			toolResultsSummary += signalQualityInfo + '\n';
+		}
+
+		// Add ASR alternatives context
+		if (Object.keys(asrAlternatives).length > 0) {
+			toolResultsSummary += '\nASR ALTERNATIVES FOUND:\n';
+			for (const [segmentIndexStr, asrData] of Object.entries(asrAlternatives)) {
+				const segmentIndex = parseInt(segmentIndexStr);
+				const segment = segments.find((s) => s.index === segmentIndex);
+				if (segment && asrData.alternatives) {
+					toolResultsSummary += `- Segment ${segmentIndex} (${segment.startTime?.toFixed(1)}s-${segment.endTime?.toFixed(1)}s):\n`;
+					toolResultsSummary += `  Original: "${asrData.primaryText}"\n`;
+					asrData.alternatives.slice(0, 3).forEach((alt: any, i: number) => {
+						toolResultsSummary += `  Alt ${i + 1}: "${alt.text}" (conf: ${alt.confidence?.toFixed(2) || 'unknown'})\n`;
+					});
+				}
+			}
+		}
+
+		// Add phonetic analysis results (from correction metadata)
+		const phoneticResults = corrections.filter((c) => (c as any).phoneticAnalysis);
+		if (phoneticResults.length > 0) {
+			toolResultsSummary += '\nPHONETIC ANALYSIS RESULTS:\n';
+			phoneticResults.forEach((correction) => {
+				const analysis = (correction as any).phoneticAnalysis;
+				toolResultsSummary += `- "${correction.original}" → "${correction.replacement}": similarity ${analysis.similarity_score?.toFixed(2)}, likely homophone: ${analysis.is_likely_homophone}\n`;
+			});
+		}
+
+		// Create feedback prompt that incorporates tool results
+		const feedbackPrompt = `Review and refine these WER corrections based on comprehensive tool analysis results.
+
+ORIGINAL CORRECTIONS:
+${corrections.map((c) => `- ID: ${c.id}, Original: "${c.original}", Replacement: "${c.replacement}", Confidence: ${c.confidence}`).join('\n')}
+
+${toolResultsSummary}
+
+TASK: Based on the tool results above, provide refined corrections with updated confidence scores. Consider:
+1. ASR alternatives that support or contradict proposed corrections
+2. Signal quality impact on correction confidence
+3. Phonetic similarity evidence for homophone corrections
+4. Web search validation results (if any)
+
+IMPORTANT:
+- Only include corrections you are highly confident about (>0.7 confidence)
+- Use ASR alternatives to validate or improve corrections
+- Lower confidence if signal quality is poor
+- Increase confidence if multiple tools support the same correction
+- Remove corrections that are contradicted by tool evidence
+
+Respond in JSON format:
+{
+  "corrections": [
+    {
+      "id": "c1", 
+      "original": "exact text to replace",
+      "replacement": "corrected text",
+      "confidence": 0.85,
+      "reasoning": "brief explanation of why this correction is justified based on tool results"
+    }
+  ]
+}`;
+
+		try {
+			const feedbackStart = Date.now();
+			await this.logger?.logLLMRequest(
+				feedbackPrompt,
+				`${DEFAULT_MODEL_NAME} (WER Feedback ${blockIndex})`
+			);
+
+			const feedbackResponse = await this.invokeWithFallback([
+				new HumanMessage({ content: feedbackPrompt })
+			]);
+			const feedbackContent = feedbackResponse.content as string;
+
+			const feedbackDuration = Date.now() - feedbackStart;
+			await this.logger?.logLLMResponse(feedbackContent, feedbackDuration);
+
+			// Parse refined corrections
+			const refinedResult = await this.parseResponseWithRetry(
+				feedbackContent,
+				['corrections']
+			);
+
+			await this.logger?.logGeneral('info', 'Tool feedback incorporation completed', {
+				blockIndex,
+				originalCorrections: corrections.length,
+				refinedCorrections: refinedResult.corrections.length,
+				toolResultsLength: toolResultsSummary.length
+			});
+
+			return refinedResult.corrections;
+		} catch (error) {
+			await this.logger?.logGeneral(
+				'error',
+				'Tool feedback incorporation failed, using original corrections',
+				{
+					blockIndex,
+					error: error.message
+				}
+			);
+
+			// Fallback to original corrections if feedback fails
+			return corrections;
+		}
+	}
+
+	/**
+	 * Use web search to verify unfamiliar terms or proper nouns
+	 */
+	private async searchUnfamiliarTerms(
+		corrections: WERCorrection[],
+		blockIndex: number
+	): Promise<WERCorrection[]> {
+		if (!this.webSearchTool || corrections.length === 0) {
+			return corrections;
+		}
+
+		// Look for corrections that might involve proper nouns or technical terms
+		const termsToSearch = new Set<string>();
+
+		for (const correction of corrections) {
+			// Extract potential proper nouns or technical terms from replacements
+			const words = correction.replacement.split(/\s+/);
+			words.forEach((word) => {
+				// Heuristic: search for capitalized words or technical-looking terms
+				if (
+					word.length > 3 &&
+					(/^[A-Z][a-z]/.test(word) || // Capitalized words
+						/[A-Z]{2,}/.test(word) || // Acronyms
+						word.includes('-') ||
+						word.includes('_')) // Technical terms
+				) {
+					termsToSearch.add(word.replace(/[.,!?;:]$/, '')); // Remove punctuation
+				}
+			});
+		}
+
+		// Limit searches to avoid excessive API calls
+		const searchTerms = Array.from(termsToSearch).slice(0, 3);
+
+		for (const term of searchTerms) {
+			try {
+				await this.logger?.logGeneral('info', 'Searching for unfamiliar term', {
+					blockIndex,
+					term
+				});
+
+				const searchResult = await this.webSearchTool._call({
+					query: term + ' definition meaning',
+					language: 'et' // Estonian context
+				});
+
+				await this.logger?.logToolExecution(
+					'WebSearch-WER',
+					`Searched for term: ${term}`,
+					{
+						term,
+						resultLength: searchResult.length,
+						resultPreview: searchResult.substring(0, 200)
+					},
+					blockIndex
+				);
+
+				// This information could be used to validate corrections but for now we just log it
+				// In the future, this could influence correction confidence scores
+			} catch (error) {
+				await this.logger?.logGeneral('warn', 'Web search failed for term', {
+					blockIndex,
+					term,
+					error: error.message
+				});
+			}
+		}
+
+		return corrections; // Return unchanged for now, but search results are logged
+	}
+
+	/**
+	 * Execute a single tool request with proper parameter validation
+	 */
+	private async executeToolRequest(
+		toolRequest: { tool: string; params: any },
+		segments: SegmentWithTiming[],
+		blockIndex: number,
+		audioFilePath?: string
+	): Promise<any> {
+		const { tool, params } = toolRequest;
+
+		await this.logger?.logGeneral('info', 'Executing tool request', {
+			blockIndex,
+			tool,
+			params
+		});
+
+		try {
+			switch (tool) {
+				case 'phoneticAnalyzer': {
+					await this.initializePhoneticTool();
+					if (!this.phoneticTool) {
+						throw new Error('PhoneticAnalyzer tool not available');
+					}
+					
+					if (!params.text || !params.candidate) {
+						throw new Error('PhoneticAnalyzer requires "text" and "candidate" parameters');
+					}
+
+					const result = await this.phoneticTool.analyzePhoneticSimilarity(params);
+					return {
+						tool: 'phoneticAnalyzer',
+						params,
+						result: {
+							similarityScore: result.similarity_score,
+							isLikelyHomophone: result.similarity_score >= 0.7,
+							phoneticDistance: result.phonetic_distance || 'unknown'
+						}
+					};
+				}
+
+				case 'signalQualityAssessor': {
+					await this.initializeSignalQualityTool();
+					if (!this.signalQualityTool) {
+						throw new Error('SignalQualityAssessor tool not available');
+					}
+
+					if (typeof params.startTime !== 'number' || typeof params.endTime !== 'number') {
+						throw new Error('SignalQualityAssessor requires numeric "startTime" and "endTime" parameters');
+					}
+
+					const qualityData = await this.signalQualityTool.assessSignalQuality({
+						audioFilePath,
+						startTime: params.startTime,
+						endTime: params.endTime
+					});
+
+					return {
+						tool: 'signalQualityAssessor',
+						params,
+						result: {
+							snrDb: qualityData.snr_db,
+							qualityCategory: qualityData.quality_category,
+							recommendation: qualityData.quality_category === 'poor' 
+								? 'Be more conservative with corrections due to poor audio quality'
+								: qualityData.quality_category === 'excellent'
+								? 'Can be more confident with corrections due to excellent audio quality'
+								: 'Use balanced confidence levels based on audio quality'
+						}
+					};
+				}
+
+				case 'webSearch': {
+					if (!this.webSearchTool) {
+						throw new Error('WebSearch tool not available');
+					}
+
+					if (!params.query) {
+						throw new Error('WebSearch requires "query" parameter');
+					}
+
+					const language = params.language || 'et';
+					const searchResult = await this.webSearchTool._call({
+						query: params.query,
+						language,
+						maxResults: 3
+					});
+
+					const searchData = JSON.parse(searchResult);
+					return {
+						tool: 'webSearch',
+						params,
+						result: {
+							query: params.query,
+							resultsFound: searchData.results.length,
+							topResults: searchData.results.slice(0, 2).map((r: any) => ({
+								title: r.title,
+								snippet: r.snippet.substring(0, 150) + (r.snippet.length > 150 ? '...' : '')
+							})),
+							summary: searchData.results.length > 0 
+								? `Found ${searchData.results.length} results for "${params.query}"`
+								: `No results found for "${params.query}"`
+						}
+					};
+				}
+
+				case 'asrAlternatives': {
+					if (!audioFilePath) {
+						throw new Error('ASR alternatives require audio file path');
+					}
+
+					if (typeof params.segmentIndex !== 'number') {
+						throw new Error('ASR alternatives require numeric "segmentIndex" parameter');
+					}
+
+					const segment = segments.find(s => s.index === params.segmentIndex);
+					if (!segment) {
+						throw new Error(`Segment ${params.segmentIndex} not found`);
+					}
+
+					await this.initializeASRTool();
+					if (!this.asrTool) {
+						throw new Error('ASR tool not available');
+					}
+
+					const asrResult = await this.asrTool._call({
+						audioFilePath,
+						startTime: segment.startTime,
+						endTime: segment.endTime,
+						originalText: segment.text,
+						nBest: 5
+					});
+
+					const asrData = JSON.parse(asrResult);
+					return {
+						tool: 'asrAlternatives',
+						params,
+						result: {
+							segmentIndex: params.segmentIndex,
+							originalText: segment.text,
+							alternatives: asrData.alternatives ? asrData.alternatives.slice(0, 3).map((alt: any) => ({
+								text: alt.text,
+								confidence: alt.confidence || 'unknown'
+							})) : [],
+							hasAlternatives: asrData.alternatives && asrData.alternatives.length > 0
+						}
+					};
+				}
+
+				default:
+					throw new Error(`Unknown tool: ${tool}`);
+			}
+		} catch (error) {
+			await this.logger?.logGeneral('error', 'Tool execution failed', {
+				blockIndex,
+				tool,
+				error: error.message
+			});
+
+			return {
+				tool,
+				params,
+				error: error.message,
+				result: null
+			};
+		}
+	}
+
+	/**
+	 * Execute multiple tool requests and format results for LLM feedback
+	 */
+	private async executeToolRequests(
+		toolRequests: Array<{ tool: string; params: any }>,
+		segments: SegmentWithTiming[],
+		blockIndex: number,
+		audioFilePath?: string
+	): Promise<string> {
+		if (toolRequests.length === 0) {
+			return '';
+		}
+
+		await this.logger?.logGeneral('info', 'Executing tool requests', {
+			blockIndex,
+			toolCount: toolRequests.length,
+			tools: toolRequests.map(t => t.tool)
+		});
+
+		const toolResults = [];
+
+		for (const toolRequest of toolRequests) {
+			const result = await this.executeToolRequest(toolRequest, segments, blockIndex, audioFilePath);
+			toolResults.push(result);
+		}
+
+		// Format results for LLM consumption
+		let formattedResults = '\n\nTOOL RESULTS:\n';
+		
+		for (const toolResult of toolResults) {
+			if (toolResult.error) {
+				formattedResults += `\n❌ ${toolResult.tool} FAILED: ${toolResult.error}\n`;
+				continue;
+			}
+
+			formattedResults += `\n✅ ${toolResult.tool.toUpperCase()} RESULTS:\n`;
+			
+			switch (toolResult.tool) {
+				case 'phoneticAnalyzer':
+					formattedResults += `- Similarity Score: ${toolResult.result.similarityScore?.toFixed(2) || 'unknown'}\n`;
+					formattedResults += `- Likely Homophone: ${toolResult.result.isLikelyHomophone ? 'YES' : 'NO'}\n`;
+					formattedResults += `- Analysis: "${toolResult.params.text}" vs "${toolResult.params.candidate}"\n`;
+					break;
+
+				case 'signalQualityAssessor':
+					formattedResults += `- Audio Quality: ${toolResult.result.qualityCategory || 'unknown'} (${toolResult.result.snrDb?.toFixed(1) || 'unknown'} dB)\n`;
+					formattedResults += `- Recommendation: ${toolResult.result.recommendation}\n`;
+					break;
+
+				case 'webSearch':
+					formattedResults += `- Query: "${toolResult.result.query}"\n`;
+					formattedResults += `- Results Found: ${toolResult.result.resultsFound}\n`;
+					if (toolResult.result.topResults.length > 0) {
+						toolResult.result.topResults.forEach((r: any, i: number) => {
+							formattedResults += `- Result ${i + 1}: ${r.title}\n  ${r.snippet}\n`;
+						});
+					}
+					break;
+
+				case 'asrAlternatives':
+					formattedResults += `- Segment ${toolResult.result.segmentIndex}: "${toolResult.result.originalText}"\n`;
+					if (toolResult.result.alternatives.length > 0) {
+						toolResult.result.alternatives.forEach((alt: any, i: number) => {
+							formattedResults += `- Alternative ${i + 1}: "${alt.text}" (confidence: ${alt.confidence})\n`;
+						});
+					} else {
+						formattedResults += `- No alternatives available\n`;
+					}
+					break;
+			}
+		}
+
+		return formattedResults;
+	}
+
+	/**
+	 * Run agentic analysis loop where LLM can request tools iteratively
+	 */
+	private async runAgenticAnalysis(
+		segments: SegmentWithTiming[],
+		summary: TranscriptSummary,
+		signalQualityInfo: string,
+		responseLanguage: string,
+		blockIndex: number,
+		audioFilePath?: string,
+		maxIterations: number = 3
+	): Promise<{ corrections: WERCorrection[]; interactions: any[] }> {
+		const formattedSegments = this.formatSegmentsForLLM(segments);
+		const interactions: any[] = [];
+
+		// Build initial prompt with agentic instructions
+		let currentPrompt = WER_PROMPTS.AGENTIC_ANALYSIS_PROMPT
+			.replace('{summary}', summary.summary)
+			.replace('{segmentsText}', formattedSegments + signalQualityInfo)
+			.replace('{responseLanguage}', responseLanguage);
+
+		let iteration = 0;
+		while (iteration < maxIterations) {
+			iteration++;
+
+			await this.logger?.logGeneral('info', 'Starting agentic analysis iteration', {
+				blockIndex,
+				iteration,
+				maxIterations
+			});
+
+			// Send current prompt to LLM
+			const llmStart = Date.now();
+			await this.logger?.logLLMRequest(currentPrompt, `${DEFAULT_MODEL_NAME} (WER Agentic ${blockIndex}-${iteration})`);
+
+			const response = await this.invokeWithFallback([new HumanMessage({ content: currentPrompt })]);
+			const responseContent = response.content as string;
+
+			const llmDuration = Date.now() - llmStart;
+			await this.logger?.logLLMResponse(responseContent, llmDuration);
+
+			// Record interaction
+			interactions.push({
+				iteration,
+				prompt: currentPrompt,
+				response: responseContent,
+				timestamp: llmStart,
+				type: 'agentic_analysis'
+			});
+
+			// Parse response
+			let parsedResponse;
+			try {
+				parsedResponse = await this.parseResponseWithRetry(
+					responseContent,
+					['reasoning', 'toolRequests', 'needsMoreAnalysis', 'corrections']
+				);
+			} catch (error) {
+				await this.logger?.logGeneral('error', 'Failed to parse agentic response', {
+					blockIndex,
+					iteration,
+					error: error.message
+				});
+				// Return empty result on parse failure
+				return { corrections: [], interactions };
+			}
+
+			const { reasoning, toolRequests = [], needsMoreAnalysis, corrections = [] } = parsedResponse;
+
+			await this.logger?.logGeneral('info', 'Parsed agentic response', {
+				blockIndex,
+				iteration,
+				reasoning: reasoning?.substring(0, 100),
+				toolRequestsCount: toolRequests.length,
+				needsMoreAnalysis,
+				correctionsCount: corrections.length
+			});
+
+			// If no more analysis needed or we have final corrections, return result
+			if (!needsMoreAnalysis || corrections.length > 0) {
+				await this.logger?.logGeneral('info', 'Agentic analysis completed', {
+					blockIndex,
+					iterations: iteration,
+					finalCorrections: corrections.length
+				});
+
+				return {
+					corrections: corrections.map((c: any) => ({
+						id: c.id,
+						original: c.original,
+						replacement: c.replacement,
+						confidence: c.confidence
+					})),
+					interactions
+				};
+			}
+
+			// Execute requested tools if any
+			if (toolRequests.length > 0) {
+				const toolResults = await this.executeToolRequests(
+					toolRequests,
+					segments,
+					blockIndex,
+					audioFilePath
+				);
+
+				// Build next prompt with tool results
+				currentPrompt = `Based on your previous analysis and the tool results below, provide your final corrections.
+
+PREVIOUS ANALYSIS:
+${reasoning}
+
+${toolResults}
+
+Now provide your final corrections in JSON format:
+{
+  "reasoning": "Brief explanation of your final decisions based on tool results",
+  "toolRequests": [],
+  "needsMoreAnalysis": false,
+  "corrections": [
+    {
+      "id": "c1",
+      "original": "exact text to replace",
+      "replacement": "corrected text",
+      "confidence": 0.85
+    }
+  ]
+}
+
+IMPORTANT: Use the tool results above to make informed correction decisions. Only suggest corrections you are confident about (>0.7).`;
+
+			} else {
+				// No tools requested but still needs analysis - this shouldn't happen in a well-designed prompt
+				await this.logger?.logGeneral('warn', 'LLM requested more analysis but no tools', {
+					blockIndex,
+					iteration
+				});
+
+				// Force completion
+				return {
+					corrections: [],
+					interactions
+				};
+			}
+		}
+
+		// Max iterations reached
+		await this.logger?.logGeneral('warn', 'Agentic analysis hit max iterations limit', {
+			blockIndex,
+			maxIterations
+		});
+
+		return { corrections: [], interactions };
 	}
 
 	/**
@@ -408,7 +1212,14 @@ export class CoordinatingAgentWER {
 	private formatSegmentsForLLM(segments: SegmentWithTiming[]): string {
 		return segments
 			.map((segment) => {
-				let segmentText = `${segment.speakerName || segment.speakerTag || 'Speaker'}: ${segment.text}`;
+				// Include timing metadata and segment index for ASR tool usage
+				let segmentText = `[Segment ${segment.index}] ${segment.speakerName || segment.speakerTag || 'Speaker'}: ${segment.text}`;
+
+				// Add timing information if available
+				if (typeof segment.startTime === 'number' && typeof segment.endTime === 'number') {
+					const duration = segment.endTime - segment.startTime;
+					segmentText += `\n[Timing: ${segment.startTime.toFixed(1)}s - ${segment.endTime.toFixed(1)}s (${duration.toFixed(1)}s)]`;
+				}
 
 				// Add alternatives if available
 				if (segment.alternatives && segment.alternatives.length > 0) {
@@ -445,59 +1256,73 @@ export class CoordinatingAgentWER {
 					: '0-0'
 		});
 
+		// Assess signal quality for the block (use first and last segments as representative samples)
+		let signalQualityInfo = '';
+		if (segments.length > 0) {
+			try {
+				await this.initializeSignalQualityTool();
+
+				if (this.signalQualityTool) {
+					// Assess quality of first segment as representative
+					const firstSegment = segments[0];
+					const qualityData = await this.signalQualityTool.assessSignalQuality({
+						// Note: WER agent doesn't have audioFilePath, so this will be limited
+						startTime: firstSegment.startTime,
+						endTime: firstSegment.endTime
+					});
+
+					signalQualityInfo = `\nAUDIO QUALITY CONTEXT:
+- SNR: ${qualityData.snr_db?.toFixed(1) || 'unknown'} dB (${qualityData.quality_category || 'unknown'} quality)
+- Based on quality, be ${qualityData.quality_category === 'poor' ? 'more conservative' : qualityData.quality_category === 'excellent' ? 'more confident' : 'balanced'} with corrections`;
+
+					await this.logger?.logGeneral('info', 'Signal quality assessed for WER block', {
+						blockIndex,
+						snrDb: qualityData.snr_db,
+						qualityCategory: qualityData.quality_category
+					});
+				}
+			} catch (error) {
+				await this.logger?.logGeneral('warn', 'Signal quality assessment failed for WER block', {
+					blockIndex,
+					error: error.message
+				});
+				// Continue without signal quality info
+			}
+		}
+
 		// Normalize language
 		const normalizedLanguage = normalizeLanguageCode(uiLanguage);
 		const responseLanguage = getLanguageName(normalizedLanguage);
 
-		// Format input for LLM
-		const formattedSegments = this.formatSegmentsForLLM(segments);
-
-		// Build prompt using template
-		const prompt = WER_PROMPTS.BLOCK_ANALYSIS_PROMPT.replace('{summary}', summary.summary)
-			.replace('{segmentsText}', formattedSegments)
-			.replace('{responseLanguage}', responseLanguage);
-
-		// Get initial analysis
-		const llmStart = Date.now();
-		await this.logger?.logLLMRequest(prompt, `${DEFAULT_MODEL_NAME} (WER Block ${blockIndex})`);
-
-		const response = await this.invokeWithFallback([new HumanMessage({ content: prompt })]);
-		const responseContent = response.content as string;
-
-		const llmDuration = Date.now() - llmStart;
-		await this.logger?.logLLMResponse(responseContent, llmDuration);
-
-		// Parse response
-		const parsed = this.parseResponse(responseContent);
-
-		// Perform strategic phonetic analysis on top corrections
-		const enhancedCorrections = await this.performStrategicPhoneticAnalysis(
-			parsed.corrections,
-			blockIndex
+		// Run agentic analysis where LLM can request tools as needed
+		const agenticResult = await this.runAgenticAnalysis(
+			segments,
+			summary,
+			signalQualityInfo,
+			responseLanguage,
+			blockIndex,
+			request.audioFilePath
 		);
 
+		const finalCorrections = agenticResult.corrections;
+
 		// Apply corrections to get corrected text
-		const originalText = formattedSegments;
-		const applyResult = await this.applyCorrections(originalText, enhancedCorrections, blockIndex);
+		const originalText = this.formatSegmentsForLLM(segments);
+		const applyResult = await this.applyCorrections(originalText, finalCorrections, blockIndex);
 
 		const processingTimeMs = Date.now() - startTime;
 
 		await this.logger?.logGeneral('info', `WER block analysis completed`, {
 			blockIndex,
-			correctionsFound: parsed.corrections.length,
+			correctionsFound: finalCorrections.length,
 			correctionsApplied: applyResult.appliedCorrections.length,
 			conflictedCorrections: applyResult.conflictedCorrections.length,
 			processingTimeMs
 		});
 
-		// Build interaction history
+		// Build interaction history from agentic analysis and clarifications
 		const llmInteractions = [
-			{
-				prompt,
-				response: responseContent,
-				timestamp: llmStart,
-				type: 'initial' as const
-			},
+			...agenticResult.interactions,
 			...applyResult.clarificationInteractions
 		];
 

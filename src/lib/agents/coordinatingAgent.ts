@@ -44,20 +44,6 @@ export interface SegmentAnalysisResult {
 	dynamicConfidenceThreshold?: number;
 }
 
-export interface MultiSegmentAnalysisRequest {
-	fileId: string;
-	segments: SegmentWithTiming[]; // Up to 5 segments
-	summary: TranscriptSummary;
-	audioFilePath: string;
-	transcriptFilePath?: string;
-	uiLanguage?: string;
-}
-
-export interface MultiSegmentAnalysisResult {
-	results: SegmentAnalysisResult[];
-	overallAnalysis: string;
-}
-
 // Prompts are now loaded from external files via getPrompts() function
 
 export class CoordinatingAgent {
@@ -75,10 +61,7 @@ export class CoordinatingAgent {
 	private promptStrategy: PromptStrategy = 'legacy';
 	private prompts: ReturnType<typeof getPrompts>;
 
-	constructor(
-		modelName: string = DEFAULT_MODEL,
-		promptStrategy: PromptStrategy = 'legacy'
-	) {
+	constructor(modelName: string = DEFAULT_MODEL, promptStrategy: PromptStrategy = 'legacy') {
 		this.primaryModelName = modelName;
 		this.model = createOpenRouterChat({
 			modelName,
@@ -103,6 +86,28 @@ export class CoordinatingAgent {
 		// The ASR, phonetic, and signal quality tools will be loaded lazily when needed (server-side only)
 		this.webSearchTool = createWebSearchTool();
 		this.tiptapTool = new TipTapTransactionToolDirect();
+	}
+
+	/**
+	 * Clean text by removing speaker tags for phonetic analysis
+	 * Speaker tags like "SPEAKER_01: " or "Speaker: " should not be analyzed phonetically
+	 *
+	 * Examples:
+	 * "SPEAKER_01: mõtteid, mida" -> "mõtteid, mida"
+	 * "Kas veel\n\nSPEAKER_01: On" -> "Kas veel On"
+	 */
+	private cleanTextForPhoneticAnalysis(text: string): string {
+		if (!text) return text;
+
+		// Remove speaker patterns: SPEAKER_XX:, Speaker:, etc.
+		// Also handle newlines and multiple spaces
+		return text
+			.replace(/SPEAKER_\d+:\s*/gi, '') // Remove SPEAKER_01:, SPEAKER_02:, etc.
+			.replace(/Speaker:\s*/gi, '') // Remove Speaker:
+			.replace(/^\s*[\w\s]+:\s*/gm, '') // Remove any "Name: " pattern at line start
+			.replace(/\n+/g, ' ') // Replace newlines with spaces
+			.replace(/\s+/g, ' ') // Normalize multiple spaces
+			.trim();
 	}
 
 	/**
@@ -278,152 +283,6 @@ export class CoordinatingAgent {
 				.replace(/[\u2018\u2019]/g, "'")
 				.replace(/[\u201C\u201D]/g, '"')
 		);
-	}
-
-	private async parseMultiSegmentResponseWithRetry(
-		response: string,
-		maxRetries: number = 2
-	): Promise<any> {
-		await this.logger?.logGeneral('debug', 'Multi-segment JSON parsing attempt', {
-			responseLength: response.length,
-			responsePreview: response.substring(0, 200)
-		});
-
-		// First attempt: Use robust parsing utility
-		const parseResult = robustJsonParse(response);
-
-		if (parseResult.success) {
-			await this.logger?.logGeneral(
-				'debug',
-				'Multi-segment JSON parsed successfully on first attempt',
-				{
-					fixesApplied: parseResult.fixesApplied
-				}
-			);
-
-			// Validate multi-segment structure
-			if (this.validateMultiSegmentStructure(parseResult.data)) {
-				return parseResult.data;
-			} else {
-				await this.logger?.logGeneral('warn', 'Multi-segment JSON structure validation failed', {
-					keys: Object.keys(parseResult.data)
-				});
-			}
-		} else {
-			await this.logger?.logGeneral('warn', 'Initial multi-segment JSON parsing failed', {
-				error: parseResult.error,
-				extractedJsonPreview: parseResult.extractedJson?.substring(0, 200)
-			});
-		}
-
-		// Retry with LLM self-correction
-		for (let retry = 1; retry <= maxRetries; retry++) {
-			await this.logger?.logGeneral(
-				'debug',
-				`Multi-segment retry ${retry}/${maxRetries}: Requesting JSON correction from LLM`
-			);
-
-			const needsAlternativesField =
-				this.promptStrategy === 'no_secondary_asr'
-					? ''
-					: '\n      "needsAlternatives": true or false,';
-
-			const correctionPrompt = `${formatParsingErrorForLLM(
-				parseResult.error || 'Invalid JSON structure',
-				response
-			)}
-
-Please provide ONLY valid JSON that matches this exact multi-segment structure:
-{
-  "overallAnalysis": "string - your analysis text",
-  "segmentAnalyses": [
-    {
-      "segmentNumber": 1,
-      "analysis": "string - segment analysis",
-      "confidence": 0.0 to 1.0,${needsAlternativesField}
-      "needsWebSearch": ["array", "of", "search", "terms"] or [],
-      "suggestions": [
-        {
-          "segmentNumber": 1,
-          "type": "one of: grammar|punctuation|clarity|consistency|speaker|boundary",
-          "severity": "one of: low|medium|high",
-          "text": "description of the issue",
-          "originalText": "exact text to replace",
-          "suggestedText": "replacement text",
-          "confidence": 0.0 to 1.0
-        }
-      ]
-    }
-  ]
-}
-
-CRITICAL: Return ONLY the JSON object. No explanations, no text before or after, no markdown code blocks.`;
-
-			await this.logger?.logGeneral('debug', 'Sending multi-segment correction prompt to LLM');
-
-			try {
-				const correctedResponse = await this.invokeWithFallback([
-					new HumanMessage({ content: correctionPrompt })
-				]);
-
-				const correctedContent = correctedResponse.content as string;
-				await this.logger?.logGeneral('debug', 'Multi-segment LLM correction response received', {
-					responseLength: correctedContent.length
-				});
-
-				const retryResult = robustJsonParse(correctedContent);
-
-				if (retryResult.success && this.validateMultiSegmentStructure(retryResult.data)) {
-					await this.logger?.logGeneral(
-						'debug',
-						`Multi-segment JSON parsed successfully on retry ${retry}`,
-						{
-							fixesApplied: retryResult.fixesApplied
-						}
-					);
-					return retryResult.data;
-				} else {
-					await this.logger?.logGeneral('warn', `Multi-segment retry ${retry} failed`, {
-						error: retryResult.error
-					});
-				}
-			} catch (error) {
-				await this.logger?.logGeneral('error', `Multi-segment retry ${retry} error`, { error });
-			}
-		}
-
-		// Fallback after all retries failed
-		await this.logger?.logGeneral(
-			'error',
-			'All multi-segment JSON parsing attempts failed, using fallback structure'
-		);
-
-		return {
-			overallAnalysis: response.substring(0, 1000),
-			segmentAnalyses: []
-		};
-	}
-
-	private validateMultiSegmentStructure(data: any): boolean {
-		if (!data || typeof data !== 'object') return false;
-		if (!data.overallAnalysis || typeof data.overallAnalysis !== 'string') return false;
-		if (!Array.isArray(data.segmentAnalyses)) return false;
-
-		// Validate each segment analysis
-		for (const segmentAnalysis of data.segmentAnalyses) {
-			if (!segmentAnalysis.segmentNumber || typeof segmentAnalysis.segmentNumber !== 'number')
-				return false;
-			if (!segmentAnalysis.analysis || typeof segmentAnalysis.analysis !== 'string') return false;
-			if (segmentAnalysis.suggestions && Array.isArray(segmentAnalysis.suggestions)) {
-				// Validate each suggestion has segmentNumber
-				for (const suggestion of segmentAnalysis.suggestions) {
-					if (!suggestion.segmentNumber || typeof suggestion.segmentNumber !== 'number')
-						return false;
-				}
-			}
-		}
-
-		return true;
 	}
 
 	private async parseResponseWithRetry(
@@ -934,8 +793,8 @@ Based on this audio quality, you should be ${
 
 									phoneticStartTime = Date.now();
 									const phoneticInput = {
-										text: suggestion.originalText,
-										candidate: suggestion.suggestedText
+										text: this.cleanTextForPhoneticAnalysis(suggestion.originalText),
+										candidate: this.cleanTextForPhoneticAnalysis(suggestion.suggestedText)
 									};
 
 									await this.logger?.logToolCall('PhoneticAnalyzer', phoneticInput, segment.index);
@@ -1223,256 +1082,6 @@ Based on this audio quality, you should be ${
 			await this.logger?.logGeneral('error', 'Analysis failed for segment', { error });
 			throw new Error(
 				`Failed to analyze segment: ${error instanceof Error ? error.message : 'Unknown error'}`
-			);
-		}
-	}
-
-	async analyzeMultipleSegments(
-		request: MultiSegmentAnalysisRequest
-	): Promise<MultiSegmentAnalysisResult> {
-		try {
-			const { segments, summary, fileId, uiLanguage, transcriptFilePath } = request;
-
-			// Validate input - max 5 segments
-			if (segments.length === 0) {
-				throw new Error('No segments provided for analysis');
-			}
-			if (segments.length > 5) {
-				throw new Error(`Too many segments: ${segments.length}. Maximum 5 segments allowed.`);
-			}
-
-			// Initialize logger if transcript path is provided
-			if (transcriptFilePath) {
-				this.initializeLogger(transcriptFilePath, fileId);
-				await this.logger?.logGeneral(
-					'info',
-					`Starting multi-segment analysis for ${segments.length} segments`,
-					{
-						segmentIndices: segments.map((s) => s.index),
-						segmentRange: `${segments[0].index}-${segments[segments.length - 1].index}`
-					}
-				);
-			}
-
-			// Normalize UI language and get language name
-			const normalizedLanguage = normalizeLanguageCode(uiLanguage);
-			const responseLanguage = getLanguageName(normalizedLanguage);
-
-			// Debug logging for language detection
-			await this.logger?.logGeneral('debug', 'Multi-segment language detection', {
-				originalUiLanguage: uiLanguage,
-				normalizedLanguage,
-				responseLanguage,
-				segmentCount: segments.length
-			});
-
-			// Build segments content for prompt
-			const segmentsContent = segments
-				.map((segment, idx) => {
-					const segmentNumber = idx + 1;
-					let alternativesSection = '';
-					if (segment.alternatives && segment.alternatives.length > 0) {
-						const alternativesText = segment.alternatives
-							.map(
-								(alt, altIdx) =>
-									`  ${altIdx + 1}. ${alt.text} (confidence: ${alt.avg_logprob.toFixed(3)})`
-							)
-							.join('\n');
-						alternativesSection = `\n  Alternatives:\n${alternativesText}`;
-					}
-
-					return `SEGMENT ${segmentNumber} (Index: ${segment.index}):
-Speaker: ${segment.speakerName || segment.speakerTag}
-Text: ${segment.text}
-Duration: ${(segment.endTime - segment.startTime).toFixed(2)} seconds
-Word count: ${segment.words.length} words${alternativesSection}`;
-				})
-				.join('\n\n');
-
-			// Create segment index range for display
-			const segmentIndexRange =
-				segments.length > 1
-					? `${segments[0].index + 1}-${segments[segments.length - 1].index + 1}`
-					: `${segments[0].index + 1}`;
-
-			// Build the multi-segment analysis prompt using current strategy
-			const prompt = this.prompts.MULTI_SEGMENT_ANALYSIS_PROMPT.replace(
-				'{summary}',
-				summary.summary
-			)
-				.replace('{segmentIndexRange}', segmentIndexRange)
-				.replace('{totalSegments}', 'TBD')
-				.replace('{segmentsContent}', segmentsContent)
-				.replace('{segmentCount}', segments.length.toString())
-				.replace('{responseLanguage}', responseLanguage);
-
-			await this.logger?.logGeneral('info', 'Starting multi-segment LLM analysis request', {
-				segmentCount: segments.length,
-				totalTextLength: segments.reduce((sum, s) => sum + s.text.length, 0),
-				speakers: [...new Set(segments.map((s) => s.speakerName || s.speakerTag))]
-			});
-
-			// Get initial multi-segment analysis
-			const llmStartTime = Date.now();
-			await this.logger?.logLLMRequest(prompt, `${DEFAULT_MODEL_NAME} (Multi-Segment)`, 0);
-
-			const response = await this.invokeWithFallback([new HumanMessage({ content: prompt })], 0);
-
-			const llmDuration = Date.now() - llmStartTime;
-			await this.logger?.logLLMResponse(response.content as string, llmDuration, 0);
-
-			// Parse the multi-segment response
-			const analysisData = await this.parseMultiSegmentResponseWithRetry(
-				response.content as string
-			);
-
-			await this.logger?.logGeneral('debug', 'Multi-segment analysis data extracted successfully', {
-				overallAnalysisLength: analysisData.overallAnalysis?.length || 0,
-				segmentAnalysesCount: analysisData.segmentAnalyses?.length || 0
-			});
-
-			// Process each segment's analysis and convert to individual results
-			const results: SegmentAnalysisResult[] = [];
-
-			for (let i = 0; i < segments.length; i++) {
-				const segment = segments[i];
-				const segmentNumber = i + 1;
-
-				// Find matching segment analysis from LLM response
-				const segmentAnalysis = analysisData.segmentAnalyses?.find(
-					(sa: any) => sa.segmentNumber === segmentNumber
-				);
-
-				if (!segmentAnalysis) {
-					await this.logger?.logGeneral('warn', `No analysis found for segment ${segmentNumber}`, {
-						segmentIndex: segment.index
-					});
-
-					// Create fallback result
-					results.push({
-						segmentIndex: segment.index,
-						analysis: `Fallback analysis for segment ${segment.index}`,
-						correctedSegment: null,
-						suggestions: [],
-						confidence: 0.5,
-						signalQuality: null,
-						analysisStrategy: 'fallback',
-						dynamicConfidenceThreshold: 0.7
-					});
-					continue;
-				}
-
-				// Process suggestions for this segment
-				const processedSuggestions = [];
-				if (segmentAnalysis.suggestions && Array.isArray(segmentAnalysis.suggestions)) {
-					for (const suggestion of segmentAnalysis.suggestions) {
-						// Validate segment number matches
-						if (suggestion.segmentNumber !== segmentNumber) {
-							await this.logger?.logGeneral('warn', 'Suggestion segment number mismatch', {
-								expected: segmentNumber,
-								actual: suggestion.segmentNumber,
-								segmentIndex: segment.index
-							});
-							continue;
-						}
-
-						// Compute positions within segment text
-						let from: number | undefined;
-						let to: number | undefined;
-
-						if (suggestion.originalText && segment.text) {
-							const index = segment.text.indexOf(suggestion.originalText);
-							if (index !== -1) {
-								from = index;
-								to = index + suggestion.originalText.length;
-							}
-						}
-
-						// Create processed suggestion
-						processedSuggestions.push({
-							...suggestion,
-							from,
-							to,
-							segmentIndex: segment.index, // Use actual segment index, not segment number
-							shouldAutoApply: suggestion.confidence >= 0.7,
-							applied: false,
-							requiresManualReview: suggestion.confidence < 0.7
-						});
-					}
-				}
-
-				// Create result for this segment
-				results.push({
-					segmentIndex: segment.index,
-					analysis: segmentAnalysis.analysis || `Analysis for segment ${segment.index}`,
-					correctedSegment: segmentAnalysis.correctedSegment || null,
-					suggestions: processedSuggestions,
-					nBestResults: null, // Will be filled by ASR if needed
-					confidence: segmentAnalysis.confidence || 0.7,
-					signalQuality: null, // Will be filled by signal quality tool if needed
-					analysisStrategy: 'multi_segment',
-					dynamicConfidenceThreshold: 0.7
-				});
-
-				await this.logger?.logGeneral('info', `Processed segment ${segmentNumber}`, {
-					segmentIndex: segment.index,
-					suggestionsCount: processedSuggestions.length,
-					confidence: segmentAnalysis.confidence
-				});
-			}
-
-			// Save all results to database in batch
-			for (const result of results) {
-				const segment = segments.find((s) => s.index === result.segmentIndex);
-				if (segment) {
-					await prisma.analysisSegment.upsert({
-						where: {
-							fileId_segmentIndex: {
-								fileId,
-								segmentIndex: result.segmentIndex
-							}
-						},
-						create: {
-							fileId,
-							segmentIndex: result.segmentIndex,
-							startTime: segment.startTime,
-							endTime: segment.endTime,
-							startWord: segment.startWord,
-							endWord: segment.endWord,
-							originalText: segment.text,
-							correctedSegment: result.correctedSegment || null,
-							speakerName: segment.speakerName || segment.speakerTag,
-							analysis: result.analysis,
-							suggestions: result.suggestions,
-							nBestResults: result.nBestResults,
-							status: 'analyzed'
-						},
-						update: {
-							correctedSegment: result.correctedSegment || null,
-							speakerName: segment.speakerName || segment.speakerTag,
-							analysis: result.analysis,
-							suggestions: result.suggestions,
-							nBestResults: result.nBestResults,
-							status: 'analyzed'
-						}
-					});
-				}
-			}
-
-			await this.logger?.logGeneral('info', 'Multi-segment analysis completed successfully', {
-				segmentCount: segments.length,
-				totalSuggestions: results.reduce((sum, r) => sum + r.suggestions.length, 0),
-				overallAnalysisLength: analysisData.overallAnalysis?.length || 0
-			});
-
-			return {
-				results,
-				overallAnalysis: analysisData.overallAnalysis || 'Multi-segment analysis completed'
-			};
-		} catch (error) {
-			await this.logger?.logGeneral('error', 'Multi-segment analysis failed', { error });
-			throw new Error(
-				`Failed to analyze multiple segments: ${error instanceof Error ? error.message : 'Unknown error'}`
 			);
 		}
 	}

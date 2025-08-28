@@ -311,15 +311,15 @@ export function extractSpeakerSegments(content: TipTapEditorContent): SegmentWit
 			const startTime = speakerWords[0].start;
 			let endTime = speakerWords[speakerWords.length - 1].end;
 
-			// Validate timing
+			// Validate and fix timing silently
 			if (endTime <= startTime) {
-				console.warn(
-					`Invalid timing for speaker ${speakerName}: start=${startTime}, end=${endTime}`
-				);
 				// Try to fix by using the maximum end time from all words
 				const maxEnd = Math.max(...speakerWords.map((w) => w.end));
 				if (maxEnd > startTime) {
 					endTime = maxEnd;
+				} else {
+					// Fallback: set end time to start + 1 second
+					endTime = startTime + 1;
 				}
 			}
 
