@@ -1,10 +1,12 @@
 import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
+import type { TranscriptSummary } from '@prisma/client';
+import type { TipTapEditorContent } from '../../../../types/index.js';
 import { prisma } from '$lib/db/client';
 import { z } from 'zod';
 import { extractWordsFromEditor } from '$lib/utils/extractWordsFromEditor';
 import { fromNewEstFormatAI } from '$lib/helpers/converters/newEstFormatAI';
-import { getCoordinatingAgent } from '$lib/agents/coordinatingAgent';
+import { getCoordinatingAgentWER } from '$lib/agents/coordinatingAgentWER';
 import { getSummaryGenerator } from '$lib/agents/summaryGenerator';
 import { extractFullTextWithSpeakers } from '$lib/utils/extractWordsFromEditor';
 import { isNewFormat } from '$lib/helpers/converters/newEstFormat';
@@ -109,7 +111,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				where: { fileId: file.id }
 			});
 
-			let summary;
+			let summary: TranscriptSummary;
 			if (existingSummary) {
 				await logger.logGeneral('info', 'Using existing summary', {
 					summaryId: existingSummary.id
@@ -198,7 +200,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				sections.forEach((section) => {
 					if (section.type === 'speech' && section.turns) {
 						section.turns.forEach((turn) => {
-							if (turn.transcript && turn.words) {
+							if (
+								turn.transcript &&
+								turn.words &&
+								Array.isArray(turn.words) &&
+								turn.words.length > 0
+							) {
 								segments.push({
 									index: segmentIndex++,
 									startTime: turn.start,
@@ -209,12 +216,24 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 									speakerTag: turn.speaker,
 									speakerName:
 										parsedContent.best_hypothesis.speakers[turn.speaker]?.name || turn.speaker,
-									words: turn.words.map((word) => ({
-										text: word.word_with_punctuation,
-										start: word.start,
-										end: word.end,
-										speakerTag: turn.speaker
-									}))
+									words: (turn.words || [])
+										.filter(
+											(word) =>
+												word &&
+												typeof word === 'object' &&
+												(word.word_with_punctuation || word.word)
+										)
+										.map((word) => ({
+											text:
+												word.word_with_punctuation && typeof word.word_with_punctuation === 'string'
+													? word.word_with_punctuation
+													: word.word && typeof word.word === 'string'
+														? word.word
+														: '',
+											start: typeof word.start === 'number' ? word.start : 0,
+											end: typeof word.end === 'number' ? word.end : 0,
+											speakerTag: turn.speaker
+										}))
 								});
 							}
 						});
@@ -260,82 +279,64 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				segmentCount: segments.length
 			});
 
-			// Step 3: Process segments in batches of 5 with delays to prevent API overload
+			// Step 3: Process with WER Agent (handles blocks automatically)
 
-			const agent = getCoordinatingAgent();
-			const BATCH_SIZE = 5;
-			const BATCH_DELAY_MS = 2000; // 2 second delay between batches
-			const analysisResults = [];
-
-			for (let i = 0; i < segments.length; i += BATCH_SIZE) {
-				const batch = segments.slice(i, i + BATCH_SIZE);
-				const batchIndex = Math.floor(i / BATCH_SIZE) + 1;
-				const totalBatches = Math.ceil(segments.length / BATCH_SIZE);
-
-				await logger.logGeneral('info', `Processing batch ${batchIndex}/${totalBatches}`, {
-					batchSize: batch.length,
-					segmentIndices: batch.map(s => s.index)
-				});
-
-				const batchPromises = batch.map(async (segment, batchItemIndex) => {
-					const segmentIndex = i + batchItemIndex;
-					try {
-						const result = await agent.analyzeSegment({
-							fileId: file.id,
-							segment,
-							summary,
-							audioFilePath: file.path,
-							transcriptFilePath: file.initialTranscriptionPath,
-							uiLanguage: 'et' // Estonian for Estonian transcript analysis
-						});
-
-						return { segmentIndex, success: true, result };
-					} catch (error) {
-						return { segmentIndex, success: false, error: error.message };
-					}
-				});
-
-				// Process current batch
-				const batchResults = await Promise.all(batchPromises);
-				analysisResults.push(...batchResults);
-
-				await logger.logGeneral('info', `Completed batch ${batchIndex}/${totalBatches}`, {
-					successful: batchResults.filter(r => r.success).length,
-					failed: batchResults.filter(r => !r.success).length
-				});
-
-				// Add delay between batches (except for the last one)
-				if (i + BATCH_SIZE < segments.length) {
-					await logger.logGeneral('info', `Waiting ${BATCH_DELAY_MS}ms before next batch`);
-					await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS));
-				}
+			// Convert segments back to TipTap format for WER agent
+			let editorContent: TipTapEditorContent;
+			if (isNewFormat(parsedContent)) {
+				const result = fromNewEstFormatAI(parsedContent as TranscriptionResult);
+				editorContent = result.transcription;
+			} else {
+				editorContent = parsedContent;
 			}
 
-			const successfulAnalyses = analysisResults.filter((r) => r.success);
-			const failedAnalyses = analysisResults.filter((r) => !r.success);
+			const agent = getCoordinatingAgentWER();
 
-			await logger.logGeneral('info', 'Auto-analysis completed', {
-				successful: successfulAnalyses.length,
-				failed: failedAnalyses.length,
-				total: segments.length,
-				failedErrors: failedAnalyses.map((f) => f.error)
+			await logger.logGeneral('info', 'Starting WER analysis', {
+				transcriptFormat: isNewFormat(parsedContent) ? 'new' : 'legacy',
+				segmentCount: segments.length,
+				contentLength: JSON.stringify(editorContent).length
+			});
+
+			// WER agent processes entire file in 20-segment blocks
+			const analysisResult = await agent.analyzeFile({
+				fileId: file.id,
+				editorContent,
+				summary,
+				uiLanguage: 'et', // Estonian for transcript analysis
+				transcriptFilePath: file.initialTranscriptionPath
+			});
+
+			await logger.logGeneral('info', 'WER analysis completed', {
+				totalBlocks: analysisResult.totalBlocks,
+				completedBlocks: analysisResult.completedBlocks,
+				successRate: `${((analysisResult.completedBlocks / analysisResult.totalBlocks) * 100).toFixed(1)}%`
 			});
 
 			return json({
 				success: true,
 				fileId,
 				summaryGenerated: !existingSummary,
-				segmentsAnalyzed: successfulAnalyses.length,
-				segmentsFailed: failedAnalyses.length,
-				results: analysisResults
+				analysisMethod: 'WER',
+				totalBlocks: analysisResult.totalBlocks,
+				completedBlocks: analysisResult.completedBlocks,
+				successRate:
+					((analysisResult.completedBlocks / analysisResult.totalBlocks) * 100).toFixed(1) + '%',
+				results: analysisResult.results
 			});
 		} catch (error) {
 			if (transcriptPath && file.id) {
 				const logger = getAgentFileLogger(transcriptPath, file.id);
 				await logger.logGeneral('error', 'Auto-analysis failed', {
-					error: error instanceof Error ? error.message : String(error)
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : 'No stack trace'
 				});
 			}
+			console.error('Auto-analysis detailed error:', {
+				message: error instanceof Error ? error.message : String(error),
+				stack: error instanceof Error ? error.stack : 'No stack trace',
+				fileId: file?.id
+			});
 			return json(
 				{
 					error: `Auto-analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`
