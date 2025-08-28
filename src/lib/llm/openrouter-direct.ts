@@ -78,7 +78,7 @@ export class OpenRouterChat {
 
 		this.modelName = config.modelName || DEFAULT_MODEL;
 		this.temperature = config.temperature || 0.7;
-		this.maxTokens = config.maxTokens || 8192; // Increased for better analysis responses
+		this.maxTokens = config.maxTokens || 16384; // Increased for enhanced N-best analysis prompts
 	}
 
 	async invoke(messages: Array<{ role: string; content: string }>): Promise<{ content: string }> {
@@ -113,11 +113,11 @@ export class OpenRouterChat {
 					max_tokens: this.maxTokens
 				};
 
-				// Add reasoning control for thinking models to reduce token usage
+				// Add reasoning control for thinking models with generous limits for detailed analysis
 				if (this.modelName.includes('gemini')) {
 					completionParams.reasoning = {
-						max_tokens: Math.min(1024, Math.floor(this.maxTokens * 0.1)), // Limit thinking to 10% of max tokens
-						exclude: false // Keep reasoning visible for debugging, but limit tokens
+						max_tokens: Math.min(4096, Math.floor(this.maxTokens * 0.25)), // Increased to 25% of max tokens with 4K cap
+						exclude: false // Keep reasoning visible for debugging
 					};
 					console.log(
 						`Applied Gemini reasoning limits: max_tokens=${completionParams.reasoning.max_tokens}`

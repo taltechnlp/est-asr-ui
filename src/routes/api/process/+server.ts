@@ -9,7 +9,7 @@ async function triggerAutoAnalysis(file: any, maxRetries = 3): Promise<void> {
 	for (let attempt = 0; attempt < maxRetries; attempt++) {
 		try {
 			const controller = new AbortController();
-			const timeout = setTimeout(() => controller.abort(), 120000); // 2 minute timeout for large transcripts
+			const timeout = setTimeout(() => controller.abort(), 300000); // 5 minute timeout for enhanced analysis with detailed prompts
 
 			const response = await fetch(`${ORIGIN}/api/transcript-analysis/auto-analyze`, {
 				method: 'POST',
@@ -45,14 +45,14 @@ async function triggerAutoAnalysis(file: any, maxRetries = 3): Promise<void> {
 			if (attempt < maxRetries - 1) {
 				const delay = 1000 * Math.pow(2, attempt); // Exponential backoff: 1s, 2s, 4s
 				console.warn(
-					`Auto-analysis trigger failed (attempt ${attempt + 1}/${maxRetries}): ${isTimeout ? 'Timeout (2min exceeded)' : isNetworkError ? 'Network error' : error.message}. Retrying in ${delay}ms...`
+					`Auto-analysis trigger failed (attempt ${attempt + 1}/${maxRetries}): ${isTimeout ? 'Timeout (5min exceeded)' : isNetworkError ? 'Network error' : error.message}. Retrying in ${delay}ms...`
 				);
 				await new Promise((resolve) => setTimeout(resolve, delay));
 			} else {
 				// On final attempt, don't throw for timeout errors - just log as they're expected for very large files
 				if (isTimeout) {
 					console.warn(
-						`Auto-analysis trigger timed out after ${maxRetries} attempts (file may be very large): ${error.message}`
+						`Auto-analysis trigger timed out after ${maxRetries} attempts (file may be very large or analysis is complex): ${error.message}`
 					);
 					return; // Return without throwing to avoid error propagation
 				} else {

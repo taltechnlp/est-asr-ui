@@ -78,7 +78,7 @@ export class CoordinatingAgentWER {
 		this.model = createOpenRouterChat({
 			modelName,
 			temperature: 0.1, // Lower temperature for more consistent corrections
-			maxTokens: 4000
+			maxTokens: 12000 // Increased for detailed N-best variance analysis prompts
 		});
 
 		// Create fallback model (GPT-4o) if primary model is different
@@ -87,7 +87,7 @@ export class CoordinatingAgentWER {
 			this.fallbackModel = createOpenRouterChat({
 				modelName: fallbackModelName,
 				temperature: 0.1,
-				maxTokens: 4000
+				maxTokens: 12000 // Increased for detailed N-best variance analysis prompts
 			});
 		}
 
