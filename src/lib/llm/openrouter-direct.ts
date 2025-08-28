@@ -1,3 +1,6 @@
+import OpenAI from 'openai';
+import { OPENROUTER_MODELS, type OpenRouterModel, DEFAULT_MODEL, DEFAULT_MODEL_NAME } from '$lib/config/models';
+
 // Conditionally import API key to avoid client-side leakage
 let OPENROUTER_API_KEY: string = '';
 if (typeof window === 'undefined') {
@@ -7,8 +10,6 @@ if (typeof window === 'undefined') {
 		console.warn('OPENROUTER_API_KEY not available in client context');
 	}
 }
-
-import { OPENROUTER_MODELS, type OpenRouterModel, DEFAULT_MODEL, DEFAULT_MODEL_NAME } from '$lib/config/models';
 
 export interface OpenRouterConfig {
 	modelName?: string;
@@ -22,6 +23,7 @@ interface OpenRouterResponse {
 			content: string;
 			role: string;
 		};
+		finish_reason: string | null;
 		index: number;
 	}>;
 	usage?: {
@@ -32,26 +34,36 @@ interface OpenRouterResponse {
 }
 
 /**
- * Direct OpenRouter API implementation without LangChain
- * This ensures we're definitely hitting OpenRouter and not OpenAI
+ * OpenRouter API implementation using OpenAI SDK
+ * This follows OpenRouter's recommended approach using the official OpenAI SDK
  */
 export class OpenRouterChat {
-	private apiKey: string;
+	private client: OpenAI | null = null;
 	private modelName: string;
 	private temperature: number;
 	private maxTokens: number;
 
 	constructor(config: OpenRouterConfig = {}) {
-		// Only check for API key on server side
-		if (typeof window === 'undefined' && !OPENROUTER_API_KEY) {
-			throw new Error(
-				'OPENROUTER_API_KEY environment variable is not set. ' +
-					'Please add it to your .env file. ' +
-					'Get your API key from https://openrouter.ai/'
-			);
+		// Only initialize OpenAI client on server side
+		if (typeof window === 'undefined') {
+			if (!OPENROUTER_API_KEY) {
+				throw new Error(
+					'OPENROUTER_API_KEY environment variable is not set. ' +
+						'Please add it to your .env file. ' +
+						'Get your API key from https://openrouter.ai/'
+				);
+			}
+
+			this.client = new OpenAI({
+				baseURL: 'https://openrouter.ai/api/v1',
+				apiKey: OPENROUTER_API_KEY,
+				defaultHeaders: {
+					'HTTP-Referer': 'https://tekstiks.ee',
+					'X-Title': 'EST-ASR Transcript Analyzer'
+				}
+			});
 		}
 
-		this.apiKey = OPENROUTER_API_KEY;
 		this.modelName = config.modelName || DEFAULT_MODEL;
 		this.temperature = config.temperature || 0.7;
 		this.maxTokens = config.maxTokens || 4096;
@@ -63,71 +75,76 @@ export class OpenRouterChat {
 			throw new Error('OpenRouter API calls can only be made from server-side code');
 		}
 
+		if (!this.client) {
+			throw new Error('OpenAI client not initialized (server-side only)');
+		}
+
 		// Retry configuration
 		const maxRetries = 3;
 		const baseDelay = 1000; // 1 second
-		const timeout = 30000; // 30 seconds
 
 		for (let attempt = 0; attempt < maxRetries; attempt++) {
 			try {
-				// Create AbortController for timeout
-				const controller = new AbortController();
-				const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-				const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-					method: 'POST',
-					headers: {
-						Authorization: `Bearer ${this.apiKey}`,
-						'Content-Type': 'application/json',
-						'HTTP-Referer': 'https://tekstiks.ee',
-						'X-Title': 'EST-ASR Transcript Analyzer'
-					},
-					body: JSON.stringify({
-						model: this.modelName,
-						messages,
-						temperature: this.temperature,
-						max_tokens: this.maxTokens
-					}),
-					signal: controller.signal
+				const completion = await this.client.chat.completions.create({
+					model: this.modelName,
+					messages: messages.map(msg => ({
+						role: msg.role as 'user' | 'assistant' | 'system',
+						content: msg.content
+					})),
+					temperature: this.temperature,
+					max_tokens: this.maxTokens
 				});
 
-				clearTimeout(timeoutId);
-
-				if (!response.ok) {
-					const error = await response.text();
-					throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
+				if (!completion.choices || completion.choices.length === 0) {
+					throw new Error('No choices in response from OpenRouter');
 				}
 
-				const data: OpenRouterResponse = await response.json();
+				const choice = completion.choices[0];
+				const content = choice.message.content;
+				const finishReason = choice.finish_reason;
 
-				if (!data.choices || data.choices.length === 0) {
-					throw new Error('No response from OpenRouter');
-				}
-
-				const content = data.choices[0].message.content;
-				
-				// Check for empty or whitespace-only responses
+				// Enhanced error handling based on finish_reason
 				if (!content || content.trim().length === 0) {
-					throw new Error(`Empty response from model ${this.modelName}. This may be a model configuration issue.`);
+					let errorMsg = `Empty response from model ${this.modelName}`;
+					
+					if (finishReason === 'length') {
+						errorMsg += ' - Response was truncated due to token limit. Try increasing max_tokens or reducing prompt length.';
+					} else if (finishReason === 'content_filter') {
+						errorMsg += ' - Content was filtered by the model\'s safety systems.';
+					} else if (finishReason === 'function_call') {
+						errorMsg += ' - Model attempted to make function calls but none were provided.';
+					} else if (!finishReason || finishReason === null) {
+						errorMsg += ' - Model may need warm-up time. This qualifies for OpenRouter\'s Zero Completion Insurance.';
+					} else {
+						errorMsg += ` - Finish reason: ${finishReason}`;
+					}
+
+					throw new Error(errorMsg);
 				}
 
+				// Log successful completion details
+				console.log(`OpenRouter API success: Model ${this.modelName}, finish_reason: ${finishReason}, tokens: ${completion.usage?.total_tokens || 'unknown'}`);
 				return { content };
+
 			} catch (error: any) {
 				const isLastAttempt = attempt === maxRetries - 1;
-				const isTimeout = error?.name === 'AbortError' || error?.code === 'ETIMEDOUT';
-				const isNetworkError =
-					error?.cause?.code === 'ETIMEDOUT' || error?.message?.includes('fetch failed');
+				const isTimeout = error?.code === 'ETIMEDOUT' || error?.message?.includes('timeout');
+				const isNetworkError = error?.code === 'ECONNRESET' || error?.message?.includes('network') || error?.message?.includes('fetch failed');
 				const isEmptyResponse = error?.message?.includes('Empty response from model');
+				const isRateLimited = error?.status === 429;
 
-				if (isTimeout || isNetworkError || isEmptyResponse) {
+				if (isTimeout || isNetworkError || isEmptyResponse || isRateLimited) {
 					console.error(
 						`OpenRouter API attempt ${attempt + 1}/${maxRetries} failed:`,
-						isTimeout ? 'Request timeout' : isNetworkError ? 'Network error' : 'Empty response'
+						isTimeout ? 'Request timeout' : 
+						isNetworkError ? 'Network error' : 
+						isRateLimited ? 'Rate limited' :
+						'Empty response'
 					);
 
 					if (!isLastAttempt) {
-						// Exponential backoff with jitter
-						const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
+						// Exponential backoff with jitter, extra delay for rate limiting
+						const delay = (baseDelay * Math.pow(2, attempt) + Math.random() * 1000) * (isRateLimited ? 2 : 1);
 						console.log(`Retrying in ${Math.round(delay)}ms...`);
 						await new Promise((resolve) => setTimeout(resolve, delay));
 						continue;
@@ -137,7 +154,15 @@ export class OpenRouterChat {
 					if (isEmptyResponse) {
 						throw new Error(
 							`Model ${this.modelName} returned empty responses after ${maxRetries} attempts. ` +
-							`This may be a model configuration issue on OpenRouter.`
+							`This may be due to model warm-up requirements or configuration issues. ` +
+							`Consider trying a different model or waiting a few minutes.`
+						);
+					}
+					
+					if (isRateLimited) {
+						throw new Error(
+							`Rate limit exceeded for model ${this.modelName} after ${maxRetries} attempts. ` +
+							`Please wait before making more requests or consider using a different model.`
 						);
 					}
 					
@@ -148,8 +173,13 @@ export class OpenRouterChat {
 					);
 				}
 
-				// Non-retryable error
-				console.error('OpenRouter API error:', error);
+				// Non-retryable error - log full error details
+				console.error('OpenRouter API error (non-retryable):', {
+					message: error.message,
+					status: error.status,
+					code: error.code,
+					model: this.modelName
+				});
 				throw error;
 			}
 		}
