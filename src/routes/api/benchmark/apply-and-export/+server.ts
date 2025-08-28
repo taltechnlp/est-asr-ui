@@ -2,7 +2,7 @@ import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
 import { prisma } from '$lib/db/client';
 import { z } from 'zod';
-import { exportWithSuggestionsApplied, generateExportReport } from '$lib/services/benchmarkExporter';
+import { exportWithSuggestionsApplied, exportWithCorrectedSegments, generateExportReport } from '$lib/services/benchmarkExporter';
 import { promises as fs } from 'fs';
 import path from 'path';
 
@@ -102,12 +102,21 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 		console.log(`Processing benchmark export for file ${fileId}: ${analysisSegments.length} segments`);
 
-		// Apply suggestions and export
-		const exportResult = exportWithSuggestionsApplied(parsedContent, analysisSegments, {
-			minConfidence,
-			applyAll,
-			includeStats: true
-		});
+		// Check if we have corrected segments available
+		const segmentsWithCorrectedText = analysisSegments.filter(seg => seg.correctedSegment);
+		const useCorrectedSegments = segmentsWithCorrectedText.length > 0;
+
+		console.log(`Export method: ${useCorrectedSegments ? 'corrected segments' : 'suggestion application'}`);
+		console.log(`Corrected segments available: ${segmentsWithCorrectedText.length}/${analysisSegments.length}`);
+
+		// Choose export method based on availability of corrected segments
+		const exportResult = useCorrectedSegments 
+			? exportWithCorrectedSegments(parsedContent, analysisSegments)
+			: exportWithSuggestionsApplied(parsedContent, analysisSegments, {
+				minConfidence,
+				applyAll,
+				includeStats: true
+			});
 
 		if (!exportResult.success) {
 			console.error('Benchmark export failed:', exportResult.error);
@@ -127,6 +136,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 		console.log('Benchmark export successful:', {
 			fileName,
+			method: useCorrectedSegments ? 'corrected segments' : 'suggestion application',
 			stats: exportResult.exportStats,
 			textLength: exportResult.plainText?.length
 		});

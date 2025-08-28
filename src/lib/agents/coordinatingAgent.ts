@@ -30,6 +30,7 @@ export interface SegmentAnalysisRequest {
 export interface SegmentAnalysisResult {
 	segmentIndex: number;
 	analysis: string;
+	correctedSegment?: string | null;
 	suggestions: any[];
 	nBestResults?: any;
 	confidence: number;
@@ -1068,6 +1069,7 @@ Based on this audio quality, you should be ${
 					startWord: segment.startWord,
 					endWord: segment.endWord,
 					originalText: segment.text,
+					correctedSegment: analysisData.correctedSegment || null,
 					speakerName: segment.speakerName || segment.speakerTag,
 					analysis: analysisData.analysis,
 					suggestions:
@@ -1076,6 +1078,7 @@ Based on this audio quality, you should be ${
 					status: 'analyzed'
 				},
 				update: {
+					correctedSegment: analysisData.correctedSegment || null,
 					speakerName: segment.speakerName || segment.speakerTag,
 					analysis: analysisData.analysis,
 					suggestions:
@@ -1242,6 +1245,7 @@ Word count: ${segment.words.length} words${alternativesSection}`;
 					results.push({
 						segmentIndex: segment.index,
 						analysis: `Fallback analysis for segment ${segment.index}`,
+						correctedSegment: null,
 						suggestions: [],
 						confidence: 0.5,
 						signalQuality: null,
@@ -1294,6 +1298,7 @@ Word count: ${segment.words.length} words${alternativesSection}`;
 				results.push({
 					segmentIndex: segment.index,
 					analysis: segmentAnalysis.analysis || `Analysis for segment ${segment.index}`,
+					correctedSegment: segmentAnalysis.correctedSegment || null,
 					suggestions: processedSuggestions,
 					nBestResults: null, // Will be filled by ASR if needed
 					confidence: segmentAnalysis.confidence || 0.7,
@@ -1328,6 +1333,7 @@ Word count: ${segment.words.length} words${alternativesSection}`;
 							startWord: segment.startWord,
 							endWord: segment.endWord,
 							originalText: segment.text,
+							correctedSegment: result.correctedSegment || null,
 							speakerName: segment.speakerName || segment.speakerTag,
 							analysis: result.analysis,
 							suggestions: result.suggestions,
@@ -1335,6 +1341,7 @@ Word count: ${segment.words.length} words${alternativesSection}`;
 							status: 'analyzed'
 						},
 						update: {
+							correctedSegment: result.correctedSegment || null,
 							speakerName: segment.speakerName || segment.speakerTag,
 							analysis: result.analysis,
 							suggestions: result.suggestions,

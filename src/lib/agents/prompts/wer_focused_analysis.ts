@@ -81,6 +81,7 @@ Provide your ASR error analysis in exactly this JSON format:
   "confidence": 0.85,
   "needsAlternatives": false,
   "needsWebSearch": [],
+  "correctedSegment": "The complete corrected text of this segment with all high-confidence ASR errors fixed, maintaining original speaker style and natural flow",
   "suggestions": [
     {
       "type": "asr_morphological|asr_phonetic|asr_compound|asr_function_word|asr_semantic",
@@ -166,6 +167,7 @@ Return your enhanced ASR error analysis in exactly this format:
   "confidence": 0.85,
   "needsAlternatives": false, 
   "needsWebSearch": [],
+  "correctedSegment": "The complete corrected text of this segment incorporating insights from ASR alternatives, with all high-confidence errors fixed",
   "suggestions": [
     {
       "type": "asr_morphological|asr_phonetic|asr_compound|asr_function_word|asr_semantic",
@@ -259,6 +261,7 @@ Provide your ASR error analysis in exactly this JSON format:
       "confidence": 0.85,
       "needsAlternatives": false,
       "needsWebSearch": [],
+      "correctedSegment": "The complete corrected text of segment 1 with all high-confidence ASR errors fixed",
       "suggestions": [
         {
           "segmentNumber": 1,
@@ -360,6 +363,7 @@ Return your enhanced multi-segment ASR error analysis in exactly this format:
       "confidence": 0.85,
       "needsAlternatives": false,
       "needsWebSearch": [],
+      "correctedSegment": "The complete corrected text of segment 1 incorporating insights from ASR alternatives, with all high-confidence errors fixed",
       "suggestions": [
         {
           "segmentNumber": 1,

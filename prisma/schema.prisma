@@ -202,21 +202,22 @@ model TranscriptSummary {
 
 // Analysis segments for incremental processing
 model AnalysisSegment {
-  id           String   @id @default(cuid())
-  fileId       String
-  segmentIndex Int
-  startTime    Float    // Start time in seconds
-  endTime      Float    // End time in seconds
-  startWord    Int
-  endWord      Int
-  originalText String   @db.Text
-  speakerName  String?  // Speaker name for this segment
-  analysis     String   @db.Text
-  suggestions  Json     // Store improvement suggestions
-  nBestResults Json?    // Store N-best ASR alternatives
-  status       String   @default("pending") // pending, analyzed, applied
-  createdAt    DateTime @default(now())
-  file         File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  id              String   @id @default(cuid())
+  fileId          String
+  segmentIndex    Int
+  startTime       Float    // Start time in seconds
+  endTime         Float    // End time in seconds
+  startWord       Int
+  endWord         Int
+  originalText    String   @db.Text
+  correctedSegment String? @db.Text // Full corrected text with all ASR errors fixed
+  speakerName     String?  // Speaker name for this segment
+  analysis        String   @db.Text
+  suggestions     Json     // Store improvement suggestions
+  nBestResults    Json?    // Store N-best ASR alternatives
+  status          String   @default("pending") // pending, analyzed, applied
+  createdAt       DateTime @default(now())
+  file            File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
   
   @@unique([fileId, segmentIndex])
   @@index([fileId])

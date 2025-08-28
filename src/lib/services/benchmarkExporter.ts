@@ -356,3 +356,98 @@ Processing Time: ${stats.processingTimeMs}ms
 Output Length: ${result.plainText?.length || 0} characters
 ${result.plainText?.split('\n').length || 0} lines`;
 }
+
+/**
+ * Export transcript using corrected segments instead of applying suggestions
+ * This avoids the complexity and potential conflicts of suggestion application
+ */
+export function exportWithCorrectedSegments(
+	editorContent: TipTapEditorContent,
+	analysisSegments: AnalysisSegment[]
+): BenchmarkExportResult {
+	const startTime = Date.now();
+
+	try {
+		console.log(`Starting corrected segments export for ${analysisSegments.length} analysis segments`);
+
+		// Extract speaker segments from editor content
+		const segments = extractSpeakerSegments(editorContent);
+		console.log(`Extracted ${segments.length} speaker segments from editor content`);
+
+		// Create a map of corrected segments by segment index
+		const correctedSegmentsByIndex = new Map<number, string>();
+		let totalWithCorrectedSegments = 0;
+
+		for (const analysisSegment of analysisSegments) {
+			if (analysisSegment.correctedSegment) {
+				correctedSegmentsByIndex.set(analysisSegment.segmentIndex, analysisSegment.correctedSegment);
+				totalWithCorrectedSegments++;
+			}
+		}
+
+		console.log(`Found corrected segments for ${totalWithCorrectedSegments}/${analysisSegments.length} analysis segments`);
+
+		// Build the export using corrected segments where available, original text otherwise  
+		const exportSegments: string[] = [];
+		let usedCorrected = 0;
+		let usedOriginal = 0;
+
+		const segmentDetails = segments.map((segment, index) => {
+			const correctedText = correctedSegmentsByIndex.get(segment.index);
+			const textToUse = correctedText || segment.reconstructedText;
+			
+			if (correctedText) {
+				usedCorrected++;
+			} else {
+				usedOriginal++;
+			}
+
+			exportSegments.push(textToUse);
+
+			return {
+				segmentIndex: segment.index,
+				originalText: segment.reconstructedText,
+				modifiedText: textToUse,
+				suggestionsApplied: correctedText ? 1 : 0, // 1 if corrected segment was used, 0 otherwise
+				suggestionsSkipped: 0
+			};
+		});
+
+		// Join segments with proper spacing
+		const plainText = exportSegments.join(' ');
+		const processingTimeMs = Date.now() - startTime;
+
+		console.log(`Corrected segments export completed: ${usedCorrected} corrected, ${usedOriginal} original`);
+
+		return {
+			success: true,
+			plainText,
+			fileName: `corrected_transcript_${Date.now()}.txt`,
+			exportStats: {
+				totalSegments: segments.length,
+				totalSuggestions: totalWithCorrectedSegments, // Number of segments that had corrections
+				appliedSuggestions: usedCorrected,
+				skippedSuggestions: usedOriginal,
+				processingTimeMs
+			},
+			segmentDetails
+		};
+
+	} catch (error) {
+		const processingTimeMs = Date.now() - startTime;
+		console.error('Corrected segments export failed:', error);
+
+		return {
+			success: false,
+			exportStats: {
+				totalSegments: 0,
+				totalSuggestions: 0,
+				appliedSuggestions: 0,
+				skippedSuggestions: 0,
+				processingTimeMs
+			},
+			segmentDetails: [],
+			error: error instanceof Error ? error.message : 'Unknown error'
+		};
+	}
+}
