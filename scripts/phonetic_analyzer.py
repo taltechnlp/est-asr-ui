@@ -28,12 +28,16 @@ try:
     ET_G2P_AVAILABLE = True
 except ImportError:
     ET_G2P_AVAILABLE = False
-    print("Warning: Pynini not available. Using fallback phonetic conversion.", file=sys.stderr)
 
+# Try to import the actual et-g2p-fst implementation
 try:
-    # This would be the actual et-g2p-fst import once installed
-    # from et_g2p_fst import G2P
-    G2P_AVAILABLE = False  # Set to True when et-g2p-fst is properly installed
+    import os
+    import sys
+    # Add the scripts directory to Python path
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    sys.path.insert(0, script_dir)
+    from g2p import get_transformer
+    G2P_AVAILABLE = True
 except ImportError:
     G2P_AVAILABLE = False
 
@@ -43,16 +47,16 @@ class EstonianPhoneticAnalyzer:
     
     def __init__(self):
         """Initialize the phonetic analyzer."""
-        self.g2p_model = None
+        self.g2p_transformer = None
         
         # Initialize the actual g2p model if available
         if G2P_AVAILABLE and ET_G2P_AVAILABLE:
             try:
-                # This would be the actual initialization once et-g2p-fst is installed
-                # self.g2p_model = G2P()
-                pass
+                self.g2p_transformer = get_transformer()
+                print("et-g2p-fst initialized successfully", file=sys.stderr)
             except Exception as e:
                 print(f"Warning: Failed to initialize et-g2p-fst model: {e}", file=sys.stderr)
+                self.g2p_transformer = None
                 
         # Fallback Estonian phonetic mapping based on common patterns
         self.estonian_phoneme_map = {
@@ -77,13 +81,25 @@ class EstonianPhoneticAnalyzer:
         """
         text = text.lower().strip()
         
-        if self.g2p_model and G2P_AVAILABLE:
+        if self.g2p_transformer and G2P_AVAILABLE:
             # Use actual et-g2p-fst if available
             try:
-                # This would be the actual call once et-g2p-fst is installed
-                # phonetic = self.g2p_model.convert(text)
-                # return self._format_phonetic_output(phonetic)
-                pass
+                from pynini import accep, optimize, shortestpath
+                orig_word = accep(text)
+                lattice = optimize((orig_word @ self.g2p_transformer).project('output'))
+                
+                # Get the best pronunciation
+                shortest_paths = shortestpath(lattice.project('input'), nshortest=1, unique=True)
+                pronunciations = list(shortest_paths.paths().ostrings())
+                
+                if pronunciations:
+                    pronunciation = pronunciations[0]
+                    # Convert to space-separated format and normalize
+                    pronunciation = " ".join(list(pronunciation))
+                    pronunciation = pronunciation.replace("š", "SH").replace("õ", "OU").replace("ä", "AE").replace("ö", "OE").replace("ü", "UE").replace("K", "KK").replace("P", "PP").replace("T", "TT")
+                    return pronunciation.upper()
+                else:
+                    return self._fallback_phonetic_encode(text)
             except Exception as e:
                 print(f"Warning: et-g2p-fst conversion failed: {e}", file=sys.stderr)
                 
@@ -221,7 +237,7 @@ class EstonianPhoneticAnalyzer:
             "is_likely_asr_error": is_likely_error,
             "phoneme_count_original": len(original_phonetic.split()),
             "phoneme_count_candidate": len(candidate_phonetic.split()),
-            "method": "et-g2p-fst" if G2P_AVAILABLE else "fallback"
+            "method": "et-g2p-fst" if (G2P_AVAILABLE and self.g2p_transformer is not None) else "fallback"
         }
 
 
