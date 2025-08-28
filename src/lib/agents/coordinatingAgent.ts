@@ -71,7 +71,7 @@ export class CoordinatingAgent {
 	private promptStrategy: PromptStrategy = 'wer_focused';
 	private prompts: ReturnType<typeof getPrompts>;
 
-	constructor(modelName: string = DEFAULT_MODEL, promptStrategy: PromptStrategy = 'wer_focused') {
+	constructor(modelName: string = DEFAULT_MODEL, promptStrategy: PromptStrategy = 'no_secondary_asr') {
 		this.primaryModelName = modelName;
 		this.model = createOpenRouterChat({
 			modelName,
@@ -309,6 +309,10 @@ export class CoordinatingAgent {
 				`Multi-segment retry ${retry}/${maxRetries}: Requesting JSON correction from LLM`
 			);
 
+			const needsAlternativesField = this.promptStrategy === 'no_secondary_asr' 
+				? '' 
+				: '\n      "needsAlternatives": true or false,';
+			
 			const correctionPrompt = `${formatParsingErrorForLLM(
 				parseResult.error || 'Invalid JSON structure',
 				response
@@ -321,8 +325,7 @@ Please provide ONLY valid JSON that matches this exact multi-segment structure:
     {
       "segmentNumber": 1,
       "analysis": "string - segment analysis",
-      "confidence": 0.0 to 1.0,
-      "needsAlternatives": true or false,
+      "confidence": 0.0 to 1.0,${needsAlternativesField}
       "needsWebSearch": ["array", "of", "search", "terms"] or [],
       "suggestions": [
         {
@@ -443,6 +446,10 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 				`Retry ${retry}/${maxRetries}: Requesting JSON correction from LLM`
 			);
 
+			const singleNeedsAlternativesField = this.promptStrategy === 'no_secondary_asr' 
+				? '' 
+				: '\n  "needsAlternatives": true or false,';
+			
 			const correctionPrompt = `${formatParsingErrorForLLM(
 				parseResult.error || 'Invalid JSON structure',
 				response
@@ -451,8 +458,7 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 Please provide ONLY valid JSON that matches this exact structure:
 {
   "analysis": "string - your analysis text",
-  "confidence": 0.0 to 1.0,
-  "needsAlternatives": true or false,
+  "confidence": 0.0 to 1.0,${singleNeedsAlternativesField}
   "needsWebSearch": ["array", "of", "search", "terms"] or [],
   "suggestions": [
     {
@@ -693,13 +699,9 @@ Based on this audio quality, you should be ${
 			);
 
 			// Parse the response with robust error recovery and retry
-			const expectedKeys = [
-				'analysis',
-				'confidence',
-				'needsAlternatives',
-				'needsWebSearch',
-				'suggestions'
-			];
+			const expectedKeys = this.promptStrategy === 'no_secondary_asr' 
+				? ['analysis', 'confidence', 'needsWebSearch', 'suggestions']
+				: ['analysis', 'confidence', 'needsAlternatives', 'needsWebSearch', 'suggestions'];
 			const analysisData = await this.parseResponseWithRetry(
 				response.content as string,
 				expectedKeys
@@ -717,8 +719,9 @@ Based on this audio quality, you should be ${
 			let nBestResults = null;
 
 			// Use ASR N-best tool when the LLM determines it's needed OR when signal quality is poor
-			const shouldUseASR =
-				analysisData.needsAlternatives || (signalQuality && signalQuality.snr_db < 15); // Aggressive ASR for poor audio
+			// Skip ASR entirely for no_secondary_asr strategy
+			const shouldUseASR = this.promptStrategy !== 'no_secondary_asr' && 
+				(analysisData.needsAlternatives || (signalQuality && signalQuality.snr_db < 15)); // Aggressive ASR for poor audio
 
 			if (shouldUseASR) {
 				let asrStartTime: number;
@@ -835,9 +838,12 @@ Based on this audio quality, you should be ${
 					});
 
 					// Parse enhanced response with retry mechanism
+					const enhancedExpectedKeys = this.promptStrategy === 'no_secondary_asr' 
+						? ['analysis', 'confidence', 'needsWebSearch', 'suggestions']
+						: ['analysis', 'confidence', 'needsAlternatives', 'needsWebSearch', 'suggestions'];
 					const enhancedData = await this.parseResponseWithRetry(
 						enhancedResponse.content as string,
-						['analysis', 'confidence', 'needsAlternatives', 'needsWebSearch', 'suggestions']
+						enhancedExpectedKeys
 					);
 
 					if (enhancedData.suggestions && enhancedData.suggestions.length > 0) {
