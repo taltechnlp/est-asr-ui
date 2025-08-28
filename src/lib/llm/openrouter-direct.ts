@@ -73,7 +73,7 @@ export class OpenRouterChat {
 
 		this.modelName = config.modelName || DEFAULT_MODEL;
 		this.temperature = config.temperature || 0.7;
-		this.maxTokens = config.maxTokens || 4096;
+		this.maxTokens = config.maxTokens || 8192; // Increased for better analysis responses
 	}
 
 	async invoke(messages: Array<{ role: string; content: string }>): Promise<{ content: string }> {
