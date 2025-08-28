@@ -92,7 +92,8 @@ export class OpenRouterChat {
 
 		for (let attempt = 0; attempt < maxRetries; attempt++) {
 			try {
-				const completion = await this.client.chat.completions.create({
+				// Prepare base parameters
+				const completionParams: any = {
 					model: this.modelName,
 					messages: messages.map(msg => ({
 						role: msg.role as 'user' | 'assistant' | 'system',
@@ -100,7 +101,18 @@ export class OpenRouterChat {
 					})),
 					temperature: this.temperature,
 					max_tokens: this.maxTokens
-				});
+				};
+
+				// Add reasoning control for Gemini models to reduce thinking token usage
+				if (this.modelName.includes('gemini')) {
+					completionParams.reasoning = {
+						max_tokens: Math.min(1024, Math.floor(this.maxTokens * 0.1)), // Limit thinking to 10% of max tokens
+						exclude: false // Keep reasoning visible for debugging, but limit tokens
+					};
+					console.log(`Applied Gemini reasoning limits: max_tokens=${completionParams.reasoning.max_tokens}`);
+				}
+
+				const completion = await this.client.chat.completions.create(completionParams);
 
 				if (!completion.choices || completion.choices.length === 0) {
 					throw new Error('No choices in response from OpenRouter');

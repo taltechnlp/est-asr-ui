@@ -79,8 +79,8 @@ export class CoordinatingAgent {
 			maxTokens: 2000
 		});
 
-		// Create fallback model (Claude 3.5 Sonnet) if primary model is different
-		const fallbackModelName = OPENROUTER_MODELS.CLAUDE_3_5_SONNET;
+		// Create fallback model (GPT-4o) if primary model is different
+		const fallbackModelName = OPENROUTER_MODELS.GPT_4O;
 		if (modelName !== fallbackModelName) {
 			this.fallbackModel = createOpenRouterChat({
 				modelName: fallbackModelName,
@@ -119,7 +119,7 @@ export class CoordinatingAgent {
 			if (isEmptyResponse && this.fallbackModel) {
 				await this.logger?.logGeneral(
 					'warn', 
-					`Primary model ${this.primaryModelName} failed with empty response, falling back to Claude 3.5 Sonnet`,
+					`Primary model ${this.primaryModelName} failed with empty response, falling back to GPT-4o`,
 					{ error: error.message },
 					segmentIndex
 				);
@@ -128,7 +128,7 @@ export class CoordinatingAgent {
 					const fallbackResponse = await this.fallbackModel.invoke(messages);
 					await this.logger?.logGeneral(
 						'info',
-						'Successfully fell back to Claude 3.5 Sonnet',
+						'Successfully fell back to GPT-4o',
 						{ responseLength: (fallbackResponse.content as string).length },
 						segmentIndex
 					);
@@ -143,7 +143,7 @@ export class CoordinatingAgent {
 						},
 						segmentIndex
 					);
-					throw new Error(`Both ${this.primaryModelName} and Claude 3.5 Sonnet failed: ${fallbackError.message}`);
+					throw new Error(`Both ${this.primaryModelName} and GPT-4o failed: ${fallbackError.message}`);
 				}
 			}
 			
