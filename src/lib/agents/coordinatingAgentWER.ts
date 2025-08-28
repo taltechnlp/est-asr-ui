@@ -163,7 +163,12 @@ export class CoordinatingAgentWER {
 	 * Invoke model with automatic fallback
 	 */
 	private async invokeWithFallback(messages: any[]): Promise<any> {
+		const invokeStart = Date.now();
 		try {
+			// Log the outgoing prompt
+			const promptContent = messages.map(m => m.content).join('\n');
+			await this.logger?.logLLMRequest(promptContent, `${this.primaryModelName} (Primary Model)`);
+
 			const response = await this.model.invoke(messages);
 
 			// Check for empty or whitespace-only responses
@@ -171,6 +176,10 @@ export class CoordinatingAgentWER {
 			if (!content || content.trim().length === 0) {
 				throw new Error(`Empty response from ${this.primaryModelName}`);
 			}
+
+			// Log the response with timing
+			const invokeDuration = Date.now() - invokeStart;
+			await this.logger?.logLLMResponse(content, invokeDuration);
 
 			return response;
 		} catch (error: any) {
@@ -186,9 +195,19 @@ export class CoordinatingAgentWER {
 				);
 
 				try {
+					// Log fallback prompt  
+					const fallbackPromptContent = messages.map(m => m.content).join('\n');
+					await this.logger?.logLLMRequest(fallbackPromptContent, 'GPT-4o (Fallback Model)');
+
 					const fallbackResponse = await this.fallbackModel.invoke(messages);
+					
+					// Log fallback response with timing
+					const fallbackContent = fallbackResponse.content as string;
+					const fallbackDuration = Date.now() - invokeStart;
+					await this.logger?.logLLMResponse(fallbackContent, fallbackDuration);
+					
 					await this.logger?.logGeneral('info', 'Successfully fell back to GPT-4o', {
-						responseLength: (fallbackResponse.content as string).length
+						responseLength: fallbackContent.length
 					});
 					return fallbackResponse;
 				} catch (fallbackError: any) {
@@ -580,10 +599,6 @@ Respond in JSON format:
 
 		try {
 			const feedbackStart = Date.now();
-			await this.logger?.logLLMRequest(
-				feedbackPrompt,
-				`${DEFAULT_MODEL_NAME} (WER Feedback ${blockIndex})`
-			);
 
 			const feedbackResponse = await this.invokeWithFallback([
 				new HumanMessage({ content: feedbackPrompt })
@@ -591,7 +606,6 @@ Respond in JSON format:
 			const feedbackContent = feedbackResponse.content as string;
 
 			const feedbackDuration = Date.now() - feedbackStart;
-			await this.logger?.logLLMResponse(feedbackContent, feedbackDuration);
 
 			// Parse refined corrections
 			const refinedResult = await this.parseResponseWithRetry(
@@ -969,13 +983,11 @@ Respond in JSON format:
 
 			// Send current prompt to LLM
 			const llmStart = Date.now();
-			await this.logger?.logLLMRequest(currentPrompt, `${DEFAULT_MODEL_NAME} (WER Agentic ${blockIndex}-${iteration})`);
 
 			const response = await this.invokeWithFallback([new HumanMessage({ content: currentPrompt })]);
 			const responseContent = response.content as string;
 
 			const llmDuration = Date.now() - llmStart;
-			await this.logger?.logLLMResponse(responseContent, llmDuration);
 
 			// Record interaction
 			interactions.push({

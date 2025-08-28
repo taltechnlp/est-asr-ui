@@ -22,6 +22,7 @@
 
 	let delFileId;
 	let exportingFileIds = $state(new Set());
+	let downloadingFileIds = $state(new Set());
 
 	const applyAndExport = async (fileId) => {
 		if (exportingFileIds.has(fileId)) return;
@@ -72,6 +73,51 @@
 			alert(`Export failed: ${error.message}`);
 		} finally {
 			exportingFileIds.delete(fileId);
+		}
+	};
+
+	const downloadOriginalASR = async (fileId) => {
+		if (downloadingFileIds.has(fileId)) return;
+		
+		downloadingFileIds.add(fileId);
+		
+		try {
+			const response = await fetch(`/api/files/${fileId}/download-original`, {
+				method: 'GET'
+			});
+
+			if (!response.ok) {
+				const errorData = await response.text();
+				throw new Error(errorData || 'Download failed');
+			}
+
+			// Get filename from Content-Disposition header or create default
+			const contentDisposition = response.headers.get('Content-Disposition');
+			let filename = `original_transcript_${fileId}.txt`;
+			
+			if (contentDisposition) {
+				const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+				if (filenameMatch) {
+					filename = filenameMatch[1];
+				}
+			}
+
+			// Create and download the text file
+			const blob = await response.blob();
+			const url = window.URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = filename;
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			window.URL.revokeObjectURL(url);
+
+		} catch (error) {
+			console.error('Download failed:', error);
+			alert(`Download failed: ${error.message}`);
+		} finally {
+			downloadingFileIds.delete(fileId);
 		}
 	};
 
@@ -319,6 +365,22 @@
 									</a>
 								{:else if file.state == 'READY'}
 									<button class="btn btn-outline btn-xs">{$_('files.openButton')}</button>
+									
+									<button
+										class="btn btn-info btn-xs {downloadingFileIds.has(file.id) ? 'loading' : ''}"
+										onclick={(e) => {
+											e.stopPropagation();
+											downloadOriginalASR(file.id);
+										}}
+										disabled={downloadingFileIds.has(file.id)}
+										title="Download original ASR output as plain text (no speakers, one segment per line)"
+									>
+										{#if downloadingFileIds.has(file.id)}
+											Downloading...
+										{:else}
+											Download Original
+										{/if}
+									</button>
 									
 									{#if file.autoAnalyze}
 										<button

@@ -1,4 +1,9 @@
-import { createOpenRouterChat, OPENROUTER_MODELS } from '$lib/llm/openrouter-direct';
+import {
+	createOpenRouterChat,
+	DEFAULT_MODEL,
+	DEFAULT_MODEL_NAME,
+	OPENROUTER_MODELS
+} from '$lib/llm/openrouter-direct';
 import { HumanMessage } from '@langchain/core/messages';
 import { prisma } from '$lib/db/client';
 import type { TranscriptSummary } from '@prisma/client';
@@ -80,13 +85,70 @@ Example response format:
 
 export class SummaryGenerator {
 	private model;
+	private fallbackModel;
+	private primaryModelName: string;
 
-	constructor(modelName: string = OPENROUTER_MODELS.GPT_4O) {
+	constructor(modelName: string = DEFAULT_MODEL) {
+		this.primaryModelName = modelName;
 		this.model = createOpenRouterChat({
 			modelName,
 			temperature: 0.3, // Lower temperature for consistent summaries
 			maxTokens: 2000
 		});
+
+		// Create fallback model (GPT-4o) if primary model is different
+		const fallbackModelName = OPENROUTER_MODELS.GPT_4O;
+		if (modelName !== fallbackModelName) {
+			this.fallbackModel = createOpenRouterChat({
+				modelName: fallbackModelName,
+				temperature: 0.3,
+				maxTokens: 2000
+			});
+		}
+	}
+
+	/**
+	 * Invoke model with automatic fallback
+	 */
+	private async invokeWithFallback(messages: any[]): Promise<any> {
+		try {
+			const response = await this.model.invoke(messages);
+
+			// Check for empty or whitespace-only responses
+			const content = response.content as string;
+			if (!content || content.trim().length === 0) {
+				throw new Error(`Empty response from ${this.primaryModelName}`);
+			}
+
+			return response;
+		} catch (error: any) {
+			const isEmptyResponse =
+				error?.message?.includes('Empty response') ||
+				error?.message?.includes('model configuration issue');
+
+			if (isEmptyResponse && this.fallbackModel) {
+				console.warn(
+					`Primary model ${this.primaryModelName} failed, falling back to GPT-4o:`,
+					error.message
+				);
+
+				try {
+					const fallbackResponse = await this.fallbackModel.invoke(messages);
+					console.log('Successfully fell back to GPT-4o');
+					return fallbackResponse;
+				} catch (fallbackError: any) {
+					console.error('Both primary and fallback models failed:', {
+						primaryError: error.message,
+						fallbackError: fallbackError.message
+					});
+					throw new Error(
+						`Both ${this.primaryModelName} and GPT-4o failed: ${fallbackError.message}`
+					);
+				}
+			}
+
+			throw error;
+		}
 	}
 
 	async generateSummary(
@@ -130,7 +192,7 @@ export class SummaryGenerator {
 		try {
 			// Generate main summary in English
 			const prompt = SUMMARY_PROMPT.replace('{transcript}', transcript);
-			const response = await this.model.invoke([new HumanMessage({ content: prompt })]);
+			const response = await this.invokeWithFallback([new HumanMessage({ content: prompt })]);
 
 			// Parse the JSON response with robust parsing
 			const content = response.content as string;
@@ -148,7 +210,7 @@ export class SummaryGenerator {
 Please provide the corrected JSON response with proper formatting.`;
 
 				try {
-					const correctionResponse = await this.model.invoke([
+					const correctionResponse = await this.invokeWithFallback([
 						new HumanMessage({ content: correctionPrompt })
 					]);
 
@@ -255,7 +317,7 @@ Please provide the corrected JSON response with proper formatting.`;
 				languageName
 			);
 
-			const response = await this.model.invoke([new HumanMessage({ content: prompt })]);
+			const response = await this.invokeWithFallback([new HumanMessage({ content: prompt })]);
 
 			return response.content as string;
 		} catch (error) {
@@ -277,7 +339,7 @@ Please provide the corrected JSON response with proper formatting.`;
 				languageName
 			);
 
-			const response = await this.model.invoke([new HumanMessage({ content: prompt })]);
+			const response = await this.invokeWithFallback([new HumanMessage({ content: prompt })]);
 
 			const content = response.content as string;
 			// Extract JSON array from response
@@ -348,7 +410,7 @@ Please provide the COMPLETE analysis in the exact JSON format:
 CRITICAL: Return ONLY the complete JSON object. No explanations or other text.`;
 
 			try {
-				const recoveryResponse = await this.model.invoke([
+				const recoveryResponse = await this.invokeWithFallback([
 					new HumanMessage({ content: formatRecoveryPrompt })
 				]);
 
@@ -392,7 +454,7 @@ Please provide the COMPLETE analysis in the exact JSON format:
 CRITICAL: Return ONLY the complete JSON object. No explanations or other text.`;
 
 			try {
-				const recoveryResponse = await this.model.invoke([
+				const recoveryResponse = await this.invokeWithFallback([
 					new HumanMessage({ content: stringRecoveryPrompt })
 				]);
 
@@ -462,7 +524,7 @@ Use any data from your previous response if applicable.
 CRITICAL: Return ONLY the complete JSON object. No explanations or other text.`;
 
 		try {
-			const recoveryResponse = await this.model.invoke([
+			const recoveryResponse = await this.invokeWithFallback([
 				new HumanMessage({ content: fieldRecoveryPrompt })
 			]);
 
