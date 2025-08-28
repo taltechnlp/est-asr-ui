@@ -260,28 +260,56 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				segmentCount: segments.length
 			});
 
-			// Step 3: Launch concurrent analysis for all segments
+			// Step 3: Process segments in batches of 5 with delays to prevent API overload
 
 			const agent = getCoordinatingAgent();
-			const analysisPromises = segments.map(async (segment, index) => {
-				try {
-					const result = await agent.analyzeSegment({
-						fileId: file.id,
-						segment,
-						summary,
-						audioFilePath: file.path,
-						transcriptFilePath: file.initialTranscriptionPath,
-						uiLanguage: 'et' // Estonian for Estonian transcript analysis
-					});
+			const BATCH_SIZE = 5;
+			const BATCH_DELAY_MS = 2000; // 2 second delay between batches
+			const analysisResults = [];
 
-					return { segmentIndex: index, success: true, result };
-				} catch (error) {
-					return { segmentIndex: index, success: false, error: error.message };
+			for (let i = 0; i < segments.length; i += BATCH_SIZE) {
+				const batch = segments.slice(i, i + BATCH_SIZE);
+				const batchIndex = Math.floor(i / BATCH_SIZE) + 1;
+				const totalBatches = Math.ceil(segments.length / BATCH_SIZE);
+
+				await logger.logGeneral('info', `Processing batch ${batchIndex}/${totalBatches}`, {
+					batchSize: batch.length,
+					segmentIndices: batch.map(s => s.index)
+				});
+
+				const batchPromises = batch.map(async (segment, batchItemIndex) => {
+					const segmentIndex = i + batchItemIndex;
+					try {
+						const result = await agent.analyzeSegment({
+							fileId: file.id,
+							segment,
+							summary,
+							audioFilePath: file.path,
+							transcriptFilePath: file.initialTranscriptionPath,
+							uiLanguage: 'et' // Estonian for Estonian transcript analysis
+						});
+
+						return { segmentIndex, success: true, result };
+					} catch (error) {
+						return { segmentIndex, success: false, error: error.message };
+					}
+				});
+
+				// Process current batch
+				const batchResults = await Promise.all(batchPromises);
+				analysisResults.push(...batchResults);
+
+				await logger.logGeneral('info', `Completed batch ${batchIndex}/${totalBatches}`, {
+					successful: batchResults.filter(r => r.success).length,
+					failed: batchResults.filter(r => !r.success).length
+				});
+
+				// Add delay between batches (except for the last one)
+				if (i + BATCH_SIZE < segments.length) {
+					await logger.logGeneral('info', `Waiting ${BATCH_DELAY_MS}ms before next batch`);
+					await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS));
 				}
-			});
-
-			// Wait for all analyses to complete
-			const analysisResults = await Promise.all(analysisPromises);
+			}
 
 			const successfulAnalyses = analysisResults.filter((r) => r.success);
 			const failedAnalyses = analysisResults.filter((r) => !r.success);
