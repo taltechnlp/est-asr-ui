@@ -3,6 +3,7 @@ import ts from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
 import svelte from 'eslint-plugin-svelte';
 import prettier from 'eslint-config-prettier';
+import globals from 'globals';
 import { readFileSync } from 'fs';
 
 const tsConfig = JSON.parse(readFileSync('./tsconfig.json', 'utf8'));
@@ -33,9 +34,8 @@ export default [
 				extraFileExtensions: ['.svelte']
 			},
 			globals: {
-				console: 'readonly',
-				setImmediate: 'readonly',
-				global: 'readonly'
+				...globals.browser,
+				...globals.node
 			}
 		},
 		plugins: {
@@ -61,9 +61,8 @@ export default [
 				extraFileExtensions: ['.svelte']
 			},
 			globals: {
-				console: 'readonly',
-				setImmediate: 'readonly',
-				global: 'readonly'
+				...globals.browser,
+				...globals.node
 			}
 		}
 	},

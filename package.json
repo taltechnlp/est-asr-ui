@@ -24,6 +24,7 @@
 		"@typescript-eslint/parser": "^8.41.0",
 		"autoprefixer": "^10.4.11",
 		"daisyui": "^5.0.0-beta.8",
+		"globals": "^16.3.0",
 		"graphql": "^16.3.0",
 		"graphql-request": "^4.1.0",
 		"postcss": "^8.4.22",
