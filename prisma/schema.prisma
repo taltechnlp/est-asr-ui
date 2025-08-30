@@ -9,97 +9,89 @@ datasource db {
 }
 
 model File {
-  id                       String    @id @db.VarChar(30)
-  state                    String    @default("UPLOADED") @db.Text()
-  text                     String?   @db.Text()
-  path                     String    @db.Text()
-  filename                 String    @db.Text()
-  language                 String    @db.Text()
+  id                       String                 @id @db.VarChar(30)
+  state                    String                 @default("UPLOADED")
+  text                     String?
+  path                     String
+  filename                 String
   duration                 Decimal?
   uploadedAt               DateTime?
-  mimetype                 String    @db.Text()
-  encoding                 String    @db.Text()
-  externalId               String?   @db.Text()
-  textTitle                String?   @db.Text()
-  initialTranscriptionPath String?   @db.Text()
-  initialTranscription     String?   @db.Text()
-  originalAsrData          String?   @db.Text() // Raw unprocessed ASR output for reliable export
-  uploader                 String?   @db.VarChar(30)
-  User                     User?     @relation(fields: [uploader], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  workflows                NfWorkflow[]
-  chatSessions             ChatSession[]
-  transcriptSummary        TranscriptSummary?
-  analysisSegments         AnalysisSegment[]
-  transcriptCorrections    TranscriptCorrection[]
-  notify                   Boolean?
+  mimetype                 String
+  encoding                 String
+  externalId               String?
+  textTitle                String?
+  initialTranscriptionPath String?
+  initialTranscription     String?
+  uploader                 String?                @db.VarChar(30)
+  language                 String
   notified                 Boolean?
+  notify                   Boolean?
   autoAnalyze              Boolean?
+  originalAsrData          String?
+  analysisSegments         AnalysisSegment[]
+  chatSessions             ChatSession[]
+  User                     User?                  @relation(fields: [uploader], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workflows                NfWorkflow[]
+  transcriptCorrections    TranscriptCorrection[]
+  transcriptSummary        TranscriptSummary?
 }
 
-enum Role {
-  USER
-  ADMIN
-}
-
-// Better Auth Account model
 model Account {
   id                    String    @id
   userId                String
   type                  String    @default("oauth")
   provider              String
   providerAccountId     String
+  scope                 String?
   accessToken           String?
   refreshToken          String?
   idToken               String?
   accessTokenExpiresAt  DateTime?
   refreshTokenExpiresAt DateTime?
-  scope                 String?
   password              String?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@unique([provider, providerAccountId], map: "Account_provider_providerAccountId_key")
   @@map("account")
 }
 
-// Better Auth Session model
 model Session {
   id        String   @id
   userId    String
   token     String   @unique
   expiresAt DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
   ipAddress String?
   userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("session")
 }
 
-// Updated User model for Better Auth
 model User {
-  id               String    @id @db.VarChar(30)
-  email            String    @unique(map: "default$default.User.email._UNIQUE")
+  id               String        @id @db.VarChar(30)
+  email            String        @unique(map: "default$default.User.email._UNIQUE")
   name             String
   password         String?
   resetToken       String?
   resetTokenExpiry BigInt?
-  role             Role      @default(USER)
+  role             Role          @default(USER)
   emailVerified    DateTime?
   image            String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  chatSessions     ChatSession[]
   files            File[]
   accounts         Account[]
   sessions         Session[]
-  chatSessions     ChatSession[]
 
   @@map("user")
 }
 
-// Better Auth Verification model
 model Verification {
   id         String    @id
   identifier String
@@ -109,6 +101,123 @@ model Verification {
   updatedAt  DateTime? @updatedAt
 
   @@map("verification")
+}
+
+model NfWorkflow {
+  run_id         String      @unique
+  run_name       String      @unique
+  file_id        String
+  event          NfEvent
+  utc_time       DateTime
+  failedCount    Int?
+  pendingCount   Int?
+  progressLength Int?
+  runningCount   Int?
+  succeededCount Int?
+  processes      NfProcess[]
+  file           File        @relation(fields: [file_id], references: [id], onDelete: Cascade)
+}
+
+model NfProcess {
+  id          String     @id @default(cuid())
+  task_id     Int
+  process     String
+  tag         String?
+  hash        String
+  status      NfStatus
+  submit      DateTime?
+  cpu         Float?
+  mem         Float?
+  peak_rss    Float?
+  peak_vmem   Float?
+  rchar       Float?
+  wchar       Float?
+  vol_ctxt    Int?
+  inv_ctxt    Int?
+  workflow_id String
+  start       DateTime?
+  exit        DateTime?
+  duration    Int?
+  realtime    Int?
+  complete    DateTime?
+  workflow    NfWorkflow @relation(fields: [workflow_id], references: [run_id], onDelete: Cascade)
+}
+
+model ChatSession {
+  id        String   @id @default(cuid())
+  fileId    String
+  userId    String
+  messages  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  file      File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([fileId])
+  @@index([userId])
+}
+
+model TranscriptSummary {
+  id               String   @id @default(cuid())
+  fileId           String   @unique
+  summary          String
+  keyTopics        String[]
+  speakerCount     Int
+  language         String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  displaySummary   String?
+  uiLanguage       String?
+  displayKeyTopics String[] @default([])
+  file             File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+}
+
+model AnalysisSegment {
+  id               String   @id @default(cuid())
+  fileId           String
+  segmentIndex     Int
+  startTime        Float
+  endTime          Float
+  startWord        Int
+  endWord          Int
+  originalText     String
+  analysis         String
+  suggestions      Json
+  nBestResults     Json?
+  status           String   @default("pending")
+  createdAt        DateTime @default(now())
+  speakerName      String?
+  correctedSegment String?
+  file             File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@unique([fileId, segmentIndex])
+  @@index([fileId])
+}
+
+model TranscriptCorrection {
+  id               String   @id @default(cuid())
+  fileId           String
+  blockIndex       Int
+  segmentIndices   Int[]
+  originalText     String
+  correctedText    String?
+  suggestions      Json     @default("[]")
+  llmInteractions  Json     @default("[]")
+  processingTimeMs Int?
+  status           String   @default("pending")
+  error            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  file             File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@unique([fileId, blockIndex])
+  @@index([fileId])
+  @@index([fileId, status])
+}
+
+enum Role {
+  USER
+  ADMIN
 }
 
 enum NfStatus {
@@ -129,120 +238,4 @@ enum NfEvent {
   process_completed
   error
   completed
-}
-
-model NfWorkflow {
-  run_id         String      @unique
-  event          NfEvent
-  run_name       String      @unique
-  utc_time       DateTime
-  file_id        String
-  file           File        @relation(fields: [file_id], references: [id], onDelete: Cascade)
-  processes      NfProcess[]
-  succeededCount Int?
-  runningCount   Int?
-  pendingCount   Int?
-  failedCount    Int?
-  progressLength Int?
-}
-
-model NfProcess {
-  id          String     @id @default(cuid())
-  task_id     Int
-  process     String
-  tag         String?
-  hash        String
-  status      NfStatus
-  exit        DateTime?
-  start       DateTime?
-  submit      DateTime?
-  complete    DateTime?
-  duration    Int?
-  realtime    Int?
-  cpu         Float?
-  mem         Float?
-  peak_rss    Float?
-  peak_vmem   Float?
-  rchar       Float?
-  wchar       Float?
-  vol_ctxt    Int?
-  inv_ctxt    Int?
-  workflow_id String
-  workflow    NfWorkflow @relation(fields: [workflow_id], references: [run_id], onDelete: Cascade)
-}
-
-// Chat session for transcript analysis
-model ChatSession {
-  id        String   @id @default(cuid())
-  fileId    String
-  userId    String
-  messages  Json     // Array of chat messages with analysis history
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  file      File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([fileId])
-  @@index([userId])
-}
-
-// Transcript summary generated by AI
-model TranscriptSummary {
-  id           String   @id @default(cuid())
-  fileId       String   @unique
-  summary      String   @db.Text
-  displaySummary String? @db.Text // Summary in user's UI language
-  uiLanguage   String?  // Language code for the display summary
-  keyTopics    String[] // JSON array of main topics
-  displayKeyTopics String[] @default([]) // Key topics in user's UI language
-  speakerCount Int
-  language     String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  file         File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
-}
-
-// Analysis segments for incremental processing
-model AnalysisSegment {
-  id              String   @id @default(cuid())
-  fileId          String
-  segmentIndex    Int
-  startTime       Float    // Start time in seconds
-  endTime         Float    // End time in seconds
-  startWord       Int
-  endWord         Int
-  originalText    String   @db.Text
-  correctedSegment String? @db.Text // Full corrected text with all ASR errors fixed
-  speakerName     String?  // Speaker name for this segment
-  analysis        String   @db.Text
-  suggestions     Json     // Store improvement suggestions
-  nBestResults    Json?    // Store N-best ASR alternatives
-  status          String   @default("pending") // pending, analyzed, applied
-  createdAt       DateTime @default(now())
-  file            File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
-  
-  @@unique([fileId, segmentIndex])
-  @@index([fileId])
-}
-
-// Block-based transcript corrections for WER optimization
-model TranscriptCorrection {
-  id              String   @id @default(cuid())
-  fileId          String
-  blockIndex      Int      // Which block (0, 1, 2, etc.)
-  segmentIndices  Int[]    // Array of segment indices in this block (typically 20 segments)
-  originalText    String   @db.Text // Plain text with speaker names and alternatives
-  correctedText   String?  @db.Text // Text with corrections applied
-  suggestions     Json     @default("[]") // Array of correction suggestions
-  llmInteractions Json     @default("[]") // Array of LLM request/response pairs
-  processingTimeMs Int?    // Time taken to process this block
-  status          String   @default("pending") // pending, processing, completed, error
-  error           String?  @db.Text // Error message if processing failed
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  file            File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
-  
-  @@unique([fileId, blockIndex])
-  @@index([fileId])
-  @@index([fileId, status])
 }
