@@ -90,11 +90,13 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			parsedContent = transcriptContent;
 		}
 
-		// Check for WER corrections first (highest priority)
+		// Check for WER corrections first (highest priority)  
+		console.log(`[Apply&Export] Querying for fileId: ${fileId}`);
 		const werCorrections = await prisma.transcriptCorrection.findMany({
 			where: { fileId },
 			orderBy: { blockIndex: 'asc' }
 		});
+		console.log(`[Apply&Export] Found ${werCorrections.length} WER corrections`);
 
 		let exportResult;
 		let exportMethod = 'suggestion application'; // default
@@ -106,6 +108,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			exportResult = exportWithWERCorrections(werCorrections);
 		} else {
 			// Fallback to existing logic for backward compatibility
+			console.log(`[Apply&Export] Querying analysis segments for fileId: ${fileId}`);
 			const analysisSegments = await prisma.analysisSegment.findMany({
 				where: {
 					fileId,
@@ -113,6 +116,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				},
 				orderBy: { segmentIndex: 'asc' }
 			});
+			console.log(`[Apply&Export] Found ${analysisSegments.length} analyzed segments`);
 
 			if (analysisSegments.length === 0) {
 				return json(

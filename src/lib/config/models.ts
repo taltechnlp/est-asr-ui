@@ -36,12 +36,12 @@ export type OpenRouterModel = (typeof OPENROUTER_MODELS)[keyof typeof OPENROUTER
  * Default model used across the entire application
  * Change this single variable to switch models everywhere
  */
-export const DEFAULT_MODEL = OPENROUTER_MODELS.GEMINI_2_5_PRO;
+export const DEFAULT_MODEL = OPENROUTER_MODELS.GPT_5;
 
 /**
  * Default model name for display in logs and UI
  */
-export const DEFAULT_MODEL_NAME = 'Gemini 2.5 Pro';
+export const DEFAULT_MODEL_NAME = 'GPT-5';
 
 /**
  * Available models for UI selection with display labels

@@ -22,6 +22,7 @@
 
 	let delFileId;
 	let exportingFileIds = $state(new Set());
+	let exportingJsonFileIds = $state(new Set());
 	let downloadingFileIds = $state(new Set());
 
 	const applyAndExport = async (fileId) => {
@@ -73,6 +74,58 @@
 			alert(`Export failed: ${error.message}`);
 		} finally {
 			exportingFileIds.delete(fileId);
+		}
+	};
+
+	const exportSegmentsJson = async (fileId) => {
+		if (exportingJsonFileIds.has(fileId)) return;
+		
+		exportingJsonFileIds.add(fileId);
+		
+		try {
+			const response = await fetch('/api/benchmark/export-segments-json', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					fileId,
+					minConfidence: 0.0,
+					applyAll: true
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(errorData.error || 'Export failed');
+			}
+
+			const result = await response.json();
+			
+			if (!result.success) {
+				throw new Error(result.error || 'Export failed');
+			}
+
+			// Create and download the JSON file
+			const jsonContent = JSON.stringify({ segments: result.segments }, null, 2);
+			const blob = new Blob([jsonContent], { type: 'application/json' });
+			const url = window.URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = result.fileName || `segments_${fileId}.json`;
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			window.URL.revokeObjectURL(url);
+
+			// Log success stats
+			console.log('JSON export completed:', result.stats);
+			
+		} catch (error) {
+			console.error('JSON export failed:', error);
+			alert(`JSON export failed: ${error.message}`);
+		} finally {
+			exportingJsonFileIds.delete(fileId);
 		}
 	};
 
@@ -396,6 +449,22 @@
 												Exporting...
 											{:else}
 												Apply & Export
+											{/if}
+										</button>
+
+										<button
+											class="btn btn-secondary btn-xs {exportingJsonFileIds.has(file.id) ? 'loading' : ''}"
+											onclick={(e) => {
+												e.stopPropagation();
+												exportSegmentsJson(file.id);
+											}}
+											disabled={exportingJsonFileIds.has(file.id)}
+											title="Export corrected transcript as JSON with timestamps"
+										>
+											{#if exportingJsonFileIds.has(file.id)}
+												Exporting...
+											{:else}
+												Export JSON
 											{/if}
 										</button>
 									{/if}

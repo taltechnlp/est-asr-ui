@@ -618,3 +618,241 @@ function removeSpeakerNames(text: string): string {
 		.filter((line) => line.trim().length > 0)
 		.join(' ');
 }
+
+export interface SegmentWithTimestamp {
+	start: number;
+	end: number;
+	text: string;
+}
+
+export interface SegmentExportResult {
+	success: boolean;
+	segments?: SegmentWithTimestamp[];
+	exportStats: {
+		totalSegments: number;
+		totalSuggestions: number;
+		appliedSuggestions: number;
+		skippedSuggestions: number;
+		processingTimeMs: number;
+	};
+	error?: string;
+}
+
+/**
+ * Export segments with timestamps and applied corrections as JSON
+ * Combines timing information with corrected text for each segment
+ */
+export async function exportSegmentsWithTimestamps({
+	parsedContent,
+	analysisSegments,
+	werCorrections,
+	options
+}: {
+	parsedContent: TipTapEditorContent;
+	analysisSegments: AnalysisSegment[];
+	werCorrections: TranscriptCorrection[];
+	options: {
+		minConfidence?: number;
+		applyAll?: boolean;
+	};
+}): Promise<SegmentExportResult> {
+	const startTime = Date.now();
+	const { minConfidence = 0.0, applyAll = true } = options;
+
+	try {
+		console.log(`Starting segment JSON export for ${analysisSegments.length} analysis segments`);
+		console.log(`WER corrections: ${werCorrections.length}`);
+		console.log(`Parsed content type:`, typeof parsedContent, parsedContent?.type);
+
+		// Extract speaker segments from editor content
+		const segments = extractSpeakerSegments(parsedContent);
+		console.log(`Extracted ${segments.length} speaker segments from editor content`);
+		
+		if (segments.length > 0) {
+			console.log(`Sample segment:`, {
+				index: segments[0].index,
+				startTime: segments[0].startTime,
+				endTime: segments[0].endTime,
+				textLength: segments[0].text?.length,
+				textPreview: segments[0].text?.substring(0, 50) + '...'
+			});
+		}
+
+		let exportResult: BenchmarkExportResult;
+		const outputSegments: SegmentWithTimestamp[] = [];
+
+		// Check for WER corrections first (highest priority)
+		if (werCorrections.length > 0) {
+			const completedCorrections = werCorrections
+				.filter((tc) => tc.status === 'completed' && tc.correctedText)
+				.sort((a, b) => a.blockIndex - b.blockIndex);
+
+			console.log(`Using ${completedCorrections.length} completed WER correction blocks`);
+
+			// Process each WER correction block
+			for (const correction of completedCorrections) {
+				console.log(`Processing WER correction block ${correction.blockIndex}, segmentIndices:`, correction.segmentIndices);
+				
+				// Get segments for this block
+				const blockSegments = correction.segmentIndices
+					.map((idx) => analysisSegments.find((seg) => seg.segmentIndex === idx))
+					.filter((seg): seg is AnalysisSegment => seg !== undefined)
+					.sort((a, b) => a.segmentIndex - b.segmentIndex);
+
+				console.log(`Found ${blockSegments.length} segments for block ${correction.blockIndex}`);
+
+				if (blockSegments.length > 0) {
+					// Clean the corrected text (remove speaker names)
+					const cleanText = removeSpeakerNames(correction.correctedText || '');
+					console.log(`Block ${correction.blockIndex} clean text length:`, cleanText.trim().length);
+					
+					// Use timing from first and last segment in the block
+					const startTime = blockSegments[0].startTime;
+					const endTime = blockSegments[blockSegments.length - 1].endTime;
+
+					if (cleanText.trim()) {
+						outputSegments.push({
+							start: startTime,
+							end: endTime,
+							text: cleanText.trim()
+						});
+						console.log(`Added segment: ${startTime}s-${endTime}s, text: ${cleanText.trim().substring(0, 50)}...`);
+					}
+				}
+			}
+
+			// Create dummy export stats for WER corrections
+			exportResult = {
+				success: true,
+				exportStats: {
+					totalSegments: completedCorrections.length,
+					totalSuggestions: completedCorrections.reduce((sum, tc) => {
+						const suggestions = Array.isArray(tc.suggestions) ? tc.suggestions : [];
+						return sum + suggestions.length;
+					}, 0),
+					appliedSuggestions: outputSegments.length,
+					skippedSuggestions: 0,
+					processingTimeMs: Date.now() - startTime
+				},
+				segmentDetails: [],
+				plainText: '' // Not used for JSON export
+			};
+		} else {
+			// Fallback to existing logic for backward compatibility
+			const segmentsWithCorrectedText = analysisSegments.filter((seg) => seg.correctedSegment);
+			const useCorrectedSegments = segmentsWithCorrectedText.length > 0;
+
+			console.log(`Export method: ${useCorrectedSegments ? 'corrected segments' : 'suggestion application'}`);
+
+			// Choose export method based on availability of corrected segments
+			exportResult = useCorrectedSegments
+				? exportWithCorrectedSegments(parsedContent, analysisSegments)
+				: exportWithSuggestionsApplied(parsedContent, analysisSegments, {
+						minConfidence,
+						applyAll,
+						includeStats: true
+				});
+
+			if (!exportResult.success) {
+				throw new Error(exportResult.error || 'Export failed');
+			}
+
+			// Process each analysis segment to create timestamped segments
+			for (const analysisSegment of analysisSegments) {
+				const segment = segments.find((s) => s.index === analysisSegment.segmentIndex);
+				if (!segment) continue;
+
+				let segmentText = '';
+
+				if (useCorrectedSegments && analysisSegment.correctedSegment) {
+					// Use the corrected segment text
+					segmentText = analysisSegment.correctedSegment.trim();
+				} else if (analysisSegment.status === 'analyzed' && analysisSegment.suggestions) {
+					// Apply suggestions to the original segment text (only for analyzed segments with suggestions)
+					const suggestions = analysisSegment.suggestions;
+					let parsedSuggestions: any[] = [];
+
+					try {
+						if (typeof suggestions === 'string') {
+							parsedSuggestions = JSON.parse(suggestions);
+						} else if (Array.isArray(suggestions)) {
+							parsedSuggestions = suggestions;
+						} else if (suggestions && typeof suggestions === 'object' && 'suggestions' in suggestions) {
+							const wrapped = suggestions as any;
+							if (Array.isArray(wrapped.suggestions)) {
+								parsedSuggestions = wrapped.suggestions;
+							}
+						}
+					} catch (error) {
+						console.error(`Error parsing suggestions for segment ${analysisSegment.segmentIndex}:`, error);
+					}
+
+					// Apply suggestions to segment text
+					const result = applySegmentSuggestions(segment.text, parsedSuggestions, {
+						minConfidence,
+						applyAll
+					});
+
+					segmentText = result.modifiedText.trim();
+				} else {
+					// For segments without analysis/suggestions, use the original text
+					segmentText = segment.text.trim();
+				}
+
+				if (segmentText) {
+					outputSegments.push({
+						start: analysisSegment.startTime,
+						end: analysisSegment.endTime,
+						text: segmentText
+					});
+				}
+			}
+		}
+
+		// Sort segments by start time to ensure proper order
+		outputSegments.sort((a, b) => a.start - b.start);
+
+		const processingTimeMs = Date.now() - startTime;
+
+		console.log('Segment JSON export completed:', {
+			totalSegments: outputSegments.length,
+			stats: exportResult.exportStats,
+			processingTimeMs
+		});
+
+		if (outputSegments.length === 0) {
+			console.error('WARNING: No segments were generated. This indicates a problem in segment processing.');
+			console.log('Debug info:', {
+				werCorrectionsLength: werCorrections.length,
+				analysisSegmentsLength: analysisSegments.length,
+				parsedContentType: typeof parsedContent,
+				hasContent: !!parsedContent,
+				contentKeys: parsedContent ? Object.keys(parsedContent) : 'null'
+			});
+		}
+
+		return {
+			success: true,
+			segments: outputSegments,
+			exportStats: {
+				...exportResult.exportStats,
+				processingTimeMs
+			}
+		};
+	} catch (error) {
+		const processingTimeMs = Date.now() - startTime;
+		console.error('Segment JSON export failed:', error);
+
+		return {
+			success: false,
+			exportStats: {
+				totalSegments: 0,
+				totalSuggestions: 0,
+				appliedSuggestions: 0,
+				skippedSuggestions: 0,
+				processingTimeMs
+			},
+			error: error instanceof Error ? error.message : 'Unknown error'
+		};
+	}
+}
