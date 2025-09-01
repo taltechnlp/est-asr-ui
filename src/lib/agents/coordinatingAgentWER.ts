@@ -1386,6 +1386,7 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 
 	/**
 	 * Analyze entire file in blocks of 20 segments
+	 * Supports resuming from interrupted analysis
 	 */
 	async analyzeFile(request: WERFileAnalysisRequest): Promise<{
 		fileId: string;
@@ -1406,11 +1407,45 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 		const segments = extractSpeakerSegments(editorContent) || [];
 		const totalBlocks = Math.ceil(Math.max(1, segments.length) / BLOCK_SIZE);
 
+		// Check for existing completed blocks to resume analysis
+		const existingCorrections = await prisma.transcriptCorrection.findMany({
+			where: { 
+				fileId,
+				status: 'completed'
+			},
+			orderBy: { blockIndex: 'asc' }
+		});
+
+		const completedBlockIndices = new Set(existingCorrections.map(c => c.blockIndex));
+		const resumeFromBlock = Math.min(...Array.from({ length: totalBlocks }, (_, i) => i).filter(i => !completedBlockIndices.has(i)));
+
 		await this.logger?.logGeneral('info', `File analysis plan`, {
 			totalSegments: segments.length,
 			totalBlocks,
-			blockSize: BLOCK_SIZE
+			blockSize: BLOCK_SIZE,
+			existingCompletedBlocks: existingCorrections.length,
+			resumeFromBlock: isFinite(resumeFromBlock) ? resumeFromBlock : 'none (all complete)'
 		});
+
+		// If all blocks are already completed, return existing results
+		if (existingCorrections.length >= totalBlocks) {
+			await this.logger?.logGeneral('info', 'All blocks already completed, returning existing results');
+			
+			const existingResults: WERBlockAnalysisResult[] = existingCorrections.map(correction => ({
+				blockIndex: correction.blockIndex,
+				corrections: correction.suggestions ? JSON.parse(correction.suggestions as string) : [],
+				correctedText: correction.correctedText || '',
+				llmInteractions: correction.llmInteractions ? JSON.parse(correction.llmInteractions as string) : [],
+				processingTimeMs: correction.processingTimeMs || 0
+			}));
+
+			return {
+				fileId,
+				totalBlocks,
+				completedBlocks: totalBlocks,
+				results: existingResults
+			};
+		}
 
 		// If no segments were extracted, log the issue and return early
 		if (segments.length === 0) {
@@ -1427,10 +1462,24 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 			};
 		}
 
-		const results: WERBlockAnalysisResult[] = [];
+		const results: WERBlockAnalysisResult[] = [...existingCorrections.map(correction => ({
+			blockIndex: correction.blockIndex,
+			corrections: correction.suggestions ? JSON.parse(correction.suggestions as string) : [],
+			correctedText: correction.correctedText || '',
+			llmInteractions: correction.llmInteractions ? JSON.parse(correction.llmInteractions as string) : [],
+			processingTimeMs: correction.processingTimeMs || 0
+		}))];
 
-		// Process each block sequentially (no concurrency)
+		// Process each block sequentially (no concurrency), skipping completed ones
 		for (let blockIndex = 0; blockIndex < totalBlocks; blockIndex++) {
+			// Skip already completed blocks
+			if (completedBlockIndices.has(blockIndex)) {
+				await this.logger?.logGeneral('info', `Skipping already completed block ${blockIndex + 1}/${totalBlocks}`, {
+					blockIndex
+				});
+				continue;
+			}
+
 			const startIdx = blockIndex * BLOCK_SIZE;
 			const endIdx = Math.min(startIdx + BLOCK_SIZE, segments.length);
 			const blockSegments = segments.slice(startIdx, endIdx);
@@ -1439,7 +1488,8 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 				await this.logger?.logGeneral('info', `Processing block ${blockIndex + 1}/${totalBlocks}`, {
 					blockIndex,
 					segmentRange: `${startIdx}-${endIdx - 1}`,
-					segmentCount: blockSegments.length
+					segmentCount: blockSegments.length,
+					resuming: existingCorrections.length > 0
 				});
 
 				// Analyze this block

@@ -5,35 +5,18 @@ import { sendEmail, createEmail } from '$lib/email';
 import { ORIGIN } from '$env/static/private';
 
 // Reusable function to trigger auto-analysis with retry logic for actual failures
+// No timeouts - analysis runs until completion regardless of duration
 async function triggerAutoAnalysis(file: any, maxRetries = 3): Promise<void> {
-	// Optional configurable timeout (default: no timeout)
-	const timeoutMs = process.env.AUTO_ANALYSIS_TIMEOUT_MS 
-		? parseInt(process.env.AUTO_ANALYSIS_TIMEOUT_MS) 
-		: null;
-
 	for (let attempt = 0; attempt < maxRetries; attempt++) {
 		try {
-			console.log(`Starting auto-analysis for file: ${file.filename} (attempt ${attempt + 1}/${maxRetries})${timeoutMs ? ` with ${timeoutMs/1000}s timeout` : ' with no timeout'}`);
+			console.log(`Starting auto-analysis for file: ${file.filename} (attempt ${attempt + 1}/${maxRetries}) - no timeout, runs until completion`);
 			
-			const controller = new AbortController();
-			let timeout: NodeJS.Timeout | null = null;
-			
-			// Only set timeout if configured
-			if (timeoutMs) {
-				timeout = setTimeout(() => {
-					console.warn(`Auto-analysis timeout after ${timeoutMs/1000}s for file: ${file.filename}`);
-					controller.abort();
-				}, timeoutMs);
-			}
-
 			const response = await fetch(`${ORIGIN}/api/transcript-analysis/auto-analyze`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ fileId: file.id }),
-				signal: controller.signal
+				body: JSON.stringify({ fileId: file.id })
+				// No AbortController signal - let analysis run to completion
 			});
-
-			if (timeout) clearTimeout(timeout);
 
 			if (response.ok) {
 				console.log(`Auto-analysis completed successfully for file: ${file.filename}`);
@@ -56,12 +39,11 @@ async function triggerAutoAnalysis(file: any, maxRetries = 3): Promise<void> {
 				}
 			}
 		} catch (error: any) {
-			const isTimeout = error.name === 'AbortError' || error.message?.includes('aborted');
 			const isNetworkError = error.message?.includes('fetch failed') || error.code === 'ENOTFOUND';
 			const isClientError = error.message?.includes('Client error');
 
-			// Don't retry client errors or configured timeouts - they won't succeed
-			if (isClientError || (isTimeout && timeoutMs)) {
+			// Don't retry client errors - they won't succeed
+			if (isClientError) {
 				console.error(`Auto-analysis failed for file: ${file.filename} - ${error.message}`);
 				throw error;
 			}

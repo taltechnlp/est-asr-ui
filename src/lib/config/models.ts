@@ -17,6 +17,7 @@ export const OPENROUTER_MODELS = {
 	GPT_4O_MINI: 'openai/gpt-4o-mini',
 
 	// Google models
+	GEMINI_2_5_FLASH: 'google/gemini-2.5-flash',
 	GEMINI_2_5_PRO: 'google/gemini-2.5-pro',
 	GEMINI_2_5_PRO_PREVIEW: 'google/gemini-2.5-pro-preview',
 	GEMINI_2_5_PRO_EXP: 'google/gemini-2.5-pro-exp-03-25',
@@ -36,20 +37,20 @@ export type OpenRouterModel = (typeof OPENROUTER_MODELS)[keyof typeof OPENROUTER
  * Default model used across the entire application
  * Change this single variable to switch models everywhere
  */
-export const DEFAULT_MODEL = OPENROUTER_MODELS.GPT_5;
+export const DEFAULT_MODEL = OPENROUTER_MODELS.GEMINI_2_5_FLASH;
 
 /**
  * Default model name for display in logs and UI
  */
-export const DEFAULT_MODEL_NAME = 'GPT-5';
+export const DEFAULT_MODEL_NAME = 'Gemini 2.5 Flash';
 
 /**
  * Available models for UI selection with display labels
  */
 export const AVAILABLE_MODELS_FOR_UI = [
-	{ value: OPENROUTER_MODELS.GPT_5, label: 'GPT-5' },
-	{ value: OPENROUTER_MODELS.GPT_4O, label: 'GPT-4o (Fallback)' },
+	{ value: OPENROUTER_MODELS.GEMINI_2_5_FLASH, label: 'Gemini 2.5 Flash (Default)' },
 	{ value: OPENROUTER_MODELS.GEMINI_2_5_PRO, label: 'Gemini 2.5 Pro' },
+	{ value: OPENROUTER_MODELS.GPT_4O, label: 'GPT-4o' },
 	{ value: OPENROUTER_MODELS.CLAUDE_3_5_SONNET, label: 'Claude 3.5 Sonnet' },
 	{ value: OPENROUTER_MODELS.CLAUDE_3_5_HAIKU, label: 'Claude 3.5 Haiku (Faster)' },
 	{ value: OPENROUTER_MODELS.GPT_4O_MINI, label: 'GPT-4o Mini (Faster)' }

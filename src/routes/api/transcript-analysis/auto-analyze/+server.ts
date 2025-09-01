@@ -109,8 +109,13 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		// Log progress marker for long-running operations
 		console.log(`[AUTO-ANALYSIS] Starting analysis for file: ${file.filename} (${file.id}) - Content length: ${transcriptContent?.length || 0} chars`);
 
-		// Step 1: Generate Summary (prerequisite for analysis)
+		// Set up periodic heartbeat for long-running operations
+		const heartbeatInterval = setInterval(() => {
+			console.log(`[AUTO-ANALYSIS] Still processing file: ${file.filename} (${file.id}) - Analysis in progress...`);
+		}, 60000); // Every 60 seconds
+
 		try {
+			// Step 1: Generate Summary (prerequisite for analysis)
 			const summaryGenerator = getSummaryGenerator();
 
 			// Check if summary already exists
@@ -324,6 +329,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			
 			console.log(`[AUTO-ANALYSIS] Completed WER analysis for file: ${file.filename} - ${analysisResult.completedBlocks}/${analysisResult.totalBlocks} blocks processed`);
 
+			// Clear heartbeat interval
+			clearInterval(heartbeatInterval);
+
 			return json({
 				success: true,
 				fileId,
@@ -336,6 +344,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				results: analysisResult.results
 			});
 		} catch (error) {
+			// Clear heartbeat interval on error
+			clearInterval(heartbeatInterval);
+			
 			if (transcriptPath && file.id) {
 				const logger = getAgentFileLogger(transcriptPath, file.id);
 				await logger.logGeneral('error', 'Auto-analysis failed', {
