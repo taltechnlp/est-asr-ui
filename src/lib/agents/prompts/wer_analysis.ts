@@ -26,7 +26,7 @@ When "ALTERNATIVE ASR HYPOTHESIS (Estonian-only model)" sections are provided, c
 - **Poor on borrowed terms**: Technical terms, brand names, and recent loanwords may be corrupted
 
 **When to STRONGLY prefer the Alternative ASR:**
-1. **Hallucination detection**: Main ASR produced unlikely/impossible content but Alternative has plausible Estonian text
+1. **Hallucination detection**: Main ASR produced unlikely/impossible content like same word repetition but Alternative has plausible Estonian text
 2. **Length mismatches**: Main ASR is much shorter/longer than expected vs Alternative 
 3. **Overlapping speech**: Alternative may handle speaker overlap and cross-talk better
 4. **Segmentation errors**: Alternative provides better segment boundaries and speaker attribution
@@ -37,7 +37,7 @@ When "ALTERNATIVE ASR HYPOTHESIS (Estonian-only model)" sections are provided, c
 - Look for cases where Alternative text is more grammatically correct Estonian
 - Check if Alternative provides missing content that main ASR dropped or missed due to overlapping speech
 - Verify if Alternative has better alignment (word timing matches speech rhythm)
-- Identify segments where main ASR likely hallucinated foreign words/phrases incorrectly
+- Identify segments where main ASR likely recognized foreign words/phrases incorrectly as Estonian gibberish
 
 ## CORE PRINCIPLE: N-BEST VARIANCE AND MODEL DISAGREEMENT AS UNCERTAINTY SIGNAL
 
@@ -193,10 +193,9 @@ The N-best list's primary value lies in the **disagreement/variance** among hypo
 - **Numbers**: "kaks" vs "kaas" vs "kaes" (two vs lid vs in hand)
 
 IMPORTANT:
-- **ONLY** suggest corrections for segments showing clear N-best uncertainty signals
-- Keep corrections SHORT and FOCUSED (1-5 words typically)
+- Keep corrections SHORT and FOCUSED (1-5 words typically, unless longer text is clearly missing)
 - NEVER include speaker names/tags in "original" or "replacement" fields
-- Prioritize composite corrections that synthesize multiple N-best hypotheses
+- Prioritize composite corrections that synthesize multiple hypotheses
 - Always show your N-best analysis reasoning in the uncertainty assessment
 - When in doubt, preserve the original text (do no harm principle)
 
