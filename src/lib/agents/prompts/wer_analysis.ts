@@ -11,6 +11,34 @@ SEGMENTS TO ANALYZE:
 
 NOTE: Each segment includes precise timing metadata and N-best hypotheses when available. Use this information to assess ASR uncertainty.
 
+## ALTERNATIVE ASR HYPOTHESIS (Estonian-only model)
+
+When "ALTERNATIVE ASR HYPOTHESIS (Estonian-only model)" sections are provided, consider these critical characteristics:
+
+**Estonian-only Model Strengths:**
+- **More accurate for Estonian content**: This model was trained exclusively on Estonian speech and handles Estonian pronunciation, grammar, and phonetics better
+- **Superior alignment accuracy**: Word-level timing and segment boundaries are typically more precise 
+- **Better handling of Estonian-specific patterns**: Case endings, compound words, and colloquialisms
+
+**Estonian-only Model Weaknesses:**
+- **Systematically fails on foreign languages**: Will mangle English, Russian, Finnish, or other non-Estonian words/phrases
+- **No multilingual capability**: Cannot switch between languages within speech
+- **Poor on borrowed terms**: Technical terms, brand names, and recent loanwords may be corrupted
+
+**When to STRONGLY prefer the Alternative ASR:**
+1. **Hallucination detection**: Main ASR produced unlikely/impossible content but Alternative has plausible Estonian text
+2. **Length mismatches**: Main ASR is much shorter/longer than expected vs Alternative 
+3. **Overlapping speech**: Alternative may handle speaker overlap and cross-talk better
+4. **Segmentation errors**: Alternative provides better segment boundaries and speaker attribution
+5. **Estonian language content**: For native Estonian words, grammar, pronunciation variants
+
+**Analysis Strategy:**
+- Compare segment-by-segment between main ASR and Alternative ASR
+- Look for cases where Alternative text is more grammatically correct Estonian
+- Check if Alternative provides missing content that main ASR dropped or missed due to overlapping speech
+- Verify if Alternative has better alignment (word timing matches speech rhythm)
+- Identify segments where main ASR likely hallucinated foreign words/phrases incorrectly
+
 ## CORE PRINCIPLE: N-BEST VARIANCE AS UNCERTAINTY SIGNAL
 
 The N-best list's primary value lies in the **disagreement/variance** among hypotheses, not just alternative options:
@@ -38,10 +66,10 @@ The N-best list's primary value lies in the **disagreement/variance** among hypo
 
 ## AVAILABLE TOOLS:
 
-1. **asrAlternatives**: Get additional N-best ASR alternatives for uncertain segments
+1. **asrAlternatives**: Get additional N-best ASR alternatives for uncertain segments (oftern only returns 1 or 2)
    Parameters: {"segmentIndex": 5}
    **PRIMARY USE**: For segments showing initial N-best disagreement or missing alternatives
-   **Strategy**: Compare primary and secondary ASR N-best lists for cross-validation
+   **Strategy**: Compare primary and secondary ASR N-best lists for cross-validation and hints of acoustic ambiguity
 
 2. **phoneticAnalyzer**: Check phonetic similarity between candidates
    Parameters: {"text": "original word", "candidate": "suggested replacement"}

@@ -1,7 +1,6 @@
 import {
 	createOpenRouterChat,
 	DEFAULT_MODEL,
-	DEFAULT_MODEL_NAME,
 	OPENROUTER_MODELS
 } from '$lib/llm/openrouter-direct';
 import { HumanMessage } from '@langchain/core/messages';
@@ -15,6 +14,8 @@ import { extractSpeakerSegments } from '$lib/utils/extractWordsFromEditor';
 import type { TipTapEditorContent } from '../../types';
 import { WER_PROMPTS } from './prompts/wer_analysis';
 import { robustJsonParse, validateJsonStructure, formatParsingErrorForLLM } from './utils/jsonParser';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
 
 export interface WERBlockAnalysisRequest {
 	fileId: string;
@@ -24,6 +25,7 @@ export interface WERBlockAnalysisRequest {
 	uiLanguage?: string;
 	transcriptFilePath?: string;
 	audioFilePath?: string; // For ASR alternatives
+	alternativeSegments?: SegmentWithTiming[]; // Alternative Estonian-only ASR segments
 }
 
 export interface WERCorrection {
@@ -55,9 +57,206 @@ export interface WERFileAnalysisRequest {
 	uiLanguage?: string;
 	transcriptFilePath?: string;
 	audioFilePath?: string; // For ASR alternatives
+	originalFilename?: string; // For loading alternative ASR JSON
 }
 
 const BLOCK_SIZE = 20; // Process 20 segments at a time
+
+// Alternative ASR data structures (same as main ASR)
+interface AlternativeASRWord {
+	word: string;
+	word_with_punctuation: string;
+	start: number;
+	end: number;
+	confidence: number;
+	punctuation?: string;
+}
+
+interface AlternativeASRTurn {
+	start: number;
+	end: number;
+	speaker: string;
+	transcript: string;
+	words: AlternativeASRWord[];
+}
+
+interface AlternativeASRSection {
+	start: number;
+	end: number;
+	type: string;
+	turns: AlternativeASRTurn[];
+}
+
+interface AlternativeASRResult {
+	speakers: Record<string, any>;
+	sections: AlternativeASRSection[];
+}
+
+/**
+ * Parse alternative Estonian-only ASR JSON file
+ */
+function parseAlternativeASRJson(jsonFilePath: string): AlternativeASRResult | null {
+	try {
+		if (!existsSync(jsonFilePath)) {
+			console.log(`[ALT-ASR] Alternative ASR file not found: ${jsonFilePath}`);
+			return null;
+		}
+
+		const jsonContent = readFileSync(jsonFilePath, 'utf-8');
+		const data = JSON.parse(jsonContent);
+
+		if (!data.sections || !Array.isArray(data.sections)) {
+			console.warn(`[ALT-ASR] Invalid ASR structure in ${jsonFilePath}`);
+			return null;
+		}
+
+		console.log(`[ALT-ASR] Successfully loaded alternative ASR from ${jsonFilePath}`);
+		return data as AlternativeASRResult;
+	} catch (error) {
+		console.error(`[ALT-ASR] Error parsing alternative ASR JSON: ${error.message}`);
+		return null;
+	}
+}
+
+/**
+ * Extract alternative segments within specified timeframe to match main ASR segments
+ */
+function extractAlternativeSegments(
+	alternativeASR: AlternativeASRResult,
+	startTime: number,
+	endTime: number
+): SegmentWithTiming[] {
+	const extractedSegments: SegmentWithTiming[] = [];
+	
+	// Get all turns from all speech sections
+	const allTurns: AlternativeASRTurn[] = [];
+	alternativeASR.sections.forEach(section => {
+		if (section.type === 'speech' && section.turns) {
+			allTurns.push(...section.turns);
+		}
+	});
+
+	// Extract words within the timeframe
+	const wordsInTimeframe: Array<AlternativeASRWord & { turnStart: number; turnEnd: number; speaker: string }> = [];
+	
+	allTurns.forEach(turn => {
+		// Check if turn overlaps with our timeframe
+		if (turn.start < endTime && turn.end > startTime) {
+			turn.words.forEach(word => {
+				if (word.start >= startTime && word.end <= endTime) {
+					wordsInTimeframe.push({
+						...word,
+						turnStart: turn.start,
+						turnEnd: turn.end,
+						speaker: turn.speaker
+					});
+				}
+			});
+		}
+	});
+
+	if (wordsInTimeframe.length === 0) {
+		return extractedSegments;
+	}
+
+	// Sort words by start time
+	wordsInTimeframe.sort((a, b) => a.start - b.start);
+
+	// Group words into segments (preserve alternative segmentation)
+	let currentSegment: any = null;
+	let segmentIndex = 0;
+
+	wordsInTimeframe.forEach((word) => {
+		// Start new segment if:
+		// 1. First word
+		// 2. Different speaker
+		// 3. Gap > 2 seconds
+		// 4. Different turn
+		const shouldStartNewSegment = !currentSegment || 
+			currentSegment.speaker !== word.speaker ||
+			(word.start - currentSegment.endTime > 2.0) ||
+			currentSegment.turnStart !== word.turnStart;
+
+		if (shouldStartNewSegment) {
+			// Save previous segment if exists
+			if (currentSegment && currentSegment.words.length > 0) {
+				const segmentText = currentSegment.words
+					.map((w: AlternativeASRWord) => w.word_with_punctuation)
+					.join(' ')
+					.trim();
+				
+				extractedSegments.push({
+					index: segmentIndex++,
+					text: segmentText,
+					startTime: currentSegment.startTime,
+					endTime: currentSegment.endTime,
+					startWord: 0, // Alternative ASR segments don't track word positions
+					endWord: 0,
+					speakerName: currentSegment.speakerName,
+					speakerTag: currentSegment.speaker,
+					words: [], // Would need to convert if needed
+					alternatives: [] // Alternative ASR doesn't have n-best
+				});
+			}
+
+			// Start new segment
+			currentSegment = {
+				startTime: word.start,
+				endTime: word.end,
+				speaker: word.speaker,
+				speakerName: `Alt-Speaker-${word.speaker}`,
+				turnStart: word.turnStart,
+				words: [word]
+			};
+		} else {
+			// Add to current segment
+			currentSegment.words.push(word);
+			currentSegment.endTime = word.end;
+		}
+	});
+
+	// Add final segment
+	if (currentSegment && currentSegment.words.length > 0) {
+		const segmentText = currentSegment.words
+			.map((w: AlternativeASRWord) => w.word_with_punctuation)
+			.join(' ')
+			.trim();
+		
+		extractedSegments.push({
+			index: segmentIndex,
+			text: segmentText,
+			startTime: currentSegment.startTime,
+			endTime: currentSegment.endTime,
+			startWord: 0, // Alternative ASR segments don't track word positions
+			endWord: 0,
+			speakerName: currentSegment.speakerName,
+			speakerTag: currentSegment.speaker,
+			words: [], // Would need to convert if needed
+			alternatives: [] // Alternative ASR doesn't have n-best
+		});
+	}
+
+	console.log(`[ALT-ASR] Extracted ${extractedSegments.length} alternative segments from timeframe ${startTime}-${endTime}s`);
+	return extractedSegments;
+}
+
+/**
+ * Get alternative ASR file path based on original filename
+ */
+function getAlternativeASRPath(originalFilename: string): string | null {
+	if (!originalFilename) return null;
+	
+	// Clean filename: remove extension and sanitize for folder matching
+	const cleanName = originalFilename
+		.replace(/\.[^/.]+$/, '') // Remove extension
+		.replace(/[^a-zA-Z0-9\s\-_àáâäąćçčèéêëíîïłńñòóôöøśšùúûüýÿžŽ]/g, '_') // Sanitize special chars
+		.trim();
+		
+	const alternativeJsonPath = join('/home/aivo/dev/est-asr-pipeline/results/podcast', cleanName, 'result.json');
+	
+	console.log(`[ALT-ASR] Looking for alternative ASR at: ${alternativeJsonPath}`);
+	return alternativeJsonPath;
+}
 
 /**
  * Simplified coordination agent focused on WER improvement
@@ -974,15 +1173,29 @@ Respond in JSON format:
 		responseLanguage: string,
 		blockIndex: number,
 		audioFilePath?: string,
+		alternativeSegments?: SegmentWithTiming[],
 		maxIterations: number = 3
 	): Promise<{ corrections: WERCorrection[]; interactions: any[] }> {
 		const formattedSegments = this.formatSegmentsForLLM(segments);
 		const interactions: any[] = [];
 
+		// Format alternative segments if available
+		let alternativeSegmentsText = '';
+		if (alternativeSegments && alternativeSegments.length > 0) {
+			alternativeSegmentsText = '\n\nALTERNATIVE ASR HYPOTHESIS (Estonian-only model):\n' + 
+				this.formatSegmentsForLLM(alternativeSegments, 'Alternative');
+			
+			await this.logger?.logGeneral('info', 'Including alternative ASR segments in analysis', {
+				blockIndex,
+				mainSegmentsCount: segments.length,
+				alternativeSegmentsCount: alternativeSegments.length
+			});
+		}
+
 		// Build initial prompt with agentic instructions
 		let currentPrompt = WER_PROMPTS.AGENTIC_ANALYSIS_PROMPT
 			.replace('{summary}', summary.summary)
-			.replace('{segmentsText}', formattedSegments + signalQualityInfo)
+			.replace('{segmentsText}', formattedSegments + alternativeSegmentsText + signalQualityInfo)
 			.replace('{responseLanguage}', responseLanguage);
 
 		let iteration = 0;
@@ -1246,11 +1459,12 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 	/**
 	 * Format segments for LLM input with metadata for analysis
 	 */
-	private formatSegmentsForLLM(segments: SegmentWithTiming[]): string {
+	private formatSegmentsForLLM(segments: SegmentWithTiming[], prefix?: string): string {
 		return segments
 			.map((segment) => {
 				// Include timing metadata and segment index for ASR tool usage
-				let segmentText = `[Segment ${segment.index}] ${segment.speakerName || segment.speakerTag || 'Speaker'}: ${segment.text}`;
+				const segmentLabel = prefix ? `${prefix}-Segment` : 'Segment';
+				let segmentText = `[${segmentLabel} ${segment.index}] ${segment.speakerName || segment.speakerTag || 'Speaker'}: ${segment.text}`;
 
 				// Add timing information if available
 				if (typeof segment.startTime === 'number' && typeof segment.endTime === 'number') {
@@ -1289,7 +1503,7 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 	 */
 	async analyzeBlock(request: WERBlockAnalysisRequest): Promise<WERBlockAnalysisResult> {
 		const startTime = Date.now();
-		const { segments, summary, blockIndex, fileId, uiLanguage, transcriptFilePath } = request;
+		const { segments, summary, blockIndex, fileId, uiLanguage, transcriptFilePath, alternativeSegments } = request;
 
 		// Initialize logger
 		if (transcriptFilePath) {
@@ -1350,7 +1564,8 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 			signalQualityInfo,
 			responseLanguage,
 			blockIndex,
-			request.audioFilePath
+			request.audioFilePath,
+			alternativeSegments
 		);
 
 		const finalCorrections = agenticResult.corrections;
@@ -1394,14 +1609,30 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 		completedBlocks: number;
 		results: WERBlockAnalysisResult[];
 	}> {
-		const { fileId, editorContent, summary, uiLanguage, transcriptFilePath } = request;
+		const { fileId, editorContent, summary, uiLanguage, transcriptFilePath, originalFilename } = request;
 
 		// Initialize logger
 		if (transcriptFilePath) {
 			this.initializeLogger(transcriptFilePath, fileId);
 		}
 
-		await this.logger?.logGeneral('info', 'Starting WER file analysis', { fileId });
+		await this.logger?.logGeneral('info', 'Starting WER file analysis', { fileId, originalFilename });
+
+		// Load alternative ASR data if available
+		let alternativeASR: AlternativeASRResult | null = null;
+		if (originalFilename) {
+			const alternativeASRPath = getAlternativeASRPath(originalFilename);
+			if (alternativeASRPath) {
+				alternativeASR = parseAlternativeASRJson(alternativeASRPath);
+				if (alternativeASR) {
+					await this.logger?.logGeneral('info', 'Alternative ASR data loaded successfully', {
+						fileId,
+						alternativeASRPath,
+						sectionsCount: alternativeASR.sections.length
+					});
+				}
+			}
+		}
 
 		// Extract segments from editor content
 		const segments = extractSpeakerSegments(editorContent) || [];
@@ -1492,6 +1723,28 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 					resuming: existingCorrections.length > 0
 				});
 
+				// Extract alternative segments for this block's timeframe if available
+				let alternativeBlockSegments: SegmentWithTiming[] | undefined = undefined;
+				if (alternativeASR && blockSegments.length > 0) {
+					const blockStartTime = Math.min(...blockSegments.map(s => s.startTime).filter(t => typeof t === 'number'));
+					const blockEndTime = Math.max(...blockSegments.map(s => s.endTime).filter(t => typeof t === 'number'));
+					
+					if (typeof blockStartTime === 'number' && typeof blockEndTime === 'number') {
+						alternativeBlockSegments = extractAlternativeSegments(
+							alternativeASR,
+							blockStartTime,
+							blockEndTime
+						);
+						
+						await this.logger?.logGeneral('info', `Extracted alternative segments for block ${blockIndex + 1}`, {
+							blockIndex,
+							blockTimeframe: `${blockStartTime.toFixed(1)}s - ${blockEndTime.toFixed(1)}s`,
+							mainSegmentsCount: blockSegments.length,
+							alternativeSegmentsCount: alternativeBlockSegments.length
+						});
+					}
+				}
+
 				// Analyze this block
 				const blockResult = await this.analyzeBlock({
 					fileId,
@@ -1499,7 +1752,8 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 					summary,
 					blockIndex,
 					uiLanguage,
-					transcriptFilePath
+					transcriptFilePath,
+					alternativeSegments: alternativeBlockSegments
 				});
 
 				// Save block result to database

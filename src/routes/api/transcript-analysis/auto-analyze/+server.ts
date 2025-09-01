@@ -36,7 +36,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				initialTranscriptionPath: true,
 				text: true,
 				language: true,
-				path: true
+				path: true,
+				filename: true // For alternative ASR matching
 			}
 		});
 
@@ -318,7 +319,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				editorContent,
 				summary,
 				uiLanguage: 'et', // Estonian for transcript analysis
-				transcriptFilePath: file.initialTranscriptionPath
+				transcriptFilePath: file.initialTranscriptionPath,
+				originalFilename: file.filename // For loading alternative ASR data
 			});
 
 			await logger.logGeneral('info', 'WER analysis completed', {
