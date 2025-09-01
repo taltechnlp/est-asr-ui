@@ -9,7 +9,7 @@ TRANSCRIPT SUMMARY:
 SEGMENTS TO ANALYZE:
 {segmentsText}
 
-NOTE: Each segment includes precise timing metadata and N-best hypotheses when available. Use this information to assess ASR uncertainty.
+NOTE: Each segment includes precise timing metadata and N-best hypotheses when available. Use this information to assess ASR uncertainty. The Main ASR is biased towards Estonian but capable in other languages.
 
 ## ALTERNATIVE ASR HYPOTHESIS (Estonian-only model)
 
@@ -39,66 +39,49 @@ When "ALTERNATIVE ASR HYPOTHESIS (Estonian-only model)" sections are provided, c
 - Verify if Alternative has better alignment (word timing matches speech rhythm)
 - Identify segments where main ASR likely hallucinated foreign words/phrases incorrectly
 
-## CORE PRINCIPLE: N-BEST VARIANCE AS UNCERTAINTY SIGNAL
+## CORE PRINCIPLE: N-BEST VARIANCE AND MODEL DISAGREEMENT AS UNCERTAINTY SIGNAL
 
 The N-best list's primary value lies in the **disagreement/variance** among hypotheses, not just alternative options:
-- **High Confidence**: Top hypotheses are nearly identical → AVOID correction (risk of over-correction)
+- **High Confidence**: Top hypotheses are nearly identical → AVOID correction unless other ASR output disagrees significantly (risk of over-correction)
 - **High Uncertainty**: Top hypotheses show phonetic similarity but semantic divergence → PRIME correction candidate
-- **Example**: ["nist hotel", "nearest hotel", "next hotel"] = HIGH uncertainty, strong correction signal
-
-## UNCERTAINTY ESTIMATION FRAMEWORK
-
-### Stage 1: Assess ASR Confidence
-1. Examine N-best hypotheses for divergence patterns
-2. Calculate semantic/lexical distance between top candidates
-3. Identify phonetically similar but contextually different alternatives
-4. Only proceed to correction if uncertainty score is HIGH
-
-### Stage 2: Evidence-Based Correction Strategy
-- Use multiple N-best sources (primary + secondary ASR via tools)
-- Look for composite solutions across hypotheses
-- Cross-reference with contextual clues and world knowledge
-
-### Stage 3: Confidence Verification
-- Validate corrections against multiple evidence sources
-- Assign confidence scores based on evidence strength
-- Reject low-confidence corrections to prevent degradation
-
-## AVAILABLE TOOLS:
-
-1. **asrAlternatives**: Get additional N-best ASR alternatives for uncertain segments (oftern only returns 1 or 2)
-   Parameters: {"segmentIndex": 5}
-   **PRIMARY USE**: For segments showing initial N-best disagreement or missing alternatives
-   **Strategy**: Compare primary and secondary ASR N-best lists for cross-validation and hints of acoustic ambiguity
-
-2. **phoneticAnalyzer**: Check phonetic similarity between candidates
-   Parameters: {"text": "original word", "candidate": "suggested replacement"}
-   **Use for**: Validating homophone corrections identified in N-best variance
-
-3. **signalQualityAssessor**: Assess audio quality for uncertain segments
-   Parameters: {"startTime": 45.2, "endTime": 48.1}
-   **Use for**: Understanding if uncertainty stems from poor audio quality
-
-4. **webSearch**: Validate unfamiliar terms and proper nouns
-   Parameters: {"query": "search term", "language": "et"}
-   **Use for**: Confirming existence/context of entities found in N-best alternatives
+- **Example**: ["lähim hotell", "lähedal hotell", "läks hotelli"] = HIGH uncertainty, strong correction signal
 
 ## AGENTIC WORKFLOW:
 
-### Phase 1: Uncertainty Detection
-1. Analyze existing N-best hypotheses for variance patterns
-2. Identify segments with high acoustic ambiguity signals
-3. Skip segments with high ASR confidence (similar top hypotheses)
+### Stage 1: Assess ASR Confidence
+1. Examine N-best hypotheses and Alternative ASR hypothesis for divergence patterns. If some alternatives are shorter than others, this just means model stopped earlier - focus on the content of the alternatives, not length.
+2. Calculate semantic/lexical distance between top candidates
+3. Also conside difference between Main ASR and Alternative ASR outputs.
+3. Identify phonetically similar but contextually different alternatives
+4. Only proceed to correction if uncertainty score is HIGH
 
-### Phase 2: Evidence Gathering (Tool Usage)
-1. Request additional N-best alternatives for uncertain segments
-2. Cross-validate findings with phonetic/contextual tools
-3. Build multi-source evidence case for proposed corrections
+### Stage 2: Evidence Gathering (Tool Usage)
+1. Use signal quality assessor to check if uncertainty stems from poor audio
+2. Use phonetic analyzer to validate homophone corrections
+3. Use web search to validate proper nouns and technical terms
 
-### Phase 3: Composite Correction Generation
+## AVAILABLE TOOLS:
+
+1. **phoneticAnalyzer**: Check phonetic similarity between candidates
+   Parameters: {"text": "original word", "candidate": "suggested replacement"}
+   **Use for**: Validating homophone corrections identified in N-best variance or when Main and Alternative ASR disagree
+
+2. **signalQualityAssessor**: Assess audio quality for uncertain segments
+   Parameters: {"startTime": 45.2, "endTime": 48.1}
+   **Use for**: Understanding if uncertainty stems from poor audio quality
+
+3. **webSearch**: Validate unfamiliar terms and proper nouns
+   Parameters: {"query": "search term", "language": "et"}
+   **Use for**: Confirming existence/context of entities found in N-best alternatives or Alternative ASR hypothesis
+
+### Stage 3: Evidence-Based Correction Strategy
+- Use multiple sources (Main + Alternative ASR)
+- Look for composite solutions across hypotheses
+- Cross-reference with contextual clues, world knowledge and tool call results: phonetic similarity and web search results 
+
+### Stage 4: Composite Correction Generation
 1. Synthesize information across all N-best hypotheses
 2. Generate corrections that combine best elements from multiple alternatives
-3. Apply only high-confidence corrections (>0.8 confidence)
 
 ## RESPONSE FORMAT:
 
@@ -113,21 +96,21 @@ The N-best list's primary value lies in the **disagreement/variance** among hypo
   },
   "toolRequests": [
     {
-      "tool": "asrAlternatives",
-      "params": {"segmentIndex": 5},
-      "rationale": "Need secondary ASR N-best for cross-validation of acoustic ambiguity"
+      "tool": "phoneticAnalyzer",
+      "params": {"text": "original word", "candidate": "suggested replacement"},
+      "rationale": "Need to validate phonetic similarity for potential homophone correction"
     }
   ],
   "needsMoreAnalysis": true,
   "corrections": []
 }
 
-### For final corrections (after evidence gathering):
+### For final corrections in Stage 4 (after Evidence-Based Correction Strategy):
 {
   "reasoning": "Multi-source evidence synthesis showing how correction was derived from N-best analysis",
   "uncertaintyAssessment": {
     "divergenceScore": "high",
-    "evidenceSources": ["primary N-best", "secondary ASR", "phonetic analysis"],
+    "evidenceSources": ["Main ASR N-best", "Alternative ASR", "phonetic analysis"],
     "compositeCorrection": true/false
   },
   "toolRequests": [],
@@ -161,15 +144,15 @@ The N-best list's primary value lies in the **disagreement/variance** among hypo
 ## CRITICAL SUCCESS FACTORS:
 
 ### Uncertainty Gating Rules:
-1. **DO NOT CORRECT** segments with low N-best divergence (over-correction risk)
+1. **DO NOT CORRECT** segments with low divergence across ASR model results (over-correction risk)
 2. **PRIORITIZE** segments where top 3-5 hypotheses show phonetic similarity but semantic differences
-3. **VALIDATE** corrections using multiple N-best sources (primary + secondary ASR)
+3. **VALIDATE** corrections using Main ASR N-best and Alternative Estonian-only ASR
 4. **COMPOSE** final corrections by combining best elements across hypotheses
 
 ### Evidence Hierarchy (in order of reliability):
-1. Cross-validated N-best agreement (primary + secondary ASR)
+1. Cross-validated agreement between Main ASR N-best and Alternative Estonian-only ASR
 2. Phonetic similarity analysis with contextual plausibility
-3. World knowledge validation for proper nouns/technical terms
+3. World knowledge validation for proper nouns/technical terms (via web search)
 4. Audio quality assessment for ambiguous cases
 
 ### Confidence Scoring Guidelines:
@@ -181,11 +164,12 @@ The N-best list's primary value lies in the **disagreement/variance** among hypo
 ## PRACTICAL EXAMPLES:
 
 ### Example 1: High Uncertainty Signal (CORRECT THIS)
-**Segment**: "kus on lähim maja"
-**N-best**: ["lähim maja", "lähem maja", "lehe maja"]
-**Analysis**: High divergence - phonetically similar but semantically different
-**Action**: Request asrAlternatives for cross-validation
-**Expected Correction**: "lähim maja" (closest house - most contextually plausible)
+**Main ASR Segment**: "kus on lähim maja"
+**Main N-best**: ["lähim maja", "lähem maja", "lehe maja"]  
+**Alternative ASR**: "kus on lähim maja"
+**Analysis**: High divergence in Main ASR but Alternative ASR confirms "lähim maja"
+**Action**: Use Alternative ASR confirmation + phonetic validation
+**Expected Correction**: "lähim maja" (closest house - supported by Alternative ASR)
 
 ### Example 2: Low Uncertainty Signal (DO NOT CORRECT)
 **Segment**: "täna on ilus ilm"
@@ -193,12 +177,12 @@ The N-best list's primary value lies in the **disagreement/variance** among hypo
 **Analysis**: Low divergence - minimal semantic difference
 **Action**: Skip correction (high ASR confidence, over-correction risk)
 
-### Example 3: Composite Correction Strategy
-**Segment**: "ma tahan osta see maja"
-**Primary N-best**: ["tahan osta see", "tahan osata see", "tahan osta seda"]
-**Secondary N-best**: ["tahan osta seda", "tahan osta seda maja", "tahaksin osta seda"]
-**Analysis**: Clear error pattern across multiple sources
-**Correction**: Synthesize "tahan osta seda maja" from secondary validation
+### Example 3: Alternative ASR Correction Strategy
+**Main ASR Segment**: "ma tahan osta see maja"
+**Main N-best**: ["tahan osta see", "tahan osata see", "tahan osta seda"]
+**Alternative ASR**: "ma tahan osta seda maja"
+**Analysis**: Main ASR shows uncertainty, Alternative ASR provides better Estonian grammar
+**Correction**: Use Alternative ASR "tahan osta seda maja" (proper Estonian case ending)
 
 ### Example 4: Estonian Phonetic Similarity Patterns to Recognize
 - **Common confusions**: "maja" vs "marja" (house vs berry)

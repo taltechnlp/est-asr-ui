@@ -50,7 +50,43 @@ function parseSegmentsFromCorrectedText(correctedText: string): ParsedSegment[] 
 		}
 	}
 	
-	// If no segments found with [Segment N] pattern, try alternative patterns
+	// If no segments found with [Segment N] pattern, try the actual WER agent format
+	// WER agent outputs: "Speaker Name: text here\n\nSpeaker Name: more text here"
+	if (segments.length === 0) {
+		// Split by double newlines to get speaker segments
+		const speakerBlocks = correctedText.split(/\n\s*\n/).filter(block => block.trim());
+		
+		speakerBlocks.forEach((block, index) => {
+			const lines = block.split('\n').filter(line => line.trim());
+			
+			for (const line of lines) {
+				// Match "Speaker Name: text" pattern
+				const speakerMatch = line.match(/^([^:]+):\s*(.+)$/);
+				if (speakerMatch) {
+					const speakerName = speakerMatch[1].trim();
+					const text = speakerMatch[2].trim();
+					
+					if (text && text.length > 3) { // Skip very short segments
+						segments.push({
+							segmentIndex: segments.length,
+							text
+						});
+					}
+				} else {
+					// If no colon pattern, treat the whole line as text (fallback)
+					const text = line.trim();
+					if (text && text.length > 3) {
+						segments.push({
+							segmentIndex: segments.length,
+							text
+						});
+					}
+				}
+			}
+		});
+	}
+	
+	// Final fallback: try to match any pattern with speaker info
 	if (segments.length === 0) {
 		// Try to match numbered lines like "1. text" or "Speaker 1: text"
 		const linePattern = /(?:^|\n)(?:\d+\.?\s*|Speaker\s*\d+:\s*)(.*?)(?=\n\d+\.|\nSpeaker\s*\d+:|\n\[|$)/gs;
@@ -150,20 +186,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			parsedContent = transcriptContent;
 		}
 		
-		// Ensure parsedContent is the right format for ASR data
-		console.log(`DEBUG: Raw transcriptContent type: ${typeof transcriptContent}`);
-		console.log(`DEBUG: Raw transcriptContent length: ${transcriptContent?.length}`);
-		console.log(`DEBUG: Parsed content type: ${typeof parsedContent}`);
-		console.log(`DEBUG: Parsed content keys: ${parsedContent && typeof parsedContent === 'object' ? Object.keys(parsedContent) : 'not object'}`);
-		
 		// If parsedContent is still a string, try to re-parse it as it might be double-encoded
 		if (typeof parsedContent === 'string') {
 			try {
 				parsedContent = JSON.parse(parsedContent);
-				console.log(`DEBUG: Double-parsed content type: ${typeof parsedContent}`);
-				console.log(`DEBUG: Double-parsed content keys: ${parsedContent && typeof parsedContent === 'object' ? Object.keys(parsedContent) : 'not object'}`);
 			} catch (error2) {
-				console.log(`DEBUG: Double-parsing failed:`, error2.message);
+				// Ignore parsing errors
 			}
 		}
 
@@ -259,8 +287,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		let segments = [];
 		
 		// Extract speaker segments with their timing from the ASR data
-		console.log(`DEBUG: parsedContent type:`, typeof parsedContent);
-		console.log(`DEBUG: parsedContent structure:`, parsedContent ? Object.keys(parsedContent) : 'null');
 		
 		const speakerSegmentsFromASR = [];
 		
@@ -269,7 +295,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		
 		// Check if it's the TipTap editor format (has content array)
 		if (parsedContent && parsedContent.content && Array.isArray(parsedContent.content)) {
-			console.log(`DEBUG: Using TipTap editor format with ${parsedContent.content.length} items`);
 			contentToProcess = parsedContent.content;
 			
 			contentToProcess.forEach((contentItem, speakerIndex) => {
@@ -315,27 +340,16 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}
 		// Check if it's raw ASR format (has best_hypothesis)
 		else if (parsedContent && parsedContent.best_hypothesis) {
-			console.log(`DEBUG: Using raw ASR format with best_hypothesis`);
 			const bestHypothesis = parsedContent.best_hypothesis;
-			console.log(`DEBUG: bestHypothesis type:`, typeof bestHypothesis);
-			console.log(`DEBUG: bestHypothesis keys:`, bestHypothesis && typeof bestHypothesis === 'object' ? Object.keys(bestHypothesis) : 'not object');
-			console.log(`DEBUG: bestHypothesis.content exists:`, !!(bestHypothesis && bestHypothesis.content));
-			console.log(`DEBUG: bestHypothesis.content length:`, bestHypothesis?.content?.length);
 			
 			// Parse the best hypothesis using the correct ASR schema structure
 			if (bestHypothesis && bestHypothesis.sections && Array.isArray(bestHypothesis.sections)) {
-				console.log(`DEBUG: Processing ${bestHypothesis.sections.length} sections`);
-				
+				let segmentCounter = 0; // Use sequential numbering like WER agent
 				bestHypothesis.sections.forEach((section, sectionIndex) => {
-					console.log(`DEBUG: Section ${sectionIndex} type:`, section.type);
-					console.log(`DEBUG: Section ${sectionIndex} turns:`, section.turns?.length || 0);
 					
 					if (section && section.turns && Array.isArray(section.turns)) {
 						// Process each turn (speaker segment) within the section
 						section.turns.forEach((turn, turnIndex) => {
-							console.log(`DEBUG: Turn ${turnIndex} speaker:`, turn.speaker);
-							console.log(`DEBUG: Turn ${turnIndex} words:`, turn.words?.length || 0);
-							console.log(`DEBUG: Turn ${turnIndex} start:${turn.start}, end:${turn.end}`);
 							
 							if (turn.words && Array.isArray(turn.words) && turn.words.length > 0) {
 								let segmentStartTime = turn.start;
@@ -344,13 +358,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 								
 								// Extract text from words - use word_with_punctuation for proper formatting
 								turn.words.forEach((word, wordIndex) => {
-									console.log(`DEBUG: Word ${wordIndex}:`, {
-										start: word.start,
-										end: word.end,
-										word: word.word,
-										word_with_punctuation: word.word_with_punctuation
-									});
-									
 									// Use word_with_punctuation for proper text formatting
 									const text = word.word_with_punctuation || word.word || '';
 									
@@ -359,11 +366,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 									}
 								});
 								
-								console.log(`DEBUG: Turn ${turnIndex} summary - speaker:${turn.speaker}, start:${segmentStartTime}s, end:${segmentEndTime}s, textLength:${segmentText.length}`);
-								
 								if (segmentStartTime !== null && segmentEndTime !== null && segmentText.trim()) {
 									speakerSegmentsFromASR.push({
-										index: sectionIndex * 100 + turnIndex, // Unique index for each turn
+										index: segmentCounter++, // Sequential numbering like WER agent
 										start: segmentStartTime,
 										end: segmentEndTime,
 										originalText: segmentText.trim(),
@@ -372,9 +377,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 								}
 							} else if (turn.transcript) {
 								// Fallback to transcript text if no words available
-								console.log(`DEBUG: Turn ${turnIndex} using transcript fallback`);
 								speakerSegmentsFromASR.push({
-									index: sectionIndex * 100 + turnIndex,
+									index: segmentCounter++, // Sequential numbering like WER agent
 									start: turn.start,
 									end: turn.end,
 									originalText: turn.transcript.trim(),
@@ -386,9 +390,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				});
 			}
 		}
-		
-		console.log(`DEBUG: Processed ASR data and found ${speakerSegmentsFromASR.length} segments`);
-		
 		console.log(`Extracted ${speakerSegmentsFromASR.length} speaker segments from ASR with timing`);
 		
 		if (werCorrections.length > 0) {
@@ -415,25 +416,37 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 				if (parsedSegments.length > 0) {
 					// Map parsed segments back to original ASR timing
-					for (const parsedSegment of parsedSegments) {
-						const segmentIndex = parsedSegment.segmentIndex;
+					console.log(`Mapping ${parsedSegments.length} parsed segments to ${blockSegmentIndices.length} block segments`);
+					
+					for (let i = 0; i < parsedSegments.length && i < blockSegmentIndices.length; i++) {
+						const parsedSegment = parsedSegments[i];
+						// Map relative segment index to actual ASR segment index
+						const actualSegmentIndex = blockSegmentIndices[i];
 						
-						// Skip if already processed or not in this block
-						if (processedSegmentIndices.has(segmentIndex) || !blockSegmentIndices.includes(segmentIndex)) {
+						// Skip if already processed
+						if (processedSegmentIndices.has(actualSegmentIndex)) {
+							console.log(`Skipping already processed segment ${actualSegmentIndex}`);
 							continue;
 						}
 						
 						// Find corresponding ASR segment for timing
-						const asrSegment = speakerSegmentsFromASR.find(asr => asr.index === segmentIndex);
+						const asrSegment = speakerSegmentsFromASR.find(asr => asr.index === actualSegmentIndex);
 						if (asrSegment) {
 							segments.push({
 								start: asrSegment.start,
 								end: asrSegment.end,
 								text: parsedSegment.text.trim()
 							});
-							processedSegmentIndices.add(segmentIndex);
-							console.log(`Added parsed segment ${segmentIndex}: ${asrSegment.start}s-${asrSegment.end}s`);
+							processedSegmentIndices.add(actualSegmentIndex);
+							console.log(`Mapped parsed segment ${i} to ASR segment ${actualSegmentIndex} (${asrSegment.start}s-${asrSegment.end}s)`);
+						} else {
+							console.log(`No ASR segment found for index ${actualSegmentIndex}`);
 						}
+					}
+					
+					// Log if there's a mismatch in segment counts
+					if (parsedSegments.length !== blockSegmentIndices.length) {
+						console.log(`WARNING: Parsed segments (${parsedSegments.length}) != block segments (${blockSegmentIndices.length})`);
 					}
 				} else {
 					// Fallback: if parsing failed, use original segments for this block
@@ -493,11 +506,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		
 		if (segments.length === 0) {
 			console.error(`ERROR: No segments generated!`);
-			console.error(`DEBUG: werCorrections.length = ${werCorrections.length}`);
-			console.error(`DEBUG: speakerSegmentsFromASR.length = ${speakerSegmentsFromASR.length}`);
-			console.error(`DEBUG: analysisSegments.length = ${analysisSegments.length}`);
-		} else {
-			console.log(`DEBUG: First few segments:`, segments.slice(0, 2));
+			console.error(`WER corrections: ${werCorrections.length}, ASR segments: ${speakerSegmentsFromASR.length}, Analysis segments: ${analysisSegments.length}`);
 		}
 
 		const exportResult = {
