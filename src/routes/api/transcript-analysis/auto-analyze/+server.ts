@@ -101,18 +101,22 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const transcriptPath = file.initialTranscriptionPath || `/tmp/${file.id}.transcript`;
 		const logger = getAgentFileLogger(transcriptPath, file.id);
 
-		await logger.logGeneral('info', 'Starting auto-analysis', { 
-			fileId, 
+		await logger.logGeneral('info', 'Starting auto-analysis', {
+			fileId,
 			filename: file.filename,
 			fileSize: transcriptContent?.length || 0
 		});
-		
+
 		// Log progress marker for long-running operations
-		console.log(`[AUTO-ANALYSIS] Starting analysis for file: ${file.filename} (${file.id}) - Content length: ${transcriptContent?.length || 0} chars`);
+		console.log(
+			`[AUTO-ANALYSIS] Starting analysis for file: ${file.filename} (${file.id}) - Content length: ${transcriptContent?.length || 0} chars`
+		);
 
 		// Set up periodic heartbeat for long-running operations
 		const heartbeatInterval = setInterval(() => {
-			console.log(`[AUTO-ANALYSIS] Still processing file: ${file.filename} (${file.id}) - Analysis in progress...`);
+			console.log(
+				`[AUTO-ANALYSIS] Still processing file: ${file.filename} (${file.id}) - Analysis in progress...`
+			);
 		}, 60000); // Every 60 seconds
 
 		try {
@@ -310,8 +314,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				segmentCount: segments.length,
 				contentLength: JSON.stringify(editorContent).length
 			});
-			
-			console.log(`[AUTO-ANALYSIS] Starting WER agent processing for file: ${file.filename} - ${segments.length} segments`);
+
+			console.log(
+				`[AUTO-ANALYSIS] Starting WER agent processing for file: ${file.filename} - ${segments.length} segments`
+			);
 
 			// WER agent processes entire file in 20-segment blocks
 			const analysisResult = await agent.analyzeFile({
@@ -328,8 +334,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				completedBlocks: analysisResult.completedBlocks,
 				successRate: `${((analysisResult.completedBlocks / analysisResult.totalBlocks) * 100).toFixed(1)}%`
 			});
-			
-			console.log(`[AUTO-ANALYSIS] Completed WER analysis for file: ${file.filename} - ${analysisResult.completedBlocks}/${analysisResult.totalBlocks} blocks processed`);
+
+			console.log(
+				`[AUTO-ANALYSIS] Completed WER analysis for file: ${file.filename} - ${analysisResult.completedBlocks}/${analysisResult.totalBlocks} blocks processed`
+			);
 
 			// Clear heartbeat interval
 			clearInterval(heartbeatInterval);
@@ -348,7 +356,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		} catch (error) {
 			// Clear heartbeat interval on error
 			clearInterval(heartbeatInterval);
-			
+
 			if (transcriptPath && file.id) {
 				const logger = getAgentFileLogger(transcriptPath, file.id);
 				await logger.logGeneral('error', 'Auto-analysis failed', {

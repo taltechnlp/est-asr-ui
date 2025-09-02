@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { NodeViewProps } from '@tiptap/core';
 	import { NodeViewWrapper, NodeViewContent } from 'svelte-tiptap';
+	import type { Node as ProseMirrorNode } from 'prosemirror-model';
 	import { onMount, onDestroy } from 'svelte';
 	import Icon from '../Icon.svelte';
 	import { clickOutside } from '../clickOutside';
@@ -51,20 +52,20 @@
 	};
 
 	let isListOpen = $state(false);
-	let initialName = node.attrs['data-name'];
-	let initialId = node.attrs['id'];
+	let initialName = (node as any).attrs['data-name'];
+	let initialId = (node as any).attrs['id'];
 	// ALWAYS generate a unique ID for this segment instance - never reuse existing IDs
 	// This ensures each segment component has its own unique identifier
 	let segmentUniqueId = $state(uuidv4().substring(32 - 12));
 	let selectedVal: Name = $state({
-		name: node.attrs['data-name'],
+		name: (node as any).attrs['data-name'],
 		id: segmentUniqueId
 	});
 	let newSpeaker = $state('');
 	let editSpeakerId = $state('');
 	let editingValue = $state('');
 	let isSelectedSegment = $state(false);
-	let names = $state();
+	let names = $state<Name[]>([]);
 	speakerNames.subscribe((ns) => {
 		// Update dropdown list where for each id one name is shown only
 		names = ns.reduce((acc, curr) => {
@@ -76,9 +77,9 @@
 		}, [] as Array<Speaker>);
 		// Update selected name of each component instance
 		// Keep the unique segment ID, only update the name
-		if (node && node.attrs['data-name']) {
+		if (node && (node as any).attrs['data-name']) {
 			selectedVal = {
-				name: node.attrs['data-name'],
+				name: (node as any).attrs['data-name'],
 				id: segmentUniqueId // Keep using the unique segment ID
 			};
 		}
@@ -134,9 +135,9 @@
 		let text = '';
 		
 		// Extract words using ProseMirror node API
-		if (node && node.content) {
+		if (node && (node as any).content) {
 			// ProseMirror nodes have a forEach method to iterate over child nodes
-			node.forEach((child: any, offset: number, index: number) => {
+			(node as any).forEach((child: any, offset: number, index: number) => {
 				// Check if this is a Word node (AI editor)
 				if (child.type && child.type.name === 'wordNode') {
 					// Extract text from Word node

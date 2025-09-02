@@ -1,8 +1,4 @@
-import {
-	createOpenRouterChat,
-	DEFAULT_MODEL,
-	OPENROUTER_MODELS
-} from '$lib/llm/openrouter-direct';
+import { createOpenRouterChat, DEFAULT_MODEL, OPENROUTER_MODELS } from '$lib/llm/openrouter-direct';
 import { HumanMessage } from '@langchain/core/messages';
 import { createWebSearchTool } from './tools';
 import type { TranscriptSummary, TranscriptCorrection } from '@prisma/client';
@@ -13,7 +9,11 @@ import { getAgentFileLogger, type AgentFileLogger } from '$lib/utils/agentFileLo
 import { extractSpeakerSegments } from '$lib/utils/extractWordsFromEditor';
 import type { TipTapEditorContent } from '../../types';
 import { WER_PROMPTS } from './prompts/wer_analysis';
-import { robustJsonParse, validateJsonStructure, formatParsingErrorForLLM } from './utils/jsonParser';
+import {
+	robustJsonParse,
+	validateJsonStructure,
+	formatParsingErrorForLLM
+} from './utils/jsonParser';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
@@ -127,22 +127,24 @@ function extractAlternativeSegments(
 	endTime: number
 ): SegmentWithTiming[] {
 	const extractedSegments: SegmentWithTiming[] = [];
-	
+
 	// Get all turns from all speech sections
 	const allTurns: AlternativeASRTurn[] = [];
-	alternativeASR.sections.forEach(section => {
+	alternativeASR.sections.forEach((section) => {
 		if (section.type === 'speech' && section.turns) {
 			allTurns.push(...section.turns);
 		}
 	});
 
 	// Extract words within the timeframe
-	const wordsInTimeframe: Array<AlternativeASRWord & { turnStart: number; turnEnd: number; speaker: string }> = [];
-	
-	allTurns.forEach(turn => {
+	const wordsInTimeframe: Array<
+		AlternativeASRWord & { turnStart: number; turnEnd: number; speaker: string }
+	> = [];
+
+	allTurns.forEach((turn) => {
 		// Check if turn overlaps with our timeframe
 		if (turn.start < endTime && turn.end > startTime) {
-			turn.words.forEach(word => {
+			turn.words.forEach((word) => {
 				if (word.start >= startTime && word.end <= endTime) {
 					wordsInTimeframe.push({
 						...word,
@@ -172,9 +174,10 @@ function extractAlternativeSegments(
 		// 2. Different speaker
 		// 3. Gap > 2 seconds
 		// 4. Different turn
-		const shouldStartNewSegment = !currentSegment || 
+		const shouldStartNewSegment =
+			!currentSegment ||
 			currentSegment.speaker !== word.speaker ||
-			(word.start - currentSegment.endTime > 2.0) ||
+			word.start - currentSegment.endTime > 2.0 ||
 			currentSegment.turnStart !== word.turnStart;
 
 		if (shouldStartNewSegment) {
@@ -184,7 +187,7 @@ function extractAlternativeSegments(
 					.map((w: AlternativeASRWord) => w.word_with_punctuation)
 					.join(' ')
 					.trim();
-				
+
 				extractedSegments.push({
 					index: segmentIndex++,
 					text: segmentText,
@@ -221,7 +224,7 @@ function extractAlternativeSegments(
 			.map((w: AlternativeASRWord) => w.word_with_punctuation)
 			.join(' ')
 			.trim();
-		
+
 		extractedSegments.push({
 			index: segmentIndex,
 			text: segmentText,
@@ -236,7 +239,9 @@ function extractAlternativeSegments(
 		});
 	}
 
-	console.log(`[ALT-ASR] Extracted ${extractedSegments.length} alternative segments from timeframe ${startTime}-${endTime}s`);
+	console.log(
+		`[ALT-ASR] Extracted ${extractedSegments.length} alternative segments from timeframe ${startTime}-${endTime}s`
+	);
 	return extractedSegments;
 }
 
@@ -245,14 +250,18 @@ function extractAlternativeSegments(
  */
 function getAlternativeASRPath(originalFilename: string): string | null {
 	if (!originalFilename) return null;
-	
+
 	// Clean filename: remove extension but keep other characters for exact folder matching
 	const cleanName = originalFilename
 		.replace(/\.[^/.]+$/, '') // Remove extension only
 		.trim();
-		
-	const alternativeJsonPath = join('/home/aivo/dev/est-asr-pipeline/results/podcast', cleanName, 'result.json');
-	
+
+	const alternativeJsonPath = join(
+		'/home/aivo/dev/est-asr-pipeline/results/podcast',
+		cleanName,
+		'result.json'
+	);
+
 	console.log(`[ALT-ASR] Looking for alternative ASR at: ${alternativeJsonPath}`);
 	return alternativeJsonPath;
 }
@@ -288,7 +297,8 @@ export class CoordinatingAgentWER {
 				temperature: 0.1,
 				maxTokens: 12000, // Increased for detailed N-best variance analysis prompts
 				enableCaching: true, // Enable prompt caching for fallback too
-				cacheBreakpoints: fallbackModelName.includes('anthropic') || fallbackModelName.includes('claude') ? [0] : []
+				cacheBreakpoints:
+					fallbackModelName.includes('anthropic') || fallbackModelName.includes('claude') ? [0] : []
 			});
 		}
 
@@ -343,7 +353,6 @@ export class CoordinatingAgentWER {
 		}
 	}
 
-
 	/**
 	 * Invoke model with automatic fallback
 	 */
@@ -351,7 +360,7 @@ export class CoordinatingAgentWER {
 		const invokeStart = Date.now();
 		try {
 			// Log the outgoing prompt
-			const promptContent = messages.map(m => m.content).join('\n');
+			const promptContent = messages.map((m) => m.content).join('\n');
 			await this.logger?.logLLMRequest(promptContent, `${this.primaryModelName} (Primary Model)`);
 
 			const response = await this.model.invoke(messages);
@@ -388,17 +397,17 @@ export class CoordinatingAgentWER {
 				);
 
 				try {
-					// Log fallback prompt  
-					const fallbackPromptContent = messages.map(m => m.content).join('\n');
+					// Log fallback prompt
+					const fallbackPromptContent = messages.map((m) => m.content).join('\n');
 					await this.logger?.logLLMRequest(fallbackPromptContent, 'GPT-4o (Fallback Model)');
 
 					const fallbackResponse = await this.fallbackModel.invoke(messages);
-					
+
 					// Log fallback response with timing and cache metrics
 					const fallbackContent = fallbackResponse.content as string;
 					const fallbackDuration = Date.now() - invokeStart;
 					await this.logger?.logLLMResponse(fallbackContent, fallbackDuration);
-					
+
 					// Log fallback cache metrics if available
 					if (fallbackResponse.cacheMetrics) {
 						await this.logger?.logGeneral('info', 'Fallback cache metrics', {
@@ -406,7 +415,7 @@ export class CoordinatingAgentWER {
 							...fallbackResponse.cacheMetrics
 						});
 					}
-					
+
 					await this.logger?.logGeneral('info', 'Successfully fell back to GPT-4o', {
 						responseLength: fallbackContent.length
 					});
@@ -514,7 +523,10 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 
 				// Try parsing the corrected response
 				const correctedParseResult = robustJsonParse(correctedText);
-				if (correctedParseResult.success && validateJsonStructure(correctedParseResult.data, expectedStructure)) {
+				if (
+					correctedParseResult.success &&
+					validateJsonStructure(correctedParseResult.data, expectedStructure)
+				) {
 					await this.logger?.logGeneral('info', 'JSON correction successful', {
 						retry,
 						fixesApplied: correctedParseResult.fixesApplied
@@ -533,12 +545,12 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 		}
 
 		// All retries failed - return fallback structure
-		await this.logger?.logGeneral('error', 'All JSON parsing attempts failed, returning empty result');
+		await this.logger?.logGeneral(
+			'error',
+			'All JSON parsing attempts failed, returning empty result'
+		);
 		return { corrections: [] };
 	}
-
-
-
 
 	/**
 	 * Execute a single tool request with proper parameter validation
@@ -565,7 +577,7 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 					if (!this.phoneticTool) {
 						throw new Error('PhoneticAnalyzer tool not available');
 					}
-					
+
 					if (!params.text || !params.candidate) {
 						throw new Error('PhoneticAnalyzer requires "text" and "candidate" parameters');
 					}
@@ -589,7 +601,9 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 					}
 
 					if (typeof params.startTime !== 'number' || typeof params.endTime !== 'number') {
-						throw new Error('SignalQualityAssessor requires numeric "startTime" and "endTime" parameters');
+						throw new Error(
+							'SignalQualityAssessor requires numeric "startTime" and "endTime" parameters'
+						);
 					}
 
 					const qualityData = await this.signalQualityTool.assessSignalQuality({
@@ -604,11 +618,12 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 						result: {
 							snrDb: qualityData.snr_db,
 							qualityCategory: qualityData.quality_category,
-							recommendation: qualityData.quality_category === 'poor' 
-								? 'Be more conservative with corrections due to poor audio quality'
-								: qualityData.quality_category === 'excellent'
-								? 'Can be more confident with corrections due to excellent audio quality'
-								: 'Use balanced confidence levels based on audio quality'
+							recommendation:
+								qualityData.quality_category === 'poor'
+									? 'Be more conservative with corrections due to poor audio quality'
+									: qualityData.quality_category === 'excellent'
+										? 'Can be more confident with corrections due to excellent audio quality'
+										: 'Use balanced confidence levels based on audio quality'
 						}
 					};
 				}
@@ -640,13 +655,13 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 								title: r.title,
 								snippet: r.snippet.substring(0, 150) + (r.snippet.length > 150 ? '...' : '')
 							})),
-							summary: searchData.results.length > 0 
-								? `Found ${searchData.results.length} results for "${params.query}"`
-								: `No results found for "${params.query}"`
+							summary:
+								searchData.results.length > 0
+									? `Found ${searchData.results.length} results for "${params.query}"`
+									: `No results found for "${params.query}"`
 						}
 					};
 				}
-
 
 				default:
 					throw new Error(`Unknown tool: ${tool}`);
@@ -683,19 +698,24 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 		await this.logger?.logGeneral('info', 'Executing tool requests', {
 			blockIndex,
 			toolCount: toolRequests.length,
-			tools: toolRequests.map(t => t.tool)
+			tools: toolRequests.map((t) => t.tool)
 		});
 
 		const toolResults = [];
 
 		for (const toolRequest of toolRequests) {
-			const result = await this.executeToolRequest(toolRequest, segments, blockIndex, audioFilePath);
+			const result = await this.executeToolRequest(
+				toolRequest,
+				segments,
+				blockIndex,
+				audioFilePath
+			);
 			toolResults.push(result);
 		}
 
 		// Format results for LLM consumption
 		let formattedResults = '\n\nTOOL RESULTS:\n';
-		
+
 		for (const toolResult of toolResults) {
 			if (toolResult.error) {
 				formattedResults += `\n❌ ${toolResult.tool} FAILED: ${toolResult.error}\n`;
@@ -703,7 +723,7 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 			}
 
 			formattedResults += `\n✅ ${toolResult.tool.toUpperCase()} RESULTS:\n`;
-			
+
 			switch (toolResult.tool) {
 				case 'phoneticAnalyzer':
 					formattedResults += `- Similarity Score: ${toolResult.result.similarityScore?.toFixed(2) || 'unknown'}\n`;
@@ -725,7 +745,6 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 						});
 					}
 					break;
-
 			}
 		}
 
@@ -751,9 +770,10 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 		// Format alternative segments if available
 		let alternativeSegmentsText = '';
 		if (alternativeSegments && alternativeSegments.length > 0) {
-			alternativeSegmentsText = '\n\nALTERNATIVE ASR HYPOTHESIS (Estonian-only model):\n' + 
+			alternativeSegmentsText =
+				'\n\nALTERNATIVE ASR HYPOTHESIS (Estonian-only model):\n' +
 				this.formatSegmentsForLLM(alternativeSegments, 'Alternative');
-			
+
 			await this.logger?.logGeneral('info', 'Including alternative ASR segments in analysis', {
 				blockIndex,
 				mainSegmentsCount: segments.length,
@@ -762,8 +782,10 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 		}
 
 		// Build cache-optimized prompt with static instructions first
-		const dynamicContent = WER_PROMPTS.DYNAMIC_CONTENT_TEMPLATE
-			.replace('{responseLanguage}', responseLanguage)
+		const dynamicContent = WER_PROMPTS.DYNAMIC_CONTENT_TEMPLATE.replace(
+			'{responseLanguage}',
+			responseLanguage
+		)
 			.replace('{summary}', summary.summary)
 			.replace('{segmentsText}', formattedSegments + alternativeSegmentsText + signalQualityInfo);
 
@@ -782,7 +804,9 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 			// Send current prompt to LLM
 			const llmStart = Date.now();
 
-			const response = await this.invokeWithFallback([new HumanMessage({ content: currentPrompt })]);
+			const response = await this.invokeWithFallback([
+				new HumanMessage({ content: currentPrompt })
+			]);
 			const responseContent = response.content as string;
 
 			const llmDuration = Date.now() - llmStart;
@@ -799,10 +823,13 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 			// Parse response
 			let parsedResponse;
 			try {
-				parsedResponse = await this.parseResponseWithRetry(
-					responseContent,
-					['reasoning', 'toolRequests', 'needsMoreAnalysis', 'corrections', 'uncertaintyAssessment']
-				);
+				parsedResponse = await this.parseResponseWithRetry(responseContent, [
+					'reasoning',
+					'toolRequests',
+					'needsMoreAnalysis',
+					'corrections',
+					'uncertaintyAssessment'
+				]);
 			} catch (error) {
 				await this.logger?.logGeneral('error', 'Failed to parse agentic response', {
 					blockIndex,
@@ -854,7 +881,7 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 					audioFilePath
 				);
 
-				// Build cache-optimized follow-up prompt with static instructions first  
+				// Build cache-optimized follow-up prompt with static instructions first
 				const followUpDynamicContent = `Based on your previous analysis and the tool results below, provide your final corrections.
 
 PREVIOUS ANALYSIS:
@@ -889,7 +916,6 @@ Now provide your final corrections in JSON format:
 IMPORTANT: Use the tool results above to make informed correction decisions. Only suggest corrections you are confident about (>0.7).`;
 
 				currentPrompt = WER_PROMPTS.STATIC_INSTRUCTIONS + '\n\n' + followUpDynamicContent;
-
 			} else {
 				// No tools requested but still needs analysis - this shouldn't happen in a well-designed prompt
 				await this.logger?.logGeneral('warn', 'LLM requested more analysis but no tools', {
@@ -1081,49 +1107,55 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 	): Promise<string> {
 		try {
 			// Split the corrected text back into speaker segments
-			const correctedSegments = correctedText.split(/\n\s*\n/).filter(segment => segment.trim());
-			
+			const correctedSegments = correctedText.split(/\n\s*\n/).filter((segment) => segment.trim());
+
 			await this.logger?.logGeneral('debug', `Reconstructing text with segments`, {
 				blockIndex,
 				originalSegmentCount: originalSegments.length,
 				correctedSegmentCount: correctedSegments.length
 			});
-			
+
 			// Map corrected segments back to original segment structure with [Segment N] markers
 			const reconstructedSegments = [];
-			
+
 			for (let i = 0; i < Math.min(originalSegments.length, correctedSegments.length); i++) {
 				const originalSegment = originalSegments[i];
 				const correctedSegment = correctedSegments[i];
-				
+
 				// Extract just the text part from "Speaker: text" format
 				const textMatch = correctedSegment.match(/^[^:]+:\s*(.*)$/);
 				const text = textMatch ? textMatch[1].trim() : correctedSegment.trim();
-				
+
 				// Reconstruct with segment markers
 				let segmentText = `[Segment ${originalSegment.index}] ${originalSegment.speakerName || originalSegment.speakerTag || 'Speaker'}: ${text}`;
-				
+
 				// Add timing information if available
-				if (typeof originalSegment.startTime === 'number' && typeof originalSegment.endTime === 'number') {
+				if (
+					typeof originalSegment.startTime === 'number' &&
+					typeof originalSegment.endTime === 'number'
+				) {
 					const duration = originalSegment.endTime - originalSegment.startTime;
 					segmentText += `\n[Timing: ${originalSegment.startTime.toFixed(1)}s - ${originalSegment.endTime.toFixed(1)}s (${duration.toFixed(1)}s)]`;
 				}
-				
+
 				reconstructedSegments.push(segmentText);
 			}
-			
+
 			// Handle any remaining segments (in case counts don't match)
 			if (originalSegments.length > correctedSegments.length) {
 				// Add remaining original segments unchanged
 				for (let i = correctedSegments.length; i < originalSegments.length; i++) {
 					const originalSegment = originalSegments[i];
 					let segmentText = `[Segment ${originalSegment.index}] ${originalSegment.speakerName || originalSegment.speakerTag || 'Speaker'}: ${originalSegment.text}`;
-					
-					if (typeof originalSegment.startTime === 'number' && typeof originalSegment.endTime === 'number') {
+
+					if (
+						typeof originalSegment.startTime === 'number' &&
+						typeof originalSegment.endTime === 'number'
+					) {
 						const duration = originalSegment.endTime - originalSegment.startTime;
 						segmentText += `\n[Timing: ${originalSegment.startTime.toFixed(1)}s - ${originalSegment.endTime.toFixed(1)}s (${duration.toFixed(1)}s)]`;
 					}
-					
+
 					reconstructedSegments.push(segmentText);
 				}
 			} else if (correctedSegments.length > originalSegments.length) {
@@ -1134,23 +1166,22 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 					correctedCount: correctedSegments.length
 				});
 			}
-			
+
 			const result = reconstructedSegments.join('\n\n');
-			
+
 			await this.logger?.logGeneral('debug', `Text reconstruction completed`, {
 				blockIndex,
 				resultLength: result.length,
 				segmentsReconstructed: reconstructedSegments.length
 			});
-			
+
 			return result;
-			
 		} catch (error) {
 			await this.logger?.logGeneral('error', `Text reconstruction failed`, {
 				blockIndex,
 				error: error.message
 			});
-			
+
 			// Fallback: return the corrected text as-is
 			return correctedText;
 		}
@@ -1161,7 +1192,15 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 	 */
 	async analyzeBlock(request: WERBlockAnalysisRequest): Promise<WERBlockAnalysisResult> {
 		const startTime = Date.now();
-		const { segments, summary, blockIndex, fileId, uiLanguage, transcriptFilePath, alternativeSegments } = request;
+		const {
+			segments,
+			summary,
+			blockIndex,
+			fileId,
+			uiLanguage,
+			transcriptFilePath,
+			alternativeSegments
+		} = request;
 
 		// Initialize logger
 		if (transcriptFilePath) {
@@ -1169,8 +1208,10 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 		}
 
 		// Count segments with alternatives for debugging
-		const segmentsWithAlternatives = segments.filter(s => s.alternatives && s.alternatives.length > 0).length;
-		
+		const segmentsWithAlternatives = segments.filter(
+			(s) => s.alternatives && s.alternatives.length > 0
+		).length;
+
 		await this.logger?.logGeneral('info', `Starting WER block analysis`, {
 			blockIndex,
 			segmentCount: segments.length,
@@ -1236,9 +1277,13 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 		// Apply corrections to get corrected text
 		const originalText = this.formatSegmentsAsCleanText(segments);
 		const applyResult = await this.applyCorrections(originalText, finalCorrections, blockIndex);
-		
+
 		// Reconstruct corrected text with segment markers for proper parsing during export
-		const correctedTextWithSegments = await this.reconstructTextWithSegments(segments, applyResult.correctedText, blockIndex);
+		const correctedTextWithSegments = await this.reconstructTextWithSegments(
+			segments,
+			applyResult.correctedText,
+			blockIndex
+		);
 
 		const processingTimeMs = Date.now() - startTime;
 
@@ -1275,14 +1320,18 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 		completedBlocks: number;
 		results: WERBlockAnalysisResult[];
 	}> {
-		const { fileId, editorContent, summary, uiLanguage, transcriptFilePath, originalFilename } = request;
+		const { fileId, editorContent, summary, uiLanguage, transcriptFilePath, originalFilename } =
+			request;
 
 		// Initialize logger
 		if (transcriptFilePath) {
 			this.initializeLogger(transcriptFilePath, fileId);
 		}
 
-		await this.logger?.logGeneral('info', 'Starting WER file analysis', { fileId, originalFilename });
+		await this.logger?.logGeneral('info', 'Starting WER file analysis', {
+			fileId,
+			originalFilename
+		});
 
 		// Load alternative ASR data if available
 		let alternativeASR: AlternativeASRResult | null = null;
@@ -1306,15 +1355,19 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 
 		// Check for existing completed blocks to resume analysis
 		const existingCorrections = await prisma.transcriptCorrection.findMany({
-			where: { 
+			where: {
 				fileId,
 				status: 'completed'
 			},
 			orderBy: { blockIndex: 'asc' }
 		});
 
-		const completedBlockIndices = new Set(existingCorrections.map(c => c.blockIndex));
-		const resumeFromBlock = Math.min(...Array.from({ length: totalBlocks }, (_, i) => i).filter(i => !completedBlockIndices.has(i)));
+		const completedBlockIndices = new Set(existingCorrections.map((c) => c.blockIndex));
+		const resumeFromBlock = Math.min(
+			...Array.from({ length: totalBlocks }, (_, i) => i).filter(
+				(i) => !completedBlockIndices.has(i)
+			)
+		);
 
 		await this.logger?.logGeneral('info', `File analysis plan`, {
 			totalSegments: segments.length,
@@ -1326,13 +1379,18 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 
 		// If all blocks are already completed, return existing results
 		if (existingCorrections.length >= totalBlocks) {
-			await this.logger?.logGeneral('info', 'All blocks already completed, returning existing results');
-			
-			const existingResults: WERBlockAnalysisResult[] = existingCorrections.map(correction => ({
+			await this.logger?.logGeneral(
+				'info',
+				'All blocks already completed, returning existing results'
+			);
+
+			const existingResults: WERBlockAnalysisResult[] = existingCorrections.map((correction) => ({
 				blockIndex: correction.blockIndex,
 				corrections: correction.suggestions ? JSON.parse(correction.suggestions as string) : [],
 				correctedText: correction.correctedText || '',
-				llmInteractions: correction.llmInteractions ? JSON.parse(correction.llmInteractions as string) : [],
+				llmInteractions: correction.llmInteractions
+					? JSON.parse(correction.llmInteractions as string)
+					: [],
 				processingTimeMs: correction.processingTimeMs || 0
 			}));
 
@@ -1359,21 +1417,29 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 			};
 		}
 
-		const results: WERBlockAnalysisResult[] = [...existingCorrections.map(correction => ({
-			blockIndex: correction.blockIndex,
-			corrections: correction.suggestions ? JSON.parse(correction.suggestions as string) : [],
-			correctedText: correction.correctedText || '',
-			llmInteractions: correction.llmInteractions ? JSON.parse(correction.llmInteractions as string) : [],
-			processingTimeMs: correction.processingTimeMs || 0
-		}))];
+		const results: WERBlockAnalysisResult[] = [
+			...existingCorrections.map((correction) => ({
+				blockIndex: correction.blockIndex,
+				corrections: correction.suggestions ? JSON.parse(correction.suggestions as string) : [],
+				correctedText: correction.correctedText || '',
+				llmInteractions: correction.llmInteractions
+					? JSON.parse(correction.llmInteractions as string)
+					: [],
+				processingTimeMs: correction.processingTimeMs || 0
+			}))
+		];
 
 		// Process each block sequentially (no concurrency), skipping completed ones
 		for (let blockIndex = 0; blockIndex < totalBlocks; blockIndex++) {
 			// Skip already completed blocks
 			if (completedBlockIndices.has(blockIndex)) {
-				await this.logger?.logGeneral('info', `Skipping already completed block ${blockIndex + 1}/${totalBlocks}`, {
-					blockIndex
-				});
+				await this.logger?.logGeneral(
+					'info',
+					`Skipping already completed block ${blockIndex + 1}/${totalBlocks}`,
+					{
+						blockIndex
+					}
+				);
 				continue;
 			}
 
@@ -1393,29 +1459,33 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 				let alternativeBlockSegments: SegmentWithTiming[] | undefined = undefined;
 				if (alternativeASR && blockSegments.length > 0) {
 					const validStartTimes = blockSegments
-						.map(s => s.startTime)
-						.filter(t => typeof t === 'number' && !isNaN(t) && isFinite(t));
+						.map((s) => s.startTime)
+						.filter((t) => typeof t === 'number' && !isNaN(t) && isFinite(t));
 					const validEndTimes = blockSegments
-						.map(s => s.endTime)
-						.filter(t => typeof t === 'number' && !isNaN(t) && isFinite(t));
-					
+						.map((s) => s.endTime)
+						.filter((t) => typeof t === 'number' && !isNaN(t) && isFinite(t));
+
 					if (validStartTimes.length > 0 && validEndTimes.length > 0) {
 						const blockStartTime = Math.min(...validStartTimes);
 						const blockEndTime = Math.max(...validEndTimes);
-						
+
 						if (blockStartTime < blockEndTime) {
 							alternativeBlockSegments = extractAlternativeSegments(
 								alternativeASR,
 								blockStartTime,
 								blockEndTime
 							);
-							
-							await this.logger?.logGeneral('info', `Extracted alternative segments for block ${blockIndex + 1}`, {
-								blockIndex,
-								blockTimeframe: `${blockStartTime.toFixed(1)}s - ${blockEndTime.toFixed(1)}s`,
-								mainSegmentsCount: blockSegments.length,
-								alternativeSegmentsCount: alternativeBlockSegments.length
-							});
+
+							await this.logger?.logGeneral(
+								'info',
+								`Extracted alternative segments for block ${blockIndex + 1}`,
+								{
+									blockIndex,
+									blockTimeframe: `${blockStartTime.toFixed(1)}s - ${blockEndTime.toFixed(1)}s`,
+									mainSegmentsCount: blockSegments.length,
+									alternativeSegmentsCount: alternativeBlockSegments.length
+								}
+							);
 						} else {
 							await this.logger?.logGeneral('warn', 'Invalid time range for alternative segments', {
 								blockIndex,
@@ -1425,11 +1495,15 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 							alternativeBlockSegments = [];
 						}
 					} else {
-						await this.logger?.logGeneral('warn', 'No valid time data found for alternative segments', {
-							blockIndex,
-							validStartTimes: validStartTimes.length,
-							validEndTimes: validEndTimes.length
-						});
+						await this.logger?.logGeneral(
+							'warn',
+							'No valid time data found for alternative segments',
+							{
+								blockIndex,
+								validStartTimes: validStartTimes.length,
+								validEndTimes: validEndTimes.length
+							}
+						);
 						alternativeBlockSegments = [];
 					}
 				}

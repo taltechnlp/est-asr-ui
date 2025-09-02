@@ -66,7 +66,7 @@ export function findTextWithNodesBetween(
 			textSegments.push({
 				text: node.text,
 				pos,
-				marks: node.marks || []
+				marks: [...(node.marks || [])]
 			});
 		}
 	});

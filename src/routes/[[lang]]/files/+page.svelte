@@ -16,9 +16,9 @@
 		{ id: 0, text: 'estonian' },
 		{ id: 1, text: 'finnish' }
 	];
-	let selectedLanguage = languageChoices[0];
-	let notify = true;
-	let autoAnalyze = false;
+	let selectedLanguage = $state(languageChoices[0]);
+	let notify = $state(true);
+	let autoAnalyze = $state(false);
 
 	let delFileId;
 	let exportingFileIds = $state(new Set());

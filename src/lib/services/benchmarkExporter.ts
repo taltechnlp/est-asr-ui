@@ -667,7 +667,7 @@ export async function exportSegmentsWithTimestamps({
 		// Extract speaker segments from editor content
 		const segments = extractSpeakerSegments(parsedContent);
 		console.log(`Extracted ${segments.length} speaker segments from editor content`);
-		
+
 		if (segments.length > 0) {
 			console.log(`Sample segment:`, {
 				index: segments[0].index,
@@ -691,8 +691,11 @@ export async function exportSegmentsWithTimestamps({
 
 			// Process each WER correction block
 			for (const correction of completedCorrections) {
-				console.log(`Processing WER correction block ${correction.blockIndex}, segmentIndices:`, correction.segmentIndices);
-				
+				console.log(
+					`Processing WER correction block ${correction.blockIndex}, segmentIndices:`,
+					correction.segmentIndices
+				);
+
 				// Get segments for this block
 				const blockSegments = correction.segmentIndices
 					.map((idx) => analysisSegments.find((seg) => seg.segmentIndex === idx))
@@ -705,7 +708,7 @@ export async function exportSegmentsWithTimestamps({
 					// Clean the corrected text (remove speaker names)
 					const cleanText = removeSpeakerNames(correction.correctedText || '');
 					console.log(`Block ${correction.blockIndex} clean text length:`, cleanText.trim().length);
-					
+
 					// Use timing from first and last segment in the block
 					const startTime = blockSegments[0].startTime;
 					const endTime = blockSegments[blockSegments.length - 1].endTime;
@@ -716,7 +719,9 @@ export async function exportSegmentsWithTimestamps({
 							end: endTime,
 							text: cleanText.trim()
 						});
-						console.log(`Added segment: ${startTime}s-${endTime}s, text: ${cleanText.trim().substring(0, 50)}...`);
+						console.log(
+							`Added segment: ${startTime}s-${endTime}s, text: ${cleanText.trim().substring(0, 50)}...`
+						);
 					}
 				}
 			}
@@ -742,7 +747,9 @@ export async function exportSegmentsWithTimestamps({
 			const segmentsWithCorrectedText = analysisSegments.filter((seg) => seg.correctedSegment);
 			const useCorrectedSegments = segmentsWithCorrectedText.length > 0;
 
-			console.log(`Export method: ${useCorrectedSegments ? 'corrected segments' : 'suggestion application'}`);
+			console.log(
+				`Export method: ${useCorrectedSegments ? 'corrected segments' : 'suggestion application'}`
+			);
 
 			// Choose export method based on availability of corrected segments
 			exportResult = useCorrectedSegments
@@ -751,7 +758,7 @@ export async function exportSegmentsWithTimestamps({
 						minConfidence,
 						applyAll,
 						includeStats: true
-				});
+					});
 
 			if (!exportResult.success) {
 				throw new Error(exportResult.error || 'Export failed');
@@ -777,14 +784,21 @@ export async function exportSegmentsWithTimestamps({
 							parsedSuggestions = JSON.parse(suggestions);
 						} else if (Array.isArray(suggestions)) {
 							parsedSuggestions = suggestions;
-						} else if (suggestions && typeof suggestions === 'object' && 'suggestions' in suggestions) {
+						} else if (
+							suggestions &&
+							typeof suggestions === 'object' &&
+							'suggestions' in suggestions
+						) {
 							const wrapped = suggestions as any;
 							if (Array.isArray(wrapped.suggestions)) {
 								parsedSuggestions = wrapped.suggestions;
 							}
 						}
 					} catch (error) {
-						console.error(`Error parsing suggestions for segment ${analysisSegment.segmentIndex}:`, error);
+						console.error(
+							`Error parsing suggestions for segment ${analysisSegment.segmentIndex}:`,
+							error
+						);
 					}
 
 					// Apply suggestions to segment text
@@ -821,7 +835,9 @@ export async function exportSegmentsWithTimestamps({
 		});
 
 		if (outputSegments.length === 0) {
-			console.error('WARNING: No segments were generated. This indicates a problem in segment processing.');
+			console.error(
+				'WARNING: No segments were generated. This indicates a problem in segment processing.'
+			);
 			console.log('Debug info:', {
 				werCorrectionsLength: werCorrections.length,
 				analysisSegmentsLength: analysisSegments.length,

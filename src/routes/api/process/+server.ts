@@ -9,8 +9,10 @@ import { ORIGIN } from '$env/static/private';
 async function triggerAutoAnalysis(file: any, maxRetries = 3): Promise<void> {
 	for (let attempt = 0; attempt < maxRetries; attempt++) {
 		try {
-			console.log(`Starting auto-analysis for file: ${file.filename} (attempt ${attempt + 1}/${maxRetries}) - no timeout, runs until completion`);
-			
+			console.log(
+				`Starting auto-analysis for file: ${file.filename} (attempt ${attempt + 1}/${maxRetries}) - no timeout, runs until completion`
+			);
+
 			const response = await fetch(`${ORIGIN}/api/transcript-analysis/auto-analyze`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -23,18 +25,24 @@ async function triggerAutoAnalysis(file: any, maxRetries = 3): Promise<void> {
 				return;
 			} else {
 				const errorText = await response.text();
-				
+
 				// Don't retry on client errors (4xx) - these won't succeed on retry
 				if (response.status >= 400 && response.status < 500) {
-					console.error(`Auto-analysis failed with client error for file: ${file.filename} - Status: ${response.status}, Error: ${errorText}`);
+					console.error(
+						`Auto-analysis failed with client error for file: ${file.filename} - Status: ${response.status}, Error: ${errorText}`
+					);
 					throw new Error(`Client error ${response.status}: ${errorText}`);
 				}
-				
+
 				// Retry on server errors (5xx) and other issues
 				if (attempt < maxRetries - 1) {
-					console.warn(`Auto-analysis server error (attempt ${attempt + 1}/${maxRetries}) for file: ${file.filename} - Status: ${response.status}, Error: ${errorText}`);
+					console.warn(
+						`Auto-analysis server error (attempt ${attempt + 1}/${maxRetries}) for file: ${file.filename} - Status: ${response.status}, Error: ${errorText}`
+					);
 				} else {
-					console.error(`Auto-analysis failed after ${maxRetries} attempts for file: ${file.filename} - Status: ${response.status}, Error: ${errorText}`);
+					console.error(
+						`Auto-analysis failed after ${maxRetries} attempts for file: ${file.filename} - Status: ${response.status}, Error: ${errorText}`
+					);
 					throw new Error(`Server error after ${maxRetries} attempts: ${errorText}`);
 				}
 			}
@@ -56,7 +64,10 @@ async function triggerAutoAnalysis(file: any, maxRetries = 3): Promise<void> {
 				);
 				await new Promise((resolve) => setTimeout(resolve, delay));
 			} else {
-				console.error(`Auto-analysis failed after ${maxRetries} attempts for file: ${file.filename}:`, error);
+				console.error(
+					`Auto-analysis failed after ${maxRetries} attempts for file: ${file.filename}:`,
+					error
+				);
 				throw error;
 			}
 		}

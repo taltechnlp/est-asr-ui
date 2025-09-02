@@ -50,7 +50,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 		// Check if user has access to this file
 		if (file.uploader !== session.user.id) {
-			return json({ error: 'Access denied - you can only recover your own files' }, { status: 403 });
+			return json(
+				{ error: 'Access denied - you can only recover your own files' },
+				{ status: 403 }
+			);
 		}
 
 		if (file.state !== 'READY') {
@@ -58,11 +61,15 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}
 
 		// Count completed vs total expected blocks
-		const completedBlocks = file.transcriptCorrections.filter(tc => tc.status === 'completed').length;
+		const completedBlocks = file.transcriptCorrections.filter(
+			(tc) => tc.status === 'completed'
+		).length;
 		const totalBlocks = Math.max(1, file.transcriptCorrections.length);
-		const hasIncomplete = file.transcriptCorrections.some(tc => tc.status !== 'completed');
+		const hasIncomplete = file.transcriptCorrections.some((tc) => tc.status !== 'completed');
 
-		console.log(`[RECOVERY] File ${file.filename} analysis status: ${completedBlocks}/${totalBlocks} blocks completed, hasIncomplete: ${hasIncomplete}`);
+		console.log(
+			`[RECOVERY] File ${file.filename} analysis status: ${completedBlocks}/${totalBlocks} blocks completed, hasIncomplete: ${hasIncomplete}`
+		);
 
 		// If analysis appears complete and not forcing, return current status
 		if (!hasIncomplete && !force) {
@@ -101,30 +108,38 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				});
 			} else {
 				const errorText = await response.text();
-				console.error(`[RECOVERY] Analysis recovery failed for file: ${file.filename} - ${response.status}: ${errorText}`);
-				
-				return json({
-					error: `Recovery failed: ${errorText}`,
+				console.error(
+					`[RECOVERY] Analysis recovery failed for file: ${file.filename} - ${response.status}: ${errorText}`
+				);
+
+				return json(
+					{
+						error: `Recovery failed: ${errorText}`,
+						fileId,
+						filename: file.filename,
+						completedBlocks,
+						totalBlocks
+					},
+					{ status: 500 }
+				);
+			}
+		} catch (error) {
+			console.error(`[RECOVERY] Analysis recovery error for file: ${file.filename}:`, error);
+
+			return json(
+				{
+					error: `Recovery error: ${error instanceof Error ? error.message : 'Unknown error'}`,
 					fileId,
 					filename: file.filename,
 					completedBlocks,
 					totalBlocks
-				}, { status: 500 });
-			}
-		} catch (error) {
-			console.error(`[RECOVERY] Analysis recovery error for file: ${file.filename}:`, error);
-			
-			return json({
-				error: `Recovery error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-				fileId,
-				filename: file.filename,
-				completedBlocks,
-				totalBlocks
-			}, { status: 500 });
+				},
+				{ status: 500 }
+			);
 		}
 	} catch (error) {
 		console.error('Recovery endpoint error:', error);
-		
+
 		return json(
 			{
 				error: error instanceof Error ? error.message : 'Unknown error'
@@ -179,9 +194,9 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 			return json({ error: 'Access denied' }, { status: 403 });
 		}
 
-		const completedBlocks = file.transcriptCorrections.filter(tc => tc.status === 'completed');
-		const errorBlocks = file.transcriptCorrections.filter(tc => tc.status === 'error');
-		const pendingBlocks = file.transcriptCorrections.filter(tc => tc.status === 'pending');
+		const completedBlocks = file.transcriptCorrections.filter((tc) => tc.status === 'completed');
+		const errorBlocks = file.transcriptCorrections.filter((tc) => tc.status === 'error');
+		const pendingBlocks = file.transcriptCorrections.filter((tc) => tc.status === 'pending');
 
 		return json({
 			fileId: file.id,
@@ -193,9 +208,12 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 				completedBlocks: completedBlocks.length,
 				errorBlocks: errorBlocks.length,
 				pendingBlocks: pendingBlocks.length,
-				isComplete: completedBlocks.length > 0 && errorBlocks.length === 0 && pendingBlocks.length === 0,
-				needsRecovery: errorBlocks.length > 0 || (pendingBlocks.length > 0 && file.transcriptCorrections.length > 0),
-				corrections: file.transcriptCorrections.map(tc => ({
+				isComplete:
+					completedBlocks.length > 0 && errorBlocks.length === 0 && pendingBlocks.length === 0,
+				needsRecovery:
+					errorBlocks.length > 0 ||
+					(pendingBlocks.length > 0 && file.transcriptCorrections.length > 0),
+				corrections: file.transcriptCorrections.map((tc) => ({
 					blockIndex: tc.blockIndex,
 					status: tc.status,
 					processingTimeMs: tc.processingTimeMs,
@@ -206,7 +224,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 		});
 	} catch (error) {
 		console.error('Recovery status endpoint error:', error);
-		
+
 		return json(
 			{
 				error: error instanceof Error ? error.message : 'Unknown error'

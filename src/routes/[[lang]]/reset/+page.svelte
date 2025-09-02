@@ -18,12 +18,12 @@
 			return;
 		}
 		if (res.status === 200) {
-			const data = await res.body;
+			const data = await res.text();
 			// console.log(data)
 			window.location.href = '/signin';
 			return { props: { data } };
 		} else {
-			error = await res.body;
+			error = await res.text();
 			return;
 		}
 	}

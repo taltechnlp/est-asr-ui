@@ -43,13 +43,13 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		return error(401, 'unauthorized');
 	}
 	const content = await fs.readFile(file.initialTranscriptionPath, 'utf8');
-	
+
 	// Store raw ASR data if not already stored (for reliable original export)
 	if (!file.originalAsrData && content) {
 		try {
 			// Validate that it's JSON to ensure it's ASR data
 			JSON.parse(content);
-			
+
 			// Store raw ASR data in database for reliable export
 			await prisma.file.update({
 				where: { id: file.id },

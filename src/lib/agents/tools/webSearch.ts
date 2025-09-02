@@ -224,7 +224,7 @@ export class ExaSearchTool extends TranscriptAnalysisTool {
 		if (!text) return 'No content available.';
 
 		const words = query.toLowerCase().split(/\s+/);
-		const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 20);
+		const sentences = text.split(/[.!?]+/).filter((s) => s.trim().length > 20);
 
 		// Find sentence that contains the most query words
 		let bestSentence = sentences[0] || text.substring(0, 200);
@@ -232,8 +232,8 @@ export class ExaSearchTool extends TranscriptAnalysisTool {
 
 		for (const sentence of sentences) {
 			const lowerSentence = sentence.toLowerCase();
-			const matches = words.filter(word => lowerSentence.includes(word)).length;
-			
+			const matches = words.filter((word) => lowerSentence.includes(word)).length;
+
 			if (matches > maxMatches) {
 				maxMatches = matches;
 				bestSentence = sentence;
@@ -327,7 +327,9 @@ export function createWebSearchTool(): WebSearchTool | ExaSearchTool {
 export function createExaSearchTool(apiKey?: string): ExaSearchTool {
 	const key = apiKey || process.env.EXA_API_KEY;
 	if (!key) {
-		throw new Error('Exa API key is required. Set EXA_API_KEY environment variable or provide key parameter.');
+		throw new Error(
+			'Exa API key is required. Set EXA_API_KEY environment variable or provide key parameter.'
+		);
 	}
 	return new ExaSearchTool(key);
 }
@@ -335,7 +337,9 @@ export function createExaSearchTool(apiKey?: string): ExaSearchTool {
 export function createBingSearchTool(apiKey?: string): BingSearchTool {
 	const key = apiKey || process.env.BING_SEARCH_API_KEY;
 	if (!key) {
-		throw new Error('Bing API key is required. Set BING_SEARCH_API_KEY environment variable or provide key parameter.');
+		throw new Error(
+			'Bing API key is required. Set BING_SEARCH_API_KEY environment variable or provide key parameter.'
+		);
 	}
 	return new BingSearchTool(key);
 }

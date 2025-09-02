@@ -65,7 +65,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 	// Priority 2: Try file path (legacy support)
 	else if (file.initialTranscriptionPath) {
 		console.log('No stored originalAsrData, trying file path:', file.initialTranscriptionPath);
-		
+
 		try {
 			await fs.access(file.initialTranscriptionPath);
 			console.log('File exists, reading from path');
@@ -74,7 +74,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 			console.log('Successfully parsed from file path');
 		} catch (fileError) {
 			console.log('File does not exist or cannot be read:', fileError.code, fileError.message);
-			
+
 			// Priority 3: Database fallback
 			if (file.initialTranscription) {
 				console.log('Falling back to database initialTranscription');
@@ -83,10 +83,16 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 					console.log('Successfully parsed from database');
 				} catch (dbError) {
 					console.error('Database transcription also failed:', dbError.message);
-					return error(500, `Failed to read transcription from both file (${fileError.message}) and database (${dbError.message})`);
+					return error(
+						500,
+						`Failed to read transcription from both file (${fileError.message}) and database (${dbError.message})`
+					);
 				}
 			} else {
-				return error(404, `Transcription file not found at: ${file.initialTranscriptionPath} and no database backup available`);
+				return error(
+					404,
+					`Transcription file not found at: ${file.initialTranscriptionPath} and no database backup available`
+				);
 			}
 		}
 	}
@@ -103,18 +109,21 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 	// Priority 4: Last resort - processed text (not ideal)
 	else {
 		console.log('No original ASR sources found, checking processed text as last resort');
-		
+
 		if (file.text) {
 			console.log('Using processed text as last resort');
 			try {
 				// Try to parse as JSON first (might be TipTap format)
 				const parsedText = JSON.parse(file.text);
-				
+
 				// If it's TipTap format, we can't extract original ASR data
 				if (parsedText.type === 'doc' && parsedText.content) {
-					return error(400, 'This file only has processed editor content, no original ASR data available');
+					return error(
+						400,
+						'This file only has processed editor content, no original ASR data available'
+					);
 				}
-				
+
 				// If it's some other JSON format, use it
 				transcriptionData = parsedText;
 			} catch (parseError) {
@@ -136,15 +145,20 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 				pathValue: file.initialTranscriptionPath,
 				state: file.state
 			});
-			
-			return error(404, `No original transcription available for this file. File state: ${file.state}. Available data: ${
-				[
-					file.originalAsrData ? 'originalAsrData' : null,
-					file.initialTranscriptionPath ? 'path (missing file)' : null,
-					file.initialTranscription ? 'database' : null,
-					file.text ? 'processed text' : null
-				].filter(Boolean).join(', ') || 'none'
-			}`);
+
+			return error(
+				404,
+				`No original transcription available for this file. File state: ${file.state}. Available data: ${
+					[
+						file.originalAsrData ? 'originalAsrData' : null,
+						file.initialTranscriptionPath ? 'path (missing file)' : null,
+						file.initialTranscription ? 'database' : null,
+						file.text ? 'processed text' : null
+					]
+						.filter(Boolean)
+						.join(', ') || 'none'
+				}`
+			);
 		}
 	}
 
@@ -196,7 +210,10 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 			}
 		}
 	} else {
-		console.log('Unrecognized transcription format. Full data:', JSON.stringify(transcriptionData).substring(0, 500));
+		console.log(
+			'Unrecognized transcription format. Full data:',
+			JSON.stringify(transcriptionData).substring(0, 500)
+		);
 		console.log('Available keys at root:', Object.keys(transcriptionData));
 		console.log('Available keys in processed data:', Object.keys(dataToProcess));
 		return error(400, 'Unrecognized transcription format');
@@ -205,7 +222,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 	console.log('Extracted text lines:', textLines.length);
 
 	// Join with newlines (each segment on a new line as requested)
-	const plainText = textLines.filter(line => line.length > 0).join('\n');
+	const plainText = textLines.filter((line) => line.length > 0).join('\n');
 
 	if (!plainText) {
 		return error(404, 'No text content found in transcription');

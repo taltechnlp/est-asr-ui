@@ -1,4 +1,4 @@
-import { Command } from '@tiptap/core';
+import type { Command } from '@tiptap/core';
 import type { Transaction } from 'prosemirror-state';
 import { findTextPositions, type TextMatch } from '$lib/services/transcriptTextReplace';
 
@@ -13,8 +13,8 @@ export interface FindAndReplaceOptions {
 /**
  * Command to find and replace text in the document
  */
-export const findAndReplace: Command =
-	(options: FindAndReplaceOptions) =>
+export const findAndReplace =
+	(options: FindAndReplaceOptions): Command =>
 	({ editor, tr, dispatch }) => {
 		const { searchText, replaceText, caseSensitive, wholeWord, segmentId } = options;
 
@@ -50,8 +50,8 @@ export const findAndReplace: Command =
 /**
  * Command to replace text at a specific position
  */
-export const replaceAtPosition: Command =
-	(options: { from: number; to: number; text: string; preserveMarks?: boolean }) =>
+export const replaceAtPosition =
+	(options: { from: number; to: number; text: string; preserveMarks?: boolean }): Command =>
 	({ tr, state, dispatch }) => {
 		const { from, to, text, preserveMarks = true } = options;
 
@@ -80,8 +80,8 @@ export const replaceAtPosition: Command =
 /**
  * Command to highlight a text match temporarily
  */
-export const highlightMatch: Command =
-	(match: TextMatch) =>
+export const highlightMatch =
+	(match: TextMatch): Command =>
 	({ tr, state, dispatch }) => {
 		if (!dispatch) return true;
 
@@ -98,8 +98,8 @@ export const highlightMatch: Command =
 /**
  * Command to update speaker name
  */
-export const updateSpeakerName: Command =
-	(options: { segmentId: string; newName: string }) =>
+export const updateSpeakerName =
+	(options: { segmentId: string; newName: string }): Command =>
 	({ tr, state, dispatch }) => {
 		const { segmentId, newName } = options;
 

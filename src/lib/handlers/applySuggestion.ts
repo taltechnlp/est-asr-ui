@@ -50,7 +50,7 @@ export async function applySuggestion(
 				caseSensitive: false,
 				changeType: suggestion.type,
 				confidence: suggestion.confidence || 0.5,
-				context: suggestion.explanation || suggestion.text
+				context: suggestion.explanation || ''
 			}
 		);
 

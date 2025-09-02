@@ -103,11 +103,12 @@ export class OpenRouterChat {
 
 		const usage = completion.usage;
 		const cacheDiscount = completion.cache_discount;
-		
-		const cachedTokens = usage.prompt_tokens_details?.cached_tokens || 
-			usage.cache_read_input_tokens || 0;
+
+		const cachedTokens =
+			usage.prompt_tokens_details?.cached_tokens || usage.cache_read_input_tokens || 0;
 		const totalPromptTokens = usage.prompt_tokens || 0;
-		const hitRate = totalPromptTokens > 0 ? Math.round((cachedTokens / totalPromptTokens) * 100) : 0;
+		const hitRate =
+			totalPromptTokens > 0 ? Math.round((cachedTokens / totalPromptTokens) * 100) : 0;
 
 		return {
 			totalTokens: usage.total_tokens,
@@ -121,7 +122,9 @@ export class OpenRouterChat {
 		};
 	}
 
-	async invoke(messages: Array<{ role: string; content: string }>): Promise<{ content: string; cacheMetrics?: any }> {
+	async invoke(
+		messages: Array<{ role: string; content: string }>
+	): Promise<{ content: string; cacheMetrics?: any }> {
 		// Check if running in client-side context
 		if (typeof window !== 'undefined') {
 			throw new Error('OpenRouter API calls can only be made from server-side code');
@@ -228,8 +231,8 @@ export class OpenRouterChat {
 				console.log(
 					`OpenRouter API success: Model ${this.modelName}, finish_reason: ${finishReason}, tokens: ${completion.usage?.total_tokens || 'unknown'}${cacheMetrics ? `, cache: ${cacheMetrics.hitRate}% hit rate, saved: ${cacheMetrics.discount || 0}%` : ''}`
 				);
-				
-				return { 
+
+				return {
 					content,
 					...(cacheMetrics && { cacheMetrics })
 				};

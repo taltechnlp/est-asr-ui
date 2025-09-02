@@ -83,7 +83,7 @@ interface Props {
 	});
 
 	// Check if this segment has been analyzed before
-onMount(async () => {
+onMount(() => {
 		// Subscribe to shared analysis state
 		const unsubscribe = analysisStateStore.subscribe(fileId, (state) => {
 			analysisState = state;

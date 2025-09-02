@@ -90,7 +90,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			parsedContent = transcriptContent;
 		}
 
-		// Check for WER corrections first (highest priority)  
+		// Check for WER corrections first (highest priority)
 		console.log(`[Apply&Export] Querying for fileId: ${fileId}`);
 		const werCorrections = await prisma.transcriptCorrection.findMany({
 			where: { fileId },

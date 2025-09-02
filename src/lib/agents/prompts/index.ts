@@ -45,7 +45,7 @@ export function getAvailableStrategies(): PromptStrategy[] {
 // Default export for backwards compatibility
 export const { SEGMENT_ANALYSIS_PROMPT, ENHANCED_ANALYSIS_PROMPT } = getPrompts('legacy');
 
-// Export individual prompt sets for direct access  
+// Export individual prompt sets for direct access
 export { LEGACY_SEGMENT_ANALYSIS_PROMPT, LEGACY_ENHANCED_ANALYSIS_PROMPT } from './legacy_analysis';
 
 export {
