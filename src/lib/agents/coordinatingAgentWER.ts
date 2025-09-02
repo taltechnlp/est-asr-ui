@@ -286,7 +286,7 @@ export class CoordinatingAgentWER {
 			temperature: 0.1, // Lower temperature for more consistent corrections
 			maxTokens: 12000, // Increased for detailed N-best variance analysis prompts
 			enableCaching: true, // Enable prompt caching
-			cacheBreakpoints: modelName.includes('anthropic') || modelName.includes('claude') ? [0] : [] // Cache static instructions for Anthropic models
+			cacheBreakpoints: modelName.includes('anthropic') || modelName.includes('claude') || modelName.includes('gemini') ? [0] : [] // Cache static instructions for Anthropic and Gemini models
 		});
 
 		// Create fallback model (GPT-4o) if primary model is different
