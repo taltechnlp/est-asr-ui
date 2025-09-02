@@ -275,7 +275,9 @@ export class CoordinatingAgentWER {
 		this.model = createOpenRouterChat({
 			modelName,
 			temperature: 0.1, // Lower temperature for more consistent corrections
-			maxTokens: 12000 // Increased for detailed N-best variance analysis prompts
+			maxTokens: 12000, // Increased for detailed N-best variance analysis prompts
+			enableCaching: true, // Enable prompt caching
+			cacheBreakpoints: modelName.includes('anthropic') || modelName.includes('claude') ? [0] : [] // Cache static instructions for Anthropic models
 		});
 
 		// Create fallback model (GPT-4o) if primary model is different
@@ -284,7 +286,9 @@ export class CoordinatingAgentWER {
 			this.fallbackModel = createOpenRouterChat({
 				modelName: fallbackModelName,
 				temperature: 0.1,
-				maxTokens: 12000 // Increased for detailed N-best variance analysis prompts
+				maxTokens: 12000, // Increased for detailed N-best variance analysis prompts
+				enableCaching: true, // Enable prompt caching for fallback too
+				cacheBreakpoints: fallbackModelName.includes('anthropic') || fallbackModelName.includes('claude') ? [0] : []
 			});
 		}
 
@@ -358,9 +362,17 @@ export class CoordinatingAgentWER {
 				throw new Error(`Empty response from ${this.primaryModelName}`);
 			}
 
-			// Log the response with timing
+			// Log the response with timing and cache metrics
 			const invokeDuration = Date.now() - invokeStart;
 			await this.logger?.logLLMResponse(content, invokeDuration);
+
+			// Log cache metrics if available
+			if (response.cacheMetrics) {
+				await this.logger?.logGeneral('info', 'Cache metrics', {
+					model: this.primaryModelName,
+					...response.cacheMetrics
+				});
+			}
 
 			return response;
 		} catch (error: any) {
@@ -382,10 +394,18 @@ export class CoordinatingAgentWER {
 
 					const fallbackResponse = await this.fallbackModel.invoke(messages);
 					
-					// Log fallback response with timing
+					// Log fallback response with timing and cache metrics
 					const fallbackContent = fallbackResponse.content as string;
 					const fallbackDuration = Date.now() - invokeStart;
 					await this.logger?.logLLMResponse(fallbackContent, fallbackDuration);
+					
+					// Log fallback cache metrics if available
+					if (fallbackResponse.cacheMetrics) {
+						await this.logger?.logGeneral('info', 'Fallback cache metrics', {
+							model: 'GPT-4o (Fallback)',
+							...fallbackResponse.cacheMetrics
+						});
+					}
 					
 					await this.logger?.logGeneral('info', 'Successfully fell back to GPT-4o', {
 						responseLength: fallbackContent.length
@@ -741,11 +761,13 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 			});
 		}
 
-		// Build initial prompt with agentic instructions
-		let currentPrompt = WER_PROMPTS.AGENTIC_ANALYSIS_PROMPT
+		// Build cache-optimized prompt with static instructions first
+		const dynamicContent = WER_PROMPTS.DYNAMIC_CONTENT_TEMPLATE
+			.replace('{responseLanguage}', responseLanguage)
 			.replace('{summary}', summary.summary)
-			.replace('{segmentsText}', formattedSegments + alternativeSegmentsText + signalQualityInfo)
-			.replace('{responseLanguage}', responseLanguage);
+			.replace('{segmentsText}', formattedSegments + alternativeSegmentsText + signalQualityInfo);
+
+		let currentPrompt = WER_PROMPTS.STATIC_INSTRUCTIONS + '\n\n' + dynamicContent;
 
 		let iteration = 0;
 		while (iteration < maxIterations) {
@@ -832,8 +854,8 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 					audioFilePath
 				);
 
-				// Build next prompt with tool results
-				currentPrompt = `Based on your previous analysis and the tool results below, provide your final corrections.
+				// Build cache-optimized follow-up prompt with static instructions first  
+				const followUpDynamicContent = `Based on your previous analysis and the tool results below, provide your final corrections.
 
 PREVIOUS ANALYSIS:
 ${reasoning}
@@ -865,6 +887,8 @@ Now provide your final corrections in JSON format:
 }
 
 IMPORTANT: Use the tool results above to make informed correction decisions. Only suggest corrections you are confident about (>0.7).`;
+
+				currentPrompt = WER_PROMPTS.STATIC_INSTRUCTIONS + '\n\n' + followUpDynamicContent;
 
 			} else {
 				// No tools requested but still needs analysis - this shouldn't happen in a well-designed prompt
@@ -1048,6 +1072,91 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 	}
 
 	/**
+	 * Reconstruct corrected text with segment markers for proper parsing during export
+	 */
+	private async reconstructTextWithSegments(
+		originalSegments: SegmentWithTiming[],
+		correctedText: string,
+		blockIndex: number
+	): Promise<string> {
+		try {
+			// Split the corrected text back into speaker segments
+			const correctedSegments = correctedText.split(/\n\s*\n/).filter(segment => segment.trim());
+			
+			await this.logger?.logGeneral('debug', `Reconstructing text with segments`, {
+				blockIndex,
+				originalSegmentCount: originalSegments.length,
+				correctedSegmentCount: correctedSegments.length
+			});
+			
+			// Map corrected segments back to original segment structure with [Segment N] markers
+			const reconstructedSegments = [];
+			
+			for (let i = 0; i < Math.min(originalSegments.length, correctedSegments.length); i++) {
+				const originalSegment = originalSegments[i];
+				const correctedSegment = correctedSegments[i];
+				
+				// Extract just the text part from "Speaker: text" format
+				const textMatch = correctedSegment.match(/^[^:]+:\s*(.*)$/);
+				const text = textMatch ? textMatch[1].trim() : correctedSegment.trim();
+				
+				// Reconstruct with segment markers
+				let segmentText = `[Segment ${originalSegment.index}] ${originalSegment.speakerName || originalSegment.speakerTag || 'Speaker'}: ${text}`;
+				
+				// Add timing information if available
+				if (typeof originalSegment.startTime === 'number' && typeof originalSegment.endTime === 'number') {
+					const duration = originalSegment.endTime - originalSegment.startTime;
+					segmentText += `\n[Timing: ${originalSegment.startTime.toFixed(1)}s - ${originalSegment.endTime.toFixed(1)}s (${duration.toFixed(1)}s)]`;
+				}
+				
+				reconstructedSegments.push(segmentText);
+			}
+			
+			// Handle any remaining segments (in case counts don't match)
+			if (originalSegments.length > correctedSegments.length) {
+				// Add remaining original segments unchanged
+				for (let i = correctedSegments.length; i < originalSegments.length; i++) {
+					const originalSegment = originalSegments[i];
+					let segmentText = `[Segment ${originalSegment.index}] ${originalSegment.speakerName || originalSegment.speakerTag || 'Speaker'}: ${originalSegment.text}`;
+					
+					if (typeof originalSegment.startTime === 'number' && typeof originalSegment.endTime === 'number') {
+						const duration = originalSegment.endTime - originalSegment.startTime;
+						segmentText += `\n[Timing: ${originalSegment.startTime.toFixed(1)}s - ${originalSegment.endTime.toFixed(1)}s (${duration.toFixed(1)}s)]`;
+					}
+					
+					reconstructedSegments.push(segmentText);
+				}
+			} else if (correctedSegments.length > originalSegments.length) {
+				// More corrected segments than original - this shouldn't happen, but handle gracefully
+				await this.logger?.logGeneral('warn', 'More corrected segments than original segments', {
+					blockIndex,
+					originalCount: originalSegments.length,
+					correctedCount: correctedSegments.length
+				});
+			}
+			
+			const result = reconstructedSegments.join('\n\n');
+			
+			await this.logger?.logGeneral('debug', `Text reconstruction completed`, {
+				blockIndex,
+				resultLength: result.length,
+				segmentsReconstructed: reconstructedSegments.length
+			});
+			
+			return result;
+			
+		} catch (error) {
+			await this.logger?.logGeneral('error', `Text reconstruction failed`, {
+				blockIndex,
+				error: error.message
+			});
+			
+			// Fallback: return the corrected text as-is
+			return correctedText;
+		}
+	}
+
+	/**
 	 * Analyze a single block of segments (up to 20)
 	 */
 	async analyzeBlock(request: WERBlockAnalysisRequest): Promise<WERBlockAnalysisResult> {
@@ -1122,6 +1231,9 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 		// Apply corrections to get corrected text
 		const originalText = this.formatSegmentsAsCleanText(segments);
 		const applyResult = await this.applyCorrections(originalText, finalCorrections, blockIndex);
+		
+		// Reconstruct corrected text with segment markers for proper parsing during export
+		const correctedTextWithSegments = await this.reconstructTextWithSegments(segments, applyResult.correctedText, blockIndex);
 
 		const processingTimeMs = Date.now() - startTime;
 
@@ -1142,7 +1254,7 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 		return {
 			blockIndex,
 			corrections: applyResult.appliedCorrections,
-			correctedText: applyResult.correctedText,
+			correctedText: correctedTextWithSegments,
 			llmInteractions,
 			processingTimeMs
 		};

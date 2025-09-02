@@ -26,19 +26,21 @@ interface ParsedSegment {
 function parseSegmentsFromCorrectedText(correctedText: string): ParsedSegment[] {
 	const segments: ParsedSegment[] = [];
 	
-	// Pattern to match [Segment N] markers followed by content
-	const segmentPattern = /\[Segment\s+(\d+)\]\s*(.*?)(?=\[Segment|\[Timing|$)/gs;
+	// Pattern to match [Segment N] markers followed by Speaker: content
+	// WER agent format: [Segment N] Speaker: text\n[Timing: ...]
+	const segmentPattern = /\[Segment\s+(\d+)\]\s*([^:]*?):\s*(.*?)(?=\[Segment|\n\[Timing|$)/gs;
 	
 	let match;
 	while ((match = segmentPattern.exec(correctedText)) !== null) {
 		const segmentIndex = parseInt(match[1], 10);
-		let text = match[2].trim();
+		const speaker = match[2].trim(); // Extract speaker name
+		let text = match[3].trim(); // Extract text content
 		
-		// Clean up the text - remove speaker tags, timing info, alternatives
+		// Clean up the text - remove timing info, alternatives, newlines
 		text = text
-			.replace(/^[^:]+:\s*/, '') // Remove speaker prefixes like "Speaker A: "
 			.replace(/\[Timing:.*?\]/g, '') // Remove timing blocks
 			.replace(/\[Alternatives:.*?\]/g, '') // Remove alternatives blocks
+			.replace(/\n/g, ' ') // Replace newlines with spaces
 			.replace(/\s+/g, ' ') // Normalize whitespace
 			.trim();
 		
@@ -109,6 +111,24 @@ function parseSegmentsFromCorrectedText(correctedText: string): ParsedSegment[] 
 	if (segments.length > 0) {
 		console.log(`First parsed segment:`, segments[0]);
 		console.log(`Last parsed segment:`, segments[segments.length - 1]);
+	} else {
+		// Debug: Show what the input looks like when no segments are found
+		console.log(`DEBUG: No segments found. Input preview (first 500 chars):`, correctedText.substring(0, 500));
+		console.log(`DEBUG: Testing regex pattern on input...`);
+		
+		// Test the regex pattern manually
+		const testPattern = /\[Segment\s+(\d+)\]\s*([^:]*?):\s*(.*?)(?=\[Segment|\n\[Timing|$)/gs;
+		const testMatch = testPattern.exec(correctedText);
+		if (testMatch) {
+			console.log(`DEBUG: Found regex match:`, {
+				full: testMatch[0].substring(0, 100),
+				segmentIndex: testMatch[1],
+				speaker: testMatch[2],
+				text: testMatch[3].substring(0, 100)
+			});
+		} else {
+			console.log(`DEBUG: No regex matches found`);
+		}
 	}
 	
 	return segments;
@@ -409,6 +429,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				
 				console.log(`Processing WER correction block ${correction.blockIndex} with ${blockSegmentIndices.length} segments`);
 				console.log(`Corrected text length: ${correctedText.length} chars`);
+				console.log(`Corrected text preview:`, correctedText.substring(0, 300) + '...');
 				
 				// Try to parse individual segments from corrected text using [Segment N] markers
 				const parsedSegments = parseSegmentsFromCorrectedText(correctedText);

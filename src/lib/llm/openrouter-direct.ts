@@ -20,6 +20,8 @@ export interface OpenRouterConfig {
 	modelName?: string;
 	temperature?: number;
 	maxTokens?: number;
+	enableCaching?: boolean;
+	cacheBreakpoints?: number[]; // For Anthropic models
 }
 
 interface OpenRouterResponse {
@@ -35,7 +37,13 @@ interface OpenRouterResponse {
 		prompt_tokens: number;
 		completion_tokens: number;
 		total_tokens: number;
+		prompt_tokens_details?: {
+			cached_tokens?: number;
+		};
+		cache_creation_input_tokens?: number;
+		cache_read_input_tokens?: number;
 	};
+	cache_discount?: number;
 }
 
 /**
@@ -47,6 +55,8 @@ export class OpenRouterChat {
 	private modelName: string;
 	private temperature: number;
 	private maxTokens: number;
+	private enableCaching: boolean;
+	private cacheBreakpoints: number[];
 
 	constructor(config: OpenRouterConfig = {}) {
 		// Only initialize OpenAI client on server side
@@ -79,9 +89,39 @@ export class OpenRouterChat {
 		this.modelName = config.modelName || DEFAULT_MODEL;
 		this.temperature = config.temperature || 0.7;
 		this.maxTokens = config.maxTokens || 16384; // Increased for enhanced N-best analysis prompts
+		this.enableCaching = config.enableCaching ?? true; // Enable by default
+		this.cacheBreakpoints = config.cacheBreakpoints || [];
 	}
 
-	async invoke(messages: Array<{ role: string; content: string }>): Promise<{ content: string }> {
+	/**
+	 * Extract cache performance metrics from OpenRouter response
+	 */
+	private extractCacheMetrics(completion: any): any | null {
+		if (!this.enableCaching || !completion.usage) {
+			return null;
+		}
+
+		const usage = completion.usage;
+		const cacheDiscount = completion.cache_discount;
+		
+		const cachedTokens = usage.prompt_tokens_details?.cached_tokens || 
+			usage.cache_read_input_tokens || 0;
+		const totalPromptTokens = usage.prompt_tokens || 0;
+		const hitRate = totalPromptTokens > 0 ? Math.round((cachedTokens / totalPromptTokens) * 100) : 0;
+
+		return {
+			totalTokens: usage.total_tokens,
+			promptTokens: totalPromptTokens,
+			cachedTokens,
+			hitRate,
+			discount: cacheDiscount ? Math.round(cacheDiscount * 100) : 0,
+			cacheCreationTokens: usage.cache_creation_input_tokens || 0,
+			model: this.modelName,
+			timestamp: Date.now()
+		};
+	}
+
+	async invoke(messages: Array<{ role: string; content: string }>): Promise<{ content: string; cacheMetrics?: any }> {
 		// Check if running in client-side context
 		if (typeof window !== 'undefined') {
 			throw new Error('OpenRouter API calls can only be made from server-side code');
@@ -98,20 +138,39 @@ export class OpenRouterChat {
 
 		// Retry configuration
 		const maxRetries = 3;
-		const baseDelay = 1000; // 1 second
+		const baseDelay = 0; // Remove artificial base delay, keep jitter only
 
 		for (let attempt = 0; attempt < maxRetries; attempt++) {
 			try {
+				// Prepare messages with cache control for Anthropic models
+				const formattedMessages = messages.map((msg, index) => {
+					const baseMessage: any = {
+						role: msg.role as 'user' | 'assistant' | 'system',
+						content: msg.content
+					};
+
+					// Add cache_control for Anthropic models
+					if (this.modelName.includes('anthropic') || this.modelName.includes('claude')) {
+						if (this.cacheBreakpoints.includes(index) && this.cacheBreakpoints.length <= 4) {
+							baseMessage.cache_control = { type: 'ephemeral' };
+						}
+					}
+
+					return baseMessage;
+				});
+
 				// Prepare base parameters
 				const completionParams: any = {
 					model: this.modelName,
-					messages: messages.map((msg) => ({
-						role: msg.role as 'user' | 'assistant' | 'system',
-						content: msg.content
-					})),
+					messages: formattedMessages,
 					temperature: this.temperature,
 					max_tokens: this.maxTokens
 				};
+
+				// Enable usage tracking for cache metrics
+				if (this.enableCaching) {
+					completionParams.usage = { include: true };
+				}
 
 				// Add reasoning control for thinking models with generous limits for detailed analysis
 				if (this.modelName.includes('gemini')) {
@@ -162,11 +221,18 @@ export class OpenRouterChat {
 					throw new Error(errorMsg);
 				}
 
-				// Log successful completion details
+				// Extract cache metrics if available
+				const cacheMetrics = this.extractCacheMetrics(completion);
+
+				// Log successful completion details including cache metrics
 				console.log(
-					`OpenRouter API success: Model ${this.modelName}, finish_reason: ${finishReason}, tokens: ${completion.usage?.total_tokens || 'unknown'}`
+					`OpenRouter API success: Model ${this.modelName}, finish_reason: ${finishReason}, tokens: ${completion.usage?.total_tokens || 'unknown'}${cacheMetrics ? `, cache: ${cacheMetrics.hitRate}% hit rate, saved: ${cacheMetrics.discount || 0}%` : ''}`
 				);
-				return { content };
+				
+				return { 
+					content,
+					...(cacheMetrics && { cacheMetrics })
+				};
 			} catch (error: any) {
 				const isLastAttempt = attempt === maxRetries - 1;
 				const isTimeout = error?.code === 'ETIMEDOUT' || error?.message?.includes('timeout');
@@ -334,9 +400,10 @@ export function createOpenRouterChat(config: OpenRouterConfig = {}) {
 
 			const response = await client.invoke(formattedMessages);
 
-			// Return in LangChain format
+			// Return in LangChain format with cache metrics
 			return {
 				content: response.content,
+				cacheMetrics: response.cacheMetrics,
 				_getType() {
 					return 'ai';
 				}
