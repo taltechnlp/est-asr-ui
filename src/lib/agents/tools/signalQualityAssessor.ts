@@ -122,7 +122,7 @@ Output: Comprehensive signal quality analysis including SNR, quality category, a
 		const logger = getCurrentLogger();
 
 		await logger?.logToolExecution('SignalQualityAssessor', 'Starting signal quality assessment', {
-			audioFile: audioFilePath.split('/').pop() || 'unknown',
+			audioFile: audioFilePath ? audioFilePath.split('/').pop() : 'unknown',
 			startTime,
 			endTime,
 			duration: (endTime - startTime).toFixed(3) + 's'
@@ -138,6 +138,14 @@ Output: Comprehensive signal quality analysis including SNR, quality category, a
 
 		try {
 			// Validate inputs
+			if (!audioFilePath || audioFilePath.trim() === '') {
+				await logger?.logToolExecution(
+					'SignalQualityAssessor',
+					'No audio file path provided, using fallback result'
+				);
+				return this.createFallbackResult(audioFilePath || 'unknown', startTime, endTime);
+			}
+
 			if (startTime < 0) {
 				throw new Error(`Invalid startTime: ${startTime} (must be >= 0)`);
 			}

@@ -1168,13 +1168,18 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 			this.initializeLogger(transcriptFilePath, fileId);
 		}
 
+		// Count segments with alternatives for debugging
+		const segmentsWithAlternatives = segments.filter(s => s.alternatives && s.alternatives.length > 0).length;
+		
 		await this.logger?.logGeneral('info', `Starting WER block analysis`, {
 			blockIndex,
 			segmentCount: segments.length,
 			segmentRange:
 				segments.length > 0
 					? `${segments[0]?.index || 0}-${segments[segments.length - 1]?.index || 0}`
-					: '0-0'
+					: '0-0',
+			segmentsWithAlternatives,
+			hasAlternativeSegments: !!alternativeSegments && alternativeSegments.length > 0
 		});
 
 		// Assess signal quality for the block (use first and last segments as representative samples)
@@ -1187,7 +1192,7 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 					// Assess quality of first segment as representative
 					const firstSegment = segments[0];
 					const qualityData = await this.signalQualityTool.assessSignalQuality({
-						// Note: WER agent doesn't have audioFilePath, so this will be limited
+						audioFilePath: request.audioFilePath || undefined, // Pass audioFilePath if available
 						startTime: firstSegment.startTime,
 						endTime: firstSegment.endTime
 					});
@@ -1387,22 +1392,45 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 				// Extract alternative segments for this block's timeframe if available
 				let alternativeBlockSegments: SegmentWithTiming[] | undefined = undefined;
 				if (alternativeASR && blockSegments.length > 0) {
-					const blockStartTime = Math.min(...blockSegments.map(s => s.startTime).filter(t => typeof t === 'number'));
-					const blockEndTime = Math.max(...blockSegments.map(s => s.endTime).filter(t => typeof t === 'number'));
+					const validStartTimes = blockSegments
+						.map(s => s.startTime)
+						.filter(t => typeof t === 'number' && !isNaN(t) && isFinite(t));
+					const validEndTimes = blockSegments
+						.map(s => s.endTime)
+						.filter(t => typeof t === 'number' && !isNaN(t) && isFinite(t));
 					
-					if (typeof blockStartTime === 'number' && typeof blockEndTime === 'number') {
-						alternativeBlockSegments = extractAlternativeSegments(
-							alternativeASR,
-							blockStartTime,
-							blockEndTime
-						);
+					if (validStartTimes.length > 0 && validEndTimes.length > 0) {
+						const blockStartTime = Math.min(...validStartTimes);
+						const blockEndTime = Math.max(...validEndTimes);
 						
-						await this.logger?.logGeneral('info', `Extracted alternative segments for block ${blockIndex + 1}`, {
+						if (blockStartTime < blockEndTime) {
+							alternativeBlockSegments = extractAlternativeSegments(
+								alternativeASR,
+								blockStartTime,
+								blockEndTime
+							);
+							
+							await this.logger?.logGeneral('info', `Extracted alternative segments for block ${blockIndex + 1}`, {
+								blockIndex,
+								blockTimeframe: `${blockStartTime.toFixed(1)}s - ${blockEndTime.toFixed(1)}s`,
+								mainSegmentsCount: blockSegments.length,
+								alternativeSegmentsCount: alternativeBlockSegments.length
+							});
+						} else {
+							await this.logger?.logGeneral('warn', 'Invalid time range for alternative segments', {
+								blockIndex,
+								blockStartTime,
+								blockEndTime
+							});
+							alternativeBlockSegments = [];
+						}
+					} else {
+						await this.logger?.logGeneral('warn', 'No valid time data found for alternative segments', {
 							blockIndex,
-							blockTimeframe: `${blockStartTime.toFixed(1)}s - ${blockEndTime.toFixed(1)}s`,
-							mainSegmentsCount: blockSegments.length,
-							alternativeSegmentsCount: alternativeBlockSegments.length
+							validStartTimes: validStartTimes.length,
+							validEndTimes: validEndTimes.length
 						});
+						alternativeBlockSegments = [];
 					}
 				}
 
