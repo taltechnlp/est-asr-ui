@@ -71,13 +71,13 @@
 		<h1 class="text-2xl mb-10 font-extrabold mt-12">{$_('index.citing')}</h1>
 		<p class="mb-10">
 			{$_('index.citing1')}
-			<a class="link" target="_blank" href="https://doi.org/10.22364/bjmc.2022.10.3.14"
+			<a class="link" target="_blank" href="https://doi.org/10.1007/s10579-024-09777-1"
 				>{$_('index.citing2')}</a
-			>): Olev, Aivo; Alumäe, Tanel. "Estonian Speech Recognition and Transcription
-			Editing Service". Baltic J. Modern Computing, Vol. 10 (2022), No. 3, pp. 409–421
-			https://doi.org/10.22364/bjmc.2022.10.3.14
+			>): Olev, Aivo; Alumäe, Tanel (2024). Open source platform for Estonian speech transcription. Language Resources and Evaluation, 1−18. DOI: 10.1007/s10579-024-09777-1.
 		</p>
+		<button class="btn btn-outline mb-10" on:click={() => document.getElementById('bibtex_modal').showModal()}>{$_('index.citingBibtex')}</button>
 	</div>
+
 </div>
 
 <div class="flex w-full justify-center pl-1 pr-1 bg-base-300">
@@ -134,6 +134,29 @@
 		</div>
 	</div>
 </div>
+
+<dialog id="bibtex_modal" class="modal">
+	<div class="modal-box max-w-3xl">
+		<h3 class="font-bold text-lg mb-4">{$_('index.citingBibtexTitle')}</h3>
+		<pre class="bg-base-200 p-4 rounded-lg overflow-x-auto text-sm"><code>@article{'{'}olev2024open,
+  title={'{'}Open source platform for Estonian speech transcription{'}'},
+  author={'{'}Olev, Aivo and Alum\"{'{'}a{'}'}e, Tanel{'}'},
+  journal={'{'}Language Resources and Evaluation{'}'},
+  pages={'{'}1--18{'}'},
+  year={'{'}2024{'}'},
+  publisher={'{'}Springer{'}'},
+  doi={'{'}10.1007/s10579-024-09777-1{'}'}
+{'}'}</code></pre>
+		<div class="modal-action">
+			<form method="dialog">
+				<button class="btn">{$_('index.close')}</button>
+			</form>
+		</div>
+	</div>
+	<form method="dialog" class="modal-backdrop">
+		<button>close</button>
+	</form>
+</dialog>
 
 <footer class="footer footer-center p-10 bg-accent-content rounded text-accent">
 	<div class="grid grid-flow-col gap-4">
