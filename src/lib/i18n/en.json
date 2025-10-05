@@ -266,6 +266,19 @@
       "taltech": "TalTech speech recognition",
       "browser": "Web browser speech recognition (only Chrome, Safari!)"
     },
-    "recognizers": "Speech recognition service"
+    "recognizers": "Speech recognition service",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "connectingToServer": "Connecting to server...",
+    "loadingVadModel": "Loading voice detection model...",
+    "readyToRecord": "Ready to record",
+    "initializationFailed": "Initialization failed",
+    "startRecording": "Start Recording",
+    "stopRecording": "Stop Recording",
+    "recording": "Recording... Speak clearly into your microphone",
+    "transcript": "Transcript",
+    "listeningForSpeech": "🔊 Listening for speech...",
+    "speakingDetected": "🎤 Speaking detected - Recording...",
+    "pastRecordings": "Past Recordings"
   }
 }

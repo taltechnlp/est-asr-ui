@@ -11,5 +11,16 @@ export default defineConfig({
 		fs: {
 			allow: ['..']
 		}
+	},
+	optimizeDeps: {
+		esbuildOptions: {
+			target: 'esnext'
+		}
+	},
+	worker: {
+		format: 'es'
+	},
+	build: {
+		sourcemap: false
 	}
 });
