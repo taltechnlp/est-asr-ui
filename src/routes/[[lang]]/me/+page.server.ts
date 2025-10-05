@@ -80,28 +80,18 @@ export const actions: Actions = {
         return { success: true };
     },
 
-    logout: async ({ cookies }) => {
-        // 1. Force clear the custom password-based session cookie
-        cookies.delete('session', { path: '/' });
-
-        // 2. Force clear the Better Auth session cookie by its specific name
-        cookies.delete('better-auth.session_token', { path: '/' });
-
-        // 3. Attempt a graceful sign-out from the API as a fallback
+    logout: async ({ request }) => {
+        // Use Better Auth's built-in signOut endpoint
+        // This properly handles all cookie deletion with the exact same attributes used when creating them
         try {
             await auth.api.signOut({
-                headers: new Headers({
-                    cookie: cookies.toString(),
-                } as HeadersInit),
+                headers: request.headers
             });
         } catch (error) {
-            // It's normal for signOut to fail if cookies are already gone.
-            if (error instanceof Error && !error.message.includes('No session found')) {
-                console.error('Better Auth signout error (graceful fallback failed):', error);
-            }
+            console.log('[LOGOUT] Error during signOut:', error);
         }
 
-        // 4. Redirect to the sign-in page to complete the logout
+        // Redirect to the sign-in page
         redirect(302, '/signin');
     }
 };
