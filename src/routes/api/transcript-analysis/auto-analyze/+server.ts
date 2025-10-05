@@ -326,6 +326,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				summary,
 				uiLanguage: 'et', // Estonian for transcript analysis
 				transcriptFilePath: file.initialTranscriptionPath,
+				audioFilePath: file.path,
 				originalFilename: file.filename // For loading alternative ASR data
 			});
 

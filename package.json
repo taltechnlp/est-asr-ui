@@ -13,7 +13,14 @@
 		"check": "svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-check --tsconfig ./tsconfig.json --watch",
 		"lint": "prettier --ignore-path .gitignore --check . && eslint .",
-		"format": "prettier --ignore-path .gitignore --write ."
+		"format": "prettier --ignore-path .gitignore --write .",
+		"python:build": "docker compose -f docker-compose.python.yml build",
+		"python:up": "docker compose -f docker-compose.python.yml up -d",
+		"python:down": "docker compose -f docker-compose.python.yml down",
+		"python:logs": "docker compose -f docker-compose.python.yml logs -f python-tools",
+		"python:shell": "docker compose -f docker-compose.python.yml exec python-tools bash",
+		"python:setup": "npm run python:build && npm run python:up",
+		"python:status": "docker compose -f docker-compose.python.yml ps"
 	},
 	"devDependencies": {
 		"@sveltejs/kit": "^2.17.1",

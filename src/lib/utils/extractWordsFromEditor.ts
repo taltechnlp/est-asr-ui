@@ -16,6 +16,7 @@ interface EditorNode {
 		text?: string;
 		start?: number;
 		end?: number;
+		alternatives?: string | Array<{ rank: number; text: string; avg_logprob: number }>;
 	};
 	content?: EditorNode[];
 	text?: string;
@@ -247,6 +248,22 @@ export function extractSpeakerSegments(content: TipTapEditorContent): SegmentWit
 		}
 
 		const speakerName = speakerNode.attrs?.['data-name'] || 'Unknown Speaker';
+		
+		// Parse alternatives from speaker node if available
+		let speakerAlternatives: Array<{ rank: number; text: string; avg_logprob: number }> = [];
+		if (speakerNode.attrs?.alternatives) {
+			try {
+				const alternativesStr = speakerNode.attrs.alternatives;
+				if (typeof alternativesStr === 'string') {
+					speakerAlternatives = JSON.parse(alternativesStr);
+				} else if (Array.isArray(alternativesStr)) {
+					speakerAlternatives = alternativesStr;
+				}
+			} catch (error) {
+				// Silently ignore JSON parse errors - alternatives will remain empty
+			}
+		}
+		
 		const speakerWords: ExtractedWord[] = [];
 
 		// Extract all words from this speaker block
@@ -342,7 +359,8 @@ export function extractSpeakerSegments(content: TipTapEditorContent): SegmentWit
 				text: reconstructedText,
 				speakerTag: speakerName,
 				speakerName: speakerName,
-				words: speakerWords
+				words: speakerWords,
+				alternatives: speakerAlternatives
 			});
 
 			segmentIndex++;

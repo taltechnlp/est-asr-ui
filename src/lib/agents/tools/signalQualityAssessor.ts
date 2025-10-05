@@ -53,6 +53,8 @@ export class SignalQualityAssessorTool extends TranscriptAnalysisTool {
 	private scriptPath: string;
 	private pythonCommand: string;
 	private isAvailable: boolean = true;
+	private useDocker: boolean = false;
+	private dockerContainerName: string = 'est-asr-python-tools';
 
 	constructor(pythonCommand: string = 'python3', scriptPath?: string) {
 		super(
@@ -85,19 +87,36 @@ Output: Comprehensive signal quality analysis including SNR, quality category, a
 		// Initialization logging moved to file logger when assessment starts
 
 		// Test availability on initialization (don't await in constructor)
+		// First check for Docker, then fallback to system Python
 		this.testAvailability().catch(() => {
 			this.isAvailable = false;
 		});
 	}
 
 	private async testAvailability(): Promise<void> {
+		// First, try Docker-based execution
 		try {
-			// Test with a minimal command that doesn't require actual audio
-			const testCommand = `${this.pythonCommand} -c "import sys; import json; print(json.dumps({'test': 'ok'}))"`;
+			const dockerTestCommand = `docker compose -f docker-compose.python.yml exec -T ${this.dockerContainerName} python -c "import sys; import json; import torch; import torchmetrics; print(json.dumps({'test': 'ok', 'enhanced': True}))"`;
+			const { stdout } = await execAsync(dockerTestCommand);
+			
+			const parseResult = robustJsonParse(stdout);
+			if (parseResult.success) {
+				this.useDocker = true;
+				this.isAvailable = true;
+				return;
+			}
+		} catch (error) {
+			// Docker not available or container not running, continue to system Python test
+		}
+
+		// Fallback to system Python
+		try {
+			const testCommand = `${this.pythonCommand} -c "import sys; import json; print(json.dumps({'test': 'ok', 'enhanced': False}))"`;
 			const { stdout, stderr } = await execAsync(testCommand);
 
 			const parseResult = robustJsonParse(stdout);
 			if (parseResult.success) {
+				this.useDocker = false;
 				this.isAvailable = true;
 			} else {
 				this.isAvailable = false;
@@ -161,14 +180,23 @@ Output: Comprehensive signal quality analysis including SNR, quality category, a
 			// Escape file path for shell execution
 			const escapedPath = audioFilePath.replace(/"/g, '\\"');
 
-			const command = `${this.pythonCommand} "${this.scriptPath}" assess "${escapedPath}" ${startTime} ${endTime}`;
+			// Build command based on whether Docker is available
+			let command: string;
+			if (this.useDocker) {
+				// Use Docker container execution
+				command = `docker compose -f docker-compose.python.yml exec -T ${this.dockerContainerName} python /app/scripts/signal_quality_assessor.py assess "${escapedPath}" ${startTime} ${endTime}`;
+			} else {
+				// Use system Python
+				command = `${this.pythonCommand} "${this.scriptPath}" assess "${escapedPath}" ${startTime} ${endTime}`;
+			}
 
 			await logger?.logToolExecution(
 				'SignalQualityAssessor',
-				'Executing quality assessment command',
+				`Executing quality assessment command ${this.useDocker ? '(Docker)' : '(System Python)'}`,
 				{
 					command: command.replace(this.scriptPath, '[script]').replace(audioFilePath, '[audio]'),
-					duration: duration.toFixed(3) + 's'
+					duration: duration.toFixed(3) + 's',
+					useDocker: this.useDocker
 				}
 			);
 
@@ -288,7 +316,16 @@ Output: Comprehensive signal quality analysis including SNR, quality category, a
 
 		try {
 			const escapedPath = audioFilePath.replace(/"/g, '\\"');
-			const command = `${this.pythonCommand} "${this.scriptPath}" assess_file "${escapedPath}"`;
+			
+			// Build command based on whether Docker is available
+			let command: string;
+			if (this.useDocker) {
+				// Use Docker container execution
+				command = `docker compose -f docker-compose.python.yml exec -T ${this.dockerContainerName} python /app/scripts/signal_quality_assessor.py assess_file "${escapedPath}"`;
+			} else {
+				// Use system Python
+				command = `${this.pythonCommand} "${this.scriptPath}" assess_file "${escapedPath}"`;
+			}
 
 			const { stdout } = await execAsync(command, { timeout: 60000 }); // 1 minute for full file
 			const parseResult = robustJsonParse(stdout);

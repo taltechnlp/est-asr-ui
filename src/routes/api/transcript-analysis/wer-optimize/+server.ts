@@ -172,7 +172,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 					editorContent,
 					summary,
 					uiLanguage: 'en', // WER analysis in English
-					transcriptFilePath: transcriptPath
+					transcriptFilePath: transcriptPath,
+					audioFilePath: file.path,
+					originalFilename: file.filename
 				});
 
 				await logger.logGeneral('info', 'WER analysis completed successfully', {

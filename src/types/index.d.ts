@@ -37,6 +37,7 @@ export type TipTapEditorContent = {
 			'data-name': string;
 			id?: string;
 			topic?: string | null;
+			alternatives?: string | Array<{ rank: number; text: string; avg_logprob: number }>;
 		};
 		content: {
 			type: string;

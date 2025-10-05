@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  python-tools:
+    build:
+      context: ./docker/python-tools
+      dockerfile: Dockerfile
+    container_name: est-asr-python-tools
+    volumes:
+      # Mount scripts directory for live updates
+      - ./scripts:/app/scripts:ro
+      # Mount a temporary directory for file processing
+      - /tmp:/tmp
+    environment:
+      - PYTHONPATH=/app/scripts
+      - PYTHONUNBUFFERED=1
+    # Keep container running
+    command: tail -f /dev/null
+    # Restart policy
+    restart: unless-stopped
+    # Network mode for potential future extensions
+    network_mode: bridge
+    # Resource limits to prevent runaway processes
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 512M

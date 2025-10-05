@@ -5,6 +5,7 @@ import {
 	DEFAULT_MODEL,
 	DEFAULT_MODEL_NAME
 } from '$lib/config/models';
+import { getConversationLogger } from '$lib/utils/llmConversationLogger';
 
 // Conditionally import API key to avoid client-side leakage
 let OPENROUTER_API_KEY: string = '';
@@ -123,7 +124,8 @@ export class OpenRouterChat {
 	}
 
 	async invoke(
-		messages: Array<{ role: string; content: string }>
+		messages: Array<{ role: string; content: string }>,
+		conversationLogger?: { fileId: string; blockIndex: number; interaction?: number }
 	): Promise<{ content: string; cacheMetrics?: any }> {
 		// Check if running in client-side context
 		if (typeof window !== 'undefined') {
@@ -193,7 +195,16 @@ export class OpenRouterChat {
 					console.log(`Applied GPT-5 low-effort reasoning: effort=low`);
 				}
 
+				// Log the prompt to conversation logger if provided
+				if (conversationLogger) {
+					const logger = getConversationLogger(conversationLogger.fileId, conversationLogger.blockIndex);
+					const promptText = formattedMessages.map(m => `${m.role}: ${m.content}`).join('\n\n');
+					await logger.logPrompt(promptText, this.modelName, conversationLogger.interaction);
+				}
+
+				const startTime = Date.now();
 				const completion = await this.client.chat.completions.create(completionParams);
+				const duration = Date.now() - startTime;
 
 				if (!completion.choices || completion.choices.length === 0) {
 					throw new Error('No choices in response from OpenRouter');
@@ -231,6 +242,21 @@ export class OpenRouterChat {
 				console.log(
 					`OpenRouter API success: Model ${this.modelName}, finish_reason: ${finishReason}, tokens: ${completion.usage?.total_tokens || 'unknown'}${cacheMetrics ? `, cache: ${cacheMetrics.hitRate}% hit rate, saved: ${cacheMetrics.discount || 0}%` : ''}`
 				);
+
+				// Log the response to conversation logger if provided
+				if (conversationLogger) {
+					const logger = getConversationLogger(conversationLogger.fileId, conversationLogger.blockIndex);
+					await logger.logResponse(content, {
+						model: this.modelName,
+						finishReason: finishReason,
+						totalTokens: completion.usage?.total_tokens,
+						promptTokens: completion.usage?.prompt_tokens,
+						completionTokens: completion.usage?.completion_tokens,
+						cacheHitRate: cacheMetrics?.hitRate,
+						cacheDiscount: cacheMetrics?.discount,
+						duration
+					}, conversationLogger.interaction);
+				}
 
 				return {
 					content,
@@ -345,7 +371,7 @@ export function createOpenRouterChat(config: OpenRouterConfig = {}) {
 
 	// Create a wrapper that mimics LangChain's ChatOpenAI interface
 	return {
-		async invoke(messages: any[]): Promise<any> {
+		async invoke(messages: any[], conversationLogger?: { fileId: string; blockIndex: number; interaction?: number }): Promise<any> {
 			// Check if running in client-side context
 			if (typeof window !== 'undefined') {
 				throw new Error('OpenRouter API calls can only be made from server-side code');
@@ -401,7 +427,7 @@ export function createOpenRouterChat(config: OpenRouterConfig = {}) {
 				`Formatted messages: ${formattedMessages.map((m) => `${m.role}(${m.content.length})`).join(', ')}`
 			);
 
-			const response = await client.invoke(formattedMessages);
+			const response = await client.invoke(formattedMessages, conversationLogger);
 
 			// Return in LangChain format with cache metrics
 			return {

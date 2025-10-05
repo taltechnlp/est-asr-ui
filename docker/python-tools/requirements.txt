@@ -1,0 +1,22 @@
+# EST-ASR Analysis Tools - Enhanced Dependencies
+# This file contains all Python dependencies for full functionality
+
+# Core PyTorch ecosystem
+torch==2.1.0
+torchaudio==2.1.0
+torchmetrics==1.2.0
+
+# Audio processing libraries
+librosa==0.10.1
+soundfile==0.12.1
+
+# Numerical computation
+numpy==1.24.3
+scipy==1.11.3
+
+# Estonian phonetic analysis (FST-based)
+pynini==2.1.5
+openfst-python==1.8.2
+
+# Additional utilities
+Pillow==10.0.1  # For potential future image processing needs

@@ -256,14 +256,26 @@ function getAlternativeASRPath(originalFilename: string): string | null {
 		.replace(/\.[^/.]+$/, '') // Remove extension only
 		.trim();
 
-	const alternativeJsonPath = join(
-		'/home/aivo/dev/est-asr-pipeline/results/podcast',
-		cleanName,
-		'result.json'
-	);
+	// Try multiple possible locations for Alternative ASR files
+	const possiblePaths = [
+		// Simplified 2019 location (for simple names like sander.wav -> sander)
+		join('/home/aivo/dev/est-asr-pipeline/results/2019/podcast', cleanName, 'result.json'),
+		// Original podcast location (for complex names)
+		join('/home/aivo/dev/est-asr-pipeline/results/podcast', cleanName, 'result.json')
+	];
 
-	console.log(`[ALT-ASR] Looking for alternative ASR at: ${alternativeJsonPath}`);
-	return alternativeJsonPath;
+	console.log(`[ALT-ASR] Looking for alternative ASR for filename: "${originalFilename}" (clean: "${cleanName}")`);
+	
+	for (const testPath of possiblePaths) {
+		console.log(`[ALT-ASR] Checking: ${testPath}`);
+		if (existsSync(testPath)) {
+			console.log(`[ALT-ASR] ✅ Found alternative ASR at: ${testPath}`);
+			return testPath;
+		}
+	}
+	
+	console.log(`[ALT-ASR] ❌ Alternative ASR file not found for: ${originalFilename}`);
+	return null;
 }
 
 /**
@@ -356,14 +368,14 @@ export class CoordinatingAgentWER {
 	/**
 	 * Invoke model with automatic fallback
 	 */
-	private async invokeWithFallback(messages: any[]): Promise<any> {
+	private async invokeWithFallback(messages: any[], conversationLogger?: { fileId: string; blockIndex: number; interaction?: number }): Promise<any> {
 		const invokeStart = Date.now();
 		try {
 			// Log the outgoing prompt
 			const promptContent = messages.map((m) => m.content).join('\n');
 			await this.logger?.logLLMRequest(promptContent, `${this.primaryModelName} (Primary Model)`);
 
-			const response = await this.model.invoke(messages);
+			const response = await this.model.invoke(messages, conversationLogger);
 
 			// Check for empty or whitespace-only responses
 			const content = response.content as string;
@@ -401,7 +413,7 @@ export class CoordinatingAgentWER {
 					const fallbackPromptContent = messages.map((m) => m.content).join('\n');
 					await this.logger?.logLLMRequest(fallbackPromptContent, 'GPT-4o (Fallback Model)');
 
-					const fallbackResponse = await this.fallbackModel.invoke(messages);
+					const fallbackResponse = await this.fallbackModel.invoke(messages, conversationLogger);
 
 					// Log fallback response with timing and cache metrics
 					const fallbackContent = fallbackResponse.content as string;
@@ -441,7 +453,9 @@ export class CoordinatingAgentWER {
 	private async parseResponseWithRetry(
 		response: string,
 		expectedStructure: string[],
-		maxRetries: number = 2
+		maxRetries: number = 2,
+		fileId?: string,
+		blockIndex?: number
 	): Promise<any> {
 		await this.logger?.logGeneral('debug', 'JSON parsing attempt', {
 			responseLength: response.length,
@@ -512,9 +526,14 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 			await this.logger?.logGeneral('debug', 'Sending correction prompt to LLM');
 
 			try {
+				const conversationLogger = fileId ? { 
+					fileId: fileId, 
+					blockIndex: blockIndex, 
+					interaction: retry 
+				} : undefined;
 				const correctionResponse = await this.invokeWithFallback([
 					new HumanMessage({ content: correctionPrompt })
-				]);
+				], conversationLogger);
 				const correctedText = correctionResponse.content as string;
 
 				await this.logger?.logGeneral('debug', 'Received correction response from LLM', {
@@ -762,6 +781,7 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 		blockIndex: number,
 		audioFilePath?: string,
 		alternativeSegments?: SegmentWithTiming[],
+		fileId?: string,
 		maxIterations: number = 3
 	): Promise<{ corrections: WERCorrection[]; interactions: any[] }> {
 		const formattedSegments = this.formatSegmentsForLLM(segments);
@@ -804,9 +824,14 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 			// Send current prompt to LLM
 			const llmStart = Date.now();
 
+			const conversationLogger = fileId ? { 
+				fileId: fileId, 
+				blockIndex: blockIndex, 
+				interaction: iteration + 1 
+			} : undefined;
 			const response = await this.invokeWithFallback([
 				new HumanMessage({ content: currentPrompt })
-			]);
+			], conversationLogger);
 			const responseContent = response.content as string;
 
 			const llmDuration = Date.now() - llmStart;
@@ -829,7 +854,7 @@ CRITICAL: Return ONLY the JSON object. No explanations, no text before or after,
 					'needsMoreAnalysis',
 					'corrections',
 					'uncertaintyAssessment'
-				]);
+				], 2, fileId, blockIndex);
 			} catch (error) {
 				await this.logger?.logGeneral('error', 'Failed to parse agentic response', {
 					blockIndex,
@@ -946,7 +971,8 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 	private async applyCorrections(
 		originalText: string,
 		corrections: WERCorrection[],
-		blockIndex: number
+		blockIndex: number,
+		fileId?: string
 	): Promise<{
 		correctedText: string;
 		appliedCorrections: WERCorrection[];
@@ -968,7 +994,8 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 			type: 'clarification';
 		}> = [];
 
-		for (const correction of corrections) {
+		for (let correctionIndex = 0; correctionIndex < corrections.length; correctionIndex++) {
+			const correction = corrections[correctionIndex];
 			const occurrences = (
 				correctedText.match(new RegExp(escapeRegExp(correction.original), 'g')) || []
 			).length;
@@ -1008,9 +1035,14 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 
 				try {
 					const clarificationStart = Date.now();
+					const conversationLogger = fileId ? { 
+						fileId: fileId, 
+						blockIndex: blockIndex, 
+						interaction: correctionIndex + 1000 
+					} : undefined;
 					const clarificationResponse = await this.invokeWithFallback([
 						new HumanMessage({ content: clarificationPrompt })
-					]);
+					], conversationLogger);
 
 					const clarificationContent = clarificationResponse.content as string;
 					clarificationInteractions.push({
@@ -1269,14 +1301,15 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 			responseLanguage,
 			blockIndex,
 			request.audioFilePath,
-			alternativeSegments
+			alternativeSegments,
+			request.fileId
 		);
 
 		const finalCorrections = agenticResult.corrections;
 
 		// Apply corrections to get corrected text
 		const originalText = this.formatSegmentsAsCleanText(segments);
-		const applyResult = await this.applyCorrections(originalText, finalCorrections, blockIndex);
+		const applyResult = await this.applyCorrections(originalText, finalCorrections, blockIndex, request.fileId);
 
 		// Reconstruct corrected text with segment markers for proper parsing during export
 		const correctedTextWithSegments = await this.reconstructTextWithSegments(
@@ -1320,7 +1353,7 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 		completedBlocks: number;
 		results: WERBlockAnalysisResult[];
 	}> {
-		const { fileId, editorContent, summary, uiLanguage, transcriptFilePath, originalFilename } =
+		const { fileId, editorContent, summary, uiLanguage, transcriptFilePath, audioFilePath, originalFilename } =
 			request;
 
 		// Initialize logger
@@ -1516,6 +1549,7 @@ IMPORTANT: Use the tool results above to make informed correction decisions. Onl
 					blockIndex,
 					uiLanguage,
 					transcriptFilePath,
+					audioFilePath,
 					alternativeSegments: alternativeBlockSegments
 				});
 

@@ -1,0 +1,46 @@
+# Docker ignore for Python tools container
+
+# Node.js
+node_modules/
+npm-debug.log
+.npm
+
+# Build outputs
+build/
+dist/
+.svelte-kit/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Other Docker files
+Dockerfile
+docker-compose*.yml
+
+# Logs
+logs/
+*.log
+
+# Temporary
+tmp/
+temp/
+
+# Documentation
+*.md
+!docker/python-tools/*.md

@@ -25,6 +25,39 @@ Prisma is able to generate an API to interact with the database. After the initi
 
 The audio player consumes much less memory if the soundwave is generated server-side. For this `python`, `ffmpeg` and `audiowaveform` have to be available in path as both are executed. Instructions for installing Audiowaveform: https://github.com/bbc/audiowaveform .
 
+### Python Environment for Advanced Features
+
+The application includes advanced analysis tools for transcript quality assessment and phonetic analysis. These tools require Python dependencies that can be set up in two ways:
+
+**Option 1: Docker Environment (Recommended)**
+```bash
+# Set up Python tools with all dependencies in Docker
+npm run python:setup
+
+# Check status
+npm run python:status
+
+# View logs
+npm run python:logs
+```
+
+This creates a Docker container with PyTorch, TorchMetrics, librosa, and other dependencies for enhanced audio analysis capabilities.
+
+**Option 2: System Python (Fallback)**
+The tools will automatically fall back to basic functionality using system Python if Docker is not available. Enhanced features require manual installation:
+```bash
+pip install torch torchaudio torchmetrics librosa numpy
+```
+
+**Available Python Management Commands:**
+- `npm run python:setup` - Build and start Python container
+- `npm run python:up` - Start Python container
+- `npm run python:down` - Stop Python container
+- `npm run python:shell` - Access container shell for debugging
+- `npm run python:status` - Check container status
+
+The system automatically detects and uses the best available Python environment (Docker with enhanced features, or system Python with fallback methods).
+
 Node LTS versions can be used only. 16.x and 18.x have been tested.
 
 ## Developing
