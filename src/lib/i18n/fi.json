@@ -266,6 +266,19 @@
             "taltech": "TalTechin puheentunnistus",
             "browser": "Selaimen puheentunnistus (vain Chrome, Safari!)"
         },
-        "recognizers": "Puheentunnistuspalvelut"
+        "recognizers": "Puheentunnistuspalvelut",
+        "connected": "Yhdistetty",
+        "disconnected": "Yhteys katkaistu",
+        "connectingToServer": "Yhdistetään palvelimeen...",
+        "loadingVadModel": "Ladataan äänen tunnistusmallia...",
+        "readyToRecord": "Valmis nauhoitukseen",
+        "initializationFailed": "Alustus epäonnistui",
+        "startRecording": "Aloita nauhoitus",
+        "stopRecording": "Lopeta nauhoitus",
+        "recording": "Nauhoitetaan... Puhu selkeästi mikrofoniin",
+        "transcript": "Transkriptio",
+        "listeningForSpeech": "🔊 Kuunnellaan puhetta...",
+        "speakingDetected": "🎤 Puhe havaittu - nauhoitetaan...",
+        "pastRecordings": "Aikaisemmat tallenteet"
     }
 }

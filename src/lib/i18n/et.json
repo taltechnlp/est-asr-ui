@@ -266,6 +266,19 @@
             "taltech": "TalTech kõnetuvastus",
             "browser": "Veebilehitseja kõnetuvastus (ainult Chrome, Safari!)"
         },
-        "recognizers": "Kõnetuvastuse teenus"
+        "recognizers": "Kõnetuvastuse teenus",
+        "connected": "Ühendatud",
+        "disconnected": "Ühendus puudub",
+        "connectingToServer": "Ühendun serveriga...",
+        "loadingVadModel": "Laadin häältuvastuse mudelit...",
+        "readyToRecord": "Valmis salvestama",
+        "initializationFailed": "Lähtestamine ebaõnnestus",
+        "startRecording": "Alusta salvestamist",
+        "stopRecording": "Peata salvestamine",
+        "recording": "Salvestamine... Räägi selgelt mikrofoni",
+        "transcript": "Transkriptsioon",
+        "listeningForSpeech": "🔊 Kuulan kõnet...",
+        "speakingDetected": "🎤 Kõne tuvastatud - salvestamine käib...",
+        "pastRecordings": "Varasemad salvestused"
     }
 }

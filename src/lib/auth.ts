@@ -18,7 +18,7 @@ export const auth = betterAuth({
     }),
     
     secret: AUTH_SECRET,
-    baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5174",
+    baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5173",
     
     // Field mappings for account model - Better Auth expects different field names
     account: {

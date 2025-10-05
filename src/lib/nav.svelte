@@ -87,6 +87,12 @@
 					</a>
 				{/if}
 				<a
+					href="/dictate"
+					class="btn btn-ghost btn-md rounded-btn {path.includes('/dictate') ? 'text-orange-600' : ''}"
+				>
+					{$_('index.headerDictate')}
+				</a>
+				<a
 					href="/demo"
 					class="btn btn-ghost btn-md rounded-btn {path.includes('/demo') ? 'text-orange-600' : ''}"
 				>
@@ -180,6 +186,14 @@
 						</a>
 					</li>
 				{/if}
+				<li>
+					<a
+						href="/dictate"
+						class="btn btn-ghost btn-md rounded-btn {path.includes('/dictate') ? 'text-orange-600' : ''}"
+					>
+						{$_('index.headerDictate')}
+					</a>
+				</li>
 				<li>
 					<a
 						href="/demo"
