@@ -9,8 +9,8 @@
 
 	// Get translated error info based on status code
 	$: errorKey = [404, 401, 403, 500, 503].includes(status) ? status.toString() : 'default';
-	$: title = $_.get(`error.${errorKey}.title`);
-	$: description = $_.get(`error.${errorKey}.description`);
+	$: title = $_(`error.${errorKey}.title`);
+	$: description = $_(`error.${errorKey}.description`);
 </script>
 
 <svelte:head>

@@ -1,39 +1,40 @@
 import type { LayoutServerLoad } from './$types';
 import { uiLanguages } from '$lib/i18n';
-import { redirect } from '@sveltejs/kit';
-import { base } from '$app/paths';
 import { auth } from '$lib/auth';
 
-export const load: LayoutServerLoad = async ({ request, locals, params, cookies, url, depends }) => {
+export const load: LayoutServerLoad = async ({ request, locals, cookies, depends }) => {
 	depends('data:session');
 
-	// console.log(`[Layout Load] Path: ${url.pathname}, Params: ${JSON.stringify(params)}, Cookie Lang: ${cookies.get("language")}`);
+	// Detect language from cookie, Accept-Language header, or use default
+	let language = cookies.get('language');
 
-	if (params.lang && uiLanguages.includes(params.lang)) {
-		if (cookies.get("language") !== params.lang) {
-			// console.log(`[Layout Load] Setting language cookie to: ${params.lang}`);
-			cookies.set("language", params.lang, {
-				path: "/",
-				maxAge: 60 * 60 * 24 * 365,
-				httpOnly: true,
-			});
+	// If no cookie, try to detect from Accept-Language header
+	if (!language) {
+		const acceptLanguage = request.headers.get('accept-language');
+		if (acceptLanguage) {
+			// Parse Accept-Language header (e.g., "et-EE,et;q=0.9,en-US;q=0.8,en;q=0.7")
+			const languages = acceptLanguage
+				.split(',')
+				.map(lang => lang.split(';')[0].trim().toLowerCase().substring(0, 2));
+
+			// Find first matching language from our supported languages
+			language = languages.find(lang => uiLanguages.includes(lang));
 		}
 	}
 
-	if (!params.lang && cookies.get("language")) {
-		const targetLang = cookies.get('language');
-
-		const langPrefix = `/${targetLang}`;
-		if (url.pathname === langPrefix || url.pathname.startsWith(langPrefix + '/')) {
-			console.warn(`[Layout Load] Potential loop detected! Pathname '${url.pathname}' already seems prefixed with target language '${targetLang}'. Skipping redirect.`);
-		} else {
-			const targetPath = `${base}${langPrefix}${url.pathname === '/' ? '' : url.pathname}`;
-			// console.log(`[Layout Load] Redirecting: Lang missing in URL, cookie is '${targetLang}'. From '${url.pathname}' to '${targetPath}'`);
-			redirect(307, targetPath);
-		}
+	// Default to Estonian if still no language detected
+	if (!language || !uiLanguages.includes(language)) {
+		language = 'et';
 	}
 
-	const language = params.lang || cookies.get("language");
+	// Set the language cookie if not already set or different
+	if (cookies.get('language') !== language) {
+		cookies.set('language', language, {
+			path: '/',
+			maxAge: 60 * 60 * 24 * 365, // 1 year
+			httpOnly: true,
+		});
+	}
 
 	// Get session using the same logic as hooks.server.ts (Better Auth + session cookie)
 	const session = await locals.auth();
