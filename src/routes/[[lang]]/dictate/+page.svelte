@@ -309,6 +309,9 @@
 					}
 					partialTranscript = '';
 
+					// Clear old session ID immediately to prevent sending audio to expired session
+					sessionId = null;
+
 					// If still recording, start a new session immediately
 					if (isRecording) {
 						const useParakeet = selectedLanguage !== 'et' && selectedLanguage !== 'en';
@@ -331,9 +334,13 @@
 					}
 					partialTranscript = '';
 				} else {
-					// Show as partial transcript
+					// Show as partial transcript (ignore empty updates that would clear existing text)
 					console.log('Setting partial transcript:', message.text);
-					partialTranscript = message.text;
+					if (message.text.trim() || !partialTranscript) {
+						partialTranscript = message.text;
+					} else {
+						console.log('[TRANSCRIPT] Ignoring empty partial transcript - keeping existing text');
+					}
 				}
 				break;
 
@@ -406,16 +413,23 @@
 
 			console.log('[START] Starting recording...');
 
-			// Ensure system is ready
-			if (!isWasmReady || !vad) {
-				vadError = 'System not initialized. Please wait...';
-				console.error('[START] System not ready:', { isWasmReady, vadExists: !!vad });
-				return;
-			}
-
 			if (!isConnected || !ws) {
 				connectionError = $_('dictate.noConnections');
 				console.error('[START] Not connected to server');
+				return;
+			}
+
+			// Reinitialize VAD if it was destroyed
+			if (!vad) {
+				console.log('[START] VAD not initialized, creating new instance...');
+				isWasmReady = false;
+				await initializeVAD();
+			}
+
+			// Ensure VAD is ready
+			if (!isWasmReady || !vad) {
+				vadError = 'Failed to initialize voice detection';
+				console.error('[START] VAD initialization failed');
 				return;
 			}
 
@@ -487,7 +501,7 @@
 		isVadActive = false;
 		isSpeaking = false;
 
-		// Destroy and recreate VAD to avoid restart issues
+		// Destroy VAD - will be recreated on next start
 		if (vad) {
 			try {
 				console.log('[STOP] Destroying VAD...');
@@ -501,16 +515,6 @@
 
 		// Clear audio buffer for next recording
 		audioBuffer = [];
-
-		// Reinitialize VAD for next recording
-		try {
-			console.log('[STOP] Reinitializing VAD...');
-			await initializeVAD();
-			console.log('[STOP] ✓ VAD reinitialized');
-		} catch (error) {
-			console.error('[STOP] Failed to reinitialize VAD:', error);
-			vadError = 'Failed to reinitialize voice detection';
-		}
 
 		// Send stop message
 		if (ws && ws.readyState === WebSocket.OPEN && sessionId) {
@@ -586,7 +590,8 @@
 	<title>{$_('dictate.title')} | tekstiks.ee</title>
 </svelte:head>
 
-<main class="container mx-auto px-4 py-8 max-w-4xl bg-base-100 min-h-screen">
+<div class="min-h-screen bg-base-100">
+	<div class="container mx-auto px-4 py-8 max-w-4xl">
 	<!-- Header -->
 	<div class="mb-8">
 		<h1 class="text-4xl font-bold mb-4">{$_('dictate.title')}</h1>
@@ -803,9 +808,10 @@
 			</div>
 
 	</div>
+</div>
 
-	<!-- Transcript Display -->
-	<div class="card bg-base-200 shadow-xl">
+<!-- Transcript Display -->
+<div class="card bg-base-200 shadow-xl">
 		<div class="card-body">
 			<div class="flex justify-between items-center mb-4">
 				<h2 class="card-title">{$_('dictate.transcript')}</h2>
@@ -964,4 +970,5 @@
 			{/each}
 		</div>
 	{/if}
-</main>
+	</div>
+</div>
