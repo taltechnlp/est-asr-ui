@@ -63,7 +63,7 @@
             <button class="btn btn-square btn-sm control-button ml-1" onclick={zoomOut}>
                 <Icon data={minus} scale={1} />
             </button>
-            <select class="select select-bordered ml-2"
+            <select class="select ml-2"
             bind:value={rate} onchange={changeSpeed}>
                 <option>0.5x</option>
                 <option>0.6x</option>
