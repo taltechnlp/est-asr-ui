@@ -34,6 +34,7 @@
 	const FRAME_SIZE = 1536; // VAD frame size at 16kHz
 	const FRAMES_TO_BUFFER = Math.ceil((PRE_SPEECH_BUFFER_MS / 1000) * SAMPLE_RATE / FRAME_SIZE);
 	let audioBuffer: Float32Array[] = [];
+	let frameCount = 0; // Track total frames received for debugging
 
 	// UI State
 	let isConnected = $state(false);
@@ -104,6 +105,91 @@
 		pastRecordings = pastRecordings.filter((r) => r.id !== id);
 	}
 
+	// Initialize VAD separately
+	async function initializeVAD() {
+		console.log('[INIT-VAD] Initializing VAD...');
+		isWasmLoading = true;
+
+		vad = await MicVAD.new({
+			// Speech detection thresholds
+			positiveSpeechThreshold: 0.5,  // Lowered from 0.6 for better sensitivity
+			negativeSpeechThreshold: 0.35, // Lowered from 0.4
+			preSpeechPadFrames: 10,
+			redemptionFrames: 8,
+			minSpeechFrames: 3,
+
+			// Callbacks
+			onFrameProcessed: (probabilities, frame: Float32Array) => {
+				frameCount++;
+
+				// Log every frame for first 100 frames to debug initialization
+				if (frameCount <= 100) {
+					console.log(`[VAD] Frame #${frameCount} - prob: ${probabilities.isSpeech.toFixed(3)}, recording: ${isRecording}, speaking: ${isSpeaking}`);
+				}
+				// Then log periodically
+				else if (frameCount % 50 === 0) {
+					console.log(`[VAD] Frame #${frameCount} - still receiving frames`);
+				}
+
+				// Always buffer frames for pre-speech
+				audioBuffer.push(new Float32Array(frame));
+				if (audioBuffer.length > FRAMES_TO_BUFFER) {
+					audioBuffer.shift();
+				}
+
+				// Stream frame in real-time if speech is active
+				if (isSpeaking) {
+					sendAudio(frame);
+				}
+			},
+
+			onSpeechStart: () => {
+				console.log('🎤 [VAD] Speech started - sending pre-speech buffer');
+				isSpeaking = true;
+
+				// Send pre-speech buffer first
+				for (const bufferedFrame of audioBuffer) {
+					sendAudio(bufferedFrame);
+				}
+				audioBuffer = [];
+			},
+
+			onSpeechEnd: (audio: Float32Array) => {
+				console.log('🔇 [VAD] Speech ended, audio length:', audio.length);
+				isSpeaking = false;
+
+				// Signal to server that utterance is complete
+				sendMessage({
+					type: 'utterance_end'
+				});
+			},
+
+			onVADMisfire: () => {
+				console.log('⚠️ [VAD] VAD misfire detected');
+				isSpeaking = false;
+			},
+
+			// Error callback
+			onError: (error: any) => {
+				console.error('❌ [VAD] Error:', error);
+				vadError = 'VAD error: ' + (error.message || error);
+			},
+
+			// Local asset paths
+			workletURL: '/vad/vad.worklet.bundle.min.js',
+			modelURL: '/vad/silero_vad_legacy.onnx',
+			baseAssetPath: '/vad/',
+			onnxWASMBasePath: '/onnx/',
+
+			// Don't start yet - we'll start when user clicks record
+			startOnLoad: false
+		});
+
+		isWasmLoading = false;
+		isWasmReady = true;
+		console.log('[INIT-VAD] ✓ VAD initialized successfully');
+	}
+
 	// Initialize system: pre-load WASM and connect WebSocket
 	async function initializeSystem() {
 		try {
@@ -124,88 +210,11 @@
 
 			// Step 2: Pre-load VAD WASM models
 			initializationStatus = $_('dictate.loadingVadModel');
-			isWasmLoading = true;
 			console.log('[INIT] Loading VAD WASM models...');
 
-			vad = await MicVAD.new({
-				// Speech detection thresholds
-				positiveSpeechThreshold: 0.5,  // Lowered from 0.6 for better sensitivity
-				negativeSpeechThreshold: 0.35, // Lowered from 0.4
-				preSpeechPadFrames: 10,
-				redemptionFrames: 8,
-				minSpeechFrames: 3,
+			await initializeVAD();
 
-				// Callbacks
-				onFrameProcessed: (probabilities, frame: Float32Array) => {
-					// ALWAYS log first frame to verify callbacks are working
-					if (audioBuffer.length === 0) {
-						console.log('✓ VAD onFrameProcessed callback fired! First frame received.');
-					}
-
-					// Debug logging (throttled) - NO state condition to ensure we see logs
-					if (Math.random() < 0.02) {  // ~2% of frames (~2 logs/sec)
-						console.log('[VAD] probability:', probabilities.isSpeech.toFixed(3),
-							'recording:', isRecording, 'speaking:', isSpeaking, 'frameSize:', frame.length);
-					}
-
-					// Always buffer frames for pre-speech
-					audioBuffer.push(new Float32Array(frame));
-					if (audioBuffer.length > FRAMES_TO_BUFFER) {
-						audioBuffer.shift();
-					}
-
-					// Stream frame in real-time if speech is active
-					if (isSpeaking) {
-						sendAudio(frame);
-					}
-				},
-
-				onSpeechStart: () => {
-					console.log('🎤 [VAD] Speech started - sending pre-speech buffer');
-					isSpeaking = true;
-
-					// Send pre-speech buffer first
-					for (const bufferedFrame of audioBuffer) {
-						sendAudio(bufferedFrame);
-					}
-					audioBuffer = [];
-				},
-
-				onSpeechEnd: (audio: Float32Array) => {
-					console.log('🔇 [VAD] Speech ended, audio length:', audio.length);
-					isSpeaking = false;
-
-					// Signal to server that utterance is complete
-					sendMessage({
-						type: 'utterance_end'
-					});
-				},
-
-				onVADMisfire: () => {
-					console.log('⚠️ [VAD] VAD misfire detected');
-					isSpeaking = false;
-				},
-
-				// Error callback
-				onError: (error: any) => {
-					console.error('❌ [VAD] Error:', error);
-					vadError = 'VAD error: ' + (error.message || error);
-				},
-
-				// Local asset paths
-				workletURL: '/vad/vad.worklet.bundle.min.js',
-				modelURL: '/vad/silero_vad_legacy.onnx',
-				baseAssetPath: '/vad/',
-				onnxWASMBasePath: '/onnx/',
-
-				// Don't start yet - we'll start when user clicks record
-				startOnLoad: false
-			});
-
-			isWasmLoading = false;
-			isWasmReady = true;
 			initializationStatus = $_('dictate.readyToRecord');
-
 			console.log('[INIT] ✓ VAD WASM loaded successfully');
 			console.log('[INIT] ✓ System initialized and ready to record');
 		} catch (error: any) {
@@ -291,6 +300,30 @@
 			case 'transcript':
 				console.log('Received transcript:', message.text, 'is_final:', message.is_final);
 				if (message.is_final) {
+				// Check if server is ending the session (offline models)
+				if (message.text.trim() === '[Session Ended]') {
+					console.log('[MSG] Server ended session. Starting new session to continue recording...');
+					// Save the partial transcript to final before starting new session
+					if (partialTranscript.trim()) {
+					transcript += (transcript ? ' ' : '') + partialTranscript.trim();
+					}
+					partialTranscript = '';
+
+					// If still recording, start a new session immediately
+					if (isRecording) {
+						const useParakeet = selectedLanguage !== 'et' && selectedLanguage !== 'en';
+						const language = useParakeet ? 'parakeet_tdt_v3' : selectedLanguage;
+						console.log('[MSG] Sending new start message with language:', language);
+						sendMessage({
+							type: 'start',
+							sample_rate: SAMPLE_RATE,
+							format: 'pcm',
+							language: language
+						});
+					}
+					return;
+				}
+
 					// Add to final transcript
 					if (message.text.trim()) {
 						console.log('Adding to final transcript:', message.text.trim());
@@ -311,11 +344,8 @@
 
 			case 'session_ended':
 				console.log('[MSG] Session ended by server:', message.session_id);
-				// Stop recording to prevent sending more audio
-				if (isRecording) {
-					console.log('[MSG] Server ended session - stopping recording');
-					stopRecording();
-				}
+				// Don't stop recording - new session will be started by [Session Ended] transcript handler
+				console.log('[MSG] Clearing session ID, waiting for new session...');
 				sessionId = null;
 				break;
 		}
@@ -401,6 +431,10 @@
 				language: language
 			});
 
+			// Reset frame counter for this recording session
+			frameCount = 0;
+			console.log('[START] Frame counter reset to 0');
+
 			// Start the already-initialized VAD (requests microphone access)
 			console.log('[START] Calling vad.start()...');
 			await vad.start();
@@ -414,18 +448,17 @@
 			console.log('[START] ✓ Recording started. Waiting for first audio frame...');
 			console.log('[START] State: isRecording =', isRecording, 'isVadActive =', isVadActive, 'isSpeaking =', isSpeaking);
 
-			// Set a timeout to check if we're receiving audio frames
+			// Diagnostic: Check if we're receiving audio frames (doesn't stop recording)
 			setTimeout(() => {
-				if (isRecording && audioBuffer.length === 0) {
-					console.warn('[START] ⚠️ WARNING: No audio frames received after 2 seconds! VAD callbacks may not be working.');
-					console.warn('[START] This usually means:');
-					console.warn('[START]   1. Microphone permission was denied');
-					console.warn('[START]   2. Audio worklet failed to load');
-					console.warn('[START]   3. Browser security restrictions (HTTPS required)');
-				} else if (isRecording) {
-					console.log('[START] ✓ Audio frames being received. Buffer size:', audioBuffer.length);
+				if (isRecording) {
+					if (audioBuffer.length === 0) {
+						console.warn('[START] ⚠️ No audio frames received yet. VAD may have issues initializing.');
+						console.warn('[START] HOWEVER, recording is still active - try speaking into the microphone.');
+					} else {
+						console.log('[START] ✓ VAD working! Received', audioBuffer.length, 'audio frames.');
+					}
 				}
-			}, 2000);
+			}, 3000);
 		} catch (error: any) {
 			console.error('[START] ❌ Failed to start recording:', error);
 			console.error('[START] Error details:', {
@@ -454,15 +487,29 @@
 		isVadActive = false;
 		isSpeaking = false;
 
-		// Pause VAD (don't destroy - keep it loaded for next time)
+		// Destroy and recreate VAD to avoid restart issues
 		if (vad) {
 			try {
-				console.log('[STOP] Pausing VAD...');
-				vad.pause();
-				console.log('[STOP] ✓ VAD paused');
+				console.log('[STOP] Destroying VAD...');
+				vad.destroy();
+				console.log('[STOP] ✓ VAD destroyed');
+				vad = null;
 			} catch (error) {
-				console.error('[STOP] Error pausing VAD:', error);
+				console.error('[STOP] Error destroying VAD:', error);
 			}
+		}
+
+		// Clear audio buffer for next recording
+		audioBuffer = [];
+
+		// Reinitialize VAD for next recording
+		try {
+			console.log('[STOP] Reinitializing VAD...');
+			await initializeVAD();
+			console.log('[STOP] ✓ VAD reinitialized');
+		} catch (error) {
+			console.error('[STOP] Failed to reinitialize VAD:', error);
+			vadError = 'Failed to reinitialize voice detection';
 		}
 
 		// Send stop message
