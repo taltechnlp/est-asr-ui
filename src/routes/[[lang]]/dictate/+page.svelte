@@ -60,6 +60,27 @@
 	let selectedLanguage = $state('et');
 	let availableModels = $state<string[]>([]);
 
+	// ═══════════════════════════════════════════════════════════════
+	// MODEL TYPE HELPERS
+	// ═══════════════════════════════════════════════════════════════
+
+	/**
+	 * Determine if the selected language uses an offline model (Parakeet).
+	 *
+	 * STREAMING MODELS (ET/EN):
+	 * - Continuous session (no [Session Ended])
+	 * - Full hypothesis in each partial update
+	 * - Session ID stable until user stops
+	 *
+	 * OFFLINE MODELS (Parakeet):
+	 * - 15-second buffer sessions with [Session Ended]
+	 * - Incremental text across sessions
+	 * - Session ID changes frequently during recording
+	 */
+	function isOfflineModel(language: string): boolean {
+		return language !== 'et' && language !== 'en';
+	}
+
 	// Past recordings
 	interface Recording {
 		id: string;
@@ -158,10 +179,9 @@
 				console.log('🔇 [VAD] Speech ended, audio length:', audio.length);
 				isSpeaking = false;
 
-				// Signal to server that utterance is complete
-				sendMessage({
-					type: 'utterance_end'
-				});
+				// Note: We don't send utterance_end anymore
+				// - For streaming models (ET/EN): Sessions should stay open across pauses
+				// - For offline models (Parakeet): 15s buffer auto-processes without needing utterance_end
 			},
 
 			onVADMisfire: () => {
@@ -283,78 +303,244 @@
 		sessionId = null;
 	}
 
-	// Handle server messages
-	function handleServerMessage(message: any) {
-		console.log('Received message:', message);
+	// ═══════════════════════════════════════════════════════════════
+	// STREAMING MODEL HANDLERS (ET/EN)
+	// ═══════════════════════════════════════════════════════════════
 
+	/**
+	 * Handle transcript messages for streaming models (ET/EN).
+	 * Streaming models return full hypothesis each time, so we replace the partial.
+	 */
+	function handleTranscript_streaming(message: any) {
+		console.log('[STREAMING] Received transcript:', message.text, 'is_final:', message.is_final);
+
+		if (message.is_final) {
+			// Check for unexpected session end (should not happen for streaming, but handle gracefully)
+			if (message.text.trim() === '[Session Ended]') {
+				console.warn('[STREAMING] ⚠️  Server ended session unexpectedly (possibly timeout). Creating new session...');
+				// Save the partial transcript to final before starting new session
+				if (partialTranscript.trim()) {
+					transcript += (transcript ? ' ' : '') + partialTranscript.trim();
+				}
+				partialTranscript = '';
+
+				// Clear old session ID immediately so audio won't be sent until new session is ready
+				sessionId = null;
+
+				// If still recording, start a new session immediately
+				if (isRecording) {
+					const language = isOfflineModel(selectedLanguage) ? 'parakeet_tdt_v3' : selectedLanguage;
+					console.log('[STREAMING] Sending new start message with language:', language);
+					sendMessage({
+						type: 'start',
+						sample_rate: SAMPLE_RATE,
+						format: 'pcm',
+						language: language
+					});
+				}
+				return;
+			}
+
+			// Add to final transcript
+			if (message.text.trim()) {
+				console.log('[STREAMING] Adding to final transcript:', message.text.trim());
+				transcript += (transcript ? ' ' : '') + message.text.trim();
+			}
+			partialTranscript = '';
+		} else {
+			// Show as partial transcript - REPLACE (full hypothesis)
+			if (message.text.trim() || !partialTranscript) {
+				partialTranscript = message.text;
+			} else {
+				console.log('[STREAMING] Ignoring empty partial transcript - keeping existing text');
+			}
+		}
+	}
+
+	/**
+	 * Handle error messages for streaming models.
+	 * Suppress "Session not found" during unexpected session transitions.
+	 */
+	function handleError_streaming(message: any) {
+		console.error('[STREAMING] Server error:', message.message);
+
+		// Suppress "Session not found" errors during session transitions
+		// (can occur if server unexpectedly ends session due to timeout)
+		if (message.message && message.message.includes('Session not found') && isRecording) {
+			console.log('[STREAMING] Session not found (during session transition) - suppressing');
+			return;
+		}
+
+		connectionError = message.message;
+	}
+
+	/**
+	 * Handle session ready for streaming models.
+	 * Streaming sessions stay open continuously until user stops or timeout.
+	 */
+	function handleSessionReady_streaming(sessionIdReceived: string) {
+		sessionId = sessionIdReceived;
+		console.log('[STREAMING] Session ready:', sessionId);
+	}
+
+	/**
+	 * Handle all server messages for streaming models (ET/EN).
+	 */
+	function handleServerMessage_streaming(message: any) {
 		switch (message.type) {
 			case 'ready':
-				sessionId = message.session_id;
-				// Note: We use hardcoded language lists, ignoring server's available_languages
+				handleSessionReady_streaming(message.session_id);
 				if (message.available_models) {
 					availableModels = message.available_models;
 				}
-				console.log('Session ready:', sessionId);
 				break;
 
 			case 'transcript':
-				console.log('Received transcript:', message.text, 'is_final:', message.is_final);
-				if (message.is_final) {
-				// Check if server is ending the session (offline models)
-				if (message.text.trim() === '[Session Ended]') {
-					console.log('[MSG] Server ended session. Starting new session to continue recording...');
-					// Save the partial transcript to final before starting new session
-					if (partialTranscript.trim()) {
-					transcript += (transcript ? ' ' : '') + partialTranscript.trim();
-					}
-					partialTranscript = '';
-
-					// Clear old session ID immediately to prevent sending audio to expired session
-					sessionId = null;
-
-					// If still recording, start a new session immediately
-					if (isRecording) {
-						const useParakeet = selectedLanguage !== 'et' && selectedLanguage !== 'en';
-						const language = useParakeet ? 'parakeet_tdt_v3' : selectedLanguage;
-						console.log('[MSG] Sending new start message with language:', language);
-						sendMessage({
-							type: 'start',
-							sample_rate: SAMPLE_RATE,
-							format: 'pcm',
-							language: language
-						});
-					}
-					return;
-				}
-
-					// Add to final transcript
-					if (message.text.trim()) {
-						console.log('Adding to final transcript:', message.text.trim());
-						transcript += (transcript ? ' ' : '') + message.text.trim();
-					}
-					partialTranscript = '';
-				} else {
-					// Show as partial transcript (ignore empty updates that would clear existing text)
-					console.log('Setting partial transcript:', message.text);
-					if (message.text.trim() || !partialTranscript) {
-						partialTranscript = message.text;
-					} else {
-						console.log('[TRANSCRIPT] Ignoring empty partial transcript - keeping existing text');
-					}
-				}
+				handleTranscript_streaming(message);
 				break;
 
 			case 'error':
-				console.error('Server error:', message.message);
-				connectionError = message.message;
+				handleError_streaming(message);
 				break;
 
 			case 'session_ended':
-				console.log('[MSG] Session ended by server:', message.session_id);
-				// Don't stop recording - new session will be started by [Session Ended] transcript handler
-				console.log('[MSG] Clearing session ID, waiting for new session...');
+				console.log('[STREAMING] Session ended by server:', message.session_id);
 				sessionId = null;
 				break;
+		}
+	}
+
+	// ═══════════════════════════════════════════════════════════════
+	// OFFLINE MODEL HANDLERS (PARAKEET)
+	// ═══════════════════════════════════════════════════════════════
+
+	/**
+	 * Handle transcript messages for offline models (Parakeet).
+	 * Offline models give incremental text across sessions, so we concatenate.
+	 */
+	function handleTranscript_offline(message: any) {
+		console.log('[OFFLINE] Received transcript:', message.text, 'is_final:', message.is_final);
+
+		if (message.is_final) {
+			// Check if server is ending the session (15-second buffer limit)
+			if (message.text.trim() === '[Session Ended]') {
+				console.log('[OFFLINE] Server ended session (15s buffer). Starting new session...');
+				// Save the partial transcript to final before starting new session
+				if (partialTranscript.trim()) {
+					transcript += (transcript ? ' ' : '') + partialTranscript.trim();
+				}
+				partialTranscript = '';
+
+				// DON'T clear sessionId - keep it until new 'ready' arrives so audio can continue
+				// sessionId will be updated when the new 'ready' message arrives
+
+				// If still recording, start a new session immediately
+				if (isRecording) {
+					const language = isOfflineModel(selectedLanguage) ? 'parakeet_tdt_v3' : selectedLanguage;
+					console.log('[OFFLINE] Sending new start message with language:', language);
+					sendMessage({
+						type: 'start',
+						sample_rate: SAMPLE_RATE,
+						format: 'pcm',
+						language: language
+					});
+				}
+				return;
+			}
+
+			// Add to final transcript
+			if (message.text.trim()) {
+				console.log('[OFFLINE] Adding to final transcript:', message.text.trim());
+				transcript += (transcript ? ' ' : '') + message.text.trim();
+			}
+			partialTranscript = '';
+		} else {
+			// Show as partial transcript
+			console.log('[OFFLINE] Setting partial transcript:', message.text);
+
+			// For offline models: finalize previous partial before setting new one
+			// (text is incremental across sessions)
+			if (isRecording && partialTranscript.trim() && message.text.trim()) {
+				console.log('[OFFLINE] Finalizing previous partial before new partial (session chaining)');
+				transcript += (transcript ? ' ' : '') + partialTranscript.trim();
+			}
+
+			if (message.text.trim() || !partialTranscript) {
+				partialTranscript = message.text;
+			} else {
+				console.log('[OFFLINE] Ignoring empty partial transcript - keeping existing text');
+			}
+		}
+	}
+
+	/**
+	 * Handle error messages for offline models.
+	 * Suppress "Session not found" errors during session transitions.
+	 */
+	function handleError_offline(message: any) {
+		console.error('[OFFLINE] Server error:', message.message);
+
+		// Check if error is "Session not found" during session chaining
+		if (message.message && message.message.includes('Session not found') && isRecording) {
+			console.log('[OFFLINE] Session not found (during session transition) - suppressing');
+			return;
+		}
+
+		connectionError = message.message;
+	}
+
+	/**
+	 * Handle session ready for offline models.
+	 * Offline models chain sessions every 15 seconds during continuous recording.
+	 */
+	function handleSessionReady_offline(sessionIdReceived: string) {
+		sessionId = sessionIdReceived;
+		console.log('[OFFLINE] Session ready:', sessionId);
+	}
+
+	/**
+	 * Handle all server messages for offline models (Parakeet).
+	 */
+	function handleServerMessage_offline(message: any) {
+		switch (message.type) {
+			case 'ready':
+				handleSessionReady_offline(message.session_id);
+				if (message.available_models) {
+					availableModels = message.available_models;
+				}
+				break;
+
+			case 'transcript':
+				handleTranscript_offline(message);
+				break;
+
+			case 'error':
+				handleError_offline(message);
+				break;
+
+			case 'session_ended':
+				console.log('[OFFLINE] Session ended by server:', message.session_id);
+				// Don't clear sessionId yet - keep it for audio sending during transition
+				console.log('[OFFLINE] Keeping session ID for transition...');
+				break;
+		}
+	}
+
+	// ═══════════════════════════════════════════════════════════════
+	// MAIN MESSAGE HANDLER (DELEGATES TO STREAMING OR OFFLINE)
+	// ═══════════════════════════════════════════════════════════════
+
+	/**
+	 * Main server message handler - delegates to streaming or offline handlers.
+	 */
+	function handleServerMessage(message: any) {
+		console.log('Received message:', message);
+
+		// Delegate to appropriate handler based on model type
+		if (isOfflineModel(selectedLanguage)) {
+			handleServerMessage_offline(message);
+		} else {
+			handleServerMessage_streaming(message);
 		}
 	}
 
@@ -420,11 +606,21 @@
 			}
 
 			// Reinitialize VAD if it was destroyed
-			if (!vad) {
-				console.log('[START] VAD not initialized, creating new instance...');
-				isWasmReady = false;
-				await initializeVAD();
+			// Always destroy and recreate VAD for fresh initialization
+			// (MicVAD has timing issues if reused across multiple recordings)
+			if (vad) {
+				console.log('[START] Destroying previous VAD instance...');
+				try {
+					vad.destroy();
+				} catch (e) {
+					console.warn('[START] Error destroying VAD:', e);
+				}
+				vad = null;
 			}
+
+			console.log('[START] Creating fresh VAD instance...');
+			isWasmReady = false;
+			await initializeVAD();
 
 			// Ensure VAD is ready
 			if (!isWasmReady || !vad) {
@@ -435,9 +631,10 @@
 
 			// Send start message to establish session
 			// ET and EN use dedicated models, all others use Parakeet (auto LID)
-			const useParakeet = selectedLanguage !== 'et' && selectedLanguage !== 'en';
-			const language = useParakeet ? 'parakeet_tdt_v3' : selectedLanguage;
-			console.log('[START] Sending start message with language:', language);
+			const offline = isOfflineModel(selectedLanguage);
+			const language = offline ? 'parakeet_tdt_v3' : selectedLanguage;
+			const modelType = offline ? 'OFFLINE' : 'STREAMING';
+			console.log(`[START] [${modelType}] Sending start message with language:`, language);
 			sendMessage({
 				type: 'start',
 				sample_rate: SAMPLE_RATE,
@@ -451,6 +648,7 @@
 
 			// Start the already-initialized VAD (requests microphone access)
 			console.log('[START] Calling vad.start()...');
+			console.log('[START] Frame count before start:', frameCount);
 			await vad.start();
 			console.log('[START] vad.start() completed');
 
@@ -465,11 +663,14 @@
 			// Diagnostic: Check if we're receiving audio frames (doesn't stop recording)
 			setTimeout(() => {
 				if (isRecording) {
-					if (audioBuffer.length === 0) {
-						console.warn('[START] ⚠️ No audio frames received yet. VAD may have issues initializing.');
-						console.warn('[START] HOWEVER, recording is still active - try speaking into the microphone.');
+					console.log('[START] Frame count after 3s:', frameCount);
+					if (audioBuffer.length === 0 && frameCount === 0) {
+						console.error('[START] ❌ No audio frames received - VAD is not processing audio!');
+						console.error('[START] This indicates microphone permission issue or worklet not loaded.');
+					} else if (audioBuffer.length === 0 && frameCount > 0) {
+						console.warn('[START] ⚠️ Frames processed but buffer empty (frames:', frameCount, ')');
 					} else {
-						console.log('[START] ✓ VAD working! Received', audioBuffer.length, 'audio frames.');
+						console.log('[START] ✓ VAD working! Received', audioBuffer.length, 'audio frames, processed', frameCount, 'total frames.');
 					}
 				}
 			}, 3000);
@@ -522,8 +723,12 @@
 			sendMessage({ type: 'stop' });
 		}
 
-		// Wait a bit for final results, then save to past recordings
-		await new Promise(resolve => setTimeout(resolve, 1000));
+		// Wait longer for final results from offline models
+		// Server needs time to process remaining buffer (< 15s) before finalizing
+		const isOffline = isOfflineModel(selectedLanguage);
+		const waitTime = isOffline ? 3000 : 1000; // 3s for offline, 1s for streaming
+		console.log(`[STOP] Waiting ${waitTime}ms for final transcription results...`);
+		await new Promise(resolve => setTimeout(resolve, waitTime));
 
 		// Combine final and partial transcripts
 		const finalText = (transcript + ' ' + partialTranscript).trim();
