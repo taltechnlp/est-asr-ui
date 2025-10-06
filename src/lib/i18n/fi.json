@@ -279,6 +279,34 @@
         "transcript": "Transkriptio",
         "listeningForSpeech": "🔊 Kuunnellaan puhetta...",
         "speakingDetected": "🎤 Puhe havaittu - nauhoitetaan...",
-        "pastRecordings": "Aikaisemmat tallenteet"
+        "pastRecordings": "Aikaisemmat tallenteet",
+        "failedToConnect": "Palvelimeen yhdistäminen epäonnistui",
+        "languages": {
+            "et": "viro",
+            "en": "englanti",
+            "bg": "bulgaria",
+            "cs": "tšekki",
+            "da": "tanska",
+            "de": "saksa",
+            "el": "kreikka",
+            "es": "espanja",
+            "fi": "suomi",
+            "fr": "ranska",
+            "hr": "kroatia",
+            "hu": "unkari",
+            "it": "italia",
+            "lt": "liettua",
+            "lv": "latvia",
+            "mt": "malta",
+            "nl": "hollanti",
+            "pl": "puola",
+            "pt": "portugali",
+            "ro": "romania",
+            "ru": "venäjä",
+            "sk": "slovakia",
+            "sl": "slovenia",
+            "sv": "ruotsi",
+            "uk": "ukraina"
+        }
     }
 }

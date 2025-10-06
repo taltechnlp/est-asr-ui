@@ -279,6 +279,34 @@
     "transcript": "Transcript",
     "listeningForSpeech": "🔊 Listening for speech...",
     "speakingDetected": "🎤 Speaking detected - Recording...",
-    "pastRecordings": "Past Recordings"
+    "pastRecordings": "Past Recordings",
+    "failedToConnect": "Failed to connect to server",
+    "languages": {
+      "et": "Estonian",
+      "en": "English",
+      "bg": "Bulgarian",
+      "cs": "Czech",
+      "da": "Danish",
+      "de": "German",
+      "el": "Greek",
+      "es": "Spanish",
+      "fi": "Finnish",
+      "fr": "French",
+      "hr": "Croatian",
+      "hu": "Hungarian",
+      "it": "Italian",
+      "lt": "Lithuanian",
+      "lv": "Latvian",
+      "mt": "Maltese",
+      "nl": "Dutch",
+      "pl": "Polish",
+      "pt": "Portuguese",
+      "ro": "Romanian",
+      "ru": "Russian",
+      "sk": "Slovak",
+      "sl": "Slovenian",
+      "sv": "Swedish",
+      "uk": "Ukrainian"
+    }
   }
 }
