@@ -732,7 +732,7 @@
 						<span class="label-text font-medium">{$_('files.language')}</span>
 					</label>
 					<select
-						class="select select-bordered select-lg w-full text-center text-lg"
+						class="select select-lg w-full text-center text-lg"
 						bind:value={selectedLanguage}
 						disabled={isRecording}
 					>

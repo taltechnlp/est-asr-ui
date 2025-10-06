@@ -292,7 +292,7 @@
 							id="langSelect"
 							required
 							bind:value={selectedLanguage}
-							class="select select-bordered w-full max-w-xs mb-4"
+							class="select w-full max-w-xs mb-4"
 						>
 							{#each languageChoices as language}
 								<option value={language}>
@@ -306,7 +306,7 @@
 							<span class="label-text">{$_('files.file')}</span>
 						</div>
 						<input
-							class="file-input file-input-bordered file-input-primary w-full max-w-xs"
+							class="file-input file-input-primary w-full max-w-xs"
 							type="file"
 							bind:files={upload}
 							accept="audio/*,video/*,audio/wav,audio/x-wav,audio/mp3,audio/mpeg,audio/ogg,video/ogg,video/x-mpeg2,video/mpeg2,audio/x-m4a,audio/flac,audio/x-flac,audio/x-amr,audio/amr"

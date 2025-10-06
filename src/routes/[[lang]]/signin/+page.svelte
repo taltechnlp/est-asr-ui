@@ -97,8 +97,8 @@
 </svelte:head>
 
 <div class="tabs flex justify-center">
-	<a href="signin" class="tab tab-bordered tab-lg tab-active mr-8">{$_('signin.login')}</a>
-	<a href="signup" class="tab tab-bordered tab-lg">{$_('signin.register')}</a>
+	<a href="signin" class="tab tab-lg tab-active mr-8">{$_('signin.login')}</a>
+	<a href="signup" class="tab tab-lg">{$_('signin.register')}</a>
 </div>
 {#if errorCode}
 <p class="mt-3 text-red-500 text-center font-semibold">{getErrorMessage(errorCode)}</p>

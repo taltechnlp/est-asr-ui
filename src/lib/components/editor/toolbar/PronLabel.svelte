@@ -68,7 +68,7 @@
 			</button>
 			<div
 				tabindex="-1"
-				class="dropdown-content card card-compact w-80 p-2 shadow-lg bg-slate-50 text-primary-focus"
+				class="dropdown-content card card-sm w-80 p-2 shadow-lg bg-slate-50 text-primary-focus"
 				bind:this={dropdown}
 			>
 				<div class="card-body">

@@ -42,8 +42,8 @@
 </svelte:head>
 
 <div class="tabs flex justify-center">
-	<a href="signin" class="tab tab-bordered tab-lg mr-8">Logi sisse</a>
-	<a href="signup" class="tab tab-bordered tab-lg tab-active">Registreeru</a>
+	<a href="signin" class="tab tab-lg mr-8">Logi sisse</a>
+	<a href="signup" class="tab tab-lg tab-active">Registreeru</a>
 </div>
 {#if (error)}
 	<p class="mt-3 text-red-500 text-center font-semibold">{error}</p>
