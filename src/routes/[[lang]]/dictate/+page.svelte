@@ -19,6 +19,7 @@
 	// Audio processing constants
 	const SAMPLE_RATE = 16000;
 	const WS_URL = 'ws://127.0.0.1:8081/ws';
+	const DEBUG_VAD = false; // Set to true to enable verbose VAD logging
 
 	// WebSocket connection
 	let ws: WebSocket | null = null;
@@ -146,13 +147,15 @@
 			onFrameProcessed: (probabilities, frame: Float32Array) => {
 				frameCount++;
 
-				// Log every frame for first 100 frames to debug initialization
-				if (frameCount <= 100) {
-					console.log(`[VAD] Frame #${frameCount} - prob: ${probabilities.isSpeech.toFixed(3)}, recording: ${isRecording}, speaking: ${isSpeaking}`);
-				}
-				// Then log periodically
-				else if (frameCount % 50 === 0) {
-					console.log(`[VAD] Frame #${frameCount} - still receiving frames`);
+				if (DEBUG_VAD) {
+					// Log every frame for first 100 frames to debug initialization
+					if (frameCount <= 100) {
+						console.log(`[VAD] Frame #${frameCount} - prob: ${probabilities.isSpeech.toFixed(3)}, recording: ${isRecording}, speaking: ${isSpeaking}`);
+					}
+					// Then log periodically
+					else if (frameCount % 50 === 0) {
+						console.log(`[VAD] Frame #${frameCount} - still receiving frames`);
+					}
 				}
 
 				// Always buffer frames for pre-speech
@@ -168,7 +171,7 @@
 			},
 
 			onSpeechStart: () => {
-				console.log('🎤 [VAD] Speech started - sending pre-speech buffer');
+				if (DEBUG_VAD) console.log('🎤 [VAD] Speech started - sending pre-speech buffer');
 				isSpeaking = true;
 
 				// Send pre-speech buffer first
@@ -179,7 +182,7 @@
 			},
 
 			onSpeechEnd: (audio: Float32Array) => {
-				console.log('🔇 [VAD] Speech ended, audio length:', audio.length);
+				if (DEBUG_VAD) console.log('🔇 [VAD] Speech ended, audio length:', audio.length);
 				isSpeaking = false;
 
 				// Note: We don't send utterance_end anymore
@@ -188,7 +191,7 @@
 			},
 
 			onVADMisfire: () => {
-				console.log('⚠️ [VAD] VAD misfire detected');
+				if (DEBUG_VAD) console.log('⚠️ [VAD] VAD misfire detected');
 				isSpeaking = false;
 			},
 
