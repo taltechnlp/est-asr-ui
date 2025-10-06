@@ -45,10 +45,17 @@
 	let microphoneError = $state('');
 	let vadError = $state('');
 
+
 	// Transcript state
 	let transcript = $state('');
 	let partialTranscript = $state('');
-	let availableLanguages = $state<string[]>(['et', 'en', 'ru', 'uk']);
+	// Primary languages with dedicated models
+	const primaryLanguages = ['et', 'en'];
+	// Other languages supported by Parakeet TDT (sorted alphabetically)
+	const parakeetLanguages = [
+		'bg', 'cs', 'da', 'de', 'el', 'es', 'fi', 'fr', 'hr', 'hu', 'it',
+		'lt', 'lv', 'mt', 'nl', 'pl', 'pt', 'ro', 'ru', 'sk', 'sl', 'sv', 'uk'
+	];
 	let selectedLanguage = $state('et');
 	let availableModels = $state<string[]>([]);
 
@@ -63,11 +70,10 @@
 	// Get flag emoji for language code
 	function getFlagEmoji(langCode: string): string {
 		const flags: Record<string, string> = {
-			et: '🇪🇪',
-			en: '🇬🇧',
-			fi: '🇫🇮',
-			ru: '🇷🇺',
-			uk: '🇺🇦'
+			et: '🇪🇪', en: '🇬🇧', bg: '🇧🇬', cs: '🇨🇿', da: '🇩🇰', de: '🇩🇪',
+			el: '🇬🇷', es: '🇪🇸', fi: '🇫🇮', fr: '🇫🇷', hr: '🇭🇷', hu: '🇭🇺',
+			it: '🇮🇹', lt: '🇱🇹', lv: '🇱🇻', mt: '🇲🇹', nl: '🇳🇱', pl: '🇵🇱',
+			pt: '🇵🇹', ro: '🇷🇴', ru: '🇷🇺', sk: '🇸🇰', sl: '🇸🇮', sv: '🇸🇪', uk: '🇺🇦'
 		};
 		return flags[langCode.toLowerCase()] || '🌐';
 	}
@@ -101,30 +107,47 @@
 	// Initialize system: pre-load WASM and connect WebSocket
 	async function initializeSystem() {
 		try {
+			console.log('[INIT] Starting system initialization...');
+
 			// Step 1: Connect to WebSocket
 			initializationStatus = $_('dictate.connectingToServer');
+			console.log('[INIT] Connecting to WebSocket:', WS_URL);
 			await connectWebSocket();
 			await new Promise((resolve) => setTimeout(resolve, 500));
 
 			if (!isConnected) {
-				vadError = 'Failed to connect to server';
+				vadError = $_('dictate.failedToConnect');
+				console.error('[INIT] Failed to connect to WebSocket server');
 				return;
 			}
+			console.log('[INIT] ✓ WebSocket connected');
 
 			// Step 2: Pre-load VAD WASM models
 			initializationStatus = $_('dictate.loadingVadModel');
 			isWasmLoading = true;
+			console.log('[INIT] Loading VAD WASM models...');
 
 			vad = await MicVAD.new({
 				// Speech detection thresholds
-				positiveSpeechThreshold: 0.6,
-				negativeSpeechThreshold: 0.4,
+				positiveSpeechThreshold: 0.5,  // Lowered from 0.6 for better sensitivity
+				negativeSpeechThreshold: 0.35, // Lowered from 0.4
 				preSpeechPadFrames: 10,
 				redemptionFrames: 8,
 				minSpeechFrames: 3,
 
 				// Callbacks
 				onFrameProcessed: (probabilities, frame: Float32Array) => {
+					// ALWAYS log first frame to verify callbacks are working
+					if (audioBuffer.length === 0) {
+						console.log('✓ VAD onFrameProcessed callback fired! First frame received.');
+					}
+
+					// Debug logging (throttled) - NO state condition to ensure we see logs
+					if (Math.random() < 0.02) {  // ~2% of frames (~2 logs/sec)
+						console.log('[VAD] probability:', probabilities.isSpeech.toFixed(3),
+							'recording:', isRecording, 'speaking:', isSpeaking, 'frameSize:', frame.length);
+					}
+
 					// Always buffer frames for pre-speech
 					audioBuffer.push(new Float32Array(frame));
 					if (audioBuffer.length > FRAMES_TO_BUFFER) {
@@ -138,7 +161,7 @@
 				},
 
 				onSpeechStart: () => {
-					console.log('🎤 Speech started - sending pre-speech buffer');
+					console.log('🎤 [VAD] Speech started - sending pre-speech buffer');
 					isSpeaking = true;
 
 					// Send pre-speech buffer first
@@ -149,7 +172,7 @@
 				},
 
 				onSpeechEnd: (audio: Float32Array) => {
-					console.log('🔇 Speech ended');
+					console.log('🔇 [VAD] Speech ended, audio length:', audio.length);
 					isSpeaking = false;
 
 					// Signal to server that utterance is complete
@@ -159,8 +182,14 @@
 				},
 
 				onVADMisfire: () => {
-					console.log('⚠️ VAD misfire detected');
+					console.log('⚠️ [VAD] VAD misfire detected');
 					isSpeaking = false;
+				},
+
+				// Error callback
+				onError: (error: any) => {
+					console.error('❌ [VAD] Error:', error);
+					vadError = 'VAD error: ' + (error.message || error);
 				},
 
 				// Local asset paths
@@ -177,9 +206,15 @@
 			isWasmReady = true;
 			initializationStatus = $_('dictate.readyToRecord');
 
-			console.log('System initialized successfully');
+			console.log('[INIT] ✓ VAD WASM loaded successfully');
+			console.log('[INIT] ✓ System initialized and ready to record');
 		} catch (error: any) {
-			console.error('Failed to initialize system:', error);
+			console.error('[INIT] ❌ Failed to initialize system:', error);
+			console.error('[INIT] Error details:', {
+				name: error.name,
+				message: error.message,
+				stack: error.stack
+			});
 			isWasmLoading = false;
 			isWasmReady = false;
 
@@ -246,9 +281,7 @@
 		switch (message.type) {
 			case 'ready':
 				sessionId = message.session_id;
-				if (message.available_languages) {
-					availableLanguages = message.available_languages;
-				}
+				// Note: We use hardcoded language lists, ignoring server's available_languages
 				if (message.available_models) {
 					availableModels = message.available_models;
 				}
@@ -277,7 +310,12 @@
 				break;
 
 			case 'session_ended':
-				console.log('Session ended:', message.session_id);
+				console.log('[MSG] Session ended by server:', message.session_id);
+				// Stop recording to prevent sending more audio
+				if (isRecording) {
+					console.log('[MSG] Server ended session - stopping recording');
+					stopRecording();
+				}
 				sessionId = null;
 				break;
 		}
@@ -306,6 +344,12 @@
 			return;
 		}
 
+		// Don't send audio if session has ended
+		if (!sessionId) {
+			console.warn('[AUDIO] Skipping audio send - no active session');
+			return;
+		}
+
 		// Convert Float32 to Int16
 		const int16Data = float32ToInt16(audioData);
 		const bytes = new Uint8Array(int16Data.buffer);
@@ -330,35 +374,72 @@
 			microphoneError = '';
 			vadError = '';
 
+			console.log('[START] Starting recording...');
+
 			// Ensure system is ready
 			if (!isWasmReady || !vad) {
 				vadError = 'System not initialized. Please wait...';
+				console.error('[START] System not ready:', { isWasmReady, vadExists: !!vad });
 				return;
 			}
 
 			if (!isConnected || !ws) {
 				connectionError = $_('dictate.noConnections');
+				console.error('[START] Not connected to server');
 				return;
 			}
 
 			// Send start message to establish session
+			// ET and EN use dedicated models, all others use Parakeet (auto LID)
+			const useParakeet = selectedLanguage !== 'et' && selectedLanguage !== 'en';
+			const language = useParakeet ? 'parakeet_tdt_v3' : selectedLanguage;
+			console.log('[START] Sending start message with language:', language);
 			sendMessage({
 				type: 'start',
 				sample_rate: SAMPLE_RATE,
 				format: 'pcm',
-				language: selectedLanguage
+				language: language
 			});
 
 			// Start the already-initialized VAD (requests microphone access)
+			console.log('[START] Calling vad.start()...');
 			await vad.start();
+			console.log('[START] vad.start() completed');
+
 			isVadActive = true;
 			isRecording = true;
 
-			console.log('Recording started successfully');
+			// Verify microphone is working by checking if we have an audio stream
+			// MicVAD stores the stream internally, but we can check via callbacks
+			console.log('[START] ✓ Recording started. Waiting for first audio frame...');
+			console.log('[START] State: isRecording =', isRecording, 'isVadActive =', isVadActive, 'isSpeaking =', isSpeaking);
+
+			// Set a timeout to check if we're receiving audio frames
+			setTimeout(() => {
+				if (isRecording && audioBuffer.length === 0) {
+					console.warn('[START] ⚠️ WARNING: No audio frames received after 2 seconds! VAD callbacks may not be working.');
+					console.warn('[START] This usually means:');
+					console.warn('[START]   1. Microphone permission was denied');
+					console.warn('[START]   2. Audio worklet failed to load');
+					console.warn('[START]   3. Browser security restrictions (HTTPS required)');
+				} else if (isRecording) {
+					console.log('[START] ✓ Audio frames being received. Buffer size:', audioBuffer.length);
+				}
+			}, 2000);
 		} catch (error: any) {
-			console.error('Failed to start recording:', error);
+			console.error('[START] ❌ Failed to start recording:', error);
+			console.error('[START] Error details:', {
+				name: error.name,
+				message: error.message,
+				stack: error.stack
+			});
+
 			if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
 				microphoneError = $_('dictate.providePermission');
+			} else if (error.name === 'NotFoundError') {
+				microphoneError = 'No microphone found';
+			} else if (error.name === 'NotReadableError') {
+				microphoneError = 'Microphone is being used by another application';
 			} else {
 				microphoneError = error.message || 'Failed to start recording';
 			}
@@ -368,6 +449,7 @@
 
 	// Stop recording
 	async function stopRecording() {
+		console.log('[STOP] Stopping recording...');
 		isRecording = false;
 		isVadActive = false;
 		isSpeaking = false;
@@ -375,14 +457,17 @@
 		// Pause VAD (don't destroy - keep it loaded for next time)
 		if (vad) {
 			try {
+				console.log('[STOP] Pausing VAD...');
 				vad.pause();
+				console.log('[STOP] ✓ VAD paused');
 			} catch (error) {
-				console.error('Error pausing VAD:', error);
+				console.error('[STOP] Error pausing VAD:', error);
 			}
 		}
 
 		// Send stop message
 		if (ws && ws.readyState === WebSocket.OPEN && sessionId) {
+			console.log('[STOP] Sending stop message to server');
 			sendMessage({ type: 'stop' });
 		}
 
@@ -393,17 +478,20 @@
 		const finalText = (transcript + ' ' + partialTranscript).trim();
 
 		if (finalText) {
-			console.log('Saving recording to past recordings:', finalText);
+			console.log('[STOP] Saving recording to past recordings:', finalText);
 			const newRecording: Recording = {
 				id: Date.now().toString(),
 				text: finalText,
 				timestamp: new Date()
 			};
 			pastRecordings = [newRecording, ...pastRecordings];
-			console.log('Past recordings count:', pastRecordings.length);
+			console.log('[STOP] ✓ Saved. Past recordings count:', pastRecordings.length);
 			transcript = '';
 			partialTranscript = '';
+		} else {
+			console.log('[STOP] No transcript to save (empty)');
 		}
+		console.log('[STOP] Recording stopped');
 	}
 
 	// Clear transcript
@@ -451,7 +539,7 @@
 	<title>{$_('dictate.title')} | tekstiks.ee</title>
 </svelte:head>
 
-<main class="container mx-auto px-4 py-8 max-w-4xl">
+<main class="container mx-auto px-4 py-8 max-w-4xl bg-base-100 min-h-screen">
 	<!-- Header -->
 	<div class="mb-8">
 		<h1 class="text-4xl font-bold mb-4">{$_('dictate.title')}</h1>
@@ -523,9 +611,33 @@
 	<!-- Recording Controls -->
 	<div class="card bg-base-200 shadow-xl mb-6 relative">
 		<div class="card-body">
-			<!-- Status Badge - Top Right -->
+			<!-- Status Badge - Top Right (Connection Status or VAD Status) -->
 			<div class="absolute top-4 right-4">
-				{#if isWasmLoading || !isWasmReady}
+				{#if isRecording}
+					<!-- VAD Status when recording -->
+					<div class="badge gap-2 p-3" class:badge-info={!isSpeaking} class:badge-success={isSpeaking}>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							class="h-4 w-4"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+							/>
+						</svg>
+						{#if isSpeaking}
+							<span>{$_('dictate.speakingDetected')}</span>
+						{:else}
+							<span>{$_('dictate.listeningForSpeech')}</span>
+						{/if}
+					</div>
+				{:else if isWasmLoading || !isWasmReady}
+					<!-- Connection status when not recording -->
 					<div class="badge badge-info gap-2 p-3">
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
@@ -577,8 +689,15 @@
 						bind:value={selectedLanguage}
 						disabled={isRecording}
 					>
-						{#each availableLanguages as lang}
-							<option value={lang}>{getFlagEmoji(lang)} {lang.toUpperCase()}</option>
+						<!-- Primary languages with dedicated models -->
+						{#each primaryLanguages as lang}
+							<option value={lang}>{getFlagEmoji(lang)} {$_(`dictate.languages.${lang}`)}</option>
+						{/each}
+						<!-- Divider -->
+						<option disabled>──────────────────</option>
+						<!-- Other languages using Parakeet model -->
+						{#each parakeetLanguages as lang}
+							<option value={lang}>{getFlagEmoji(lang)} {$_(`dictate.languages.${lang}`)}</option>
 						{/each}
 					</select>
 				</div>
@@ -636,30 +755,6 @@
 				{/if}
 			</div>
 
-			<!-- VAD Status Indicator -->
-			{#if isRecording}
-				<div class="alert mt-4" class:alert-info={!isSpeaking} class:alert-success={isSpeaking}>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="stroke-current shrink-0 h-6 w-6"
-						fill="none"
-						viewBox="0 0 24 24"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-						/>
-					</svg>
-					{#if isSpeaking}
-						<span>{$_('dictate.speakingDetected')}</span>
-					{:else}
-						<span>{$_('dictate.listeningForSpeech')}</span>
-					{/if}
-				</div>
-			{/if}
-		</div>
 	</div>
 
 	<!-- Transcript Display -->
@@ -738,7 +833,7 @@
 			</div>
 
 			<div
-				class="bg-base-100 rounded-lg p-6 min-h-[300px] font-mono text-sm whitespace-pre-wrap"
+				class="bg-base-100 rounded-lg p-6 min-h-[80px] font-mono text-sm whitespace-pre-wrap"
 			>
 				{#if transcript || partialTranscript}
 					<div class="space-y-2">

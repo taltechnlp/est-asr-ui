@@ -279,6 +279,34 @@
         "transcript": "Transkriptsioon",
         "listeningForSpeech": "🔊 Kuulan kõnet...",
         "speakingDetected": "🎤 Kõne tuvastatud - salvestamine käib...",
-        "pastRecordings": "Varasemad salvestused"
+        "pastRecordings": "Varasemad salvestused",
+        "failedToConnect": "Serveriga ühendamine ebaõnnestus",
+        "languages": {
+            "et": "eesti",
+            "en": "inglise",
+            "bg": "bulgaaria",
+            "cs": "tšehhi",
+            "da": "taani",
+            "de": "saksa",
+            "el": "kreeka",
+            "es": "hispaania",
+            "fi": "soome",
+            "fr": "prantsuse",
+            "hr": "horvaadi",
+            "hu": "ungari",
+            "it": "itaalia",
+            "lt": "leedu",
+            "lv": "läti",
+            "mt": "malta",
+            "nl": "hollandi",
+            "pl": "poola",
+            "pt": "portugali",
+            "ro": "rumeenia",
+            "ru": "vene",
+            "sk": "slovaki",
+            "sl": "sloveeni",
+            "sv": "rootsi",
+            "uk": "ukraina"
+        }
     }
 }
