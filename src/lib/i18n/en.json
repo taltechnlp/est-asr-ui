@@ -245,6 +245,34 @@
       "tooltip": "Settings"
     }
   },
+  "error": {
+    "404": {
+      "title": "Page Not Found",
+      "description": "The page you're looking for doesn't exist."
+    },
+    "401": {
+      "title": "Unauthorized",
+      "description": "You need to be logged in to access this page."
+    },
+    "403": {
+      "title": "Forbidden",
+      "description": "You don't have permission to access this resource."
+    },
+    "500": {
+      "title": "Server Error",
+      "description": "Something went wrong on our end. Please try again later."
+    },
+    "503": {
+      "title": "Service Unavailable",
+      "description": "The service is temporarily unavailable. Please try again later."
+    },
+    "default": {
+      "title": "Error",
+      "description": "An unexpected error occurred."
+    },
+    "goHome": "Go Home",
+    "goBack": "Go Back"
+  },
   "dictate": {
     "title": "Dictate",
     "intro1": "This page allows you to dictate speech in multiple languages using TalTech realtime speech recognition. The web browser sends speech in real-time to the TalTech Laboratory of Language Technology server, where it is transformed into text and returned back to the browser.",

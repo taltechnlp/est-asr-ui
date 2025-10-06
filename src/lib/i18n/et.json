@@ -245,6 +245,34 @@
             "tooltip": "Seaded"
         }
     },
+    "error": {
+        "404": {
+            "title": "Lehekülge ei leitud",
+            "description": "Otsitavat lehekülge ei eksisteeri."
+        },
+        "401": {
+            "title": "Autentimata",
+            "description": "Selle lehe vaatamiseks peate olema sisse logitud."
+        },
+        "403": {
+            "title": "Juurdepääs keelatud",
+            "description": "Teil puudub õigus selle ressursi vaatamiseks."
+        },
+        "500": {
+            "title": "Serveri viga",
+            "description": "Midagi läks meie poolel valesti. Palun proovige hiljem uuesti."
+        },
+        "503": {
+            "title": "Teenus pole saadaval",
+            "description": "Teenus pole ajutiselt saadaval. Palun proovige hiljem uuesti."
+        },
+        "default": {
+            "title": "Viga",
+            "description": "Tekkis ootamatu viga."
+        },
+        "goHome": "Mine avalehele",
+        "goBack": "Mine tagasi"
+    },
     "dictate": {
         "title": "Dikteeri",
         "intro1": "Sellel lehel saab TalTech kõnetuvastuse abil dikteerida teksti mitmes keeles. Veebilehitseja saadab reaalajaliselt kõne TalTechi Kõnetehnoloogia labori serverisse, kus see muudetakse tekstiks ning saadetakse veebilehtisejasse tagasi.",

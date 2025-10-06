@@ -1,5 +1,6 @@
-import type { Handle } from '@sveltejs/kit';
+import type { Handle, HandleServerError } from '@sveltejs/kit';
 import { sequence } from "@sveltejs/kit/hooks";
+import { redirect } from '@sveltejs/kit';
 import { auth } from "$lib/auth";
 
 // Create Better Auth handle that also provides locals.auth() compatibility
@@ -12,7 +13,7 @@ const authHandle: Handle = async ({ event, resolve }) => {
 			const betterAuthSession = await auth.api.getSession({
 				headers: event.request.headers
 			});
-			
+
 			// If Better Auth has a session, use it
 			if (betterAuthSession) {
 				return {
@@ -23,14 +24,14 @@ const authHandle: Handle = async ({ event, resolve }) => {
 					expires: betterAuthSession.session.expiresAt.toISOString()
 				};
 			}
-			
+
 			// If no Better Auth session, check for our simple session cookie
 			const sessionCookie = event.cookies.get('session');
-			
+
 			if (sessionCookie) {
 				try {
 					const sessionData = JSON.parse(sessionCookie);
-					
+
 					// Validate that it has the expected structure and is logged in
 					if (sessionData.loggedIn && sessionData.userId && sessionData.email) {
 						return {
@@ -49,7 +50,7 @@ const authHandle: Handle = async ({ event, resolve }) => {
 					event.cookies.delete('session', { path: '/' });
 				}
 			}
-			
+
 			// No valid session found
 			return null;
 		} catch (error) {
@@ -57,8 +58,26 @@ const authHandle: Handle = async ({ event, resolve }) => {
 			return null;
 		}
 	};
-	
-	return resolve(event);
+
+	try {
+		const response = await resolve(event);
+
+		// Check if the response is a 401 and redirect to login
+		if (response.status === 401) {
+			// Get the current path to redirect back after login
+			const redirectTo = event.url.pathname + event.url.search;
+			const loginUrl = `/signin?redirect=${encodeURIComponent(redirectTo)}`;
+			throw redirect(302, loginUrl);
+		}
+
+		return response;
+	} catch (error) {
+		// If it's already a redirect, rethrow it
+		if (error?.status && error?.location) {
+			throw error;
+		}
+		throw error;
+	}
 };
 
 async function transformHtml({ event, resolve }) {
