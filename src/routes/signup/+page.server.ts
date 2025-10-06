@@ -44,7 +44,7 @@ export const actions: Actions = {
             console.log(`    ${key}: ${value}`);
         }
         
-        let language = params.lang || cookies.get("language");
+        let language = cookies.get("language");
         if (!language || !uiLanguages.includes(language)){
             language = "et";
         }

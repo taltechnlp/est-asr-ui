@@ -36,20 +36,31 @@
 
 	const dispatch = createEventDispatcher();
 
-	function switchLocale(event) {
+	async function switchLocale(event) {
 		event.preventDefault();
-		locale.set(event.target.value);
-		localStorage.setItem("language", event.target.value)
-		dispatch('locale-changed', event.target.value);
-		let newPath = path;
-		let hasLangInUrl = false;
-		uiLanguages.forEach(l => {
-			if (newPath.startsWith('/' + l + '/')) hasLangInUrl = true;
-			else if (newPath.length == 3 && newPath.startsWith('/' + l)) hasLangInUrl = true;
-		});
-		if (hasLangInUrl) newPath = newPath.substring(3);
-		newPath = '/' + event.target.value + newPath;
-		goto(newPath);
+		const newLanguage = event.target.value;
+
+		// Update client-side locale
+		locale.set(newLanguage);
+		localStorage.setItem("language", newLanguage);
+		dispatch('locale-changed', newLanguage);
+
+		// Update server-side cookie via API
+		try {
+			await fetch('/api/language', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ language: newLanguage }),
+			});
+
+			// Reload the page data to reflect the new language
+			// This will re-run all load functions with the new language
+			window.location.reload();
+		} catch (error) {
+			console.error('Failed to update language:', error);
+		}
 	}
 
 	function toggleMenu() {
