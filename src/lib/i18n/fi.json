@@ -245,6 +245,34 @@
             "tooltip": "Asetukset"
         }
     },
+    "error": {
+        "404": {
+            "title": "Sivua ei löydy",
+            "description": "Etsimääsi sivua ei ole olemassa."
+        },
+        "401": {
+            "title": "Ei valtuutusta",
+            "description": "Sinun täytyy kirjautua sisään päästäksesi tälle sivulle."
+        },
+        "403": {
+            "title": "Kielletty",
+            "description": "Sinulla ei ole oikeutta käyttää tätä resurssia."
+        },
+        "500": {
+            "title": "Palvelinvirhe",
+            "description": "Jotain meni pieleen meidän päässämme. Yritä myöhemmin uudelleen."
+        },
+        "503": {
+            "title": "Palvelu ei ole saatavilla",
+            "description": "Palvelu on tilapäisesti poissa käytöstä. Yritä myöhemmin uudelleen."
+        },
+        "default": {
+            "title": "Virhe",
+            "description": "Odottamaton virhe tapahtui."
+        },
+        "goHome": "Kotisivulle",
+        "goBack": "Takaisin"
+    },
     "dictate": {
         "title": "Diktoi",
         "intro1": "Tällä sivulla voit dikteerata puhetta useilla eri kielillä TalTechin reaaliaikaisen puheentunnistuksen avulla. Verkkoselain lähettää puheen reaaliajassa TalTechin kieliteknologian laboratorion palvelimelle, jossa se muunnetaan tekstiksi ja lähetetään takaisin selaimelle.",
