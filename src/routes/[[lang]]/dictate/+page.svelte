@@ -41,10 +41,13 @@
 	let isRecording = $state(false);
 	let isWasmLoading = $state(false);
 	let isWasmReady = $state(false);
-	let initializationStatus = $state('');
+	let initializationStatusKey = $state(''); // Store translation key, not translated string
 	let connectionError = $state('');
 	let microphoneError = $state('');
 	let vadError = $state('');
+
+	// Derived state for localized status
+	let initializationStatus = $derived(initializationStatusKey ? $_(initializationStatusKey) : '');
 
 
 	// Transcript state
@@ -192,7 +195,7 @@
 			// Error callback
 			onError: (error: any) => {
 				console.error('❌ [VAD] Error:', error);
-				vadError = 'VAD error: ' + (error.message || error);
+				vadError = $_('dictate.vadError') + ': ' + (error.message || error);
 			},
 
 			// Local asset paths
@@ -216,7 +219,7 @@
 			console.log('[INIT] Starting system initialization...');
 
 			// Step 1: Connect to WebSocket
-			initializationStatus = $_('dictate.connectingToServer');
+			initializationStatusKey = 'dictate.connectingToServer';
 			console.log('[INIT] Connecting to WebSocket:', WS_URL);
 			await connectWebSocket();
 			await new Promise((resolve) => setTimeout(resolve, 500));
@@ -229,12 +232,12 @@
 			console.log('[INIT] ✓ WebSocket connected');
 
 			// Step 2: Pre-load VAD WASM models
-			initializationStatus = $_('dictate.loadingVadModel');
+			initializationStatusKey = 'dictate.loadingVadModel';
 			console.log('[INIT] Loading VAD WASM models...');
 
 			await initializeVAD();
 
-			initializationStatus = $_('dictate.readyToRecord');
+			initializationStatusKey = 'dictate.readyToRecord';
 			console.log('[INIT] ✓ VAD WASM loaded successfully');
 			console.log('[INIT] ✓ System initialized and ready to record');
 		} catch (error: any) {
@@ -248,11 +251,11 @@
 			isWasmReady = false;
 
 			if (error.message?.includes('vad') || error.message?.includes('onnx')) {
-				vadError = 'Failed to load voice detection model';
+				vadError = $_('dictate.failedToLoadVadModel');
 			} else {
 				vadError = error.message || $_('dictate.initializationFailed');
 			}
-			initializationStatus = $_('dictate.initializationFailed');
+			initializationStatusKey = 'dictate.initializationFailed';
 		}
 	}
 
@@ -624,7 +627,7 @@
 
 			// Ensure VAD is ready
 			if (!isWasmReady || !vad) {
-				vadError = 'Failed to initialize voice detection';
+				vadError = $_('dictate.failedToInitializeVoiceDetection');
 				console.error('[START] VAD initialization failed');
 				return;
 			}
@@ -685,11 +688,11 @@
 			if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
 				microphoneError = $_('dictate.providePermission');
 			} else if (error.name === 'NotFoundError') {
-				microphoneError = 'No microphone found';
+				microphoneError = $_('dictate.noMicrophoneFound');
 			} else if (error.name === 'NotReadableError') {
-				microphoneError = 'Microphone is being used by another application';
+				microphoneError = $_('dictate.microphoneInUse');
 			} else {
-				microphoneError = error.message || 'Failed to start recording';
+				microphoneError = error.message || $_('dictate.initializationFailed');
 			}
 			stopRecording();
 		}
@@ -795,7 +798,7 @@
 	<title>{$_('dictate.title')} | tekstiks.ee</title>
 </svelte:head>
 
-<div class="min-h-screen bg-base-100">
+<div class="bg-base-100">
 	<div class="container mx-auto px-4 py-8 max-w-4xl">
 	<!-- Header -->
 	<div class="mb-8">
