@@ -80,7 +80,7 @@ export const actions: Actions = {
         return { success: true };
     },
 
-    logout: async ({ request }) => {
+    logout: async ({ request, cookies }) => {
         // Use Better Auth's built-in signOut endpoint
         // This properly handles all cookie deletion with the exact same attributes used when creating them
         try {
@@ -90,6 +90,9 @@ export const actions: Actions = {
         } catch (error) {
             console.log('[LOGOUT] Error during signOut:', error);
         }
+
+        // Also clear the legacy session cookie if it exists
+        cookies.delete('session', { path: '/' });
 
         // Redirect to the sign-in page
         redirect(302, '/signin');

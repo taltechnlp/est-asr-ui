@@ -211,14 +211,22 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
                         console.log("Saving failed transcription or sending email notification failed", e);
                     }
                 }
-                else if (workflow.event === "completed" && workflow.metadata.workflow.stats.succeededCount == workflow.metadata.workflow.stats.progressLength) {
-                    try {
-                        await prisma.file.update({
-                            data: { state: "READY" },
-                            where: {
-                                id: updatedWf.file_id,
-                            }
-                        });
+                else if (workflow.event === "completed") {
+                    const stats = workflow.metadata.workflow.stats;
+                    console.log(`Workflow completed: succeededCount=${stats.succeededCount}, progressLength=${stats.progressLength}, failedCount=${stats.failedCount}, runningCount=${stats.runningCount}, pendingCount=${stats.pendingCount}`);
+
+                    // Mark as ready if workflow is completed and no tasks are failed, running, or pending
+                    const isSuccessful = stats.failedCount === 0 && stats.runningCount === 0 && stats.pendingCount === 0;
+
+                    if (isSuccessful) {
+                        console.log(`Marking file ${updatedWf.file_id} as READY`);
+                        try {
+                            await prisma.file.update({
+                                data: { state: "READY" },
+                                where: {
+                                    id: updatedWf.file_id,
+                                }
+                            });
                         if (file.notify) {
                             await sendEmail({
                                 to: file.User.email,
@@ -237,9 +245,12 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
                                 }
                             });
                         }
-                    }
-                    catch(e) {
-                        console.log("Saving successful transcription result or sending email notification failed", e);
+                        }
+                        catch(e) {
+                            console.log("Saving successful transcription result or sending email notification failed", e);
+                        }
+                    } else {
+                        console.log(`Not marking as READY: failedCount=${stats.failedCount}, runningCount=${stats.runningCount}, pendingCount=${stats.pendingCount}`);
                     }
                 }
             }

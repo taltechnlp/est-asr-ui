@@ -74,7 +74,8 @@ function getFit(words: EditorWord[], partition: number[]): number {
 		const text = words
 			.slice(start, split)
 			.map((w) => w.text)
-			.join(' ');
+			.join('')
+			.trim();
 		const pause = words[split + 1] ? words[split + 1].start - words[split].end : 0;
 		subtitlesAndPauses.push([text, pause]);
 		start = split;
@@ -83,7 +84,8 @@ function getFit(words: EditorWord[], partition: number[]): number {
 	const text = words
 		.slice(start)
 		.map((w) => w.text)
-		.join(' ');
+		.join('')
+		.trim();
 	subtitlesAndPauses.push([text, 1.0]);
 
 	return totalFit(subtitlesAndPauses);
@@ -235,7 +237,8 @@ export function toSRT(editorContent: any): string {
 
 	for (let i = 0; i < splits.length - 1; i++) {
 		const subtitleWords = words.slice(splits[i], splits[i + 1]);
-		const text = subtitleWords.map((w) => w.text).join(' ');
+		// Concatenate text directly (word.text already includes trailing space)
+		const text = subtitleWords.map((w) => w.text).join('').trim();
 		const start = subtitleWords[0].start;
 		const end = subtitleWords[subtitleWords.length - 1].end;
 
