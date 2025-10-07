@@ -254,7 +254,8 @@ export const getFiles = async (id) => {
                     await checkCompletion(file.id, file.state, file.externalId, file.path, file.language, file.initialTranscriptionPath, fetch);
                 }
                 if (file.workflows && file.workflows.length > 0 && file.workflows[0].processes) {
-                    progress = Math.floor(file.workflows[0].processes.length / 30 * 100);
+                    const totalSteps = file.workflows[0].progressLength || 30;
+                    progress = Math.min(100, Math.floor(file.workflows[0].processes.length / totalSteps * 100));
                 } 
             }
             return {

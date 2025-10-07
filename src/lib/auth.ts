@@ -90,6 +90,14 @@ export const auth = betterAuth({
         "http://localhost:4173", // SvelteKit preview
         // Add your production domains here
     ],
+
+    // Cookie configuration for proper logout in development
+    session: {
+        cookieCache: {
+            enabled: true,
+            maxAge: 60 * 5 // 5 minutes
+        }
+    },
     
     // Configure ID generation to use shorter IDs
     advanced: {
