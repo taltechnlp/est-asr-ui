@@ -18,7 +18,7 @@
 
 	// Audio processing constants
 	const SAMPLE_RATE = 16000;
-	const WS_URL = 'ws://127.0.0.1:8081/ws';
+	const WS_URL = import.meta.env.VITE_LIVE_DICTATION_WS_URL || 'ws://127.0.0.1:8081/ws';
 	const DEBUG_VAD = false; // Set to true to enable verbose VAD logging
 
 	// WebSocket connection
