@@ -245,11 +245,39 @@
       "tooltip": "Settings"
     }
   },
+  "error": {
+    "404": {
+      "title": "Page Not Found",
+      "description": "The page you're looking for doesn't exist."
+    },
+    "401": {
+      "title": "Unauthorized",
+      "description": "You need to be logged in to access this page."
+    },
+    "403": {
+      "title": "Forbidden",
+      "description": "You don't have permission to access this resource."
+    },
+    "500": {
+      "title": "Server Error",
+      "description": "Something went wrong on our end. Please try again later."
+    },
+    "503": {
+      "title": "Service Unavailable",
+      "description": "The service is temporarily unavailable. Please try again later."
+    },
+    "default": {
+      "title": "Error",
+      "description": "An unexpected error occurred."
+    },
+    "goHome": "Go Home",
+    "goBack": "Go Back"
+  },
   "dictate": {
     "title": "Dictate",
-    "intro1": "This page allows you to dictate Estonian speech using TalTech realtime speech recognition. The web browser sends speech segments to the server of TalTech Laboratory of Language Technology, where it is transformed into text and returned back to the browser.",
-    "intro2": "On Safari and Chrome the speech recognition provided by the browser can be used. It means that the speech is sent to some 3rd party server (e.g. Google or Apple server).",
-    "intro3": "Rahuldava tuvastuskvaliteedi saamiseks tuleks kasutada suu lähedal olevat nn headset-tüüpi mikrofoni. Kindlasti ei tasu dikteerida näiteks sülearvuti sisseehitatud mikrofoniga. Parima tulemuse saamiseks tuleks dikteerida selge häälega ja mõõdukas tempos (umbes nagu raadiodiktor). Sõnade vahel pause ei pea tegema. TalTech kõnetuvastusega saab dikteerida ka kirjavahemärke (\",.!?:;\") ja reavahetusi (ütle \"uus rida\").",
+    "intro1": "This page allows you to dictate speech in multiple languages using TalTech realtime speech recognition. The web browser sends speech in real-time to the TalTech Laboratory of Language Technology server, where it is transformed into text and returned back to the browser.",
+    "intro2": "For Estonian and English, results appear almost immediately. For other languages, there is approximately a 15 second delay before results appear.",
+    "intro3": "For best results, use a good quality microphone and speak clearly at a moderate pace. You don't need to pause between words.",
     "attention": "Attention!",
     "freeConnections": "free connections",
     "noConnections": "No connections are available at this moment!",
@@ -266,6 +294,52 @@
       "taltech": "TalTech speech recognition",
       "browser": "Web browser speech recognition (only Chrome, Safari!)"
     },
-    "recognizers": "Speech recognition service"
+    "recognizers": "Speech recognition service",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "connectingToServer": "Connecting to server...",
+    "loadingVadModel": "Loading voice detection model...",
+    "readyToRecord": "Ready to record",
+    "initializationFailed": "Initialization failed",
+    "startRecording": "Start Recording",
+    "stopRecording": "Stop Recording",
+    "recording": "Recording... Speak clearly into your microphone",
+    "transcript": "Transcript",
+    "listeningForSpeech": "🔊 Listening for speech...",
+    "speakingDetected": "🎤 Speaking detected - Recording...",
+    "pastRecordings": "Past Recordings",
+    "failedToConnect": "Failed to connect to server",
+    "failedToLoadVadModel": "Failed to load voice detection model",
+    "vadError": "VAD error",
+    "failedToInitializeVoiceDetection": "Failed to initialize voice detection",
+    "noMicrophoneFound": "No microphone found",
+    "microphoneInUse": "Microphone is being used by another application",
+    "languages": {
+      "et": "Estonian",
+      "en": "English",
+      "bg": "Bulgarian",
+      "cs": "Czech",
+      "da": "Danish",
+      "de": "German",
+      "el": "Greek",
+      "es": "Spanish",
+      "fi": "Finnish",
+      "fr": "French",
+      "hr": "Croatian",
+      "hu": "Hungarian",
+      "it": "Italian",
+      "lt": "Lithuanian",
+      "lv": "Latvian",
+      "mt": "Maltese",
+      "nl": "Dutch",
+      "pl": "Polish",
+      "pt": "Portuguese",
+      "ro": "Romanian",
+      "ru": "Russian",
+      "sk": "Slovak",
+      "sl": "Slovenian",
+      "sv": "Swedish",
+      "uk": "Ukrainian"
+    }
   }
 }

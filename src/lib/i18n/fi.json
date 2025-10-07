@@ -245,11 +245,39 @@
             "tooltip": "Asetukset"
         }
     },
+    "error": {
+        "404": {
+            "title": "Sivua ei löydy",
+            "description": "Etsimääsi sivua ei ole olemassa."
+        },
+        "401": {
+            "title": "Ei valtuutusta",
+            "description": "Sinun täytyy kirjautua sisään päästäksesi tälle sivulle."
+        },
+        "403": {
+            "title": "Kielletty",
+            "description": "Sinulla ei ole oikeutta käyttää tätä resurssia."
+        },
+        "500": {
+            "title": "Palvelinvirhe",
+            "description": "Jotain meni pieleen meidän päässämme. Yritä myöhemmin uudelleen."
+        },
+        "503": {
+            "title": "Palvelu ei ole saatavilla",
+            "description": "Palvelu on tilapäisesti poissa käytöstä. Yritä myöhemmin uudelleen."
+        },
+        "default": {
+            "title": "Virhe",
+            "description": "Odottamaton virhe tapahtui."
+        },
+        "goHome": "Kotisivulle",
+        "goBack": "Takaisin"
+    },
     "dictate": {
         "title": "Diktoi",
-        "intro1": "Tällä sivulla voit dikteerata viroksi TalTechin reaaliaikaisen puheentunnistuksen avulla. Verkkoselain lähettää puheen osat TalTechin kieli- ja puheentunnistuslaboratorion palvelimelle, jossa se muunnetaan tekstiksi ja lähetetään takaisin selaimelle.",
-        "intro2": "Safarissa ja Chromessa voidaan käyttää selaimen tarjoamaa puheentunnistusta. Tämä tarkoittaa, että puhe lähetetään jonkin kolmannen osapuolen palvelimelle (esim. Google- tai Apple-palvelimelle).",
-        "intro3": "Tyydyttävän tunnistuslaadun saavuttamiseksi olisi käytettävä suun lähellä olevaa niin sanottua headset-tyyppistä mikrofonia. Kannattaa välttää diktoimista esimerkiksi kannettavan tietokoneen sisäänrakennetulla mikrofonilla. Parhaan tuloksen saavuttamiseksi kannattaa puhua selkeästi ja kohtuullisella tempolla (noin kuin radiotoimittaja). Sanojen väliin ei tarvitse tehdä taukoa. TalTechin puheentunnistuksella voit myös diktoida välimerkkejä (\",.!?:;\") ja rivinvaihtoja (sano \"uusi rivi\").",
+        "intro1": "Tällä sivulla voit dikteerata puhetta useilla eri kielillä TalTechin reaaliaikaisen puheentunnistuksen avulla. Verkkoselain lähettää puheen reaaliajassa TalTechin kieliteknologian laboratorion palvelimelle, jossa se muunnetaan tekstiksi ja lähetetään takaisin selaimelle.",
+        "intro2": "Viron ja englannin kielellä tulokset ilmestyvät lähes välittömästi. Muilla kielillä on noin 15 sekunnin viive ennen tulosten ilmestymistä.",
+        "intro3": "Parhaan tuloksen saavuttamiseksi käytä hyvälaatuista mikrofonia ja puhu selkeästi kohtuullisella nopeudella. Sanojen väliin ei tarvitse tehdä taukoa.",
         "attention": "Huomio!",
         "freeConnections": "vapaat yhteydet",
         "noConnections": "Tällä hetkellä ei ole vapaita yhteyksiä!",
@@ -266,6 +294,52 @@
             "taltech": "TalTechin puheentunnistus",
             "browser": "Selaimen puheentunnistus (vain Chrome, Safari!)"
         },
-        "recognizers": "Puheentunnistuspalvelut"
+        "recognizers": "Puheentunnistuspalvelut",
+        "connected": "Yhdistetty",
+        "disconnected": "Yhteys katkaistu",
+        "connectingToServer": "Yhdistetään palvelimeen...",
+        "loadingVadModel": "Ladataan äänen tunnistusmallia...",
+        "readyToRecord": "Valmis nauhoitukseen",
+        "initializationFailed": "Alustus epäonnistui",
+        "startRecording": "Aloita nauhoitus",
+        "stopRecording": "Lopeta nauhoitus",
+        "recording": "Nauhoitetaan... Puhu selkeästi mikrofoniin",
+        "transcript": "Transkriptio",
+        "listeningForSpeech": "🔊 Kuunnellaan puhetta...",
+        "speakingDetected": "🎤 Puhe havaittu - nauhoitetaan...",
+        "pastRecordings": "Aikaisemmat tallenteet",
+        "failedToConnect": "Palvelimeen yhdistäminen epäonnistui",
+        "failedToLoadVadModel": "Äänentunnistusmallin lataaminen epäonnistui",
+        "vadError": "VAD-virhe",
+        "failedToInitializeVoiceDetection": "Äänentunnistuksen alustaminen epäonnistui",
+        "noMicrophoneFound": "Mikrofonia ei löytynyt",
+        "microphoneInUse": "Mikrofoni on toisen sovelluksen käytössä",
+        "languages": {
+            "et": "viro",
+            "en": "englanti",
+            "bg": "bulgaria",
+            "cs": "tšekki",
+            "da": "tanska",
+            "de": "saksa",
+            "el": "kreikka",
+            "es": "espanja",
+            "fi": "suomi",
+            "fr": "ranska",
+            "hr": "kroatia",
+            "hu": "unkari",
+            "it": "italia",
+            "lt": "liettua",
+            "lv": "latvia",
+            "mt": "malta",
+            "nl": "hollanti",
+            "pl": "puola",
+            "pt": "portugali",
+            "ro": "romania",
+            "ru": "venäjä",
+            "sk": "slovakia",
+            "sl": "slovenia",
+            "sv": "ruotsi",
+            "uk": "ukraina"
+        }
     }
 }
