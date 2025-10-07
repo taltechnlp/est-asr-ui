@@ -77,10 +77,10 @@ https://svelte.dev/e/node_invalid_placement -->
 				<tr>
 					<th></th>
 				  <td>
-					<input bind:value={newLabel} type="text" class="input input-bordered input-sm max-w-[5rem]" />
+					<input bind:value={newLabel} type="text" class="input input-sm max-w-[5rem]" />
 				  </td>
 				  <td>
-					<input bind:value={newDesc} type="text" class="input input-bordered input-sm" />
+					<input bind:value={newDesc} type="text" class="input input-sm" />
 				  </td>
 				  <td class="text-center">
 					<input bind:checked={newActive} type="checkbox" class="checkbox" />

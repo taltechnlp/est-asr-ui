@@ -339,7 +339,7 @@
 					name="topic"
 					id=""
 					placeholder={$_('speakerSelect.topicPlaceholder')}
-					class="input input-bordered input-accent input-xs w-full max-w-xs ml-5"
+					class="input input-accent input-xs w-full max-w-xs ml-5"
 					bind:value={topic}
 					onblur={saveTopic}
 				/>

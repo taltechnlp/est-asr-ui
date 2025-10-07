@@ -245,11 +245,39 @@
             "tooltip": "Seaded"
         }
     },
+    "error": {
+        "404": {
+            "title": "Lehekülge ei leitud",
+            "description": "Otsitavat lehekülge ei eksisteeri."
+        },
+        "401": {
+            "title": "Autentimata",
+            "description": "Selle lehe vaatamiseks peate olema sisse logitud."
+        },
+        "403": {
+            "title": "Juurdepääs keelatud",
+            "description": "Teil puudub õigus selle ressursi vaatamiseks."
+        },
+        "500": {
+            "title": "Serveri viga",
+            "description": "Midagi läks meie poolel valesti. Palun proovige hiljem uuesti."
+        },
+        "503": {
+            "title": "Teenus pole saadaval",
+            "description": "Teenus pole ajutiselt saadaval. Palun proovige hiljem uuesti."
+        },
+        "default": {
+            "title": "Viga",
+            "description": "Tekkis ootamatu viga."
+        },
+        "goHome": "Mine avalehele",
+        "goBack": "Mine tagasi"
+    },
     "dictate": {
         "title": "Dikteeri",
-        "intro1": "Sellel lehel saab TalTech kõnetuvastuse abil dikteerida eestikeelset teksti. Veebilehitseja saadab reaalajaliselt kõne TalTechi Kõnetehnoloogia labori serverisse, kus see muudetakse tekstiks ning saadetakse veebilehtisejasse tagasi.",
-        "intro2": "Safari ning Chrome veebilehitsejatega saab ka kasutada veebilehitseja enese kõnetuvastuse võimekust. See küll saavutatakse alati heli kuhugi serverisse saatmisega (nt Google'i või Apple'i serverisse).",
-        "intro3": "Rahuldava tuvastuskvaliteedi saamiseks tuleks kasutada suu lähedal olevat nn headset-tüüpi mikrofoni. Kindlasti ei tasu dikteerida näiteks sülearvuti sisseehitatud mikrofoniga. Parima tulemuse saamiseks tuleks dikteerida selge häälega ja mõõdukas tempos (umbes nagu raadiodiktor). Sõnade vahel pause ei pea tegema. TalTech kõnetuvastusega saab dikteerida ka kirjavahemärke (\",.!?:;\") ja reavahetusi (ütle \"uus rida\").",
+        "intro1": "Sellel lehel saab TalTech kõnetuvastuse abil dikteerida teksti mitmes keeles. Veebilehitseja saadab reaalajaliselt kõne TalTechi Kõnetehnoloogia labori serverisse, kus see muudetakse tekstiks ning saadetakse veebilehtisejasse tagasi.",
+        "intro2": "Eesti ja inglise keele puhul ilmuvad tulemused peaaegu koheselt. Teiste keelte puhul on umbes 15-sekundiline viide enne tulemuste ilmumist.",
+        "intro3": "Parima tulemuse saamiseks kasutage head mikrofoni ning rääkige selge häälega mõõdukas tempos. Sõnade vahel pause ei pea tegema.",
         "attention": "Tähelepanu!",
         "freeConnections": "vaba ühendust",
         "noConnections": "Ühtegi ühendust pole hetkel saadaval!",
@@ -266,6 +294,52 @@
             "taltech": "TalTech kõnetuvastus",
             "browser": "Veebilehitseja kõnetuvastus (ainult Chrome, Safari!)"
         },
-        "recognizers": "Kõnetuvastuse teenus"
+        "recognizers": "Kõnetuvastuse teenus",
+        "connected": "Ühendatud",
+        "disconnected": "Ühendus puudub",
+        "connectingToServer": "Ühendun serveriga...",
+        "loadingVadModel": "Laadin häältuvastuse mudelit...",
+        "readyToRecord": "Valmis salvestama",
+        "initializationFailed": "Lähtestamine ebaõnnestus",
+        "startRecording": "Alusta salvestamist",
+        "stopRecording": "Peata salvestamine",
+        "recording": "Salvestamine... Räägi selgelt mikrofoni",
+        "transcript": "Transkriptsioon",
+        "listeningForSpeech": "🔊 Kuulan kõnet...",
+        "speakingDetected": "🎤 Kõne tuvastatud - salvestamine käib...",
+        "pastRecordings": "Varasemad salvestused",
+        "failedToConnect": "Serveriga ühendamine ebaõnnestus",
+        "failedToLoadVadModel": "Häältuvastuse mudeli laadimine ebaõnnestus",
+        "vadError": "VAD viga",
+        "failedToInitializeVoiceDetection": "Häältuvastuse käivitamine ebaõnnestus",
+        "noMicrophoneFound": "Mikrofoni ei leitud",
+        "microphoneInUse": "Mikrofon on teise rakenduse poolt kasutusel",
+        "languages": {
+            "et": "eesti",
+            "en": "inglise",
+            "bg": "bulgaaria",
+            "cs": "tšehhi",
+            "da": "taani",
+            "de": "saksa",
+            "el": "kreeka",
+            "es": "hispaania",
+            "fi": "soome",
+            "fr": "prantsuse",
+            "hr": "horvaadi",
+            "hu": "ungari",
+            "it": "itaalia",
+            "lt": "leedu",
+            "lv": "läti",
+            "mt": "malta",
+            "nl": "hollandi",
+            "pl": "poola",
+            "pt": "portugali",
+            "ro": "rumeenia",
+            "ru": "vene",
+            "sk": "slovaki",
+            "sl": "sloveeni",
+            "sv": "rootsi",
+            "uk": "ukraina"
+        }
     }
 }

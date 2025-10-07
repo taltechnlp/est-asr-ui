@@ -30,6 +30,6 @@
 	<Nav language={data.language} bind:value={currentTheme} />
 </div>
 
-<main class="" data-theme={currentTheme}>
+<main class="bg-base-100" data-theme={currentTheme}>
 	{@render children?.()}
 </main>
