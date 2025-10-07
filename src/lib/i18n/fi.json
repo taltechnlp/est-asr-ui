@@ -94,7 +94,7 @@
         "statusOld": "Vanha järjestelmä",
         "toOldSystem": "Vanhaan järjestelmään",
         "statusReady": "VALMIS",
-        "statusError": "TRANSKRIPTIO EPÄONNISTUI",
+        "statusError": "EPÄONNISTUI",
         "statusProcessing": "KÄSITELLÄÄN",
         "statusUploaded": "JONOSSA",
         "uploadHeader": "Lähetä äänitiedosto",
