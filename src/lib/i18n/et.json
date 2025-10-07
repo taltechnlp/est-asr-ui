@@ -94,7 +94,7 @@
         "statusOld": "Vanas süsteemis",
         "toOldSystem": "Vanasse süsteemi",
         "statusReady": "VALMIS",
-        "statusError": "TRANSKRIBEERIMINE EBAÕNNESTUS",
+        "statusError": "EBAÕNNESTUS",
         "statusProcessing": "TÖÖDELDAKSE",
         "statusUploaded": "JÄRJEKORRAS",
         "uploadHeader": "Helisalvestise ülesse laadimine",

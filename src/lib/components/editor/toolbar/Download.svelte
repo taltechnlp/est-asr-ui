@@ -2,10 +2,12 @@
 	import { _ } from 'svelte-i18n';
     import { editor } from '$lib/stores.svelte';
     import { downloadHandler } from '$lib/download';
+    import { toSRT } from '$lib/helpers/converters/srtFormat';
     let { fileName } = $props();
 	let downloadOptions = [
 		{ id: 1, text: `Word (.docx)` },
-		{ id: 2, text: `JSON` }
+		{ id: 2, text: `JSON` },
+		{ id: 3, text: `SRT (.srt)` }
 	];
 	let format = $state();
     let includeNames = $state(true);
@@ -49,13 +51,24 @@
             <div class="mt-5 flex justify-between">
                 <label for="download-modal" class="btn btn-primary"
                 onclick={() => {
-                    if (format.id === 1) downloadHandler($editor.getJSON(), '', fileName, includeNames, includeTimeCodes);
-                    else {
+                    if (format.id === 1) {
+                        downloadHandler($editor.getJSON(), '', fileName, includeNames, includeTimeCodes);
+                    } else if (format.id === 2) {
                         const blob = new Blob([JSON.stringify($editor.getJSON())], {type: "application/json"});
                         const url = window.URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
                         a.download = 'transkriptsioon.json';
+                        document.body.appendChild(a); // need to append the element to the dom -> otherwise it will not work in firefox
+                        a.click();
+                        a.remove();
+                    } else if (format.id === 3) {
+                        const srtContent = toSRT($editor.getJSON());
+                        const blob = new Blob([srtContent], {type: "text/plain"});
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${fileName}.srt`;
                         document.body.appendChild(a); // need to append the element to the dom -> otherwise it will not work in firefox
                         a.click();
                         a.remove();
