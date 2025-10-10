@@ -31,5 +31,7 @@
 </div>
 
 <main class="bg-base-100" data-theme={currentTheme}>
-	{@render children?.()}
+	{#if children}
+		{@render children()}
+	{/if}
 </main>

@@ -2,9 +2,10 @@
 	import { userState, lang as langStore } from '$lib/stores.svelte';
 	import { afterNavigate, goto } from '$app/navigation';
 	import Logo from '$lib/components/Logo.svelte';
-	import { createEventDispatcher } from 'svelte';
 	import { _, locale } from 'svelte-i18n';
 	import { uiLanguages } from './i18n';
+	import { browser } from '$app/environment';
+
 	let { language, value = $bindable() } = $props();
 
 	let loggedIn = $derived(userState.id.length > 0);
@@ -27,14 +28,14 @@
 	};
 	const languages = uiLanguages;
 
-	let currentLanguage: string = $state(language || "et");
-	//let value = $state(value);
-	locale.set(currentLanguage); 
-	locale.subscribe(lang => {
-		currentLanguage = lang}
-	)
+	let currentLanguage = $state(language || "et");
 
-	const dispatch = createEventDispatcher();
+	// Initialize locale on mount
+	$effect(() => {
+		if (browser) {
+			locale.set(currentLanguage);
+		}
+	});
 
 	async function switchLocale(event) {
 		event.preventDefault();
@@ -42,8 +43,9 @@
 
 		// Update client-side locale
 		locale.set(newLanguage);
-		localStorage.setItem("language", newLanguage);
-		dispatch('locale-changed', newLanguage);
+		if (browser) {
+			localStorage.setItem("language", newLanguage);
+		}
 
 		// Update server-side cookie via API
 		try {
@@ -57,7 +59,9 @@
 
 			// Reload the page data to reflect the new language
 			// This will re-run all load functions with the new language
-			window.location.reload();
+			if (browser) {
+				window.location.reload();
+			}
 		} catch (error) {
 			console.error('Failed to update language:', error);
 		}
