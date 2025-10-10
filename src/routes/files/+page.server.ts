@@ -14,7 +14,6 @@ import { getAudioDurationInSeconds } from 'get-audio-duration';
 import { Buffer } from 'node:buffer';
 import { Readable } from 'stream';
 import { unlink } from 'fs/promises';
-import '../../../app.css';
 
 export const load: PageServerLoad = async ({ locals, fetch, depends }) => {
 	depends('/api/files');
