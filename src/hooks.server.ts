@@ -1,5 +1,6 @@
-import type { Handle } from '@sveltejs/kit';
+import type { Handle, HandleServerError } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
+import { redirect } from '@sveltejs/kit';
 import { auth } from '$lib/auth';
 
 // Create Better Auth handle that also provides locals.auth() compatibility
@@ -58,7 +59,25 @@ const authHandle: Handle = async ({ event, resolve }) => {
 		}
 	};
 
-	return resolve(event);
+	try {
+		const response = await resolve(event);
+
+		// Check if the response is a 401 and redirect to login
+		if (response.status === 401) {
+			// Get the current path to redirect back after login
+			const redirectTo = event.url.pathname + event.url.search;
+			const loginUrl = `/signin?redirect=${encodeURIComponent(redirectTo)}`;
+			throw redirect(302, loginUrl);
+		}
+
+		return response;
+	} catch (error) {
+		// If it's already a redirect, rethrow it
+		if (error?.status && error?.location) {
+			throw error;
+		}
+		throw error;
+	}
 };
 
 async function transformHtml({ event, resolve }) {

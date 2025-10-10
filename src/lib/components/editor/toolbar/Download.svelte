@@ -2,11 +2,13 @@
 	import { _ } from 'svelte-i18n';
     import { editor } from '$lib/stores.svelte';
     import { downloadHandler, downloadTxtHandler } from '$lib/download';
+    import { toSRT } from '$lib/helpers/converters/srtFormat';
     let { fileName } = $props();
 	let downloadOptions = [
 		{ id: 1, text: `Word (.docx)` },
 		{ id: 2, text: `Plain Text (.txt)` },
-		{ id: 3, text: `JSON` }
+		{ id: 3, text: `JSON` },
+		{ id: 4, text: `SRT (.srt)` }
 	];
 	let format = $state();
     let includeNames = $state(true);
@@ -63,6 +65,17 @@
                         const a = document.createElement('a');
                         a.href = url;
                         a.download = `${fileName || 'transkriptsioon'}.json`;
+                        document.body.appendChild(a); // need to append the element to the dom -> otherwise it will not work in firefox
+                        a.click();
+                        a.remove();
+                    } else if (format.id === 4) {
+                        // SRT export
+                        const srtContent = toSRT($editor.getJSON());
+                        const blob = new Blob([srtContent], {type: "text/plain"});
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${fileName}.srt`;
                         document.body.appendChild(a); // need to append the element to the dom -> otherwise it will not work in firefox
                         a.click();
                         a.remove();
