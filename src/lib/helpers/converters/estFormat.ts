@@ -10,8 +10,8 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Word, Speaker } from './types';
 import { isNewFormat, fromNewEstFormat } from './newEstFormat';
 
-const words: Array<Word> = [];
-const speakers: Array<Speaker> = [];
+let words: Array<Word> = [];
+let speakers: Array<Speaker> = [];
 const combineWords = (acc, word: ApiWord) => {
 	const id = uuidv4().substring(36 - 12);
 	words.push({ start: word.start, end: word.end, id });
@@ -46,6 +46,10 @@ const mapTurns = (turn: Turn, sps: Speakers) => {
  * Legacy converter for the old EST format
  */
 export const fromEstFormatLegacy = (transcription: EditorContent) => {
+	// Clear arrays for each conversion
+	words = [];
+	speakers = [];
+
 	if (transcription && transcription.sections) {
 		const tr = transcription.sections
 			.reduce((acc, section) => {

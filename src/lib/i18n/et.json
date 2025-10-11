@@ -9,6 +9,34 @@
     "previous": "Eelmine",
     "next": "Järgmine"
   },
+  "error": {
+    "404": {
+      "title": "Lehekülge ei leitud",
+      "description": "Otsitavat lehekülge ei eksisteeri."
+    },
+    "401": {
+      "title": "Autentimata",
+      "description": "Selle lehe vaatamiseks peate olema sisse logitud."
+    },
+    "403": {
+      "title": "Juurdepääs keelatud",
+      "description": "Teil puudub õigus selle ressursi vaatamiseks."
+    },
+    "500": {
+      "title": "Serveri viga",
+      "description": "Midagi läks meie poolel valesti. Palun proovige hiljem uuesti."
+    },
+    "503": {
+      "title": "Teenus pole saadaval",
+      "description": "Teenus pole ajutiselt saadaval. Palun proovige hiljem uuesti."
+    },
+    "default": {
+      "title": "Viga",
+      "description": "Tekkis ootamatu viga."
+    },
+    "goHome": "Mine avalehele",
+    "goBack": "Mine tagasi"
+  },
   "transcript": {
     "chat": {
       "toggle": "Lülita transkriptsiooni analüüs",
@@ -287,6 +315,9 @@
     "back": "Tagasi"
   },
   "file": {
+    "editingMode": "Muutmise režiim:",
+    "editingModeRegular": "Tavaline (tekstis vigade parandamine)",
+    "editingModeAnnotation": "Märgendamine (teksti ja kõne põhjalik märgendamine)",
     "duration": "Kestus:",
     "uploaded": "Ülesse laetud:",
     "toolbarUndo": "Võta tagasi",
@@ -306,7 +337,8 @@
   "speakerSelect": {
     "addNew": "Lisa uus kõneleja",
     "save": "Salvesta",
-    "edit": "Muuda"
+    "edit": "Muuda",
+    "topicPlaceholder": "Sistesta teema"
   },
   "contact": {
     "title": "Kontaktid | tekstiks.ee",

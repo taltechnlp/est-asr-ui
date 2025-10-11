@@ -7,6 +7,34 @@
     "reject": "Reject",
     "error": "Error"
   },
+  "error": {
+    "404": {
+      "title": "Page Not Found",
+      "description": "The page you're looking for doesn't exist."
+    },
+    "401": {
+      "title": "Unauthorized",
+      "description": "You need to be logged in to access this page."
+    },
+    "403": {
+      "title": "Forbidden",
+      "description": "You don't have permission to access this resource."
+    },
+    "500": {
+      "title": "Server Error",
+      "description": "Something went wrong on our end. Please try again later."
+    },
+    "503": {
+      "title": "Service Unavailable",
+      "description": "The service is temporarily unavailable. Please try again later."
+    },
+    "default": {
+      "title": "Error",
+      "description": "An unexpected error occurred."
+    },
+    "goHome": "Go Home",
+    "goBack": "Go Back"
+  },
   "transcript": {
     "chat": {
       "toggle": "Toggle transcript analysis",
@@ -301,6 +329,9 @@
     "back": "Back"
   },
   "file": {
+    "editingMode": "Editing mode:",
+    "editingModeRegular": "Regular (correct recognition mistakes)",
+    "editingModeAnnotation": "Labelling (annotate text and speech)",
     "duration": "Duration:",
     "uploaded": "Uploaded:",
     "toolbarUndo": "Undo",
@@ -320,7 +351,8 @@
   "speakerSelect": {
     "addNew": "Add a new speaker",
     "save": "Save",
-    "edit": "Edit"
+    "edit": "Edit",
+    "topicPlaceholder": "Enter segment topic"
   },
   "contact": {
     "title": "Contacts | tekstiks.ee",

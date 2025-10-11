@@ -6,7 +6,9 @@
 	import { getDebugJSON } from '@tiptap/core';
 	import type { Node, Schema } from 'prosemirror-model';
 	import Document from '@tiptap/extension-document';
-	import { Editor, EditorContent, /* FloatingMenu,  */ createEditor } from 'svelte-tiptap';
+	import { LabelHighlight } from '../marks/labelHighlight';
+	import { PronHighlight } from '../marks/pronHighlight';
+	import { Editor, EditorContent, createEditor } from 'svelte-tiptap';
 	import type { Readable } from 'svelte/store';
 	import Text from '@tiptap/extension-text';
 	import DropCursor from '@tiptap/extension-dropcursor';
@@ -14,7 +16,6 @@
 	import TextStyle from '@tiptap/extension-text-style';
 	import History from '@tiptap/extension-history';
 	import { Speaker } from '../nodes/speaker';
-	import { Diff } from '../nodes/diff';
 	import { Word } from '../marks/word';
 	import { WordColor } from '../plugins/wordColor';
 	import { Annotation } from '../plugins/annotation';
@@ -30,7 +31,7 @@
 		editorMounted,
 		duration,
 		editor as editorStore,
-		waveform, 
+		waveform,
 		fontSize as fontSizeStore,
 		player
 	} from '$lib/stores.svelte';
@@ -42,10 +43,6 @@
 	import Hotkeys from './toolbar/Hotkeys.svelte';
 	import Settings from './toolbar/Settings.svelte';
 	import hotkeys from 'hotkeys-js';
-	import SummaryAccordion from '../transcript-summary/SummaryAccordion.svelte';
-	import type { TranscriptSummary } from '@prisma/client';
-	import { getCoordinatingAgentClient } from '$lib/agents/coordinatingAgentClient';
-	import { getCoordinatingAgentPositionClient } from '$lib/agents/coordinatingAgentPositionClient';
 	
 
 	interface Props {
@@ -54,8 +51,6 @@
 		fileId: any;
 		uploadedAt: any;
 		demo: any;
-		summary?: TranscriptSummary | null;
-		onSummaryGenerated?: (summary: TranscriptSummary) => void;
 	}
 
 	let {
@@ -63,9 +58,7 @@
 		fileName,
 		fileId,
 		uploadedAt,
-		demo,
-		summary = null,
-		onSummaryGenerated = () => {}
+		demo
 	}: Props = $props();
 
 	let element: HTMLDivElement | undefined;
@@ -130,7 +123,17 @@
 				Word,
 				WordColor,
 				Speaker,
-				Diff,
+				LabelHighlight.configure({
+					HTMLAttributes: {
+						class: 'lang-label',
+						multicolor: true
+					}
+				}),
+				PronHighlight.configure({
+					HTMLAttributes: {
+						multicolor: true
+					}
+				})
 			],
 			editorProps: {
 				attributes: {
@@ -177,92 +180,6 @@
 		editorMounted.set(true);
 		let prevEditorDoc: Node = $editor.state.doc;
 		const schema = $editor.schema;
-
-		// Set the editor in the coordinating agents for transaction support
-		try {
-			const agent = getCoordinatingAgentClient();
-			agent.setEditor($editor);
-			
-			// Also set for position-based agent
-			const positionAgent = getCoordinatingAgentPositionClient();
-			positionAgent.setEditor($editor);
-			
-			// Listen for apply suggestion events from the sidebar
-			const handleApplySuggestion = async (event: CustomEvent) => {
-				const { suggestion, segmentId, callback } = event.detail;
-				try {
-					const result = await agent.applySuggestionManually(suggestion, segmentId);
-					if (callback) callback(result);
-				} catch (error) {
-					if (callback) callback({ success: false, error: error.message });
-				}
-			};
-			
-			// Listen for apply suggestion as diff events from the sidebar
-			const handleApplySuggestionAsDiff = async (event: CustomEvent) => {
-				const { suggestion, segmentId, callback } = event.detail;
-				try {
-					// Import the diff creation functions
-					const { findAndCreateDiff, createDiffAtPosition } = await import('$lib/services/transcriptTextReplaceDiff');
-					
-					let result;
-					
-					// Check if we have reconciled positions
-					if (suggestion.from !== undefined && suggestion.to !== undefined) {
-						console.log(`Using reconciled positions [${suggestion.from}, ${suggestion.to}] for diff creation`);
-						
-						// Use position-based creation for reconciled positions
-						result = createDiffAtPosition(
-							$editor,
-							suggestion.from,
-							suggestion.to,
-							suggestion.originalText,
-							suggestion.suggestedText,
-							{
-								changeType: suggestion.type || 'text_replacement',
-								confidence: suggestion.confidence || 0.5,
-								context: suggestion.explanation || suggestion.text || '',
-								validateText: true
-							}
-						);
-					} else {
-						console.log('No positions available, using text search for diff creation');
-						
-						// Fall back to text search
-						result = findAndCreateDiff(
-							$editor,
-							suggestion.originalText,
-							suggestion.suggestedText,
-							{
-								caseSensitive: false,
-								changeType: suggestion.type || 'text_replacement',
-								confidence: suggestion.confidence || 0.5,
-								context: suggestion.explanation || suggestion.text || ''
-							}
-						);
-					}
-					
-					if (callback) callback(result);
-				} catch (error) {
-					console.error('Error creating diff:', error);
-					if (callback) callback({ 
-						success: false, 
-						error: error instanceof Error ? error.message : 'Unknown error' 
-					});
-				}
-			};
-			
-			window.addEventListener('applyTranscriptSuggestion', handleApplySuggestion as EventListener);
-			window.addEventListener('applyTranscriptSuggestionAsDiff', handleApplySuggestionAsDiff as EventListener);
-			
-			// Cleanup listener on component destroy
-			onDestroy(() => {
-				window.removeEventListener('applyTranscriptSuggestion', handleApplySuggestion as EventListener);
-				window.removeEventListener('applyTranscriptSuggestionAsDiff', handleApplySuggestionAsDiff as EventListener);
-			});
-		} catch (error) {
-			console.warn('Failed to set editor in coordinating agent:', error);
-		}
 		
 
 		hotkeys('tab', function(event, handler){
@@ -398,31 +315,18 @@
 
 <div class="w-full fixed top-2 left-0 right-0 flex justify-center z-20"></div>
 <div class="grid w-full mb-12 justify-center">
-	<div class="max-w-5xl w-full">
-		<div class="stats stats-horizontal shadow mb-4 w-full">
-			<div class="stat">
-				<div class="stat-title">{fileName}</div>
-				<div class="flex justify-between text-">
-					<div class="w-1/2 stat-desc mr-3">{$_('file.duration')} {durationSeconds}</div>
-					<div class="w-1/2 stat-desc">{$_('file.uploaded')} {uploadedAtFormatted}</div>
-				</div>
+	<div class="stats stats-horizontal shadow mb-4">
+		<div class="stat">
+			<div class="stat-title">{fileName}</div>
+			<div class="flex justify-between text-">
+				<div class="w-1/2 stat-desc mr-3">{$_('file.duration')} {durationSeconds}</div>
+				<div class="w-1/2 stat-desc">{$_('file.uploaded')} {uploadedAtFormatted}</div>
 			</div>
-
 		</div>
-		
-		{#if !demo}
-			<div class="mb-4">
-				<SummaryAccordion
-					{fileId}
-					onSummaryGenerated={onSummaryGenerated}
-				/>
-			</div>
-		{/if}
 	</div>
-	
 	<div class="editor max-w-5xl">
 		{#if $editor}
-			<div class="toolbar sticky top-0 z-10 pt-1 pb-1 bg-white border-b border-gray-200">
+			<div class="toolbar sticky top-0 z-10 pt-1 pb-1 bg-base-200">
 				{#if !editable}
 				<div class="flex items-center tooltip tooltip-bottom" data-tip={$_('editor.editing.edit')}>
 					<button
@@ -479,7 +383,7 @@
 					</div>
 					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
 				{/if}
-				
+
 				<div class="flex items-center">
 					<label for="download-modal" class="btn btn-link btn-sm flex">
 						<Icon data={download} scale={1} />
@@ -489,9 +393,7 @@
 				
 			</div>
 		{/if}
-		<div class="editor-content-wrapper">
-			<EditorContent editor={$editor} />
-		</div>
+		<EditorContent editor={$editor} />
 	</div>
 	<LanguageSelection />
 	<Hotkeys />
@@ -504,8 +406,7 @@
 		color: rgba(0, 0, 0, 0.54) !important;
 	}
 	.editor {
-		box-shadow: rgba(0, 0, 0, 0.02) 0px 1px 2px 0px, rgba(0, 0, 0, 0.04) 0px 1px 3px 1px;
-		background: white;
+		box-shadow: rgb(0 0 0 / 9%) 0px 4px 4px 4px;
 	}
 
 	.toolbar {
@@ -519,10 +420,6 @@
 		min-width: max-content;
 		padding: 5px 5px;
 		border-radius: var(--rounded-box, 0.5rem);
-	}
-
-	.editor-content-wrapper {
-		position: relative;
 	}
 
 </style>

@@ -7,6 +7,34 @@
     "reject": "Hylkää",
     "error": "Virhe"
   },
+  "error": {
+    "404": {
+      "title": "Sivua ei löydy",
+      "description": "Etsimääsi sivua ei ole olemassa."
+    },
+    "401": {
+      "title": "Ei valtuutusta",
+      "description": "Sinun täytyy kirjautua sisään päästäksesi tälle sivulle."
+    },
+    "403": {
+      "title": "Kielletty",
+      "description": "Sinulla ei ole oikeutta käyttää tätä resurssia."
+    },
+    "500": {
+      "title": "Palvelinvirhe",
+      "description": "Jotain meni pieleen meidän päässämme. Yritä myöhemmin uudelleen."
+    },
+    "503": {
+      "title": "Palvelu ei ole saatavilla",
+      "description": "Palvelu on tilapäisesti poissa käytöstä. Yritä myöhemmin uudelleen."
+    },
+    "default": {
+      "title": "Virhe",
+      "description": "Odottamaton virhe tapahtui."
+    },
+    "goHome": "Kotisivulle",
+    "goBack": "Takaisin"
+  },
   "transcript": {
     "chat": {
       "toggle": "Vaihda litteroinnin analyysi",
@@ -272,6 +300,9 @@
     "back": "Takaisin"
   },
   "file": {
+    "editingMode": "Muokkaustila:",
+    "editingModeRegular": "Tavallinen (korjaa tunnistusvirheet)",
+    "editingModeAnnotation": "Merkinnät (teksti ja puhe)",
     "duration": "Kesto:",
     "uploaded": "Ladattu:",
     "toolbarUndo": "Kumoa",
@@ -291,7 +322,8 @@
   "speakerSelect": {
     "addNew": "Lisää uusi puhuja",
     "save": "Tallenna",
-    "edit": "Muokkaa"
+    "edit": "Muokkaa",
+    "topicPlaceholder": "Anna segmentin aihe"
   },
   "contact": {
     "title": "Yhteystiedot | tekstiks.ee",

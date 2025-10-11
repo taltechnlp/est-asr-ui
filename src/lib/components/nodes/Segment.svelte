@@ -1,13 +1,11 @@
 <script lang="ts">
 	import type { NodeViewProps } from '@tiptap/core';
 	import { NodeViewWrapper, NodeViewContent } from 'svelte-tiptap';
-	import type { Node as ProseMirrorNode } from 'prosemirror-model';
 	import { onMount, onDestroy } from 'svelte';
 	import Icon from '../Icon.svelte';
 	import { clickOutside } from '../clickOutside';
 	import type { Speaker } from '$lib/helpers/converters/types';
 	import { v4 as uuidv4 } from 'uuid';
-	import { selectedSegmentStore } from '$lib/stores/selectedSegmentStore';
 
 	import {
 		speakerNames,
@@ -19,11 +17,6 @@
 	// import { Transform } from 'prosemirror-transform';
 
 	import { _ } from 'svelte-i18n';
-	import SegmentAnalysisButton from './SegmentAnalysisButton.svelte';
-	import type { SegmentWithTiming, ExtractedWord } from '$lib/utils/extractWordsFromEditor';
-	import { page } from '$app/stores';
-	import { getAlternativesFromSegment } from '$lib/helpers/converters/newEstFormat';
-	import type { Alternative } from '$lib/helpers/api.d';
 	interface Props {
 		node: NodeViewProps['node'];
 		decorations: NodeViewProps['decorations'];
@@ -52,20 +45,16 @@
 	};
 
 	let isListOpen = $state(false);
-	let initialName = (node as any).attrs['data-name'];
-	let initialId = (node as any).attrs['id'];
-	// ALWAYS generate a unique ID for this segment instance - never reuse existing IDs
-	// This ensures each segment component has its own unique identifier
-	let segmentUniqueId = $state(uuidv4().substring(32 - 12));
+	let initialName = node.attrs['data-name'];
+	let initialId = node.attrs['id'];
 	let selectedVal: Name = $state({
-		name: (node as any).attrs['data-name'],
-		id: segmentUniqueId
+		name: node.attrs['data-name'],
+		id: node.attrs['id']
 	});
 	let newSpeaker = $state('');
 	let editSpeakerId = $state('');
 	let editingValue = $state('');
-	let isSelectedSegment = $state(false);
-	let names = $state<Name[]>([]);
+	let names = $state();
 	speakerNames.subscribe((ns) => {
 		// Update dropdown list where for each id one name is shown only
 		names = ns.reduce((acc, curr) => {
@@ -76,19 +65,13 @@
 			}
 		}, [] as Array<Speaker>);
 		// Update selected name of each component instance
-		// Keep the unique segment ID, only update the name
-		if (node && (node as any).attrs['data-name']) {
+		// Check id defined b.c. update might happen before transaction has finished
+		if (node && node.attrs['data-name'] && node.attrs['id']) {
 			selectedVal = {
-				name: (node as any).attrs['data-name'],
-				id: segmentUniqueId // Keep using the unique segment ID
+				name: node.attrs['data-name'],
+				id: node.attrs['id']
 			};
 		}
-	});
-	
-	// Subscribe to selected segment changes
-	const unsubscribeSelected = selectedSegmentStore.subscribe(segment => {
-		// Compare using the unique segment ID
-		isSelectedSegment = segment?.id === segmentUniqueId;
 	});
 
 	const findTimeStamps = (startPos, state) => {
@@ -118,124 +101,6 @@
 	let cssVarStyles = $derived(`font-size:${$fontSizeStore}px`)
 	let time = $derived(findTimeStamps(getPos() + 1, editor.state));
 	
-	// Extract alternatives from node attributes
-	let segmentAlternatives = $derived.by(() => {
-		return getAlternativesFromSegment(node);
-	});
-	
-	// Extract file info from page store
-	let fileId = $derived($page.params.fileId || '');
-	let audioFilePath = $derived($page.data?.file?.path || '');
-	
-	// Create SegmentWithTiming object for analysis
-	let segmentWithTiming = $derived.by(() => {
-		const words: ExtractedWord[] = [];
-		let startTime = Infinity;
-		let endTime = -Infinity;
-		let text = '';
-		
-		// Extract words using ProseMirror node API
-		if (node && (node as any).content) {
-			// ProseMirror nodes have a forEach method to iterate over child nodes
-			(node as any).forEach((child: any, offset: number, index: number) => {
-				// Check if this is a Word node (AI editor)
-				if (child.type && child.type.name === 'wordNode') {
-					// Extract text from Word node
-					const wordText = child.textContent || '';
-					const word: ExtractedWord = {
-						text: wordText,
-						start: child.attrs?.start || 0,
-						end: child.attrs?.end || 0,
-						speakerTag: selectedVal.name
-					};
-					words.push(word);
-					text += wordText; // Don't add spaces - they're separate text nodes in AI editor
-					startTime = Math.min(startTime, word.start);
-					endTime = Math.max(endTime, word.end);
-				}
-				// Check if this is text with word marks (original editor)
-				else if (child.isText && child.marks && child.marks.length > 0) {
-					// Find word mark
-					const wordMark = child.marks.find((mark: any) => mark.type.name === 'word');
-					if (wordMark && wordMark.attrs) {
-						const word: ExtractedWord = {
-							text: child.text || '',
-							start: wordMark.attrs.start || 0,
-							end: wordMark.attrs.end || 0,
-							speakerTag: selectedVal.name
-						};
-						words.push(word);
-						text += (text ? ' ' : '') + word.text;
-						startTime = Math.min(startTime, word.start);
-						endTime = Math.max(endTime, word.end);
-					}
-				}
-				// Check for plain text nodes (spaces between words in AI editor)
-				else if (child.isText && !child.marks?.length) {
-					// Add plain text (usually spaces) to maintain proper formatting
-					text += child.text || '';
-				}
-				// Recursively process child nodes for nested structures
-				else if (child.content && child.content.size > 0) {
-					child.forEach((grandchild: any) => {
-						// Check for Word nodes in nested structure
-						if (grandchild.type && grandchild.type.name === 'wordNode') {
-							const wordText = grandchild.textContent || '';
-							const word: ExtractedWord = {
-								text: wordText,
-								start: grandchild.attrs?.start || 0,
-								end: grandchild.attrs?.end || 0,
-								speakerTag: selectedVal.name
-							};
-							words.push(word);
-							text += (text ? ' ' : '') + wordText;
-							startTime = Math.min(startTime, word.start);
-							endTime = Math.max(endTime, word.end);
-						}
-						// Check for word marks in nested structure
-						else if (grandchild.isText && grandchild.marks && grandchild.marks.length > 0) {
-							const wordMark = grandchild.marks.find((mark: any) => mark.type.name === 'word');
-							if (wordMark && wordMark.attrs) {
-								const word: ExtractedWord = {
-									text: grandchild.text || '',
-									start: wordMark.attrs.start || 0,
-									end: wordMark.attrs.end || 0,
-									speakerTag: selectedVal.name
-								};
-								words.push(word);
-								text += (text ? ' ' : '') + word.text;
-								startTime = Math.min(startTime, word.start);
-								endTime = Math.max(endTime, word.end);
-							}
-						}
-						// Add plain text nodes
-						else if (grandchild.isText && !grandchild.marks?.length) {
-							text += grandchild.text || '';
-						}
-					});
-				}
-			});
-		}
-		
-		// Get segment index based on position in document
-		const allSpeakerNodes = findBlockNodes(editor.state.doc, false)
-			.filter(el => el.node.type.name === 'speaker');
-		const segmentIndex = allSpeakerNodes.findIndex(el => el.pos === getPos());
-		
-		return {
-			index: segmentIndex >= 0 ? segmentIndex : 0,
-			startTime: startTime === Infinity ? 0 : startTime,
-			endTime: endTime === -Infinity ? 0 : endTime,
-			startWord: 0, // These would need global word indexing
-			endWord: words.length - 1,
-			text,
-			speakerTag: selectedVal.name,
-			speakerName: selectedVal.name,
-			words,
-			alternatives: segmentAlternatives
-		} as SegmentWithTiming;
-	});
-	
 
 	const handleClick = () => {
 		isListOpen ? (isListOpen = false) : (isListOpen = true);
@@ -244,24 +109,6 @@
 			editSpeakerId = '';
 			editingValue = '';
 		}
-	};
-	
-	// Handle segment selection
-	const handleSegmentClick = () => {
-		const allSpeakerNodes = findBlockNodes(editor.state.doc, false)
-			.filter(el => el.node.type.name === 'speaker');
-		const segmentIndex = allSpeakerNodes.findIndex(el => el.pos === getPos());
-		
-		selectedSegmentStore.selectSegment({
-			id: segmentUniqueId, // Use the unique segment ID
-			index: segmentIndex >= 0 ? segmentIndex : 0,
-			speakerName: selectedVal.name,
-			speakerTag: selectedVal.name,
-			text: segmentWithTiming.text,
-			start: segmentWithTiming.startTime,
-			end: segmentWithTiming.endTime,
-			nodePosition: getPos()
-		});
 	};
 	const getStartTime = (node) => {
 		return node.content.content &&
@@ -285,10 +132,12 @@
 	};
 	const handleNewSpeakerSave = (newName, start) => {
 		if (newName.length > 0) {
-			// Always generate a unique ID for each segment
-			let newId = uuidv4().substring(32 - 12);
+			let newId;
 			const blockNodesWithPos = findBlockNodes(editor.state.doc, false);
 			const exists = blockNodesWithPos.find((el) => el.node.attrs['data-name'] === newName);
+			if (!exists) {
+				newId = uuidv4().substring(32 - 12);
+			}
 			// Change node attribute transaction
 			let tr = editor.state.tr;
 			tr.setNodeAttribute(getPos(), 'data-name', newName);
@@ -324,8 +173,7 @@
 		// Change node attribute transaction
 		let tr = editor.state.tr;
 		tr.setNodeAttribute(getPos(), 'data-name', exists.node.attrs['data-name']);
-		// Keep the current segment's unique ID, don't reuse the selected speaker's ID
-		// tr.setNodeAttribute(getPos(), 'id', id); // Removed - keep existing unique ID
+		tr.setNodeAttribute(getPos(), 'id', id);
 		let newState = editor.state.apply(tr);
 		const updatedBlockNodesWithPos = findBlockNodes(newState.doc, false);
 		// Update store
@@ -341,7 +189,7 @@
 		speakerNames.set(newSpeakers);
 		selectedVal = {
 			name: exists.node.attrs['data-name'],
-			id: segmentUniqueId // Keep using the unique segment ID
+			id: exists.node.attrs.id
 		};
 		// TODO: reset store from nodes or remove old value.
 		// TODO: change node id attr also
@@ -398,17 +246,12 @@
 		} else return '';
 	};
 
-
 	onMount(async () => {
 		// Update speakers store when after initial editor load speaker is added
 		if ($editorMounted) {
 			// Cannot use the node passed into this component here (bug or timing issue). Getting by pos works.
 			// This also works const parentNode = findParentNodeOfTypeClosestToPos(editor.state.doc.resolve(getPos()+1), editor.schema.nodes.speaker);
 			const actualNode = editor.state.doc.nodeAt(getPos());
-			
-			// Each segment component instance has its own unique ID for selection tracking
-			// We don't sync with the node's ID to ensure uniqueness
-			
 			const id = addSpeakerBlock(selectedVal.name, getStartTime(actualNode), getEndTime(actualNode));
 		}
 	});
@@ -419,90 +262,74 @@
 				sps.filter((s) => !(s.id === selectedVal.id && s.start === time))
 			);
 		}
-		unsubscribeSelected();
 	});
 </script>
 
-<NodeViewWrapper class="svelte-component speaker {selected} {isSelectedSegment ? 'segment-selected' : ''}" onclick={handleSegmentClick}>
-	<div class="top-container flex justify-between items-center">
-		<div class="left-section flex items-center">
-			<details class="dropdown speaker-name-container" bind:open={isListOpen} contentEditable={false}>
-				<summary class="m-1 speaker-name flex group cursor-pointer w-auto hover:bg-accent">
-					<Icon name="user" class="" />
-					<span class="text-primary font-bold font-sans">{selectedVal.name}</span>
-					<Icon name="dropdown-arrow" class="invisible group-hover:visible" />
-				</summary>
-				<div class="absolute z-10 m-2 shadow drop-shadow-lg menu bg-base-100 border-2" use:clickOutside
-				onoutclick={() => {
-					isListOpen = false;
-				}}>
-					<div class="p-1 flex">
-						<input
-							placeholder={$_('speakerSelect.addNew')}
-							bind:value={newSpeaker}
-							onkeypress={(e) => handleKeypress(e, newSpeaker)}
-						/>
-						<button
-							class="btn btn-outline btn-xs w-min ml-1 hover:text-primary"
-							onclick={() => handleNewSpeakerSave(newSpeaker, time)}
-							>{$_('speakerSelect.save')}</button
-						>
-					</div>
-					<ul class="filter drop-shadow-lg">
-						{#each names as speaker}
-							<li
-								class="rounded-md hover:bg-accent {speaker.id == selectedVal.id
-									? 'flex justify-between flex-row p-1 bg-info'
-									: 'flex justify-between flex-row p-1'}"
-							>
-								{#if speaker.id === editSpeakerId}
-									<input class="w-48 flex-grow border-2 hover:bg-accent" bind:value={editingValue} />
-									<div class="flex">
-										<button
-											class="btn btn-xs btn-outline w-min hover:text-primary"
-											onclick={() => {
-												handleRenameAll(speaker);
-											}}>{$_('speakerSelect.save')}</button
-										>
-									</div>
-								{:else}
-									<button
-										onclick={() => {
-											selectSpeaker(speaker.id);
-											isListOpen = false;
-										}}
-										class="cursor-pointer inline flex-grow text-left"
-									>
-										{speaker.name}
-									</button>
-									<div>
-										<button class="btn btn-xs btn-outline w-min hover:text-primary" onclick={() => handleStartEdit(speaker)}
-											>{$_('speakerSelect.edit')}</button
-										>
-									</div>
-								{/if}
-							</li>
-						{/each}
-					</ul>
+<NodeViewWrapper class="svelte-component speaker {selected}">
+	<div class="top-container flex">
+		<details class="dropdown speaker-name-container" bind:open={isListOpen} contentEditable={false}>
+			<summary class="m-1 speaker-name flex group cursor-pointer w-auto hover:bg-accent">
+				<Icon name="user" class="" />
+				<span class="text-primary font-bold font-sans">{selectedVal.name}</span>
+				<Icon name="dropdown-arrow" class="invisible group-hover:visible" />
+			</summary>
+			<div class="absolute z-10 m-2 shadow drop-shadow-lg menu bg-base-100 border-2" use:clickOutside
+			onoutclick={() => {
+				isListOpen = false;
+			}}>
+				<div class="p-1 flex">
+					<input
+						placeholder={$_('speakerSelect.addNew')}
+						bind:value={newSpeaker}
+						onkeypress={(e) => handleKeypress(e, newSpeaker)}
+					/>
+					<button
+						class="btn btn-outline btn-xs w-min ml-1 hover:text-primary"
+						onclick={() => handleNewSpeakerSave(newSpeaker, time)}
+						>{$_('speakerSelect.save')}</button
+					>
 				</div>
-			</details>
-			<div class="flex items-center speaker-time-container" contentEditable={false} >
-				<p class="speaker-time">{numberToTime(time)}</p>
+				<ul class="filter drop-shadow-lg">
+					{#each names as speaker}
+						<li
+							class="rounded-md hover:bg-accent {speaker.id == selectedVal.id
+								? 'flex justify-between flex-row p-1 bg-info'
+								: 'flex justify-between flex-row p-1'}"
+						>
+							{#if speaker.id === editSpeakerId}
+								<input class="w-48 flex-grow border-2 hover:bg-accent" bind:value={editingValue} />
+								<div class="flex">
+									<button
+										class="btn btn-xs btn-outline w-min hover:text-primary"
+										onclick={() => {
+											handleRenameAll(speaker);
+										}}>{$_('speakerSelect.save')}</button
+									>
+								</div>
+							{:else}
+								<button
+									onclick={() => {
+										selectSpeaker(speaker.id);
+										isListOpen = false;
+									}}
+									class="cursor-pointer inline flex-grow text-left"
+								>
+									{speaker.name}
+								</button>
+								<div>
+									<button class="btn btn-xs btn-outline w-min hover:text-primary" onclick={() => handleStartEdit(speaker)}
+										>{$_('speakerSelect.edit')}</button
+									>
+								</div>
+							{/if}
+						</li>
+					{/each}
+				</ul>
 			</div>
+		</details>
+		<div class="flex items-center speaker-time-container" contentEditable={false} >
+			<p class="speaker-time">{numberToTime(time)}</p>
 		</div>
-		{#if fileId && segmentWithTiming.words.length > 0}
-			<div class="inline-analysis-container">
-				<SegmentAnalysisButton
-					{fileId}
-					segment={segmentWithTiming}
-					{audioFilePath}
-					selected={isSelectedSegment}
-					onAnalysisComplete={(result) => {
-						console.log('Segment analysis completed:', result);
-					}}
-				/>
-			</div>
-		{/if}
 	</div>
 	<NodeViewContent class="content editable" style={cssVarStyles}></NodeViewContent>
 </NodeViewWrapper>
@@ -515,41 +342,6 @@
 		width: auto;
 		grid-column-gap: 1px;
 		margin-bottom: 10px;
-		padding: 0.5rem;
-		border-radius: 0.375rem;
-		transition: all 0.2s;
-		cursor: pointer;
-		position: relative;
-	}
-	
-	:global(.speaker:hover) {
-		background: rgba(59, 130, 246, 0.05);
-	}
-	
-	:global(.speaker.segment-selected) {
-		background: rgba(59, 130, 246, 0.1);
-		border-left: 3px solid #3b82f6;
-		padding-left: calc(0.5rem - 3px);
-	}
-	
-	:global(.speaker.segment-selected::before) {
-		content: '';
-		position: absolute;
-		left: 0;
-		top: 0;
-		bottom: 0;
-		width: 3px;
-		background: #3b82f6;
-		animation: pulse 2s ease-in-out infinite;
-	}
-	
-	@keyframes pulse {
-		0%, 100% {
-			opacity: 1;
-		}
-		50% {
-			opacity: 0.5;
-		}
 	}
 
 	.speaker-name-container {
@@ -574,20 +366,6 @@
 		}	
 	}
 	
-	.inline-analysis-container {
-		display: flex;
-		align-items: center;
-		opacity: 0.8;
-		transition: opacity 0.2s;
-	}
 
-	:global(.speaker:hover) .inline-analysis-container {
-		opacity: 1;
-	}
-
-	:global(.content.editable) {
-		grid-column: 1 / -1;
-		grid-row: 2;
-	}
 	
 </style>

@@ -9,16 +9,11 @@
 		editorMounted
 	} from '$lib/stores.svelte.js';
 	import type { Word, Speaker } from '$lib/helpers/converters/types';
-	import TranscriptSidebar from '$lib/components/transcript-sidebar/TranscriptSidebar.svelte';
-	import SummaryAccordion from '$lib/components/transcript-summary/SummaryAccordion.svelte';
-	import type { TranscriptSummary } from '@prisma/client';
 	let { data } = $props();
-	let words = $state<Array<Word>>([]);
-	let speakers = $state<Array<Speaker>>([]);
+	let words: Array<Word> = [];
+	let speakers: Array<Speaker> = [];
 	let transcription = $state('');
 	let json = JSON.parse(data.file && data.file.content);
-	let summary = $state<TranscriptSummary | null>(null);
-	let sidebarCollapsed = $state(false);
 	let content;
 	// First time transcription from the Estonian JSON format.
 	if (json && !json.type) {
@@ -59,97 +54,17 @@
 	editorMounted.set(false);
 	speakerNamesStore.set(speakers);
 	wordsStore.set(words);
-	
-	function handleSummaryGenerated(newSummary: TranscriptSummary) {
-		summary = newSummary;
-	}
 </script>
 
-<main class="transcript-layout {sidebarCollapsed ? 'sidebar-collapsed' : ''}">
-	<div class="content-area">
-		<div class="editor-pane">
-			<div class="editor-content">
-				<Tiptap
-					content={transcription}
-					fileId={data.file.id}
-					demo={false}
-					fileName={data.file.name}
-					uploadedAt={data.file.uploadedAt}
-					{summary}
-					onSummaryGenerated={handleSummaryGenerated}
-				/>
-			</div>
-		</div>
-		
-		<TranscriptSidebar
+<main class="grid grid-rows-[1fr_auto] content-between">
+	<div class="self-stretch h-full mb-96">
+		<Tiptap
+			content={transcription}
 			fileId={data.file.id}
-			editorContent={json}
-			audioFilePath={data.file.path}
-			{summary}
-			collapsed={sidebarCollapsed}
-			onCollapsedChange={(value) => sidebarCollapsed = value}
-			onSegmentAnalyzed={(result) => {
-				// Handle segment analysis results
-				console.log('Segment analyzed:', result);
-			}}
+			demo={false}
+			fileName={data.file.name}
+			uploadedAt={data.file.uploadedAt}
 		/>
-	</div>
-	
-	<div class="player-area">
 		<Player url={`${data.url}/uploaded/${data.file.id}`} />
 	</div>
 </main>
-
-<style>
-	.transcript-layout {
-		display: flex;
-		flex-direction: column;
-		width: 100%;
-		min-height: 100vh;
-		padding-bottom: 120px; /* Space for fixed audio player */
-	}
-	
-	.content-area {
-		display: grid;
-		grid-template-columns: 1fr 400px;
-		transition: grid-template-columns 0.3s ease;
-		flex: 1;
-	}
-	
-	.transcript-layout.sidebar-collapsed .content-area {
-		grid-template-columns: 1fr 48px;
-	}
-	
-	.editor-pane {
-		background: #f8f9fa; /* Light gray background to match top sections */
-	}
-	
-	.editor-content {
-		background: #f8f9fa; /* Light gray background to match top sections */
-	}
-	
-	.player-area {
-		position: fixed;
-		bottom: 0;
-		left: 0;
-		right: 0;
-		border-top: 1px solid #e5e7eb;
-		background: white;
-		z-index: 1000;
-	}
-	
-	/* Responsive layout */
-	@media (max-width: 1024px) {
-		.content-area {
-			grid-template-columns: 1fr;
-		}
-		
-		.transcript-layout.sidebar-collapsed .content-area {
-			grid-template-columns: 1fr;
-		}
-		
-		.transcript-layout {
-			padding-bottom: 140px; /* More space for player on mobile */
-		}
-	}
-</style>

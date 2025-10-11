@@ -4,17 +4,14 @@ import { promises as fs } from 'fs';
 import { error } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
+	const session = await locals.auth();
+	if (!session || !session.user.id) {
+		error(401, 'unauthorized');
+	}
+
 	const file = await prisma.file.findUnique({
 		where: {
 			id: params.fileId
-		},
-		include: {
-			User: {
-				select: {
-					id: true,
-					email: true
-				}
-			}
 		},
 		// Include originalAsrData to check if it's already stored
 		select: {
@@ -35,13 +32,19 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 			}
 		}
 	});
-	const session = await locals.auth();
-	if (!session || !session.user.id) {
+
+	if (!file) {
+		error(404, 'File not found');
+	}
+
+	if (session.user.id !== file.User.id) {
 		error(401, 'unauthorized');
 	}
-	if (session.user.id !== file.User.id) {
-		return error(401, 'unauthorized');
+
+	if (!file.initialTranscriptionPath) {
+		error(500, 'Transcription path not available');
 	}
+
 	const content = await fs.readFile(file.initialTranscriptionPath, 'utf8');
 
 	// Store raw ASR data if not already stored (for reliable original export)
