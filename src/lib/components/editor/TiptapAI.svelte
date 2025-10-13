@@ -16,7 +16,8 @@
 	import { Speaker } from '../nodes/speaker';
 	import { Diff } from '../nodes/diff';
 	import { WordNode } from '../nodes/word-ai';  // Use Word nodes instead of marks
-	import { WordColorAI } from '../plugins/wordColorAI';  // AI-specific word color plugin
+	import { WordTimingPlugin, type WordTiming } from '../plugins/wordTimingPlugin';
+	import { WordPlaybackPlugin, updatePlaybackPosition } from '../plugins/wordPlaybackPlugin';
 	import { Annotation } from '../plugins/annotation';
 	import Icon from 'svelte-awesome/components/Icon.svelte';
 	import rotateLeft from 'svelte-awesome/icons/rotateLeft';
@@ -56,6 +57,7 @@
 		demo: any;
 		summary?: TranscriptSummary | null;
 		onSummaryGenerated?: (summary: TranscriptSummary) => void;
+		timingArray?: WordTiming[];
 	}
 
 	let {
@@ -65,7 +67,8 @@
 		uploadedAt,
 		demo,
 		summary = null,
-		onSummaryGenerated = () => {}
+		onSummaryGenerated = () => {},
+		timingArray = []
 	}: Props = $props();
 
 	let element: HTMLDivElement | undefined;
@@ -115,6 +118,33 @@
 	date.setSeconds(45); // specify value for SECONDS here
 	var timeString = date.toISOString().substring(11, 19);
 
+	// Set up audio playback position updates via polling
+	let playbackInterval: ReturnType<typeof setInterval> | null = null;
+	$effect(() => {
+		// Clear previous interval
+		if (playbackInterval) {
+			clearInterval(playbackInterval);
+			playbackInterval = null;
+		}
+
+		// Set up new interval if we have all the requirements
+		if ($waveform && $waveform.player && $editor && $player.playing) {
+			playbackInterval = setInterval(() => {
+				if ($waveform && $waveform.player && $editor) {
+					const currentTime = $waveform.player.getCurrentTime();
+					updatePlaybackPosition($editor, currentTime);
+				}
+			}, 100); // Update every 100ms
+
+			// Cleanup interval when effect re-runs or component unmounts
+			return () => {
+				if (playbackInterval) {
+					clearInterval(playbackInterval);
+				}
+			};
+		}
+	});
+
 	onMount(() => {
 		// Add beforeunload listener for browser navigation/reload/close
 		window.addEventListener('beforeunload', handleBeforeUnload);
@@ -128,7 +158,10 @@
 				TextStyle,
 				History,
 				WordNode,  // Use WordNode instead of Word mark
-				WordColorAI,  // AI-specific word color plugin
+				WordTimingPlugin.configure({
+					timingArray: timingArray  // Pass timing array to plugin
+				}),
+				WordPlaybackPlugin,  // New playback plugin with timing-aware highlighting
 				Speaker,
 				Diff,
 			],
@@ -270,7 +303,14 @@
 		} catch (error) {
 			console.warn('Failed to set editor in coordinating agent:', error);
 		}
-		
+
+		// Load and apply corrections as diff nodes (if any exist for this file)
+		if (!demo && fileId) {
+			loadAndApplyCorrections(fileId, $editor, content).catch((error) => {
+				console.error('Failed to load corrections:', error);
+			});
+		}
+
 
 		hotkeys('tab', function(event, handler){
 			event.preventDefault()
@@ -319,6 +359,40 @@
 		}
 		window.removeEventListener("resize", updateWindowSize)
 	});
+
+	/**
+	 * Load stored corrections from database and create diff nodes in editor
+	 */
+	async function loadAndApplyCorrections(fileId: string, editor: any, content: any) {
+		try {
+			console.log('[TiptapAI] Loading corrections for file:', fileId);
+
+			const response = await fetch(`/api/files/${fileId}/corrections`);
+			if (!response.ok) {
+				throw new Error(`Failed to load corrections: ${response.status}`);
+			}
+
+			const data = await response.json();
+
+			if (!data.success || !data.corrections || data.corrections.length === 0) {
+				console.log('[TiptapAI] No corrections found for this file');
+				return;
+			}
+
+			console.log(`[TiptapAI] Found ${data.corrections.length} correction blocks`);
+
+			// Import the utility
+			const { createDiffNodesFromCorrections } = await import('$lib/utils/createDiffNodesFromAlignments');
+
+			// Create diff nodes from corrections
+			createDiffNodesFromCorrections(editor, content, data.corrections);
+
+			console.log('[TiptapAI] Successfully applied corrections as diff nodes');
+		} catch (error) {
+			console.error('[TiptapAI] Error loading corrections:', error);
+			throw error;
+		}
+	}
 
 	async function handleSaveLocal() {
 		// Capture values at function call time

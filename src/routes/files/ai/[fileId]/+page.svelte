@@ -18,53 +18,88 @@
 	let words = $state<Array<Word>>([]);
 	let speakers = $state<Array<Speaker>>([]);
 	let transcription = $state('');
+	let timingArray = $state([]);
 	let json = JSON.parse(data.file && data.file.content);
 	let summary = $state<TranscriptSummary | null>(null);
 	let sidebarCollapsed = $state(false);
 	let content;
-	
+
 	// First time transcription from the Estonian JSON format.
 	if (json && !json.type) {
 		content = fromEstFormatAI(json);  // Use AI converter for Word nodes
-		({ transcription, words, speakers } = content);
+		({ transcription, words, speakers, timingArray } = content);
 	}
 	// Already in Editor format - need to handle Word nodes
 	else if (json && json.content) {
 		transcription = json; // Set the transcription to the full JSON structure
-		
+
+		// If there's a stored timingArray in the JSON, use it
+		if (json.timingArray) {
+			timingArray = json.timingArray;
+		}
+
 		if (json.content && Array.isArray(json.content)) {
 			json.content.forEach((node) => {
-				// Extract timing from first and last Word nodes
+				// Extract timing from first and last Word nodes (or from timingArray)
 				let start = -1;
 				let end = -1;
-				
+
 				if (node.content && node.content.length > 0) {
 					// Find first Word node
 					const firstWordNode = node.content.find(n => n.type === 'wordNode');
 					if (firstWordNode && firstWordNode.attrs) {
-						start = firstWordNode.attrs.start || -1;
+						// New format: use wordIndex to look up timing
+						if (firstWordNode.attrs.wordIndex !== undefined && timingArray[firstWordNode.attrs.wordIndex]) {
+							start = timingArray[firstWordNode.attrs.wordIndex].start;
+						}
+						// Legacy format: use stored start/end
+						else if (firstWordNode.attrs.start !== undefined) {
+							start = firstWordNode.attrs.start;
+						}
 					}
-					
+
 					// Find last Word node
 					const lastWordNode = [...node.content].reverse().find(n => n.type === 'wordNode');
 					if (lastWordNode && lastWordNode.attrs) {
-						end = lastWordNode.attrs.end || -1;
+						// New format: use wordIndex to look up timing
+						if (lastWordNode.attrs.wordIndex !== undefined && timingArray[lastWordNode.attrs.wordIndex]) {
+							end = timingArray[lastWordNode.attrs.wordIndex].end;
+						}
+						// Legacy format: use stored start/end
+						else if (lastWordNode.attrs.end !== undefined) {
+							end = lastWordNode.attrs.end;
+						}
 					}
 				}
-				
+
 				if (node.attrs) {
 					speakers.push({ name: node.attrs['data-name'], id: node.attrs.id, start, end });
 				}
-				
+
 				if (node.content) {
 					node.content.forEach((inlineNode) => {
 						// Extract word timing from Word nodes
 						if (inlineNode.type === 'wordNode' && inlineNode.attrs) {
-							words.push({ 
-								start: inlineNode.attrs.start, 
-								end: inlineNode.attrs.end, 
-								id: inlineNode.attrs.id 
-							});
+							// New format: use wordIndex to look up timing
+							if (inlineNode.attrs.wordIndex !== undefined && timingArray[inlineNode.attrs.wordIndex]) {
+								words.push({
+									start: timingArray[inlineNode.attrs.wordIndex].start,
+									end: timingArray[inlineNode.attrs.wordIndex].end,
+									id: inlineNode.attrs.wordIndex.toString()
+								});
+							}
+							// Legacy format: use stored start/end
+							else if (inlineNode.attrs.start !== undefined && inlineNode.attrs.end !== undefined) {
+								words.push({
+									start: inlineNode.attrs.start,
+									end: inlineNode.attrs.end,
+									id: inlineNode.attrs.id
+								});
+								// Build timingArray from legacy data if not already present
+								if (!timingArray.length) {
+									timingArray.push({ start: inlineNode.attrs.start, end: inlineNode.attrs.end });
+								}
+							}
 						}
 					});
 				}
@@ -115,6 +150,7 @@
 					fileName={data.file.name}
 					uploadedAt={data.file.uploadedAt}
 					{summary}
+					{timingArray}
 					onSummaryGenerated={handleSummaryGenerated}
 				/>
 			</div>

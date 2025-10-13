@@ -7,26 +7,32 @@ import type {
 import { matchAlternativesToTurns } from '$lib/utils/alternativesMatching';
 import type { Word, Speaker } from './types';
 import { v4 as uuidv4 } from 'uuid';
+import type { WordTiming } from '$lib/components/plugins/wordTimingPlugin';
 
 const words: Array<Word> = [];
 const speakers: Array<Speaker> = [];
 
-// Create Word nodes instead of marked text
+// Build timing array separately from the document structure
+const timingArray: WordTiming[] = [];
+
+// Create Word nodes without timing attributes
 const combineWords =
-	(words: Array<Word>) =>
+	(words: Array<Word>, timingArray: WordTiming[]) =>
 	(acc: any[], word: { word_with_punctuation: string; start: number; end: number }) => {
 		const id = uuidv4().substring(36 - 12);
+		const wordIndex = timingArray.length;
+
+		// Store timing in separate array
+		timingArray.push({ start: word.start, end: word.end });
+
+		// Keep legacy words array for backward compatibility (if needed)
 		words.push({ start: word.start, end: word.end, id });
 
-		// Create a Word node structure instead of marked text
+		// Create a simplified Word node structure with only wordIndex
 		return acc.concat({
 			type: 'wordNode',
 			attrs: {
-				start: word.start,
-				end: word.end,
-				id: id,
-				lang: 'et',
-				spellcheck: 'false'
+				wordIndex: wordIndex
 			},
 			content: [
 				{
@@ -44,6 +50,7 @@ const mapTurns = (
 	sps: NewSpeakers,
 	speakers: Array<Speaker>,
 	words: Array<Word>,
+	timingArray: WordTiming[],
 	alternatives: string = ''
 ) => {
 	let name = 'S1';
@@ -67,8 +74,8 @@ const mapTurns = (
 	}
 	speakers.push({ name, id, start: turn.start, end: turn.end });
 
-	// Build speaker node with Word nodes as content
-	const wordNodes = turn.words.reduce(combineWords(words), []);
+	// Build speaker node with Word nodes as content (now using wordIndex)
+	const wordNodes = turn.words.reduce(combineWords(words, timingArray), []);
 
 	// Add space text nodes between words
 	const contentWithSpaces = [];
@@ -103,12 +110,13 @@ const mapTurns = (
 /**
  * Convert new TranscriptionResult format to AI editor format with Word nodes
  * @param transcriptionResult The result from new ASR pipeline with alternatives
- * @returns Editor content with Word nodes and alternatives embedded in speaker nodes
+ * @returns Editor content with Word nodes, separate timing array, and alternatives embedded in speaker nodes
  */
 export const fromNewEstFormatAI = (transcriptionResult: TranscriptionResult) => {
 	// Clear previous data
 	words.length = 0;
 	speakers.length = 0;
+	timingArray.length = 0;
 
 	if (
 		transcriptionResult &&
@@ -145,6 +153,7 @@ export const fromNewEstFormatAI = (transcriptionResult: TranscriptionResult) => 
 						bestHypothesis.speakers,
 						speakers,
 						words,
+						timingArray,
 						alternativesJson
 					);
 					contentNodes.push(speakerNode);
@@ -157,7 +166,8 @@ export const fromNewEstFormatAI = (transcriptionResult: TranscriptionResult) => 
 				type: 'doc',
 				content: contentNodes
 			},
-			words,
+			timingArray: [...timingArray], // Return copy of timing array
+			words, // Legacy - keep for backward compatibility if needed
 			speakers,
 			metadata: {
 				hasAlternatives: alternatives.segments.length > 0,
@@ -172,6 +182,7 @@ export const fromNewEstFormatAI = (transcriptionResult: TranscriptionResult) => 
 				type: 'doc',
 				content: []
 			},
+			timingArray: [],
 			words,
 			speakers,
 			metadata: {

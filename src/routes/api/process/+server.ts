@@ -6,14 +6,18 @@ import { ORIGIN } from '$env/static/private';
 
 // Reusable function to trigger auto-analysis with retry logic for actual failures
 // No timeouts - analysis runs until completion regardless of duration
-async function triggerAutoAnalysis(file: any, maxRetries = 3): Promise<void> {
+async function triggerAutoAnalysis(
+	file: any,
+	fetch: typeof globalThis.fetch,
+	maxRetries = 3
+): Promise<void> {
 	for (let attempt = 0; attempt < maxRetries; attempt++) {
 		try {
 			console.log(
 				`Starting auto-analysis for file: ${file.filename} (attempt ${attempt + 1}/${maxRetries}) - no timeout, runs until completion`
 			);
 
-			const response = await fetch(`${ORIGIN}/api/transcript-analysis/auto-analyze`, {
+			const response = await fetch(`/api/transcript-analysis/auto-analyze`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ fileId: file.id })
@@ -297,7 +301,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 							// Trigger auto-analysis if requested
 							if (file.autoAnalyze) {
 								console.log(`Starting auto-analysis for file: ${file.filename} (${file.id})`);
-								triggerAutoAnalysis(file).catch((error) =>
+								triggerAutoAnalysis(file, fetch).catch((error) =>
 									console.error(`Failed to trigger auto-analysis for file: ${file.filename}`, error)
 								);
 							}
@@ -339,7 +343,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 							// Trigger auto-analysis if requested
 							if (file.autoAnalyze) {
 								console.log(`Starting auto-analysis for file: ${file.filename} (${file.id})`);
-								triggerAutoAnalysis(file).catch((error) =>
+								triggerAutoAnalysis(file, fetch).catch((error) =>
 									console.error(`Failed to trigger auto-analysis for file: ${file.filename}`, error)
 								);
 							}

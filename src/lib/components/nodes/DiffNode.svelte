@@ -11,8 +11,12 @@
 
 	$: attrs = node.attrs;
 	$: diffId = attrs.id;
-	$: originalText = attrs.originalText;
-	$: suggestedText = attrs.suggestedText;
+	$: originalText = attrs.originalText || '';
+	$: suggestedText = attrs.suggestedText || '';
+	$: changeType = attrs.changeType || 'substitution'; // 'deletion' | 'substitution' | 'insertion'
+
+	// Hide the diff if both texts are empty
+	$: isEmpty = !originalText && !suggestedText;
 
 	let showActions = false;
 
@@ -34,40 +38,51 @@
 </script>
 
 <NodeViewWrapper class="inline-diff-wrapper">
-	<span 
-		class="inline-diff-container" 
-		contentEditable={false}
-		onmouseenter={() => showActions = true}
-		onmouseleave={() => showActions = false}
-		role="group"
-		tabindex="-1"
-	>
-		<!-- Position actions above while keeping inline flow -->
-		{#if showActions}
-			<span class="actions-container">
-				<button 
-					class="action-btn approve" 
-					onclick={approveDiff}
-					title={$_('common.apply')}
-					type="button"
-				>
-					<Icon data={check} scale={0.8} />
-				</button>
-				<button 
-					class="action-btn reject" 
-					onclick={rejectDiff}
-					title={$_('common.reject')}
-					type="button"
-				>
-					<Icon data={times} scale={0.8} />
-				</button>
-			</span>
-		{/if}
-		
-		<!-- Inline diff content -->
-		<span class="original-text">{originalText}</span>
-		<span class="suggested-text">{suggestedText}</span>
-	</span>
+	{#if !isEmpty}
+		<span
+			class="inline-diff-container"
+			contentEditable={false}
+			onmouseenter={() => showActions = true}
+			onmouseleave={() => showActions = false}
+			role="group"
+			tabindex="-1"
+		>
+			<!-- Position actions above while keeping inline flow -->
+			{#if showActions}
+				<span class="actions-container">
+					<button
+						class="action-btn approve"
+						onclick={approveDiff}
+						title={$_('common.apply')}
+						type="button"
+					>
+						<Icon data={check} scale={0.8} />
+					</button>
+					<button
+						class="action-btn reject"
+						onclick={rejectDiff}
+						title={$_('common.reject')}
+						type="button"
+					>
+						<Icon data={times} scale={0.8} />
+					</button>
+				</span>
+			{/if}
+
+			<!-- Inline diff content - conditional rendering based on changeType -->
+			{#if changeType === 'deletion'}
+				<!-- Deletion: only show original text (strikethrough) -->
+				<span class="original-text">{originalText}</span>
+			{:else if changeType === 'insertion'}
+				<!-- Insertion: only show suggested text (new) -->
+				<span class="suggested-text insertion">{suggestedText}</span>
+			{:else}
+				<!-- Substitution: show both old and new -->
+				<span class="original-text">{originalText}</span>
+				<span class="suggested-text">{suggestedText}</span>
+			{/if}
+		</span>
+	{/if}
 </NodeViewWrapper>
 
 <style>
@@ -121,6 +136,12 @@
 		/* Ensure inline */
 		display: inline;
 		vertical-align: baseline;
+	}
+
+	/* Insertion-only styling - no margin-left since there's no original text */
+	.suggested-text.insertion {
+		margin-left: 0;
+		font-weight: 500;
 	}
 
 	.actions-container {

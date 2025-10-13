@@ -281,11 +281,11 @@
 		);
 	};
 
-	function openFile(fileId, fileState, isOld, autoAnalyze) {
+	function openFile(fileId, fileState, isOld, autoAnalyze, aiAnalysisInProgress) {
 		if (isOld) {
 			window.location.href = `https://tekstiks.ee/files/`;
 		}
-		else if (fileState == 'READY') {
+		else if (fileState == 'READY' && !aiAnalysisInProgress) {
 			if (autoAnalyze) {
 				goto(`/files/ai/${fileId}`);
 			} else {
@@ -297,7 +297,7 @@
 	const awaitTimeout = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
 	const longPolling = async () => {
 		donePolling = false;
-		if (!data.files.find((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')) {
+		if (!data.files.find((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED' || x.aiAnalysisInProgress)) {
 			donePolling = true;
 		}
 		do {
@@ -362,8 +362,8 @@
 			{#if data.files && data.files.length > 0}
 				{#each data.files as file, index}
 					<tr
-						class="{file.state == 'READY' ? 'cursor-pointer' : ''} hover"
-						onclick={() => openFile(file.id, file.state, file.oldSystem, file.autoAnalyze)}
+						class="{file.state == 'READY' && !file.aiAnalysisInProgress ? 'cursor-pointer' : ''} hover"
+						onclick={() => openFile(file.id, file.state, file.oldSystem, file.autoAnalyze, file.aiAnalysisInProgress)}
 					>
 						<th>{index + 1}</th>
 						<td class="">
@@ -374,6 +374,14 @@
 						<td class="status-cell">
 							{#if file.oldSystem}
 							<div class="badge badge-sm badge-info px-2 py-1 text-xs">{$_('files.statusOld')}</div>
+							{:else if file.aiAnalysisInProgress}
+								<div class="flex flex-col sm:flex-row sm:items-center gap-1">
+									<div class="badge badge-sm badge-secondary px-2 py-1 text-xs">
+										<span class="hidden sm:inline">AI analysis</span>
+										<span class="sm:hidden">AI</span>
+									</div>
+									<span class="loading loading-spinner loading-xs"></span>
+								</div>
 							{:else if file.state == 'READY'}
 								<div class="badge badge-sm badge-success px-2 py-1 text-xs">{$_('files.statusReady')}</div>
 							{:else if file.state == 'PROCESSING_ERROR'}

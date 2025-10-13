@@ -1,14 +1,12 @@
 import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
-import type { TranscriptSummary } from '@prisma/client';
 import type { TipTapEditorContent } from '../../../../types/index.js';
 import { prisma } from '$lib/db/client';
 import { z } from 'zod';
-import { extractWordsFromEditor } from '$lib/utils/extractWordsFromEditor';
+import { extractSpeakerSegments } from '$lib/utils/extractWordsFromEditor';
 import { fromNewEstFormatAI } from '$lib/helpers/converters/newEstFormatAI';
-import { getCoordinatingAgentWER } from '$lib/agents/coordinatingAgentWER';
-import { getSummaryGenerator } from '$lib/agents/summaryGenerator';
-import { extractFullTextWithSpeakers } from '$lib/utils/extractWordsFromEditor';
+import { createCorrectionAgent } from '$lib/agents/correctionAgent';
+import type { TimedSegment } from '$lib/utils/textAlignment';
 import { isNewFormat } from '$lib/helpers/converters/newEstFormat';
 import type { TranscriptionResult } from '$lib/helpers/api.d';
 import { promises as fs } from 'fs';
@@ -120,86 +118,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}, 60000); // Every 60 seconds
 
 		try {
-			// Step 1: Generate Summary (prerequisite for analysis)
-			const summaryGenerator = getSummaryGenerator();
-
-			// Check if summary already exists
-			const existingSummary = await prisma.transcriptSummary.findUnique({
-				where: { fileId: file.id }
-			});
-
-			let summary: TranscriptSummary;
-			if (existingSummary) {
-				await logger.logGeneral('info', 'Using existing summary', {
-					summaryId: existingSummary.id
-				});
-				summary = existingSummary;
-			} else {
-				// Extract full text for summary generation from transcript content
-				let fullText = '';
-				try {
-					const parsedContent = JSON.parse(transcriptContent);
-
-					// Check if it's the new ASR format
-					if (isNewFormat(parsedContent)) {
-						// Extract text from new format by combining all transcript fields
-						const sections = parsedContent.best_hypothesis.sections || [];
-						const textParts = [];
-
-						sections.forEach((section) => {
-							if (section.type === 'speech' && section.turns) {
-								section.turns.forEach((turn) => {
-									if (turn.transcript) {
-										textParts.push(turn.transcript);
-									}
-								});
-							}
-						});
-
-						fullText = textParts.join(' ');
-					} else if (parsedContent.type === 'doc' && parsedContent.content) {
-						// TipTap format - use existing extraction
-						fullText = extractFullTextWithSpeakers(parsedContent);
-					} else if (typeof parsedContent === 'string') {
-						fullText = parsedContent;
-					} else if (parsedContent.content) {
-						// Try to extract from content field
-						const contentStr =
-							typeof parsedContent.content === 'string'
-								? parsedContent.content
-								: JSON.stringify(parsedContent.content);
-						fullText = contentStr;
-					} else if (parsedContent.text) {
-						// Try to extract from text field
-						fullText = parsedContent.text;
-					} else {
-						// Last resort - stringify the whole object (but limit size for summary)
-						const stringified = JSON.stringify(parsedContent);
-						fullText = stringified.substring(0, 10000); // Limit to 10k chars
-					}
-				} catch (error) {
-					// If JSON parsing fails, treat as plain text
-					fullText = transcriptContent.substring(0, 10000); // Limit to 10k chars for summary
-				}
-
-				if (!fullText) {
-					throw new Error('No transcript content available for summary generation');
-				}
-
-				await logger.logGeneral('info', 'Generating new summary', { textLength: fullText.length });
-
-				summary = await summaryGenerator.generateSummary(
-					file.id,
-					fullText,
-					{ uiLanguage: 'en' } // Default to English for auto-analysis
-				);
-
-				await logger.logGeneral('info', 'Summary generated successfully', {
-					summaryId: summary.id
-				});
-			}
-
-			// Step 2: Extract segments
+			// Step 1: Extract segments from transcript
 
 			if (!transcriptContent) {
 				throw new Error('No transcript content available for segment extraction');
@@ -258,37 +177,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				});
 			} else {
 				// Old format - use existing word extraction approach
-				const extractedWords = extractWordsFromEditor(parsedContent);
-
-				let currentSegment = null;
-
-				for (const word of extractedWords) {
-					if (!currentSegment || currentSegment.speakerTag !== word.speakerTag) {
-						if (currentSegment) {
-							segments.push(currentSegment);
-						}
-						currentSegment = {
-							index: segments.length,
-							startTime: word.start,
-							endTime: word.end,
-							startWord: extractedWords.indexOf(word),
-							endWord: extractedWords.indexOf(word),
-							text: word.text,
-							speakerTag: word.speakerTag,
-							speakerName: word.speakerTag,
-							words: [word]
-						};
-					} else {
-						currentSegment.text += ' ' + word.text;
-						currentSegment.endTime = word.end;
-						currentSegment.endWord = extractedWords.indexOf(word);
-						currentSegment.words.push(word);
-					}
-				}
-
-				if (currentSegment) {
-					segments.push(currentSegment);
-				}
+				const speakerSegments = extractSpeakerSegments(parsedContent);
+				segments.push(...speakerSegments);
 			}
 
 			// Process all segments
@@ -296,48 +186,43 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				segmentCount: segments.length
 			});
 
-			// Step 3: Process with WER Agent (handles blocks automatically)
+			// Step 2: Process with Correction Agent
 
-			// Convert segments back to TipTap format for WER agent
-			let editorContent: TipTapEditorContent;
-			if (isNewFormat(parsedContent)) {
-				const result = fromNewEstFormatAI(parsedContent as TranscriptionResult);
-				editorContent = result.transcription;
-			} else {
-				editorContent = parsedContent;
-			}
+			// Convert segments to TimedSegment format for correction agent
+			const timedSegments: TimedSegment[] = segments.map((seg) => ({
+				index: seg.index,
+				startTime: seg.startTime,
+				endTime: seg.endTime,
+				text: seg.text,
+				speakerTag: seg.speakerTag || seg.speakerName || 'Unknown Speaker'
+			}));
 
-			const agent = getCoordinatingAgentWER();
+			const agent = createCorrectionAgent({
+				modelId: 'anthropic/claude-3.5-sonnet',
+				batchSize: 20,
+				temperature: 0.3
+			});
 
-			await logger.logGeneral('info', 'Starting WER analysis', {
+			await logger.logGeneral('info', 'Starting correction agent', {
 				transcriptFormat: isNewFormat(parsedContent) ? 'new' : 'legacy',
-				segmentCount: segments.length,
-				contentLength: JSON.stringify(editorContent).length
+				segmentCount: timedSegments.length
 			});
 
 			console.log(
-				`[AUTO-ANALYSIS] Starting WER agent processing for file: ${file.filename} - ${segments.length} segments`
+				`[AUTO-ANALYSIS] Starting correction agent for file: ${file.filename} - ${timedSegments.length} segments`
 			);
 
-			// WER agent processes entire file in 20-segment blocks
-			const analysisResult = await agent.analyzeFile({
-				fileId: file.id,
-				editorContent,
-				summary,
-				uiLanguage: 'et', // Estonian for transcript analysis
-				transcriptFilePath: file.initialTranscriptionPath,
-				audioFilePath: file.path,
-				originalFilename: file.filename // For loading alternative ASR data
-			});
+			// Correction agent processes entire file in 20-segment blocks
+			const correctionResult = await agent.correctFile(file.id, timedSegments);
 
-			await logger.logGeneral('info', 'WER analysis completed', {
-				totalBlocks: analysisResult.totalBlocks,
-				completedBlocks: analysisResult.completedBlocks,
-				successRate: `${((analysisResult.completedBlocks / analysisResult.totalBlocks) * 100).toFixed(1)}%`
+			await logger.logGeneral('info', 'Correction completed', {
+				totalBlocks: correctionResult.totalBlocks,
+				completedBlocks: correctionResult.completedBlocks,
+				successRate: correctionResult.successRate
 			});
 
 			console.log(
-				`[AUTO-ANALYSIS] Completed WER analysis for file: ${file.filename} - ${analysisResult.completedBlocks}/${analysisResult.totalBlocks} blocks processed`
+				`[AUTO-ANALYSIS] Completed correction for file: ${file.filename} - ${correctionResult.completedBlocks}/${correctionResult.totalBlocks} blocks processed`
 			);
 
 			// Clear heartbeat interval
@@ -346,13 +231,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			return json({
 				success: true,
 				fileId,
-				summaryGenerated: !existingSummary,
-				analysisMethod: 'WER',
-				totalBlocks: analysisResult.totalBlocks,
-				completedBlocks: analysisResult.completedBlocks,
-				successRate:
-					((analysisResult.completedBlocks / analysisResult.totalBlocks) * 100).toFixed(1) + '%',
-				results: analysisResult.results
+				summaryGenerated: false, // No summary generation with new agent
+				analysisMethod: 'CorrectionAgent',
+				totalBlocks: correctionResult.totalBlocks,
+				completedBlocks: correctionResult.completedBlocks,
+				successRate: correctionResult.successRate,
+				results: correctionResult.blocks
 			});
 		} catch (error) {
 			// Clear heartbeat interval on error

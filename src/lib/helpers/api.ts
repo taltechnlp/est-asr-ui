@@ -233,6 +233,17 @@ export const getFiles = async (id) => {
 								}
 							}
 						}
+					},
+					transcriptCorrections: {
+						where: {
+							status: {
+								in: ['pending', 'processing']
+							}
+						},
+						select: {
+							id: true,
+							status: true
+						}
 					}
 				}
 			}
@@ -263,6 +274,11 @@ export const getFiles = async (id) => {
 						progress = Math.floor((file.workflows[0].processes.length / 30) * 100);
 					}
 				}
+
+				// Check if AI analysis is in progress
+				const aiAnalysisInProgress = file.autoAnalyze && file.state === 'READY' &&
+					file.transcriptCorrections && file.transcriptCorrections.length > 0;
+
 				return {
 					id: file.id,
 					state: file.state,
@@ -278,6 +294,7 @@ export const getFiles = async (id) => {
 					language: file.language,
 					userId: user.id,
 					autoAnalyze: file.autoAnalyze,
+					aiAnalysisInProgress,
 					progress
 				};
 			})

@@ -8,15 +8,6 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		where: {
 			id: params.fileId
 		},
-		include: {
-			User: {
-				select: {
-					id: true,
-					email: true
-				}
-			}
-		},
-		// Include originalAsrData to check if it's already stored
 		select: {
 			id: true,
 			initialTranscriptionPath: true,

@@ -76,7 +76,7 @@ export const Diff = Node.create<DiffOptions>({
 				}
 			},
 			changeType: {
-				default: 'text_replacement',
+				default: 'substitution', // 'deletion' | 'substitution' | 'insertion'
 				parseHTML: (element) => element.getAttribute('data-change-type'),
 				renderHTML: (attributes) => {
 					if (!attributes.changeType) {
@@ -130,8 +130,7 @@ export const Diff = Node.create<DiffOptions>({
 			'span',
 			mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
 				class: 'diff-node'
-			}),
-			0
+			})
 		];
 	},
 

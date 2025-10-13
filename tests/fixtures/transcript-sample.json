@@ -1,0 +1,2874 @@
+{
+    "speakers": {
+        "SPEAKER_02": {
+            "name": "Reene Leas"
+        },
+        "SPEAKER_05": {},
+        "SPEAKER_03": {
+            "name": "J\u00fcri Ratas"
+        },
+        "SPEAKER_01": {
+            "name": "Margitta Otsmaa"
+        }
+    },
+    "sections": [
+        {
+            "type": "speech",
+            "start": 8.897,
+            "end": 33.02,
+            "turns": [
+                {
+                    "speaker": "SPEAKER_02",
+                    "start": 11.04,
+                    "end": 22.81,
+                    "transcript": "Tere \u00f5htust, on 16. mai, kell sai kuus ning P\u00e4evakaja v\u00f5tab kokku t\u00e4nase p\u00e4eva t\u00e4htsamad uudised, mina olen Reene Leas. Valitsus sidus lisaeelarve vastuv\u00f5tmise Riigikogus usaldusk\u00fcsimusega.",
+                    "words": [
+                        {
+                            "word_with_punctuation": "Tere",
+                            "start": 11.04,
+                            "end": 11.28,
+                            "word": "Tere",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "\u00f5htust,",
+                            "start": 11.28,
+                            "end": 11.7,
+                            "word": "\u00f5htust",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "on",
+                            "start": 11.76,
+                            "end": 11.94,
+                            "word": "on",
+                            "punctuation": ""
+                        },
+                        {
+                            "word": "16.",
+                            "start": 11.94,
+                            "word_with_punctuation": "16.",
+                            "end": 12.72,
+                            "punctuation": "",
+                            "unnormalized_words": [
+                                {
+                                    "word_with_punctuation": "kuueteistk\u00fcmnes",
+                                    "start": 11.94,
+                                    "end": 12.72,
+                                    "word": "kuueteistk\u00fcmnes",
+                                    "punctuation": ""
+                                }
+                            ]
+                        },
+                        {
+                            "word_with_punctuation": "mai,",
+                            "start": 12.72,
+                            "end": 13.02,
+                            "word": "mai",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "kell",
+                            "start": 13.02,
+                            "end": 13.29,
+                            "word": "kell",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "sai",
+                            "start": 13.29,
+                            "end": 13.47,
+                            "word": "sai",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "kuus",
+                            "start": 13.47,
+                            "end": 13.83,
+                            "word": "kuus",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ning",
+                            "start": 13.83,
+                            "end": 13.98,
+                            "word": "ning",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "P\u00e4evakaja",
+                            "start": 13.98,
+                            "end": 14.49,
+                            "word": "P\u00e4evakaja",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "v\u00f5tab",
+                            "start": 14.49,
+                            "end": 14.79,
+                            "word": "v\u00f5tab",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "kokku",
+                            "start": 14.79,
+                            "end": 15.09,
+                            "word": "kokku",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "t\u00e4nase",
+                            "start": 15.09,
+                            "end": 15.45,
+                            "word": "t\u00e4nase",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "p\u00e4eva",
+                            "start": 15.45,
+                            "end": 15.75,
+                            "word": "p\u00e4eva",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "t\u00e4htsamad",
+                            "start": 15.75,
+                            "end": 16.17,
+                            "word": "t\u00e4htsamad",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "uudised,",
+                            "start": 16.17,
+                            "end": 16.65,
+                            "word": "uudised",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "mina",
+                            "start": 16.68,
+                            "end": 16.92,
+                            "word": "mina",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "olen",
+                            "start": 16.92,
+                            "end": 17.13,
+                            "word": "olen",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Reene",
+                            "start": 17.13,
+                            "end": 17.4,
+                            "word": "Reene",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Leas.",
+                            "start": 17.4,
+                            "end": 17.76,
+                            "word": "Leas",
+                            "punctuation": "."
+                        },
+                        {
+                            "word_with_punctuation": "Valitsus",
+                            "start": 18.27,
+                            "end": 18.81,
+                            "word": "Valitsus",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "sidus",
+                            "start": 18.81,
+                            "end": 19.14,
+                            "word": "sidus",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "lisaeelarve",
+                            "start": 19.14,
+                            "end": 19.86,
+                            "word": "lisaeelarve",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "vastuv\u00f5tmise",
+                            "start": 19.86,
+                            "end": 20.61,
+                            "word": "vastuv\u00f5tmise",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Riigikogus",
+                            "start": 20.61,
+                            "end": 21.27,
+                            "word": "Riigikogus",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "usaldusk\u00fcsimusega.",
+                            "start": 21.27,
+                            "end": 22.38,
+                            "word": "usaldusk\u00fcsimusega",
+                            "punctuation": "."
+                        }
+                    ],
+                    "unnormalized_transcript": "Tere \u00f5htust, on kuueteistk\u00fcmnes mai, kell sai kuus ning P\u00e4evakaja v\u00f5tab kokku t\u00e4nase p\u00e4eva t\u00e4htsamad uudised, mina olen Reene Leas. Valitsus sidus lisaeelarve vastuv\u00f5tmise Riigikogus usaldusk\u00fcsimusega."
+                },
+                {
+                    "speaker": "SPEAKER_05",
+                    "start": 22.81,
+                    "end": 33.02,
+                    "transcript": "Surve, et enne jaanip\u00e4eva peaks mingi asja vastu v\u00f5tma, mis toob suuri rahalisi p\u00fcsikulusid ilma selle, selle eelarve kontekstis vaatamata, et noh, tegelikult seal ei ole \u00fchtegi p\u00f5hjust.",
+                    "words": [
+                        {
+                            "word_with_punctuation": "Surve,",
+                            "start": 22.81,
+                            "end": 23.26,
+                            "word": "Surve",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "et",
+                            "start": 23.26,
+                            "end": 23.38,
+                            "word": "et",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "enne",
+                            "start": 23.38,
+                            "end": 23.56,
+                            "word": "enne",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "jaanip\u00e4eva",
+                            "start": 23.56,
+                            "end": 24.1,
+                            "word": "jaanip\u00e4eva",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "peaks",
+                            "start": 24.1,
+                            "end": 24.31,
+                            "word": "peaks",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "mingi",
+                            "start": 24.31,
+                            "end": 24.55,
+                            "word": "mingi",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "asja",
+                            "start": 24.55,
+                            "end": 24.76,
+                            "word": "asja",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "vastu",
+                            "start": 24.76,
+                            "end": 25.12,
+                            "word": "vastu",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "v\u00f5tma,",
+                            "start": 25.12,
+                            "end": 25.54,
+                            "word": "v\u00f5tma",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "mis",
+                            "start": 25.54,
+                            "end": 25.78,
+                            "word": "mis",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "toob",
+                            "start": 25.78,
+                            "end": 26.11,
+                            "word": "toob",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "suuri",
+                            "start": 26.11,
+                            "end": 26.41,
+                            "word": "suuri",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "rahalisi",
+                            "start": 26.41,
+                            "end": 26.98,
+                            "word": "rahalisi",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "p\u00fcsikulusid",
+                            "start": 26.98,
+                            "end": 27.79,
+                            "word": "p\u00fcsikulusid",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ilma",
+                            "start": 28.25,
+                            "end": 28.85,
+                            "word": "ilma",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "selle,",
+                            "start": 28.85,
+                            "end": 29.18,
+                            "word": "selle",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "selle",
+                            "start": 29.39,
+                            "end": 29.6,
+                            "word": "selle",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "eelarve",
+                            "start": 29.6,
+                            "end": 29.93,
+                            "word": "eelarve",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "kontekstis",
+                            "start": 29.93,
+                            "end": 30.44,
+                            "word": "kontekstis",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "vaatamata,",
+                            "start": 30.44,
+                            "end": 31.1,
+                            "word": "vaatamata",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "et",
+                            "start": 31.1,
+                            "end": 31.25,
+                            "word": "et",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "noh,",
+                            "start": 31.25,
+                            "end": 31.37,
+                            "word": "noh",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "tegelikult",
+                            "start": 31.37,
+                            "end": 31.85,
+                            "word": "tegelikult",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "seal",
+                            "start": 31.85,
+                            "end": 32.03,
+                            "word": "seal",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ei",
+                            "start": 32.03,
+                            "end": 32.09,
+                            "word": "ei",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ole",
+                            "start": 32.09,
+                            "end": 32.21,
+                            "word": "ole",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "\u00fchtegi",
+                            "start": 32.21,
+                            "end": 32.51,
+                            "word": "\u00fchtegi",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "p\u00f5hjust.",
+                            "start": 32.51,
+                            "end": 33.02,
+                            "word": "p\u00f5hjust",
+                            "punctuation": "."
+                        }
+                    ],
+                    "unnormalized_transcript": "Surve, et enne jaanip\u00e4eva peaks mingi asja vastu v\u00f5tma, mis toob suuri rahalisi p\u00fcsikulusid ilma selle, selle eelarve kontekstis vaatamata, et noh, tegelikult seal ei ole \u00fchtegi p\u00f5hjust."
+                }
+            ]
+        },
+        {
+            "type": "speech",
+            "start": 33.464,
+            "end": 58.149,
+            "turns": [
+                {
+                    "speaker": "SPEAKER_02",
+                    "start": 33.89,
+                    "end": 49.53,
+                    "transcript": "Kaja Kallas kordas varem \u00f6eldut, et kui Keskerakond v\u00f5tab enne jaanip\u00e4eva peretoetuste eeln\u00f5u vastu koos opositsioonih\u00e4\u00e4ltega, on praegune koalitsioon l\u00f5petanud t\u00f6\u00f6tamise. Keskerakonna esimees J\u00fcri Ratas nimetas Kallase sellist v\u00e4lja\u00fctlemist ultimaatumiks.",
+                    "words": [
+                        {
+                            "word_with_punctuation": "Kaja",
+                            "start": 33.89,
+                            "end": 34.28,
+                            "word": "Kaja",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Kallas",
+                            "start": 34.28,
+                            "end": 34.82,
+                            "word": "Kallas",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "kordas",
+                            "start": 34.91,
+                            "end": 35.33,
+                            "word": "kordas",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "varem",
+                            "start": 35.33,
+                            "end": 35.63,
+                            "word": "varem",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "\u00f6eldut,",
+                            "start": 35.63,
+                            "end": 36.05,
+                            "word": "\u00f6eldut",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "et",
+                            "start": 36.05,
+                            "end": 36.2,
+                            "word": "et",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "kui",
+                            "start": 36.2,
+                            "end": 36.47,
+                            "word": "kui",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Keskerakond",
+                            "start": 36.47,
+                            "end": 37.22,
+                            "word": "Keskerakond",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "v\u00f5tab",
+                            "start": 37.22,
+                            "end": 37.49,
+                            "word": "v\u00f5tab",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "enne",
+                            "start": 37.49,
+                            "end": 37.73,
+                            "word": "enne",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "jaanip\u00e4eva",
+                            "start": 37.73,
+                            "end": 38.36,
+                            "word": "jaanip\u00e4eva",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "peretoetuste",
+                            "start": 38.36,
+                            "end": 39.14,
+                            "word": "peretoetuste",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "eeln\u00f5u",
+                            "start": 39.14,
+                            "end": 39.47,
+                            "word": "eeln\u00f5u",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "vastu",
+                            "start": 39.47,
+                            "end": 39.83,
+                            "word": "vastu",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "koos",
+                            "start": 39.83,
+                            "end": 40.13,
+                            "word": "koos",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "opositsioonih\u00e4\u00e4ltega,",
+                            "start": 40.13,
+                            "end": 41.36,
+                            "word": "opositsioonih\u00e4\u00e4ltega",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "on",
+                            "start": 41.69,
+                            "end": 41.99,
+                            "word": "on",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "praegune",
+                            "start": 41.99,
+                            "end": 42.41,
+                            "word": "praegune",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "koalitsioon",
+                            "start": 42.41,
+                            "end": 43.01,
+                            "word": "koalitsioon",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "l\u00f5petanud",
+                            "start": 43.07,
+                            "end": 43.64,
+                            "word": "l\u00f5petanud",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "t\u00f6\u00f6tamise.",
+                            "start": 43.64,
+                            "end": 44.24,
+                            "word": "t\u00f6\u00f6tamise",
+                            "punctuation": "."
+                        },
+                        {
+                            "word_with_punctuation": "Keskerakonna",
+                            "start": 44.55,
+                            "end": 45.27,
+                            "word": "Keskerakonna",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "esimees",
+                            "start": 45.27,
+                            "end": 45.63,
+                            "word": "esimees",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "J\u00fcri",
+                            "start": 45.63,
+                            "end": 45.84,
+                            "word": "J\u00fcri",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Ratas",
+                            "start": 45.84,
+                            "end": 46.23,
+                            "word": "Ratas",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "nimetas",
+                            "start": 46.23,
+                            "end": 46.65,
+                            "word": "nimetas",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Kallase",
+                            "start": 46.65,
+                            "end": 47.07,
+                            "word": "Kallase",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "sellist",
+                            "start": 47.07,
+                            "end": 47.49,
+                            "word": "sellist",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "v\u00e4lja\u00fctlemist",
+                            "start": 47.49,
+                            "end": 48.18,
+                            "word": "v\u00e4lja\u00fctlemist",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ultimaatumiks.",
+                            "start": 48.18,
+                            "end": 49.05,
+                            "word": "ultimaatumiks",
+                            "punctuation": "."
+                        }
+                    ],
+                    "unnormalized_transcript": "Kaja Kallas kordas varem \u00f6eldut, et kui Keskerakond v\u00f5tab enne jaanip\u00e4eva peretoetuste eeln\u00f5u vastu koos opositsioonih\u00e4\u00e4ltega, on praegune koalitsioon l\u00f5petanud t\u00f6\u00f6tamise. Keskerakonna esimees J\u00fcri Ratas nimetas Kallase sellist v\u00e4lja\u00fctlemist ultimaatumiks."
+                },
+                {
+                    "speaker": "SPEAKER_03",
+                    "start": 49.53,
+                    "end": 57.73,
+                    "transcript": "Ma arvan, et peaministri poolt v\u00e4lja \u00f6eldu, et kui see eeln\u00f5u vastu v\u00f5etakse, et siis see koalitsioon l\u00f5petab, et see ultimaatum ei ole m\u00f5istlik.",
+                    "words": [
+                        {
+                            "word_with_punctuation": "Ma",
+                            "start": 49.53,
+                            "end": 49.77,
+                            "word": "Ma",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "arvan,",
+                            "start": 49.77,
+                            "end": 50.1,
+                            "word": "arvan",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "et",
+                            "start": 50.1,
+                            "end": 50.25,
+                            "word": "et",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "peaministri",
+                            "start": 50.25,
+                            "end": 50.82,
+                            "word": "peaministri",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "poolt",
+                            "start": 50.82,
+                            "end": 51.03,
+                            "word": "poolt",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "v\u00e4lja",
+                            "start": 51.03,
+                            "end": 51.33,
+                            "word": "v\u00e4lja",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "\u00f6eldu,",
+                            "start": 51.33,
+                            "end": 51.9,
+                            "word": "\u00f6eldu",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "et",
+                            "start": 51.9,
+                            "end": 52.2,
+                            "word": "et",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "kui",
+                            "start": 52.26,
+                            "end": 52.44,
+                            "word": "kui",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "see",
+                            "start": 52.44,
+                            "end": 52.56,
+                            "word": "see",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "eeln\u00f5u",
+                            "start": 52.56,
+                            "end": 52.8,
+                            "word": "eeln\u00f5u",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "vastu",
+                            "start": 52.8,
+                            "end": 53.1,
+                            "word": "vastu",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "v\u00f5etakse,",
+                            "start": 53.1,
+                            "end": 53.85,
+                            "word": "v\u00f5etakse",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "et",
+                            "start": 54.19,
+                            "end": 54.49,
+                            "word": "et",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "siis",
+                            "start": 54.49,
+                            "end": 54.76,
+                            "word": "siis",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "see",
+                            "start": 54.76,
+                            "end": 54.85,
+                            "word": "see",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "koalitsioon",
+                            "start": 54.85,
+                            "end": 55.3,
+                            "word": "koalitsioon",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "l\u00f5petab,",
+                            "start": 55.3,
+                            "end": 55.81,
+                            "word": "l\u00f5petab",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "et",
+                            "start": 55.81,
+                            "end": 55.93,
+                            "word": "et",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "see",
+                            "start": 55.93,
+                            "end": 56.26,
+                            "word": "see",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ultimaatum",
+                            "start": 56.26,
+                            "end": 56.98,
+                            "word": "ultimaatum",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ei",
+                            "start": 56.98,
+                            "end": 57.1,
+                            "word": "ei",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ole",
+                            "start": 57.1,
+                            "end": 57.22,
+                            "word": "ole",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "m\u00f5istlik.",
+                            "start": 57.22,
+                            "end": 57.73,
+                            "word": "m\u00f5istlik",
+                            "punctuation": "."
+                        }
+                    ],
+                    "unnormalized_transcript": "Ma arvan, et peaministri poolt v\u00e4lja \u00f6eldu, et kui see eeln\u00f5u vastu v\u00f5etakse, et siis see koalitsioon l\u00f5petab, et see ultimaatum ei ole m\u00f5istlik."
+                }
+            ]
+        },
+        {
+            "type": "speech",
+            "start": 58.32,
+            "end": 108.352,
+            "turns": [
+                {
+                    "speaker": "SPEAKER_02",
+                    "start": 58.85,
+                    "end": 75.87,
+                    "transcript": "Ukraina v\u00e4ed j\u00f5udsid Harkivi l\u00e4hedal Venemaa piirini. Br\u00fcsselis kogunesid Euroopa Liidu v\u00e4lisministrid, Leedu hinnangul hoiab \u00fcks riik \u00fclej\u00e4\u00e4nud liikmeid pantvangis.",
+                    "words": [
+                        {
+                            "word_with_punctuation": "Ukraina",
+                            "start": 58.85,
+                            "end": 59.3,
+                            "word": "Ukraina",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "v\u00e4ed",
+                            "start": 59.3,
+                            "end": 59.57,
+                            "word": "v\u00e4ed",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "j\u00f5udsid",
+                            "start": 59.57,
+                            "end": 59.96,
+                            "word": "j\u00f5udsid",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Harkivi",
+                            "start": 59.96,
+                            "end": 60.38,
+                            "word": "Harkivi",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "l\u00e4hedal",
+                            "start": 60.38,
+                            "end": 60.86,
+                            "word": "l\u00e4hedal",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Venemaa",
+                            "start": 60.92,
+                            "end": 61.31,
+                            "word": "Venemaa",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "piirini.",
+                            "start": 61.31,
+                            "end": 61.82,
+                            "word": "piirini",
+                            "punctuation": "."
+                        },
+                        {
+                            "word_with_punctuation": "Br\u00fcsselis",
+                            "start": 62.19,
+                            "end": 62.73,
+                            "word": "Br\u00fcsselis",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "kogunesid",
+                            "start": 62.73,
+                            "end": 63.24,
+                            "word": "kogunesid",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Euroopa",
+                            "start": 63.24,
+                            "end": 63.66,
+                            "word": "Euroopa",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Liidu",
+                            "start": 63.66,
+                            "end": 63.9,
+                            "word": "Liidu",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "v\u00e4lisministrid,",
+                            "start": 63.9,
+                            "end": 64.77,
+                            "word": "v\u00e4lisministrid",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "Leedu",
+                            "start": 64.83,
+                            "end": 65.22,
+                            "word": "Leedu",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "hinnangul",
+                            "start": 65.22,
+                            "end": 65.7,
+                            "word": "hinnangul",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "hoiab",
+                            "start": 65.7,
+                            "end": 66.03,
+                            "word": "hoiab",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "\u00fcks",
+                            "start": 66.03,
+                            "end": 66.27,
+                            "word": "\u00fcks",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "riik",
+                            "start": 66.27,
+                            "end": 66.6,
+                            "word": "riik",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "\u00fclej\u00e4\u00e4nud",
+                            "start": 66.6,
+                            "end": 67.11,
+                            "word": "\u00fclej\u00e4\u00e4nud",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "liikmeid",
+                            "start": 67.11,
+                            "end": 67.53,
+                            "word": "liikmeid",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "pantvangis.",
+                            "start": 67.53,
+                            "end": 68.22,
+                            "word": "pantvangis",
+                            "punctuation": "."
+                        }
+                    ],
+                    "unnormalized_transcript": "Ukraina v\u00e4ed j\u00f5udsid Harkivi l\u00e4hedal Venemaa piirini. Br\u00fcsselis kogunesid Euroopa Liidu v\u00e4lisministrid, Leedu hinnangul hoiab \u00fcks riik \u00fclej\u00e4\u00e4nud liikmeid pantvangis."
+                },
+                {
+                    "speaker": "SPEAKER_02",
+                    "start": 75.87,
+                    "end": 107.82,
+                    "transcript": "Riigikogu eelarvekontrolli erikomisjoni istungil leiti, et hinnat\u00f5usu m\u00f5jusid saab leevendada maksus\u00fcsteemi korrigeerimise ja CO kahe hinna fikseerimisega. Kodumaise tomati ja kurgi tootmine on kallinenud mituk\u00fcmmend protsenti, samas pole v\u00f5imalik tarbija jaoks hinda t\u00f5sta. Karl Eduard Schr\u00f6di nimelise lasteluule auhinna sai t\u00e4navu Indrek Kohv raamatuga, Kuhu lapsed said. J\u00e4\u00e4hoki maailmameistriv\u00f5istlustel Soomes on alanud kolmanda vooru m\u00e4ngud, L\u00e4ti jahib oma esimest turniiriv\u00f5itu Norra vastu.",
+                    "words": [
+                        {
+                            "word_with_punctuation": "Riigikogu",
+                            "start": 75.87,
+                            "end": 76.53,
+                            "word": "Riigikogu",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "eelarvekontrolli",
+                            "start": 76.53,
+                            "end": 77.46,
+                            "word": "eelarvekontrolli",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "erikomisjoni",
+                            "start": 77.46,
+                            "end": 78.21,
+                            "word": "erikomisjoni",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "istungil",
+                            "start": 78.21,
+                            "end": 78.66,
+                            "word": "istungil",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "leiti,",
+                            "start": 78.66,
+                            "end": 79.02,
+                            "word": "leiti",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "et",
+                            "start": 79.02,
+                            "end": 79.17,
+                            "word": "et",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "hinnat\u00f5usu",
+                            "start": 79.17,
+                            "end": 79.86,
+                            "word": "hinnat\u00f5usu",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "m\u00f5jusid",
+                            "start": 79.86,
+                            "end": 80.46,
+                            "word": "m\u00f5jusid",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "saab",
+                            "start": 80.55,
+                            "end": 81.0,
+                            "word": "saab",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "leevendada",
+                            "start": 81.0,
+                            "end": 81.57,
+                            "word": "leevendada",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "maksus\u00fcsteemi",
+                            "start": 81.57,
+                            "end": 82.35,
+                            "word": "maksus\u00fcsteemi",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "korrigeerimise",
+                            "start": 82.35,
+                            "end": 83.16,
+                            "word": "korrigeerimise",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ja",
+                            "start": 83.16,
+                            "end": 83.34,
+                            "word": "ja",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "CO",
+                            "start": 83.34,
+                            "end": 83.73,
+                            "word": "CO",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "kahe",
+                            "start": 83.73,
+                            "end": 84.03,
+                            "word": "kahe",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "hinna",
+                            "start": 84.03,
+                            "end": 84.48,
+                            "word": "hinna",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "fikseerimisega.",
+                            "start": 84.48,
+                            "end": 85.44,
+                            "word": "fikseerimisega",
+                            "punctuation": "."
+                        },
+                        {
+                            "word_with_punctuation": "Kodumaise",
+                            "start": 86.09,
+                            "end": 86.66,
+                            "word": "Kodumaise",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "tomati",
+                            "start": 86.66,
+                            "end": 87.05,
+                            "word": "tomati",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ja",
+                            "start": 87.05,
+                            "end": 87.14,
+                            "word": "ja",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "kurgi",
+                            "start": 87.14,
+                            "end": 87.59,
+                            "word": "kurgi",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "tootmine",
+                            "start": 87.65,
+                            "end": 88.22,
+                            "word": "tootmine",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "on",
+                            "start": 88.22,
+                            "end": 88.37,
+                            "word": "on",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "kallinenud",
+                            "start": 88.37,
+                            "end": 89.06,
+                            "word": "kallinenud",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "mituk\u00fcmmend",
+                            "start": 89.06,
+                            "end": 89.63,
+                            "word": "mituk\u00fcmmend",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "protsenti,",
+                            "start": 89.63,
+                            "end": 90.26,
+                            "word": "protsenti",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "samas",
+                            "start": 90.26,
+                            "end": 90.59,
+                            "word": "samas",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "pole",
+                            "start": 90.59,
+                            "end": 90.83,
+                            "word": "pole",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "v\u00f5imalik",
+                            "start": 90.83,
+                            "end": 91.28,
+                            "word": "v\u00f5imalik",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "tarbija",
+                            "start": 91.28,
+                            "end": 91.76,
+                            "word": "tarbija",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "jaoks",
+                            "start": 91.76,
+                            "end": 92.09,
+                            "word": "jaoks",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "hinda",
+                            "start": 92.09,
+                            "end": 92.36,
+                            "word": "hinda",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "t\u00f5sta.",
+                            "start": 92.36,
+                            "end": 92.78,
+                            "word": "t\u00f5sta",
+                            "punctuation": "."
+                        },
+                        {
+                            "word_with_punctuation": "Karl",
+                            "start": 93.29,
+                            "end": 93.74,
+                            "word": "Karl",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Eduard",
+                            "start": 93.74,
+                            "end": 94.22,
+                            "word": "Eduard",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Schr\u00f6di",
+                            "start": 94.22,
+                            "end": 94.55,
+                            "word": "Schr\u00f6di",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "nimelise",
+                            "start": 94.55,
+                            "end": 95.06,
+                            "word": "nimelise",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "lasteluule",
+                            "start": 95.06,
+                            "end": 95.69,
+                            "word": "lasteluule",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "auhinna",
+                            "start": 95.69,
+                            "end": 96.2,
+                            "word": "auhinna",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "sai",
+                            "start": 96.2,
+                            "end": 96.38,
+                            "word": "sai",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "t\u00e4navu",
+                            "start": 96.38,
+                            "end": 96.83,
+                            "word": "t\u00e4navu",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Indrek",
+                            "start": 96.83,
+                            "end": 97.25,
+                            "word": "Indrek",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Kohv",
+                            "start": 97.25,
+                            "end": 97.58,
+                            "word": "Kohv",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "raamatuga,",
+                            "start": 97.61,
+                            "end": 98.27,
+                            "word": "raamatuga",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "Kuhu",
+                            "start": 98.27,
+                            "end": 98.63,
+                            "word": "Kuhu",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "lapsed",
+                            "start": 98.69,
+                            "end": 99.08,
+                            "word": "lapsed",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "said.",
+                            "start": 99.08,
+                            "end": 99.44,
+                            "word": "said",
+                            "punctuation": "."
+                        },
+                        {
+                            "word_with_punctuation": "J\u00e4\u00e4hoki",
+                            "start": 100.17,
+                            "end": 100.86,
+                            "word": "J\u00e4\u00e4hoki",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "maailmameistriv\u00f5istlustel",
+                            "start": 100.86,
+                            "end": 102.12,
+                            "word": "maailmameistriv\u00f5istlustel",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Soomes",
+                            "start": 102.12,
+                            "end": 102.6,
+                            "word": "Soomes",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "on",
+                            "start": 102.6,
+                            "end": 102.75,
+                            "word": "on",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "alanud",
+                            "start": 102.75,
+                            "end": 103.23,
+                            "word": "alanud",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "kolmanda",
+                            "start": 103.23,
+                            "end": 103.65,
+                            "word": "kolmanda",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "vooru",
+                            "start": 103.65,
+                            "end": 103.95,
+                            "word": "vooru",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "m\u00e4ngud,",
+                            "start": 103.95,
+                            "end": 104.37,
+                            "word": "m\u00e4ngud",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "L\u00e4ti",
+                            "start": 104.43,
+                            "end": 104.91,
+                            "word": "L\u00e4ti",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "jahib",
+                            "start": 104.94,
+                            "end": 105.45,
+                            "word": "jahib",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "oma",
+                            "start": 105.45,
+                            "end": 105.69,
+                            "word": "oma",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "esimest",
+                            "start": 105.69,
+                            "end": 106.17,
+                            "word": "esimest",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "turniiriv\u00f5itu",
+                            "start": 106.17,
+                            "end": 107.07,
+                            "word": "turniiriv\u00f5itu",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Norra",
+                            "start": 107.1,
+                            "end": 107.4,
+                            "word": "Norra",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "vastu.",
+                            "start": 107.4,
+                            "end": 107.82,
+                            "word": "vastu",
+                            "punctuation": "."
+                        }
+                    ],
+                    "unnormalized_transcript": "Riigikogu eelarvekontrolli erikomisjoni istungil leiti, et hinnat\u00f5usu m\u00f5jusid saab leevendada maksus\u00fcsteemi korrigeerimise ja CO kahe hinna fikseerimisega. Kodumaise tomati ja kurgi tootmine on kallinenud mituk\u00fcmmend protsenti, samas pole v\u00f5imalik tarbija jaoks hinda t\u00f5sta. Karl Eduard Schr\u00f6di nimelise lasteluule auhinna sai t\u00e4navu Indrek Kohv raamatuga, Kuhu lapsed said. J\u00e4\u00e4hoki maailmameistriv\u00f5istlustel Soomes on alanud kolmanda vooru m\u00e4ngud, L\u00e4ti jahib oma esimest turniiriv\u00f5itu Norra vastu."
+                }
+            ]
+        },
+        {
+            "type": "speech",
+            "start": 108.371,
+            "end": 117.77499999999999,
+            "turns": [
+                {
+                    "speaker": "SPEAKER_02",
+                    "start": 108.77,
+                    "end": 117.29,
+                    "transcript": "Nii \u00f6\u00f6sel kui ka homme p\u00e4eval v\u00f5ib sadada hoovihma, \u00f6\u00f6sel on sooja kaks kuni seitse kraadi, homme p\u00e4eval aga seitse kuni 12 kraadi.",
+                    "words": [
+                        {
+                            "word_with_punctuation": "Nii",
+                            "start": 108.77,
+                            "end": 109.04,
+                            "word": "Nii",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "\u00f6\u00f6sel",
+                            "start": 109.07,
+                            "end": 109.4,
+                            "word": "\u00f6\u00f6sel",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "kui",
+                            "start": 109.4,
+                            "end": 109.58,
+                            "word": "kui",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ka",
+                            "start": 109.58,
+                            "end": 109.73,
+                            "word": "ka",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "homme",
+                            "start": 109.73,
+                            "end": 110.0,
+                            "word": "homme",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "p\u00e4eval",
+                            "start": 110.0,
+                            "end": 110.42,
+                            "word": "p\u00e4eval",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "v\u00f5ib",
+                            "start": 110.42,
+                            "end": 110.66,
+                            "word": "v\u00f5ib",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "sadada",
+                            "start": 110.66,
+                            "end": 111.02,
+                            "word": "sadada",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "hoovihma,",
+                            "start": 111.02,
+                            "end": 111.77,
+                            "word": "hoovihma",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "\u00f6\u00f6sel",
+                            "start": 112.28,
+                            "end": 112.61,
+                            "word": "\u00f6\u00f6sel",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "on",
+                            "start": 112.61,
+                            "end": 112.7,
+                            "word": "on",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "sooja",
+                            "start": 112.7,
+                            "end": 113.09,
+                            "word": "sooja",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "kaks",
+                            "start": 113.09,
+                            "end": 113.36,
+                            "word": "kaks",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "kuni",
+                            "start": 113.36,
+                            "end": 113.57,
+                            "word": "kuni",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "seitse",
+                            "start": 113.57,
+                            "end": 113.93,
+                            "word": "seitse",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "kraadi,",
+                            "start": 113.93,
+                            "end": 114.44,
+                            "word": "kraadi",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "homme",
+                            "start": 114.44,
+                            "end": 114.74,
+                            "word": "homme",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "p\u00e4eval",
+                            "start": 114.74,
+                            "end": 115.13,
+                            "word": "p\u00e4eval",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "aga",
+                            "start": 115.13,
+                            "end": 115.52,
+                            "word": "aga",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "seitse",
+                            "start": 115.76,
+                            "end": 116.15,
+                            "word": "seitse",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "kuni",
+                            "start": 116.15,
+                            "end": 116.36,
+                            "word": "kuni",
+                            "punctuation": ""
+                        },
+                        {
+                            "word": "12",
+                            "start": 116.36,
+                            "word_with_punctuation": "12",
+                            "end": 116.84,
+                            "punctuation": "",
+                            "unnormalized_words": [
+                                {
+                                    "word_with_punctuation": "kaksteist",
+                                    "start": 116.36,
+                                    "end": 116.84,
+                                    "word": "kaksteist",
+                                    "punctuation": ""
+                                }
+                            ]
+                        },
+                        {
+                            "word_with_punctuation": "kraadi.",
+                            "start": 116.84,
+                            "end": 117.29,
+                            "word": "kraadi",
+                            "punctuation": "."
+                        }
+                    ],
+                    "unnormalized_transcript": "Nii \u00f6\u00f6sel kui ka homme p\u00e4eval v\u00f5ib sadada hoovihma, \u00f6\u00f6sel on sooja kaks kuni seitse kraadi, homme p\u00e4eval aga seitse kuni kaksteist kraadi."
+                }
+            ]
+        },
+        {
+            "type": "speech",
+            "start": 119.424,
+            "end": 121.61200000000001
+        },
+        {
+            "type": "speech",
+            "start": 122.497,
+            "end": 157.011,
+            "turns": [
+                {
+                    "speaker": "SPEAKER_02",
+                    "start": 123.01,
+                    "end": 156.54,
+                    "transcript": "Valitsus kiitis erakorralisel istungil heaks otsuse siduda lisaeelarve ja sellega seotud kolm, kolme seaduseeln\u00f5u Riigikogus enne teist lugemist usaldusk\u00fcsimusega. Valitsus teeb parlamendile ettepaneku arutada eeln\u00f5usid Riigikogus \u00fclehomme. EKRE on esitanud lisaeelarvele ja sellega seotud eeln\u00f5udele \u00fcle 600 muudatusettepaneku, mis v\u00f5imaldab venitada eeln\u00f5ude arutelu parlamendis ja blokeerida Riigikogu tavap\u00e4rase t\u00f6\u00f6. Kokku on lisaeelarvele ja sellega seotud seaduste eeln\u00f5udele esitatud \u00fcle 700 muudatusettepaneku.",
+                    "words": [
+                        {
+                            "word_with_punctuation": "Valitsus",
+                            "start": 123.01,
+                            "end": 123.52,
+                            "word": "Valitsus",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "kiitis",
+                            "start": 123.52,
+                            "end": 123.91,
+                            "word": "kiitis",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "erakorralisel",
+                            "start": 123.91,
+                            "end": 124.57,
+                            "word": "erakorralisel",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "istungil",
+                            "start": 124.57,
+                            "end": 125.02,
+                            "word": "istungil",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "heaks",
+                            "start": 125.02,
+                            "end": 125.35,
+                            "word": "heaks",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "otsuse",
+                            "start": 125.35,
+                            "end": 125.8,
+                            "word": "otsuse",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "siduda",
+                            "start": 125.8,
+                            "end": 126.22,
+                            "word": "siduda",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "lisaeelarve",
+                            "start": 126.22,
+                            "end": 127.18,
+                            "word": "lisaeelarve",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ja",
+                            "start": 127.21,
+                            "end": 127.42,
+                            "word": "ja",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "sellega",
+                            "start": 127.42,
+                            "end": 127.78,
+                            "word": "sellega",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "seotud",
+                            "start": 127.78,
+                            "end": 128.23,
+                            "word": "seotud",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "kolm,",
+                            "start": 128.23,
+                            "end": 128.53,
+                            "word": "kolm",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "kolme",
+                            "start": 128.65,
+                            "end": 128.95,
+                            "word": "kolme",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "seaduseeln\u00f5u",
+                            "start": 128.95,
+                            "end": 129.85,
+                            "word": "seaduseeln\u00f5u",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Riigikogus",
+                            "start": 129.85,
+                            "end": 130.69,
+                            "word": "Riigikogus",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "enne",
+                            "start": 130.81,
+                            "end": 131.08,
+                            "word": "enne",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "teist",
+                            "start": 131.08,
+                            "end": 131.38,
+                            "word": "teist",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "lugemist",
+                            "start": 131.38,
+                            "end": 131.98,
+                            "word": "lugemist",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "usaldusk\u00fcsimusega.",
+                            "start": 131.98,
+                            "end": 133.15,
+                            "word": "usaldusk\u00fcsimusega",
+                            "punctuation": "."
+                        },
+                        {
+                            "word_with_punctuation": "Valitsus",
+                            "start": 133.67,
+                            "end": 134.15,
+                            "word": "Valitsus",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "teeb",
+                            "start": 134.15,
+                            "end": 134.36,
+                            "word": "teeb",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "parlamendile",
+                            "start": 134.36,
+                            "end": 134.96,
+                            "word": "parlamendile",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ettepaneku",
+                            "start": 134.96,
+                            "end": 135.5,
+                            "word": "ettepaneku",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "arutada",
+                            "start": 135.5,
+                            "end": 135.92,
+                            "word": "arutada",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "eeln\u00f5usid",
+                            "start": 135.92,
+                            "end": 136.46,
+                            "word": "eeln\u00f5usid",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Riigikogus",
+                            "start": 136.46,
+                            "end": 137.09,
+                            "word": "Riigikogus",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "\u00fclehomme.",
+                            "start": 137.09,
+                            "end": 137.66,
+                            "word": "\u00fclehomme",
+                            "punctuation": "."
+                        },
+                        {
+                            "word_with_punctuation": "EKRE",
+                            "start": 138.05,
+                            "end": 138.47,
+                            "word": "EKRE",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "on",
+                            "start": 138.47,
+                            "end": 138.59,
+                            "word": "on",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "esitanud",
+                            "start": 138.59,
+                            "end": 139.16,
+                            "word": "esitanud",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "lisaeelarvele",
+                            "start": 139.16,
+                            "end": 140.09,
+                            "word": "lisaeelarvele",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ja",
+                            "start": 140.12,
+                            "end": 140.3,
+                            "word": "ja",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "sellega",
+                            "start": 140.3,
+                            "end": 140.66,
+                            "word": "sellega",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "seotud",
+                            "start": 140.66,
+                            "end": 141.05,
+                            "word": "seotud",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "eeln\u00f5udele",
+                            "start": 141.05,
+                            "end": 141.68,
+                            "word": "eeln\u00f5udele",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "\u00fcle",
+                            "start": 141.68,
+                            "end": 141.89,
+                            "word": "\u00fcle",
+                            "punctuation": ""
+                        },
+                        {
+                            "word": "600",
+                            "start": 141.89,
+                            "word_with_punctuation": "600",
+                            "end": 142.37,
+                            "punctuation": "",
+                            "unnormalized_words": [
+                                {
+                                    "word_with_punctuation": "kuuesaja",
+                                    "start": 141.89,
+                                    "end": 142.37,
+                                    "word": "kuuesaja",
+                                    "punctuation": ""
+                                }
+                            ]
+                        },
+                        {
+                            "word_with_punctuation": "muudatusettepaneku,",
+                            "start": 142.37,
+                            "end": 143.51,
+                            "word": "muudatusettepaneku",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "mis",
+                            "start": 143.81,
+                            "end": 144.11,
+                            "word": "mis",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "v\u00f5imaldab",
+                            "start": 144.11,
+                            "end": 144.59,
+                            "word": "v\u00f5imaldab",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "venitada",
+                            "start": 144.59,
+                            "end": 145.1,
+                            "word": "venitada",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "eeln\u00f5ude",
+                            "start": 145.1,
+                            "end": 145.64,
+                            "word": "eeln\u00f5ude",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "arutelu",
+                            "start": 145.64,
+                            "end": 146.12,
+                            "word": "arutelu",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "parlamendis",
+                            "start": 146.12,
+                            "end": 146.78,
+                            "word": "parlamendis",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ja",
+                            "start": 146.78,
+                            "end": 146.9,
+                            "word": "ja",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "blokeerida",
+                            "start": 146.9,
+                            "end": 147.53,
+                            "word": "blokeerida",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Riigikogu",
+                            "start": 147.53,
+                            "end": 148.25,
+                            "word": "Riigikogu",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "tavap\u00e4rase",
+                            "start": 148.28,
+                            "end": 148.97,
+                            "word": "tavap\u00e4rase",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "t\u00f6\u00f6.",
+                            "start": 148.97,
+                            "end": 149.27,
+                            "word": "t\u00f6\u00f6",
+                            "punctuation": "."
+                        },
+                        {
+                            "word_with_punctuation": "Kokku",
+                            "start": 149.91,
+                            "end": 150.3,
+                            "word": "Kokku",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "on",
+                            "start": 150.3,
+                            "end": 150.39,
+                            "word": "on",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "lisaeelarvele",
+                            "start": 150.39,
+                            "end": 151.23,
+                            "word": "lisaeelarvele",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ja",
+                            "start": 151.23,
+                            "end": 151.35,
+                            "word": "ja",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "sellega",
+                            "start": 151.35,
+                            "end": 151.68,
+                            "word": "sellega",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "seotud",
+                            "start": 151.68,
+                            "end": 152.07,
+                            "word": "seotud",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "seaduste",
+                            "start": 152.07,
+                            "end": 152.52,
+                            "word": "seaduste",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "eeln\u00f5udele",
+                            "start": 152.52,
+                            "end": 153.21,
+                            "word": "eeln\u00f5udele",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "esitatud",
+                            "start": 153.3,
+                            "end": 154.32,
+                            "word": "esitatud",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "\u00fcle",
+                            "start": 154.35,
+                            "end": 154.71,
+                            "word": "\u00fcle",
+                            "punctuation": ""
+                        },
+                        {
+                            "word": "700",
+                            "start": 154.71,
+                            "word_with_punctuation": "700",
+                            "end": 155.4,
+                            "punctuation": "",
+                            "unnormalized_words": [
+                                {
+                                    "word_with_punctuation": "seitsmesaja",
+                                    "start": 154.71,
+                                    "end": 155.4,
+                                    "word": "seitsmesaja",
+                                    "punctuation": ""
+                                }
+                            ]
+                        },
+                        {
+                            "word_with_punctuation": "muudatusettepaneku.",
+                            "start": 155.4,
+                            "end": 156.54,
+                            "word": "muudatusettepaneku",
+                            "punctuation": "."
+                        }
+                    ],
+                    "unnormalized_transcript": "Valitsus kiitis erakorralisel istungil heaks otsuse siduda lisaeelarve ja sellega seotud kolm, kolme seaduseeln\u00f5u Riigikogus enne teist lugemist usaldusk\u00fcsimusega. Valitsus teeb parlamendile ettepaneku arutada eeln\u00f5usid Riigikogus \u00fclehomme. EKRE on esitanud lisaeelarvele ja sellega seotud eeln\u00f5udele \u00fcle kuuesaja muudatusettepaneku, mis v\u00f5imaldab venitada eeln\u00f5ude arutelu parlamendis ja blokeerida Riigikogu tavap\u00e4rase t\u00f6\u00f6. Kokku on lisaeelarvele ja sellega seotud seaduste eeln\u00f5udele esitatud \u00fcle seitsmesaja muudatusettepaneku."
+                }
+            ]
+        },
+        {
+            "type": "speech",
+            "start": 157.132,
+            "end": 211.28900000000002,
+            "turns": [
+                {
+                    "speaker": "SPEAKER_02",
+                    "start": 157.59,
+                    "end": 172.96,
+                    "transcript": "Lisaks riigi selle aasta lisaeelarve seaduseeln\u00f5ule sidus valitsus usaldusk\u00fcsimusega ka peretoetuste seaduse muutmise eeln\u00f5u. Peretoetuste t\u00f5stmine ja selle ajakava oli arutluse all t\u00e4na ka Riigikogu sotsiaalkomisjonis. Margitta Otsmaa",
+                    "words": [
+                        {
+                            "word_with_punctuation": "Lisaks",
+                            "start": 157.59,
+                            "end": 158.01,
+                            "word": "Lisaks",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "riigi",
+                            "start": 158.01,
+                            "end": 158.34,
+                            "word": "riigi",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "selle",
+                            "start": 158.34,
+                            "end": 158.64,
+                            "word": "selle",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "aasta",
+                            "start": 158.64,
+                            "end": 159.0,
+                            "word": "aasta",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "lisaeelarve",
+                            "start": 159.0,
+                            "end": 159.81,
+                            "word": "lisaeelarve",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "seaduseeln\u00f5ule",
+                            "start": 159.81,
+                            "end": 160.92,
+                            "word": "seaduseeln\u00f5ule",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "sidus",
+                            "start": 160.95,
+                            "end": 161.37,
+                            "word": "sidus",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "valitsus",
+                            "start": 161.37,
+                            "end": 161.85,
+                            "word": "valitsus",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "usaldusk\u00fcsimusega",
+                            "start": 161.85,
+                            "end": 162.96,
+                            "word": "usaldusk\u00fcsimusega",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ka",
+                            "start": 162.96,
+                            "end": 163.26,
+                            "word": "ka",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "peretoetuste",
+                            "start": 163.26,
+                            "end": 164.16,
+                            "word": "peretoetuste",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "seaduse",
+                            "start": 164.16,
+                            "end": 164.61,
+                            "word": "seaduse",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "muutmise",
+                            "start": 164.61,
+                            "end": 165.09,
+                            "word": "muutmise",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "eeln\u00f5u.",
+                            "start": 165.09,
+                            "end": 165.54,
+                            "word": "eeln\u00f5u",
+                            "punctuation": "."
+                        },
+                        {
+                            "word_with_punctuation": "Peretoetuste",
+                            "start": 166.07,
+                            "end": 166.88,
+                            "word": "Peretoetuste",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "t\u00f5stmine",
+                            "start": 166.88,
+                            "end": 167.45,
+                            "word": "t\u00f5stmine",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ja",
+                            "start": 167.45,
+                            "end": 167.6,
+                            "word": "ja",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "selle",
+                            "start": 167.6,
+                            "end": 167.87,
+                            "word": "selle",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ajakava",
+                            "start": 167.87,
+                            "end": 168.47,
+                            "word": "ajakava",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "oli",
+                            "start": 168.47,
+                            "end": 168.77,
+                            "word": "oli",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "arutluse",
+                            "start": 168.77,
+                            "end": 169.31,
+                            "word": "arutluse",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "all",
+                            "start": 169.31,
+                            "end": 169.67,
+                            "word": "all",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "t\u00e4na",
+                            "start": 169.73,
+                            "end": 170.12,
+                            "word": "t\u00e4na",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ka",
+                            "start": 170.12,
+                            "end": 170.33,
+                            "word": "ka",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Riigikogu",
+                            "start": 170.33,
+                            "end": 170.96,
+                            "word": "Riigikogu",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "sotsiaalkomisjonis.",
+                            "start": 170.96,
+                            "end": 172.04,
+                            "word": "sotsiaalkomisjonis",
+                            "punctuation": "."
+                        },
+                        {
+                            "word_with_punctuation": "Margitta",
+                            "start": 172.15,
+                            "end": 172.6,
+                            "word": "Margitta",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Otsmaa",
+                            "start": 172.6,
+                            "end": 172.96,
+                            "word": "Otsmaa",
+                            "punctuation": ""
+                        }
+                    ],
+                    "unnormalized_transcript": "Lisaks riigi selle aasta lisaeelarve seaduseeln\u00f5ule sidus valitsus usaldusk\u00fcsimusega ka peretoetuste seaduse muutmise eeln\u00f5u. Peretoetuste t\u00f5stmine ja selle ajakava oli arutluse all t\u00e4na ka Riigikogu sotsiaalkomisjonis. Margitta Otsmaa"
+                },
+                {
+                    "speaker": "SPEAKER_01",
+                    "start": 172.96,
+                    "end": 209.26,
+                    "transcript": "Teeb \u00fclevaate. Ettepaneku esitajate ehk Keskerakonna, Isamaa, Sotsiaaldemokraatide ja EKRE soov on lastetoetusi t\u00f5sta alates veebruarist 2023, ehk koos j\u00e4rgmise aasta eelarvega. Reformierakond on lastetoetuse t\u00f5stmise poolt, aga soovib eeln\u00f5u arutamiseks aega, sest ettepanek n\u00f5uaks ligi 300 miljonit t\u00e4iendavat eurot aastas ja pole selge, kust leida sellele kate. Tegemist on tuleviku p\u00fcsikuluga ja seda saab katta kas mingi muu p\u00fcsikulu k\u00e4rpimise v\u00f5i \u00e4raj\u00e4tmisega v\u00f5i maksut\u00f5usudega. Keskfraktsiooni juhi Jaanus Karilaiu s\u00f5nul pole see kulu, vaid investeering tulevikku.",
+                    "words": [
+                        {
+                            "word_with_punctuation": "Teeb",
+                            "start": 172.96,
+                            "end": 173.17,
+                            "word": "teeb",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "\u00fclevaate.",
+                            "start": 173.17,
+                            "end": 173.77,
+                            "word": "\u00fclevaate",
+                            "punctuation": "."
+                        },
+                        {
+                            "word_with_punctuation": "Ettepaneku",
+                            "start": 174.51,
+                            "end": 175.23,
+                            "word": "Ettepaneku",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "esitajate",
+                            "start": 175.23,
+                            "end": 175.89,
+                            "word": "esitajate",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ehk",
+                            "start": 175.89,
+                            "end": 176.1,
+                            "word": "ehk",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Keskerakonna,",
+                            "start": 176.16,
+                            "end": 176.88,
+                            "word": "Keskerakonna",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "Isamaa,",
+                            "start": 176.88,
+                            "end": 177.33,
+                            "word": "Isamaa",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "Sotsiaaldemokraatide",
+                            "start": 177.33,
+                            "end": 178.47,
+                            "word": "Sotsiaaldemokraatide",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ja",
+                            "start": 178.47,
+                            "end": 178.56,
+                            "word": "ja",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "EKRE",
+                            "start": 178.56,
+                            "end": 178.89,
+                            "word": "EKRE",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "soov",
+                            "start": 178.89,
+                            "end": 179.22,
+                            "word": "soov",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "on",
+                            "start": 179.22,
+                            "end": 179.4,
+                            "word": "on",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "lastetoetusi",
+                            "start": 179.46,
+                            "end": 180.3,
+                            "word": "lastetoetusi",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "t\u00f5sta",
+                            "start": 180.3,
+                            "end": 180.69,
+                            "word": "t\u00f5sta",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "alates",
+                            "start": 180.69,
+                            "end": 181.11,
+                            "word": "alates",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "veebruarist",
+                            "start": 181.11,
+                            "end": 181.74,
+                            "word": "veebruarist",
+                            "punctuation": ""
+                        },
+                        {
+                            "word": "2023",
+                            "start": 181.77,
+                            "word_with_punctuation": "2023,",
+                            "end": 183.03,
+                            "punctuation": ",",
+                            "unnormalized_words": [
+                                {
+                                    "word_with_punctuation": "kaks",
+                                    "start": 181.77,
+                                    "end": 182.01,
+                                    "word": "kaks",
+                                    "punctuation": ""
+                                },
+                                {
+                                    "word_with_punctuation": "tuhat",
+                                    "start": 182.01,
+                                    "end": 182.22,
+                                    "word": "tuhat",
+                                    "punctuation": ""
+                                },
+                                {
+                                    "word_with_punctuation": "kaksk\u00fcmmend",
+                                    "start": 182.22,
+                                    "end": 182.7,
+                                    "word": "kaksk\u00fcmmend",
+                                    "punctuation": ""
+                                },
+                                {
+                                    "word_with_punctuation": "kolm,",
+                                    "start": 182.7,
+                                    "end": 183.03,
+                                    "word": "kolm",
+                                    "punctuation": ","
+                                }
+                            ]
+                        },
+                        {
+                            "word_with_punctuation": "ehk",
+                            "start": 183.03,
+                            "end": 183.27,
+                            "word": "ehk",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "koos",
+                            "start": 183.33,
+                            "end": 183.69,
+                            "word": "koos",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "j\u00e4rgmise",
+                            "start": 183.72,
+                            "end": 184.23,
+                            "word": "j\u00e4rgmise",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "aasta",
+                            "start": 184.23,
+                            "end": 184.5,
+                            "word": "aasta",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "eelarvega.",
+                            "start": 184.5,
+                            "end": 185.13,
+                            "word": "eelarvega",
+                            "punctuation": "."
+                        },
+                        {
+                            "word_with_punctuation": "Reformierakond",
+                            "start": 185.53,
+                            "end": 186.43,
+                            "word": "Reformierakond",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "on",
+                            "start": 186.43,
+                            "end": 186.61,
+                            "word": "on",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "lastetoetuse",
+                            "start": 186.64,
+                            "end": 187.42,
+                            "word": "lastetoetuse",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "t\u00f5stmise",
+                            "start": 187.42,
+                            "end": 187.87,
+                            "word": "t\u00f5stmise",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "poolt,",
+                            "start": 187.87,
+                            "end": 188.23,
+                            "word": "poolt",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "aga",
+                            "start": 188.23,
+                            "end": 188.47,
+                            "word": "aga",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "soovib",
+                            "start": 188.47,
+                            "end": 188.89,
+                            "word": "soovib",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "eeln\u00f5u",
+                            "start": 188.89,
+                            "end": 189.37,
+                            "word": "eeln\u00f5u",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "arutamiseks",
+                            "start": 189.37,
+                            "end": 189.97,
+                            "word": "arutamiseks",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "aega,",
+                            "start": 189.97,
+                            "end": 190.42,
+                            "word": "aega",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "sest",
+                            "start": 190.42,
+                            "end": 190.66,
+                            "word": "sest",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ettepanek",
+                            "start": 190.66,
+                            "end": 191.17,
+                            "word": "ettepanek",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "n\u00f5uaks",
+                            "start": 191.17,
+                            "end": 191.56,
+                            "word": "n\u00f5uaks",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ligi",
+                            "start": 191.56,
+                            "end": 191.83,
+                            "word": "ligi",
+                            "punctuation": ""
+                        },
+                        {
+                            "word": "300",
+                            "start": 191.83,
+                            "word_with_punctuation": "300",
+                            "end": 192.34,
+                            "punctuation": "",
+                            "unnormalized_words": [
+                                {
+                                    "word_with_punctuation": "kolmsada",
+                                    "start": 191.83,
+                                    "end": 192.34,
+                                    "word": "kolmsada",
+                                    "punctuation": ""
+                                }
+                            ]
+                        },
+                        {
+                            "word_with_punctuation": "miljonit",
+                            "start": 192.34,
+                            "end": 192.82,
+                            "word": "miljonit",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "t\u00e4iendavat",
+                            "start": 192.85,
+                            "end": 193.36,
+                            "word": "t\u00e4iendavat",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "eurot",
+                            "start": 193.36,
+                            "end": 193.66,
+                            "word": "eurot",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "aastas",
+                            "start": 193.66,
+                            "end": 194.08,
+                            "word": "aastas",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ja",
+                            "start": 194.35,
+                            "end": 194.5,
+                            "word": "ja",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "pole",
+                            "start": 194.5,
+                            "end": 194.74,
+                            "word": "pole",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "selge,",
+                            "start": 194.74,
+                            "end": 195.07,
+                            "word": "selge",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "kust",
+                            "start": 195.07,
+                            "end": 195.4,
+                            "word": "kust",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "leida",
+                            "start": 195.43,
+                            "end": 195.76,
+                            "word": "leida",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "sellele",
+                            "start": 195.76,
+                            "end": 196.15,
+                            "word": "sellele",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "kate.",
+                            "start": 196.15,
+                            "end": 196.54,
+                            "word": "kate",
+                            "punctuation": "."
+                        },
+                        {
+                            "word_with_punctuation": "Tegemist",
+                            "start": 197.01,
+                            "end": 197.49,
+                            "word": "Tegemist",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "on",
+                            "start": 197.49,
+                            "end": 197.67,
+                            "word": "on",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "tuleviku",
+                            "start": 197.73,
+                            "end": 198.27,
+                            "word": "tuleviku",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "p\u00fcsikuluga",
+                            "start": 198.27,
+                            "end": 198.93,
+                            "word": "p\u00fcsikuluga",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "ja",
+                            "start": 198.93,
+                            "end": 199.14,
+                            "word": "ja",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "seda",
+                            "start": 199.14,
+                            "end": 199.38,
+                            "word": "seda",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "saab",
+                            "start": 199.38,
+                            "end": 199.62,
+                            "word": "saab",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "katta",
+                            "start": 199.62,
+                            "end": 199.89,
+                            "word": "katta",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "kas",
+                            "start": 199.89,
+                            "end": 200.07,
+                            "word": "kas",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "mingi",
+                            "start": 200.07,
+                            "end": 200.37,
+                            "word": "mingi",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "muu",
+                            "start": 200.37,
+                            "end": 200.61,
+                            "word": "muu",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "p\u00fcsikulu",
+                            "start": 200.61,
+                            "end": 201.15,
+                            "word": "p\u00fcsikulu",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "k\u00e4rpimise",
+                            "start": 201.15,
+                            "end": 201.75,
+                            "word": "k\u00e4rpimise",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "v\u00f5i",
+                            "start": 201.75,
+                            "end": 201.93,
+                            "word": "v\u00f5i",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "\u00e4raj\u00e4tmisega",
+                            "start": 201.93,
+                            "end": 202.71,
+                            "word": "\u00e4raj\u00e4tmisega",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "v\u00f5i",
+                            "start": 202.71,
+                            "end": 202.95,
+                            "word": "v\u00f5i",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "maksut\u00f5usudega.",
+                            "start": 202.98,
+                            "end": 203.97,
+                            "word": "maksut\u00f5usudega",
+                            "punctuation": "."
+                        },
+                        {
+                            "word_with_punctuation": "Keskfraktsiooni",
+                            "start": 204.43,
+                            "end": 205.27,
+                            "word": "Keskfraktsiooni",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "juhi",
+                            "start": 205.27,
+                            "end": 205.51,
+                            "word": "juhi",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Jaanus",
+                            "start": 205.51,
+                            "end": 205.78,
+                            "word": "Jaanus",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "Karilaiu",
+                            "start": 205.78,
+                            "end": 206.26,
+                            "word": "Karilaiu",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "s\u00f5nul",
+                            "start": 206.26,
+                            "end": 206.53,
+                            "word": "s\u00f5nul",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "pole",
+                            "start": 206.53,
+                            "end": 206.8,
+                            "word": "pole",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "see",
+                            "start": 206.8,
+                            "end": 207.04,
+                            "word": "see",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "kulu,",
+                            "start": 207.04,
+                            "end": 207.49,
+                            "word": "kulu",
+                            "punctuation": ","
+                        },
+                        {
+                            "word_with_punctuation": "vaid",
+                            "start": 207.55,
+                            "end": 207.82,
+                            "word": "vaid",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "investeering",
+                            "start": 207.82,
+                            "end": 208.6,
+                            "word": "investeering",
+                            "punctuation": ""
+                        },
+                        {
+                            "word_with_punctuation": "tulevikku.",
+                            "start": 208.6,
+                            "end": 209.26,
+                            "word": "tulevikku",
+                            "punctuation": "."
+                        }
+                    ],
+                    "unnormalized_transcript": "Teeb \u00fclevaate. Ettepaneku esitajate ehk Keskerakonna, Isamaa, Sotsiaaldemokraatide ja EKRE soov on lastetoetusi t\u00f5sta alates veebruarist kaks tuhat kaksk\u00fcmmend kolm, ehk koos j\u00e4rgmise aasta eelarvega. Reformierakond on lastetoetuse t\u00f5stmise poolt, aga soovib eeln\u00f5u arutamiseks aega, sest ettepanek n\u00f5uaks ligi kolmsada miljonit t\u00e4iendavat eurot aastas ja pole selge, kust leida sellele kate. Tegemist on tuleviku p\u00fcsikuluga ja seda saab katta kas mingi muu p\u00fcsikulu k\u00e4rpimise v\u00f5i \u00e4raj\u00e4tmisega v\u00f5i maksut\u00f5usudega. Keskfraktsiooni juhi Jaanus Karilaiu s\u00f5nul pole see kulu, vaid investeering tulevikku."
+                }
+            ]
+        }
+    ]
+}

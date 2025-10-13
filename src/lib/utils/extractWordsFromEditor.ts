@@ -5,6 +5,7 @@ export interface ExtractedWord {
 	start: number;
 	end: number;
 	speakerTag: string;
+	wordIndex?: number; // Index in timingArray (for new format)
 }
 
 interface EditorNode {
@@ -231,6 +232,159 @@ export function getSegmentByIndex(
 /**
  * Extract segments based on speaker blocks instead of word count
  * Each segment represents one complete speaker turn
+ */
+/**
+ * Extract segments from the editor using the new WordTimingPlugin architecture
+ *
+ * This function is specifically for extracting segments from the EDITOR (not ASR backend JSON).
+ * It uses the WordTimingPlugin to get timing data and filters out space-only nodes.
+ *
+ * @param editor - TipTap editor instance (needed to access WordTimingPlugin)
+ * @param content - TipTap editor content (document structure)
+ * @returns Array of segments with wordIndex references and timing data
+ */
+export function extractSegmentsFromEditor(
+	editor: any,
+	content: TipTapEditorContent
+): SegmentWithTiming[] {
+	const segments: SegmentWithTiming[] = [];
+	let segmentIndex = 0;
+
+	if (!content || !content.content) {
+		return segments;
+	}
+
+	// Get timing data from WordTimingPlugin
+	let timingArray: Array<{ start: number; end: number }> = [];
+	try {
+		// Import plugin utilities
+		const { getTimingPluginState } = require('../components/plugins/wordTimingPlugin');
+		const pluginState = getTimingPluginState(editor);
+		if (pluginState && pluginState.timingArray) {
+			timingArray = pluginState.timingArray;
+		}
+	} catch (error) {
+		console.warn('[extractSegmentsFromEditor] Could not access WordTimingPlugin:', error);
+	}
+
+	// Process each speaker node
+	for (const speakerNode of content.content) {
+		if (speakerNode.type !== 'speaker') {
+			continue;
+		}
+
+		const speakerName = speakerNode.attrs?.['data-name'] || 'Unknown Speaker';
+		const words: ExtractedWord[] = [];
+
+		// Extract words from this speaker block (filtering out spaces)
+		function extractWordsFromNode(node: EditorNode) {
+			// Handle wordNode type (AI editor format with wordIndex)
+			if (node.type === 'wordNode' && node.attrs) {
+				const wordIndex = node.attrs.wordIndex;
+				const text = node.attrs.text || (node.content && node.content[0]?.text) || '';
+
+				// Filter out space-only nodes
+				const trimmed = text.trim();
+				if (trimmed.length === 0) {
+					return; // Skip space-only nodes
+				}
+
+				// Get timing from timingArray if available
+				let start = 0;
+				let end = 0;
+				if (wordIndex !== undefined && wordIndex !== null && timingArray[wordIndex]) {
+					start = timingArray[wordIndex].start;
+					end = timingArray[wordIndex].end;
+				}
+
+				words.push({
+					text: text,
+					start,
+					end,
+					speakerTag: speakerName,
+					wordIndex: wordIndex // Store wordIndex for position lookup
+				});
+			}
+
+			// Handle regular text nodes with word marks (legacy format)
+			if (node.type === 'text' && node.marks) {
+				const wordMark = node.marks.find((mark: EditorMark) => mark.type === 'word');
+				if (wordMark && wordMark.attrs && node.text) {
+					const trimmed = node.text.trim();
+					if (trimmed.length === 0) {
+						return; // Skip space-only nodes
+					}
+
+					const start = wordMark.attrs.start || 0;
+					const end = wordMark.attrs.end || 0;
+
+					words.push({
+						text: node.text,
+						start,
+						end,
+						speakerTag: speakerName
+					});
+				}
+			}
+
+			// Recursively process child nodes
+			if (node.content && Array.isArray(node.content)) {
+				for (const child of node.content) {
+					extractWordsFromNode(child);
+				}
+			}
+		}
+
+		// Extract words from the speaker node
+		extractWordsFromNode(speakerNode);
+
+		// Only create a segment if there are words
+		if (words.length > 0) {
+			const startTime = words[0].start;
+			let endTime = words[words.length - 1].end;
+
+			// Validate and fix timing silently
+			if (endTime <= startTime) {
+				const maxEnd = Math.max(...words.map((w) => w.end));
+				if (maxEnd > startTime) {
+					endTime = maxEnd;
+				} else {
+					endTime = startTime + 1;
+				}
+			}
+
+			// Reconstruct text from words (no extra spaces since we filtered them)
+			const reconstructedText = words
+				.map((w) => w.text)
+				.join(' ')
+				.replace(/\s+/g, ' ')
+				.trim();
+
+			segments.push({
+				index: segmentIndex,
+				startTime,
+				endTime,
+				startWord: 0,
+				endWord: words.length - 1,
+				text: reconstructedText,
+				speakerTag: speakerName,
+				speakerName: speakerName,
+				words: words
+			});
+
+			segmentIndex++;
+		}
+	}
+
+	console.log(`[extractSegmentsFromEditor] Extracted ${segments.length} segments, total words: ${segments.reduce((sum, s) => sum + s.words.length, 0)}`);
+	return segments;
+}
+
+/**
+ * Extract segments based on speaker blocks (legacy function for ASR backend JSON parsing)
+ *
+ * This function is for parsing ASR backend JSON, NOT for extracting from the editor.
+ * For editor extraction, use extractSegmentsFromEditor() instead.
  */
 export function extractSpeakerSegments(content: TipTapEditorContent): SegmentWithTiming[] {
 	const segments: SegmentWithTiming[] = [];

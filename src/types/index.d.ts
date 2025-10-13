@@ -29,29 +29,50 @@ declare module '@auth/core/jwt' {
 	}
 }
 
+// Base node types
+type TextNode = {
+	type: 'text';
+	text: string;
+};
+
+// WordNode (new format - AI editor)
+type WordNodeNew = {
+	type: 'wordNode';
+	attrs: {
+		wordIndex: number;
+	};
+	content: TextNode[];
+};
+
+// Legacy word mark format (non-AI editor)
+type LegacyWordMarkedText = {
+	type: 'text';
+	marks: {
+		type: string;
+		attrs: {
+			start: number;
+			end: number;
+			id?: string;
+			lang?: string;
+			spellcheck?: string;
+		};
+	}[];
+	text: string;
+};
+
+// Content can be either new WordNode or legacy marked text or plain text
+type ContentNode = WordNodeNew | LegacyWordMarkedText | TextNode;
+
 export type TipTapEditorContent = {
 	type: string;
 	content: {
 		type: string;
-		attrs: {
-			'data-name': string;
+		attrs?: {
+			'data-name'?: string;
 			id?: string;
 			topic?: string | null;
 			alternatives?: string | Array<{ rank: number; text: string; avg_logprob: number }>;
 		};
-		content: {
-			type: string;
-			marks: {
-				type: string;
-				attrs: {
-					start: number;
-					end: number;
-					id?: string;
-					lang?: string;
-					spellcheck?: string;
-				};
-			}[];
-			text: string;
-		}[];
+		content?: ContentNode[];
 	}[];
 };
