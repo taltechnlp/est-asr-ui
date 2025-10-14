@@ -42,7 +42,7 @@ export const actions: Actions = {
 			subject: 'Parooli lähtestamise link',
 			html: createEmail(`Siin on tellitud parooli lähtestamise link! See aegub 24 tunni jooksul.
             \n\n
-            <a href="${ORIGIN}/et/reset?resetToken=${resetToken}">Klõpsa siia, et lähtestada oma tekst.ee parool.</a>`)
+            <a href="${ORIGIN}/et/reset?resetToken=${resetToken}">Klõpsa siia, et lähtestada oma parool.</a>`)
 		});
 		return {
 			success: true
