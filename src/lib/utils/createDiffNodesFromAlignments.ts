@@ -158,20 +158,20 @@ function createDiffNodesForSegment(
 			continue;
 		}
 
-		// Map filtered word index back to editor word index
-		const editorWordIndex = editorIndexMap[wordAlign.originalIndex];
-		if (editorWordIndex === undefined) {
+		// Get the wordIndex from the original word
+		const originalWordData = segment.words[wordAlign.originalIndex];
+		if (!originalWordData || originalWordData.wordIndex === undefined) {
 			console.warn(
-				`[CreateDiffNodes] No editor index mapping for word ${wordAlign.originalIndex}`
+				`[CreateDiffNodes] No wordIndex for word at segment ${segment.index}, word ${wordAlign.originalIndex}`
 			);
 			continue;
 		}
 
-		const wordPos = findWordPosition(editor, segment.index, editorWordIndex);
+		const wordPos = findWordPositionByIndex(editor, originalWordData.wordIndex);
 
 		if (!wordPos) {
 			console.warn(
-				`[CreateDiffNodes] Could not find position for word at segment ${segment.index}, editor index ${editorWordIndex}`
+				`[CreateDiffNodes] Could not find position for wordIndex ${originalWordData.wordIndex} at segment ${segment.index}`
 			);
 			continue;
 		}
@@ -188,7 +188,7 @@ function createDiffNodesForSegment(
 		}
 
 		console.log(
-			`[CreateDiffNodes] Word ${wordAlign.originalIndex} (editor ${editorWordIndex}): "${originalWord}" → "${correctedWord}" at pos ${wordPos.from}-${wordPos.to}`
+			`[CreateDiffNodes] Word ${wordAlign.originalIndex} (wordIndex ${originalWordData.wordIndex}): "${originalWord}" → "${correctedWord}" at pos ${wordPos.from}-${wordPos.to}`
 		);
 
 		diffsToCreate.push({
@@ -200,24 +200,13 @@ function createDiffNodesForSegment(
 		});
 	}
 
-	// Group diffs by position to avoid duplicates
-	const uniqueDiffs = new Map<string, typeof diffsToCreate[0]>();
+	console.log(`[CreateDiffNodes] Creating ${diffsToCreate.length} diffs`);
+
+	// Sort diffs by position (descending) to apply from end to start
+	// This maintains document positions as we make changes
+	diffsToCreate.sort((a, b) => b.pos.from - a.pos.from);
+
 	for (const diff of diffsToCreate) {
-		const key = `${diff.pos.from}-${diff.pos.to}`;
-		if (!uniqueDiffs.has(key)) {
-			uniqueDiffs.set(key, diff);
-		}
-	}
-
-	console.log(`[CreateDiffNodes] Creating ${uniqueDiffs.size} unique diffs (filtered from ${diffsToCreate.length})`);
-
-	// Apply diffs in reverse order (last to first) to maintain positions
-	const uniqueDiffsArray = Array.from(uniqueDiffs.values());
-
-	// Sort by position (descending) to go from end to start
-	uniqueDiffsArray.sort((a, b) => b.pos.from - a.pos.from);
-
-	for (const diff of uniqueDiffsArray) {
 		const diffId = `diff_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 		let changeType = 'substitution';
@@ -277,8 +266,8 @@ export function createDiffNodesFromCorrections(
 ): void {
 	console.log(`[CreateDiffNodes] Creating diff nodes from ${correctionBlocks.length} correction blocks`);
 
-	// Extract segments from editor content
-	const segments = extractSpeakerSegments(editorContent);
+	// Extract segments from editor using new WordTimingPlugin approach
+	const segments = extractSegmentsFromEditor(editor, editorContent);
 
 	if (segments.length === 0) {
 		console.warn('[CreateDiffNodes] No segments found in editor content');

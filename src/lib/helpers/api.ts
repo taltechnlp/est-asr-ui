@@ -222,6 +222,7 @@ export const getFiles = async (id) => {
 					language: true,
 					initialTranscriptionPath: true,
 					autoAnalyze: true,
+					analysisStatus: true,
 					workflows: {
 						take: 1,
 						select: {
@@ -235,14 +236,10 @@ export const getFiles = async (id) => {
 						}
 					},
 					transcriptCorrections: {
-						where: {
-							status: {
-								in: ['pending', 'processing']
-							}
-						},
 						select: {
 							id: true,
-							status: true
+							status: true,
+							blockIndex: true
 						}
 					}
 				}
@@ -271,13 +268,24 @@ export const getFiles = async (id) => {
 						);
 					}
 					if (file.workflows && file.workflows.length > 0 && file.workflows[0].processes) {
-						progress = Math.floor((file.workflows[0].processes.length / 30) * 100);
+						const workflow = file.workflows[0];
+						const totalProcesses = workflow.progressLength || 30; // Fallback to 30 if not set
+						const completedProcesses = workflow.processes.length;
+						progress = Math.floor((completedProcesses / totalProcesses) * 100);
 					}
 				}
 
-				// Check if AI analysis is in progress
-				const aiAnalysisInProgress = file.autoAnalyze && file.state === 'READY' &&
-					file.transcriptCorrections && file.transcriptCorrections.length > 0;
+				// Use analysisStatus field for accurate AI analysis state tracking
+				const aiAnalysisInProgress =
+					file.autoAnalyze && file.state === 'READY' && file.analysisStatus === 'pending';
+
+				// Calculate AI analysis progress percentage
+				let aiAnalysisProgress = -1;
+				if (file.autoAnalyze && file.analysisStatus === 'pending' && file.transcriptCorrections.length > 0) {
+					const totalBlocks = file.transcriptCorrections.length;
+					const completedBlocks = file.transcriptCorrections.filter(c => c.status === 'completed').length;
+					aiAnalysisProgress = Math.floor((completedBlocks / totalBlocks) * 100);
+				}
 
 				return {
 					id: file.id,
@@ -294,7 +302,9 @@ export const getFiles = async (id) => {
 					language: file.language,
 					userId: user.id,
 					autoAnalyze: file.autoAnalyze,
+					analysisStatus: file.analysisStatus,
 					aiAnalysisInProgress,
+					aiAnalysisProgress,
 					progress
 				};
 			})

@@ -257,7 +257,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 							}
 						});
 
-						if (file.notify) {
+						if (file.notify && file.User?.email) {
 							await sendEmail({
 								to: file.User.email,
 								subject: 'Transkribeerimine ebaõnnestus - tekstiks.ee',
@@ -306,7 +306,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 								);
 							}
 
-							if (file.notify) {
+							if (file.notify && file.User?.email) {
 								await sendEmail({
 									to: file.User.email,
 									subject: 'Transkribeerimine õnnestus - tekstiks.ee',
@@ -348,7 +348,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 								);
 							}
 
-							if (file.notify) {
+							if (file.notify && file.User?.email) {
 								await sendEmail({
 									to: file.User.email,
 									subject: 'Transkribeerimine õnnestus - tekstiks.ee',

@@ -96,7 +96,7 @@ export class CorrectionAgent {
 
 	constructor(config: CorrectionAgentConfig = {}) {
 		const {
-			modelId = 'anthropic/claude-3.5-sonnet',
+			modelId = 'openai/gpt-4.1',
 			batchSize = 20,
 			maxRetries = 2,
 			temperature = 0.3

@@ -440,11 +440,18 @@ export function extractSpeakerSegments(content: TipTapEditorContent): SegmentWit
 
 			// Handle wordNode type (AI editor format)
 			if (node.type === 'wordNode' && node.attrs) {
-				const text = node.attrs.text || node.textContent || '';
+				// NEW format: text is in node.content[0].text
+				// OLD format: text is in node.attrs.text
+				let text = node.attrs.text || '';
+				if (!text && node.content && node.content[0] && node.content[0].text) {
+					text = node.content[0].text;
+				}
+
 				const start = node.attrs.start || 0;
 				const end = node.attrs.end || 0;
 
-				if (text) {
+				// Filter out space-only text
+				if (text && text.trim().length > 0) {
 					speakerWords.push({
 						text: text,
 						start,

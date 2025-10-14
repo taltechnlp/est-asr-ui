@@ -11,6 +11,7 @@ import { isNewFormat } from '$lib/helpers/converters/newEstFormat';
 import type { TranscriptionResult } from '$lib/helpers/api.d';
 import { promises as fs } from 'fs';
 import { getAgentFileLogger } from '$lib/utils/agentFileLogger';
+import { convertAsrToTipTapJson } from '$lib/helpers/converters/asrToTipTap';
 
 const AutoAnalyzeSchema = z.object({
 	fileId: z.string()
@@ -99,6 +100,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const transcriptPath = file.initialTranscriptionPath || `/tmp/${file.id}.transcript`;
 		const logger = getAgentFileLogger(transcriptPath, file.id);
 
+		// Set analysis status to pending
+		await prisma.file.update({
+			where: { id: fileId },
+			data: { analysisStatus: 'pending' }
+		});
+
 		await logger.logGeneral('info', 'Starting auto-analysis', {
 			fileId,
 			filename: file.filename,
@@ -126,60 +133,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 			const parsedContent = JSON.parse(transcriptContent);
 
-			// Create segments directly from new format structure
-			const segments = [];
+			// Step 1a: Convert ASR JSON to TipTap format (handles both legacy and new formats)
+			const tipTapContent = convertAsrToTipTapJson(parsedContent);
 
-			if (isNewFormat(parsedContent)) {
-				const sections = parsedContent.best_hypothesis.sections || [];
-				let segmentIndex = 0;
-
-				sections.forEach((section) => {
-					if (section.type === 'speech' && section.turns) {
-						section.turns.forEach((turn) => {
-							if (
-								turn.transcript &&
-								turn.words &&
-								Array.isArray(turn.words) &&
-								turn.words.length > 0
-							) {
-								segments.push({
-									index: segmentIndex++,
-									startTime: turn.start,
-									endTime: turn.end,
-									startWord: 0, // Will be updated if needed
-									endWord: turn.words.length - 1,
-									text: turn.transcript,
-									speakerTag: turn.speaker,
-									speakerName:
-										parsedContent.best_hypothesis.speakers[turn.speaker]?.name || turn.speaker,
-									words: (turn.words || [])
-										.filter(
-											(word) =>
-												word &&
-												typeof word === 'object' &&
-												(word.word_with_punctuation || word.word)
-										)
-										.map((word) => ({
-											text:
-												word.word_with_punctuation && typeof word.word_with_punctuation === 'string'
-													? word.word_with_punctuation
-													: word.word && typeof word.word === 'string'
-														? word.word
-														: '',
-											start: typeof word.start === 'number' ? word.start : 0,
-											end: typeof word.end === 'number' ? word.end : 0,
-											speakerTag: turn.speaker
-										}))
-								});
-							}
-						});
-					}
-				});
-			} else {
-				// Old format - use existing word extraction approach
-				const speakerSegments = extractSpeakerSegments(parsedContent);
-				segments.push(...speakerSegments);
-			}
+			// Step 1b: Extract segments using unified approach
+			const segments = extractSpeakerSegments(tipTapContent);
 
 			// Process all segments
 			await logger.logGeneral('info', 'Extracted segments for analysis', {
@@ -198,7 +156,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			}));
 
 			const agent = createCorrectionAgent({
-				modelId: 'anthropic/claude-3.5-sonnet',
+				modelId: 'openai/gpt-4.1',
 				batchSize: 20,
 				temperature: 0.3
 			});
@@ -228,6 +186,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			// Clear heartbeat interval
 			clearInterval(heartbeatInterval);
 
+			// Set analysis status to completed
+			await prisma.file.update({
+				where: { id: fileId },
+				data: { analysisStatus: 'completed' }
+			});
+
 			return json({
 				success: true,
 				fileId,
@@ -241,6 +205,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		} catch (error) {
 			// Clear heartbeat interval on error
 			clearInterval(heartbeatInterval);
+
+			// Set analysis status to failed
+			await prisma.file.update({
+				where: { id: fileId },
+				data: { analysisStatus: 'failed' }
+			}).catch((err) => {
+				console.error('Failed to update analysis status to failed:', err);
+			});
 
 			if (transcriptPath && file.id) {
 				const logger = getAgentFileLogger(transcriptPath, file.id);

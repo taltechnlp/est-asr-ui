@@ -376,11 +376,24 @@
 							<div class="badge badge-sm badge-info px-2 py-1 text-xs">{$_('files.statusOld')}</div>
 							{:else if file.aiAnalysisInProgress}
 								<div class="flex flex-col sm:flex-row sm:items-center gap-1">
-									<div class="badge badge-sm badge-secondary px-2 py-1 text-xs">
-										<span class="hidden sm:inline">AI analysis</span>
+									<div class="badge badge-sm badge-warning px-2 py-1 text-xs">
+										<span class="hidden sm:inline">AI Analyzing</span>
 										<span class="sm:hidden">AI</span>
+										{#if file.aiAnalysisProgress >= 0}
+											{` ${file.aiAnalysisProgress}%`}
+										{/if}
 									</div>
 									<span class="loading loading-spinner loading-xs"></span>
+								</div>
+							{:else if file.state == 'READY' && file.autoAnalyze && file.analysisStatus == 'completed'}
+								<div class="badge badge-sm badge-success px-2 py-1 text-xs">
+									<span class="hidden sm:inline">AI Complete</span>
+									<span class="sm:hidden">AI ✓</span>
+								</div>
+							{:else if file.state == 'READY' && file.autoAnalyze && file.analysisStatus == 'failed'}
+								<div class="badge badge-sm badge-error px-2 py-1 text-xs">
+									<span class="hidden sm:inline">AI Failed</span>
+									<span class="sm:hidden">AI ✗</span>
 								</div>
 							{:else if file.state == 'READY'}
 								<div class="badge badge-sm badge-success px-2 py-1 text-xs">{$_('files.statusReady')}</div>

@@ -27,6 +27,7 @@ model File {
   notified                 Boolean?
   notify                   Boolean?
   autoAnalyze              Boolean?
+  analysisStatus           String?                 @default("not_started")
   originalAsrData          String?
   analysisSegments         AnalysisSegment[]
   chatSessions             ChatSession[]
