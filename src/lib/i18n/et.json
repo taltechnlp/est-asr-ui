@@ -291,7 +291,13 @@
     "fileTooLong": "Faili kestus on liiga pikk",
     "invalidLang": "Vale keel",
     "finnishUploadFailed": "Faili töötlemisel tekkis viga",
-    "hardwareFailureWarning": "Süsteemis on riistvararike. Uued üleslaadimised hetkel ebaõnnestuvad."
+    "hardwareFailureWarning": "Süsteemis on riistvararike. Uued üleslaadimised hetkel ebaõnnestuvad.",
+    "aiAnalyzing": "AI Analüüsib",
+    "aiAnalyzingShort": "AI",
+    "aiComplete": "AI Valmis",
+    "aiCompleteShort": "AI ✓",
+    "aiFailed": "AI Ebaõnnestus",
+    "aiFailedShort": "AI ✗"
   },
   "me": {
     "title": "Konto andmed | tekstiks.ee",

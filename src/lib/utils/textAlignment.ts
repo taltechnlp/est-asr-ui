@@ -85,14 +85,26 @@ export interface WordAlignment {
 /**
  * Align two word arrays using dynamic programming
  * Returns array of alignment operations showing how words map between arrays
+ *
+ * @param originalWords - Original word array
+ * @param correctedWords - Corrected word array
+ * @param caseSensitive - If true, compare words case-sensitively (default: false for case-insensitive)
  */
-export function alignWords(originalWords: string[], correctedWords: string[]): WordAlignment[] {
+export function alignWords(
+	originalWords: string[],
+	correctedWords: string[],
+	caseSensitive: boolean = false
+): WordAlignment[] {
 	const n = originalWords.length;
 	const m = correctedWords.length;
 
-	// Normalize words for comparison
-	const origNorm = originalWords.map(w => normalizeText(w));
-	const corrNorm = correctedWords.map(w => normalizeText(w));
+	// Normalize words for comparison (optionally case-sensitive)
+	const origNorm = caseSensitive
+		? originalWords.map(w => w.trim())
+		: originalWords.map(w => normalizeText(w));
+	const corrNorm = caseSensitive
+		? correctedWords.map(w => w.trim())
+		: correctedWords.map(w => normalizeText(w));
 
 	// Initialize DP table
 	// dp[i][j] = minimum edit distance to align original[0..i) with corrected[0..j)
@@ -225,11 +237,12 @@ export function alignSegments(
 		segmentBoundaries.push(originalWords.length);
 	}
 
-	// Split corrected text into words
-	const correctedWords = normalizeText(correctedText).split(/\s+/).filter(w => w.length > 0);
+	// Split corrected text into words (keep both original and normalized)
+	const correctedWordsOriginal = correctedText.trim().split(/\s+/).filter(w => w.length > 0);
+	const correctedWordsNormalized = normalizeText(correctedText).split(/\s+/).filter(w => w.length > 0);
 
-	// Align words
-	const wordAlignments = alignWords(originalWords, correctedWords);
+	// Align words using normalized versions
+	const wordAlignments = alignWords(originalWords, correctedWordsNormalized);
 
 	// Map corrected words back to segments
 	const segmentAssignments: number[][] = originalSegments.map(() => []);
@@ -268,8 +281,8 @@ export function alignSegments(
 			const startIdx = Math.min(...assignedIndices);
 			const endIdx = Math.max(...assignedIndices) + 1;
 
-			// Extract corrected text for this segment
-			const segmentCorrectedWords = correctedWords.slice(startIdx, endIdx);
+			// Extract corrected text for this segment (use ORIGINAL case, not normalized)
+			const segmentCorrectedWords = correctedWordsOriginal.slice(startIdx, endIdx);
 			const correctedTextForSegment = segmentCorrectedWords.join(' ');
 
 			result.push({

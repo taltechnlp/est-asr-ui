@@ -276,7 +276,13 @@
     "fileTooLong": "Tiedoston kesto on liian pitkä",
     "invalidLang": "Valea kieli",
     "finnishUploadFailed": "Tiedoston käsittelyssä tapahtui virhe",
-    "hardwareFailureWarning": "Järjestelmä toipuu laitteistoviasta. Uudet lataukset eivät tällä hetkellä etene tai epäonnistu."
+    "hardwareFailureWarning": "Järjestelmä toipuu laitteistoviasta. Uudet lataukset eivät tällä hetkellä etene tai epäonnistu.",
+    "aiAnalyzing": "AI Analysoi",
+    "aiAnalyzingShort": "AI",
+    "aiComplete": "AI Valmis",
+    "aiCompleteShort": "AI ✓",
+    "aiFailed": "AI Epäonnistui",
+    "aiFailedShort": "AI ✗"
   },
   "me": {
     "title": "Käyttäjätiedot | tekstiks.ee",

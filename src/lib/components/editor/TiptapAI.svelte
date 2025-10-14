@@ -379,13 +379,30 @@
 				return;
 			}
 
-			console.log(`[TiptapAI] Found ${data.corrections.length} correction blocks`);
+			// Check if diffs have already been generated (persisted in database)
+			if (data.diffsGenerated) {
+				console.log('[TiptapAI] Diffs have already been generated for this file - skipping regeneration');
+				console.log('[TiptapAI] User may have already accepted/rejected corrections');
+				console.log('[TiptapAI] To regenerate diffs, manually trigger regeneration at segment level');
+				return;
+			}
+
+			console.log(`[TiptapAI] Found ${data.corrections.length} correction blocks, generating diffs for the first time`);
 
 			// Import the utility
 			const { createDiffNodesFromCorrections } = await import('$lib/utils/createDiffNodesFromAlignments');
 
 			// Create diff nodes from corrections
 			createDiffNodesFromCorrections(editor, content, data.corrections);
+
+			// Mark diffs as generated in database
+			const markResponse = await fetch(`/api/files/${fileId}/mark-diffs-generated`, {
+				method: 'POST'
+			});
+
+			if (!markResponse.ok) {
+				console.warn('[TiptapAI] Failed to mark diffs as generated, but continuing');
+			}
 
 			console.log('[TiptapAI] Successfully applied corrections as diff nodes');
 		} catch (error) {

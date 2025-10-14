@@ -1,4 +1,5 @@
 import type { TipTapEditorContent } from '../../types';
+import { getTimingPluginState } from '../components/plugins/wordTimingPlugin';
 
 export interface ExtractedWord {
 	text: string;
@@ -257,8 +258,6 @@ export function extractSegmentsFromEditor(
 	// Get timing data from WordTimingPlugin
 	let timingArray: Array<{ start: number; end: number }> = [];
 	try {
-		// Import plugin utilities
-		const { getTimingPluginState } = require('../components/plugins/wordTimingPlugin');
 		const pluginState = getTimingPluginState(editor);
 		if (pluginState && pluginState.timingArray) {
 			timingArray = pluginState.timingArray;

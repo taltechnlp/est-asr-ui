@@ -134,7 +134,8 @@ function createDiffNodesForSegment(
 	console.log('[CreateDiffNodes] Corrected words (first 10):', correctedWords.slice(0, 10));
 
 	// Align words to get operations
-	const wordAlignments = alignWords(originalWords, correctedWords);
+	// Use case-sensitive alignment for diff display to show capitalization changes
+	const wordAlignments = alignWords(originalWords, correctedWords, true);
 
 	// Create diff nodes in reverse order to maintain positions
 	const diffsToCreate: Array<{

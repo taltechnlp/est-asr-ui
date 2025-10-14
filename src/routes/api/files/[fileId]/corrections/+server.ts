@@ -18,12 +18,13 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 			return json({ error: 'Unauthorized' }, { status: 401 });
 		}
 
-		// Verify file ownership
+		// Verify file ownership and get diffsGenerated flag
 		const file = await prisma.file.findUnique({
 			where: { id: fileId },
 			select: {
 				id: true,
-				uploader: true
+				uploader: true,
+				diffsGenerated: true
 			}
 		});
 
@@ -61,7 +62,8 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		return json({
 			success: true,
 			corrections,
-			count: corrections.length
+			count: corrections.length,
+			diffsGenerated: file.diffsGenerated || false
 		});
 	} catch (error) {
 		console.error('Error loading corrections:', error);

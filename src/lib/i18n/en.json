@@ -305,7 +305,13 @@
     "fileTooLong": "File duration too long",
     "invalidLang": "Invalid language",
     "finnishUploadFailed": "Error processing the file",
-    "hardwareFailureWarning": "System is experiencing a hardware failure. New uploads currently do not progress or fail."
+    "hardwareFailureWarning": "System is experiencing a hardware failure. New uploads currently do not progress or fail.",
+    "aiAnalyzing": "AI Analyzing",
+    "aiAnalyzingShort": "AI",
+    "aiComplete": "AI Complete",
+    "aiCompleteShort": "AI ✓",
+    "aiFailed": "AI Failed",
+    "aiFailedShort": "AI ✗"
   },
   "me": {
     "title": "Account details | tekstiks.ee",
