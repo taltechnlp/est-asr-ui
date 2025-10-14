@@ -12,6 +12,7 @@
 		editor,
 		waveform
 	} from '$lib/stores.svelte';
+	import { updatePlaybackPosition } from './plugins/wordPlaybackPlugin';
 	import Peaks, { type PeaksInstance, type PeaksOptions } from 'peaks.js';
 	let { url } = $props();
 
@@ -153,25 +154,34 @@ function buildOptions(): PeaksOptions {
 }
 
 	function initPeaks() {
+		console.log('[Waveform] initPeaks() called');
 		const options = buildOptions();
 		Peaks.init(options, function(err, peaks) {
 			if (err) {
-				console.log("Error initiating Peaks", err);
+				console.error("[Waveform] Error initiating Peaks:", err);
 				return;
 			}
+			console.log('[Waveform] Peaks.init callback fired, peaks instance created');
 			peaksInstance = peaks;
-			if (peaksInstance) waveform.set(peaksInstance);
+			if (peaksInstance) {
+				waveform.set(peaksInstance);
+				console.log('[Waveform] Waveform store set with peaksInstance');
+			}
 			// Event subscriptions
 			peaksInstance.on('peaks.ready', function () {
+				console.log('[Waveform] peaks.ready event fired');
 				peaksReady = true;
 				duration.set(peaksInstance.player.getDuration());
 				peaksInstance.player.pause();
 				player.update((x) => ({ ...x, ready: true }));
+				console.log('[Waveform] Player ready, duration:', peaksInstance.player.getDuration());
 			});
 			peaksInstance.on('player.playing', function() {
+				console.log('[Waveform] player.playing event fired');
 				player.update((x) => ({ ...x, playing: true }));
 			});
 			peaksInstance.on('player.pause', function() {
+				console.log('[Waveform] player.pause event fired');
 				player.update((x) => ({ ...x, playing: false }));
 			});
 			peaksInstance.on('segments.enter', function (event) {
@@ -226,54 +236,76 @@ onMount(() => {
 			});
 		});
 		if (zoomviewEl) resizeObs.observe(zoomviewEl);
+		// Listen to native audio events since Peaks.js events may not fire
+		if (audioEl) {
+			audioEl.addEventListener('play', () => {
+				console.log('[Waveform] Audio play event fired');
+				player.update((x) => ({ ...x, playing: true }));
+			});
+			audioEl.addEventListener('pause', () => {
+				console.log('[Waveform] Audio pause event fired');
+				player.update((x) => ({ ...x, playing: false }));
+			});
+		}
 		// hook playback time updates
 		if (audioEl) audioEl.ontimeupdate = function() { onPlayback(); };
 	});
 
 	// Subscribe to playback events
 	function onPlayback() {
-		const candidateWords = wordLookup[Math.floor(audio.currentTime)];
-		let currentWord;
-		if (candidateWords)	currentWord = candidateWords.find(w => w.start <= audio.currentTime && w.end >= audio.currentTime)
-		if (!currentWord || currentWord.id != lastHighlighedWord.id) {
-			let progress = 0;
-			if ($waveform && $waveform.player) progress = Math.round($waveform.player.getCurrentTime() * 100) / 100;
-			playingTime.set(progress);
-			if ($editor) {
-				let newState = $editor.view.state.apply(
-					$editor.view.state.tr
-						.setMeta('wordColor', {
-							id: lastHighlighedWord.id,
-							start: lastHighlighedWord.start,
-							end: lastHighlighedWord.end,
-							event: 'out'
-						})
-						.setMeta('addToHistory', false)
-				);
-				$editor.view.updateState(newState);
+		const currentTime = audioEl.currentTime;
+
+		// Update playing time
+		let progress = 0;
+		if ($waveform && $waveform.player) progress = Math.round($waveform.player.getCurrentTime() * 100) / 100;
+		playingTime.set(progress);
+
+		// If we have an editor, try the new plugin-based system first
+		if ($editor) {
+			// Call new plugin system (works with Word nodes in AI editor)
+			updatePlaybackPosition($editor, currentTime);
+
+			// Also handle legacy word highlighting for non-AI editors
+			const candidateWords = wordLookup[Math.floor(currentTime)];
+			let currentWord;
+			if (candidateWords) currentWord = candidateWords.find(w => w.start <= currentTime && w.end >= currentTime);
+
+			if (!currentWord || currentWord.id != lastHighlighedWord.id) {
+				if ($editor && $editor.view && $editor.view.state) {
+					let newState = $editor.view.state.apply(
+						$editor.view.state.tr
+							.setMeta('wordColor', {
+								id: lastHighlighedWord.id,
+								start: lastHighlighedWord.start,
+								end: lastHighlighedWord.end,
+								event: 'out'
+							})
+							.setMeta('addToHistory', false)
+					);
+					$editor.view.updateState(newState);
+				}
+				if (lastHighlighedWord.highlight) lastHighlighedWord.highlight = false;
 			}
-			if (lastHighlighedWord.highlight) lastHighlighedWord.highlight = false;
-		}
-		if (currentWord && currentWord.id != lastHighlighedWord.id) {
-			const progress = Math.round($waveform.player.getCurrentTime() * 100) / 100;
-			playingTime.set(progress);
-			if ($editor) {
-				let newState = $editor.view.state.apply(
-					$editor.view.state.tr
-					.setMeta('wordColor', {
-						id: currentWord.id,
-						start: currentWord.start,
-						end: currentWord.end,
-						event: 'in'
-					})
-					.setMeta('addToHistory', false)
-				);
-				$editor.view.updateState(newState);
+
+			if (currentWord && currentWord.id != lastHighlighedWord.id) {
+				if ($editor && $editor.view && $editor.view.state) {
+					let newState = $editor.view.state.apply(
+						$editor.view.state.tr
+							.setMeta('wordColor', {
+								id: currentWord.id,
+								start: currentWord.start,
+								end: currentWord.end,
+								event: 'in'
+							})
+							.setMeta('addToHistory', false)
+					);
+					$editor.view.updateState(newState);
+				}
+				lastHighlighedWord.id = currentWord.id;
+				lastHighlighedWord.start = currentWord.start;
+				lastHighlighedWord.end = currentWord.end;
+				lastHighlighedWord.highlight = true;
 			}
-			lastHighlighedWord.id = currentWord.id;
-			lastHighlighedWord.start = currentWord.start;
-			lastHighlighedWord.end = currentWord.end;
-			lastHighlighedWord.highlight = true;
 		}
 	}
 

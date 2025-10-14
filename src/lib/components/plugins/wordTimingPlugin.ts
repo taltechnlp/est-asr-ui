@@ -75,6 +75,8 @@ export interface WordTimingOptions {
 export const WordTimingPlugin = Extension.create<WordTimingOptions>({
 	name: 'wordTiming',
 
+	priority: 1000,  // High priority to ensure this loads before WordPlaybackPlugin
+
 	addOptions() {
 		return {
 			timingArray: []

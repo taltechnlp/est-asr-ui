@@ -129,7 +129,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 			name: file.filename,
 			uploadedAt: file.uploadedAt,
 			text: file.text,
-			language: file.language
+			language: file.language,
+			originalAsrData: file.originalAsrData  // Include for timing recovery
 		},
 		url: url.origin
 	};

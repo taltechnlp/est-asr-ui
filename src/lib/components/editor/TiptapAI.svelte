@@ -8,6 +8,7 @@
 	import Document from '@tiptap/extension-document';
 	import { Editor, EditorContent, createEditor } from 'svelte-tiptap';
 	import type { Readable } from 'svelte/store';
+	import { get } from 'svelte/store';
 	import Text from '@tiptap/extension-text';
 	import DropCursor from '@tiptap/extension-dropcursor';
 	import GapCursor from '@tiptap/extension-gapcursor';
@@ -73,6 +74,7 @@
 
 	let element: HTMLDivElement | undefined;
 	let editor: Readable<Editor> = $state();
+	let unsubscribeEditorReady: (() => void) | null = null;
 
 	// Track current values to prevent closure capture bug
 	let currentFileId = $state(fileId);
@@ -119,8 +121,39 @@
 	var timeString = date.toISOString().substring(11, 19);
 
 	// Set up audio playback position updates via polling
+	// Bridge legacy Svelte 4 stores into Svelte 5 reactivity
+	let waveformValue = $state(null);
+	let editorValue = $state(null);
+	let playerValue = $state({ playing: false, ready: false, muted: false });
+
+	// Manually subscribe to legacy stores and update reactive state
+	$effect(() => {
+		const unsubscribeWaveform = waveform.subscribe(value => {
+			waveformValue = value;
+		});
+		const unsubscribeEditor = editorStore.subscribe(value => {
+			editorValue = value;
+		});
+		const unsubscribePlayer = player.subscribe(value => {
+			playerValue = value;
+		});
+
+		return () => {
+			unsubscribeWaveform();
+			unsubscribeEditor();
+			unsubscribePlayer();
+		};
+	});
+
 	let playbackInterval: ReturnType<typeof setInterval> | null = null;
 	$effect(() => {
+		console.log('[TiptapAI] Playback effect triggered:', {
+			waveform: !!waveformValue,
+			player: !!waveformValue?.player,
+			editor: !!editorValue,
+			playing: playerValue?.playing
+		});
+
 		// Clear previous interval
 		if (playbackInterval) {
 			clearInterval(playbackInterval);
@@ -128,16 +161,18 @@
 		}
 
 		// Set up new interval if we have all the requirements
-		if ($waveform && $waveform.player && $editor && $player.playing) {
+		if (waveformValue && waveformValue.player && editorValue && playerValue.playing) {
+			console.log('[TiptapAI] Starting playback polling');
 			playbackInterval = setInterval(() => {
-				if ($waveform && $waveform.player && $editor) {
-					const currentTime = $waveform.player.getCurrentTime();
-					updatePlaybackPosition($editor, currentTime);
+				if (waveformValue && waveformValue.player && editorValue) {
+					const currentTime = waveformValue.player.getCurrentTime();
+					updatePlaybackPosition(editorValue, currentTime);
 				}
 			}, 100); // Update every 100ms
 
 			// Cleanup interval when effect re-runs or component unmounts
 			return () => {
+				console.log('[TiptapAI] Stopping playback polling');
 				if (playbackInterval) {
 					clearInterval(playbackInterval);
 				}
@@ -148,6 +183,10 @@
 	onMount(() => {
 		// Add beforeunload listener for browser navigation/reload/close
 		window.addEventListener('beforeunload', handleBeforeUnload);
+
+		// Declare these variables before createEditor so they're available in onTransaction
+		let prevEditorDoc: Node | null = null;
+		let schema: Schema | null = null;
 
 		editor = createEditor({
 			extensions: [
@@ -174,37 +213,66 @@
 			content: content,
 
 			onTransaction: ({ editor, transaction }) => {
-				const speakerChanged = (node: Node) => node.type === schema.nodes.speaker;
-				const speakerChanges = transactionsHaveChange(
-					[transaction],
-					prevEditorDoc,
-					transaction.doc,
-					speakerChanged
-				);
-				prevEditorDoc = transaction.doc;
-				
-				if (!demo && currentFileId) {
-					console.log('Transaction detected for fileId:', currentFileId);
-					hasUnsavedChanges = true;
-					if (debouncedSave) {
-						debouncedSave();
+				// Skip save logic for playback transactions (decorations only, no document changes)
+				// But don't return early - allow the transaction to complete so decorations are applied
+				const isPlaybackTransaction = transaction.getMeta('playback');
+
+				if (!isPlaybackTransaction) {
+					// Initialize schema on first transaction if not set
+					if (!schema) {
+						schema = editor.schema;
+					}
+					// Initialize prevEditorDoc on first transaction if not set
+					if (!prevEditorDoc) {
+						prevEditorDoc = transaction.doc;
+						return; // Skip processing first transaction
+					}
+
+					const speakerChanged = (node: Node) => node.type === schema.nodes.speaker;
+					const speakerChanges = transactionsHaveChange(
+						[transaction],
+						prevEditorDoc,
+						transaction.doc,
+						speakerChanged
+					);
+					prevEditorDoc = transaction.doc;
+
+					// Only trigger saves for actual document changes
+					if (!demo && currentFileId && transaction.docChanged) {
+						hasUnsavedChanges = true;
+						if (debouncedSave) {
+							debouncedSave();
+						}
 					}
 				}
 			}
 		});
-		editorStore.set($editor);
-		editorMounted.set(true);
-		let prevEditorDoc: Node = $editor.state.doc;
-		const schema = $editor.schema;
+
+		// Subscribe to editor and update store when ready
+		unsubscribeEditorReady = editor.subscribe((editorInstance) => {
+			if (editorInstance) {
+				editorStore.set(editorInstance);
+				if (!get(editorMounted)) {
+					editorMounted.set(true);
+				}
+			}
+		});
+
+		// Get the current editor instance for immediate use in onMount
+		const actualEditor = get(editor);
+		if (!actualEditor) {
+			console.error('[TiptapAI] Editor not ready immediately after createEditor');
+			return;
+		}
 
 		// Set the editor in the coordinating agents for transaction support
 		try {
 			const agent = getCoordinatingAgentClientAI();
-			agent.setEditor($editor);
+			agent.setEditor(actualEditor);
 			
 			// Also set for position-based agent
 			const positionAgent = getCoordinatingAgentPositionClient();
-			positionAgent.setEditor($editor);
+			positionAgent.setEditor(actualEditor);
 			
 			// Listen for apply suggestion events from the sidebar
 			const handleApplySuggestion = async (event: CustomEvent) => {
@@ -232,7 +300,7 @@
             
             // Use position-based creation for reconciled positions
             result = createDiffAtPosition(
-              $editor,
+              actualEditor,
               suggestion.from,
               suggestion.to,
               suggestion.originalText,
@@ -246,10 +314,10 @@
             );
           } else {
             console.log('No positions available, using text search for diff creation');
-            
+
             // 1) Try existing exact/normalized search first
             result = findAndCreateDiff(
-              $editor,
+              actualEditor,
               suggestion.originalText,
               suggestion.suggestedText,
               {
@@ -266,7 +334,7 @@
                 ? { from: segmentFrom, to: segmentTo }
                 : undefined;
               result = findAndCreateDiffFuzzy(
-                $editor,
+                actualEditor,
                 suggestion.originalText,
                 suggestion.suggestedText,
                 {
@@ -306,7 +374,7 @@
 
 		// Load and apply corrections as diff nodes (if any exist for this file)
 		if (!demo && fileId) {
-			loadAndApplyCorrections(fileId, $editor, content).catch((error) => {
+			loadAndApplyCorrections(fileId, actualEditor, content).catch((error) => {
 				console.error('Failed to load corrections:', error);
 			});
 		}
@@ -350,6 +418,10 @@
 		// Cancel any pending debounced saves to prevent race conditions
 		if (debouncedSave) {
 			debouncedSave.cancel();
+		}
+		// Unsubscribe from editor updates
+		if (unsubscribeEditorReady) {
+			unsubscribeEditorReady();
 		}
 		hotkeys.unbind();
 		editorMounted.set(false);
@@ -476,9 +548,18 @@
 	}
 
 	async function handleSave() {
+		// Include timingArray in saved content to preserve playback timing data
+		const editorContent = $currentEditor.getJSON();
+		const contentWithTiming = {
+			...editorContent,
+			timingArray: timingArray  // Preserve timing data for playback
+		};
+
+		console.log('[TiptapAI] Saving content with timingArray:', timingArray?.length || 0, 'entries');
+
 		const result = await fetch(`/api/files/${currentFileId}`, {
 			method: 'PUT',
-			body: JSON.stringify($currentEditor.getJSON())
+			body: JSON.stringify(contentWithTiming)
 		}).catch(e=> console.error("Saving file failed", currentFileId))
 		if (!result || !result.ok) {
 			return false;

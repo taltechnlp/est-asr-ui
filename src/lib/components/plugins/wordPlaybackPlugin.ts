@@ -29,6 +29,8 @@ export const wordPlaybackPluginKey = new PluginKey<PlaybackState>('wordPlayback'
 export const WordPlaybackPlugin = Extension.create({
 	name: 'wordPlayback',
 
+	priority: 100,  // Lower priority to ensure this loads after WordTimingPlugin
+
 	addProseMirrorPlugins() {
 		const plugin = new Plugin<PlaybackState>({
 			key: wordPlaybackPluginKey,
@@ -44,17 +46,30 @@ export const WordPlaybackPlugin = Extension.create({
 				apply(tr, state, oldState, newState) {
 					// Check for playback position update
 					const playbackMeta = tr.getMeta('playback');
+
 					if (playbackMeta && playbackMeta.time !== undefined) {
-						const timingState = wordTimingPluginKey.getState(newState) as TimingPluginState;
-						if (!timingState) return state;
+						// Get timing plugin state using the imported plugin key
+						const timingState = wordTimingPluginKey.getState(newState);
+
+						if (!timingState) {
+							return state;
+						}
 
 						const wordIndex = findWordIndexForTime(timingState.timingArray, playbackMeta.time);
-						if (wordIndex === -1 || wordIndex === state.currentWordIndex) {
+
+						if (wordIndex === -1) {
+							return state;
+						}
+
+						if (wordIndex === state.currentWordIndex) {
 							return state;
 						}
 
 						const pos = getPositionForIndex(timingState, wordIndex);
-						if (pos === null) return state;
+
+						if (pos === null) {
+							return state;
+						}
 
 						// Find the word node at this position
 						const node = tr.doc.nodeAt(pos);
@@ -96,8 +111,9 @@ export const WordPlaybackPlugin = Extension.create({
 				},
 
 				handleClick(view, pos, event) {
-					// Get timing plugin state
-					const timingState = wordTimingPluginKey.getState(view.state) as TimingPluginState;
+					// Get timing plugin state using the imported plugin key
+					const timingState = wordTimingPluginKey.getState(view.state);
+
 					if (!timingState) return false;
 
 					// Check if we clicked on a word node
@@ -143,7 +159,9 @@ export const WordPlaybackPlugin = Extension.create({
  * Call this from your audio player's timeupdate handler
  */
 export function updatePlaybackPosition(editor: any, time: number) {
-	if (!editor || !editor.state) return;
+	if (!editor || !editor.state) {
+		return;
+	}
 
 	editor.view.dispatch(
 		editor.state.tr.setMeta('playback', {

@@ -26,16 +26,63 @@
 
 	// First time transcription from the Estonian JSON format.
 	if (json && !json.type) {
+		console.log('[Page] Loading from EST format JSON');
 		content = fromEstFormatAI(json);  // Use AI converter for Word nodes
 		({ transcription, words, speakers, timingArray } = content);
+		console.log('[Page] TimingArray from EST format:', timingArray.length, 'entries');
 	}
 	// Already in Editor format - need to handle Word nodes
 	else if (json && json.content) {
+		console.log('[Page] Loading from Editor format JSON');
 		transcription = json; // Set the transcription to the full JSON structure
 
 		// If there's a stored timingArray in the JSON, use it
 		if (json.timingArray) {
 			timingArray = json.timingArray;
+			console.log('[Page] Using stored timingArray:', timingArray.length, 'entries');
+		}
+
+		// Recovery: If no timingArray but we have originalAsrData, reconstruct from it
+		if (!timingArray.length && data.file.originalAsrData) {
+			console.log('[Page] No timingArray found, attempting recovery from originalAsrData');
+			try {
+				const originalJson = JSON.parse(data.file.originalAsrData);
+				if (originalJson && !originalJson.type) {
+					const originalContent = fromEstFormatAI(originalJson);
+					timingArray = originalContent.timingArray;
+					console.log('[Page] Recovered timingArray:', timingArray.length, 'entries');
+				}
+			} catch (e) {
+				console.error('[Page] Failed to recover timingArray from originalAsrData:', e);
+			}
+		}
+
+		// Migration: Add wordIndex to word nodes that don't have it
+		if (timingArray.length > 0 && json.content && Array.isArray(json.content)) {
+			let wordIndex = 0;
+			let migrationCount = 0;
+
+			json.content.forEach((node) => {
+				if (node.content && Array.isArray(node.content)) {
+					node.content.forEach((inlineNode) => {
+						if (inlineNode.type === 'wordNode') {
+							// If word node doesn't have wordIndex, add it
+							if (inlineNode.attrs && (inlineNode.attrs.wordIndex === undefined || inlineNode.attrs.wordIndex === null)) {
+								if (!inlineNode.attrs) inlineNode.attrs = {};
+								inlineNode.attrs.wordIndex = wordIndex;
+								migrationCount++;
+								wordIndex++;
+							} else if (inlineNode.attrs && inlineNode.attrs.wordIndex !== undefined) {
+								wordIndex = Math.max(wordIndex, inlineNode.attrs.wordIndex + 1);
+							}
+						}
+					});
+				}
+			});
+
+			if (migrationCount > 0) {
+				console.log('[Page] Migrated', migrationCount, 'word nodes with wordIndex attributes');
+			}
 		}
 
 		if (json.content && Array.isArray(json.content)) {
@@ -95,19 +142,20 @@
 									end: inlineNode.attrs.end,
 									id: inlineNode.attrs.id
 								});
-								// Build timingArray from legacy data if not already present
-								if (!timingArray.length) {
-									timingArray.push({ start: inlineNode.attrs.start, end: inlineNode.attrs.end });
-								}
+								// Build timingArray from legacy data
+								timingArray.push({ start: inlineNode.attrs.start, end: inlineNode.attrs.end });
 							}
 						}
 					});
 				}
 			});
 		}
+		console.log('[Page] Final timingArray length:', timingArray.length);
+		console.log('[Page] Words array length:', words.length);
 	} else {
 		transcription = json || {type: 'doc', content: []}; // empty editor;
 	}
+	console.log('[Page] Passing timingArray to TiptapAI:', timingArray.length, 'entries');
 	editorMounted.set(false);
 	speakerNamesStore.set(speakers);
 	wordsStore.set(words);
