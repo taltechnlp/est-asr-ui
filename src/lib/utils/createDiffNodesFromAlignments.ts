@@ -10,6 +10,7 @@ import type { TipTapEditorContent } from '../../types';
 import { extractSegmentsFromEditor, type SegmentWithTiming } from './extractWordsFromEditor';
 import { alignWords, type WordAlignment } from './textAlignment';
 import { getTimingPluginState } from '../components/plugins/wordTimingPlugin';
+import { detectAndMergeSegments } from '../services/segmentMerger';
 
 export interface SegmentAlignment {
 	segmentIndex: number;
@@ -268,7 +269,7 @@ export function createDiffNodesFromCorrections(
 	console.log(`[CreateDiffNodes] Creating diff nodes from ${correctionBlocks.length} correction blocks`);
 
 	// Extract segments from editor using new WordTimingPlugin approach
-	const segments = extractSegmentsFromEditor(editor, editorContent);
+	let segments = extractSegmentsFromEditor(editor, editorContent);
 
 	if (segments.length === 0) {
 		console.warn('[CreateDiffNodes] No segments found in editor content');
@@ -277,6 +278,37 @@ export function createDiffNodesFromCorrections(
 
 	console.log(`[CreateDiffNodes] Found ${segments.length} segments in editor`);
 
+	// PHASE 1: Detect and auto-merge segments if needed
+	// Collect all segment alignments and their corrected text
+	const allSegmentAlignments: SegmentAlignment[] = [];
+	for (const block of correctionBlocks) {
+		if (block.status === 'completed') {
+			const segmentAlignments = parseSegmentAlignments(block);
+			allSegmentAlignments.push(...segmentAlignments);
+		}
+	}
+
+	// Build array of corrected text indexed by segment
+	const correctedTextBySegment: string[] = new Array(segments.length).fill('');
+	for (const alignment of allSegmentAlignments) {
+		if (alignment.segmentIndex < correctedTextBySegment.length) {
+			correctedTextBySegment[alignment.segmentIndex] = alignment.correctedText;
+		}
+	}
+
+	// Detect and auto-merge segments based on corrected text
+	console.log('[CreateDiffNodes] Detecting segment merges...');
+	const mergeResult = detectAndMergeSegments(editor, correctedTextBySegment);
+
+	if (mergeResult.mergedCount > 0) {
+		console.log(`[CreateDiffNodes] Auto-merged ${mergeResult.mergedCount} segment pairs`);
+
+		// Re-extract segments after merging to get updated positions
+		segments = extractSegmentsFromEditor(editor, editorContent);
+		console.log(`[CreateDiffNodes] Re-extracted ${segments.length} segments after merge`);
+	}
+
+	// PHASE 2: Create diff nodes for corrected segments
 	// Process each correction block
 	for (const block of correctionBlocks) {
 		if (block.status !== 'completed') {
@@ -292,7 +324,25 @@ export function createDiffNodesFromCorrections(
 
 		// Create diff nodes for each segment alignment
 		for (const segmentAlignment of segmentAlignments) {
-			const segment = segments.find((s) => s.index === segmentAlignment.segmentIndex);
+			// Note: After merging, segmentIndices might have shifted
+			// We need to find segment by matching text content or position
+			// For now, try direct index match (works if segments weren't merged at this index)
+			let segment = segments.find((s) => s.index === segmentAlignment.segmentIndex);
+
+			// Fallback: try to find by text similarity if direct index failed
+			if (!segment && mergeResult.mergedCount > 0) {
+				// Find segment containing the original text
+				segment = segments.find((s) =>
+					s.text.includes(segmentAlignment.originalText.substring(0, 50))
+				);
+
+				if (segment) {
+					console.log(
+						`[CreateDiffNodes] Found segment ${segment.index} by text match ` +
+						`(originally segment ${segmentAlignment.segmentIndex})`
+					);
+				}
+			}
 
 			if (!segment) {
 				console.warn(
