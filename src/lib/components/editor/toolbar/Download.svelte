@@ -3,11 +3,13 @@
     import { editor } from '$lib/stores.svelte';
     import { downloadHandler } from '$lib/download';
     import { toSRT } from '$lib/helpers/converters/srtFormat';
+    import { toTRS } from '$lib/helpers/converters/trsFormat';
     let { fileName } = $props();
 	let downloadOptions = [
 		{ id: 1, text: `Word (.docx)` },
 		{ id: 2, text: `JSON` },
-		{ id: 3, text: `SRT (.srt)` }
+		{ id: 3, text: `SRT (.srt)` },
+		{ id: 4, text: `TRS (.trs)` }
 	];
 	let format = $state();
     let includeNames = $state(true);
@@ -69,6 +71,16 @@
                         const a = document.createElement('a');
                         a.href = url;
                         a.download = `${fileName}.srt`;
+                        document.body.appendChild(a); // need to append the element to the dom -> otherwise it will not work in firefox
+                        a.click();
+                        a.remove();
+                    } else if (format.id === 4) {
+                        const trsContent = toTRS($editor.getJSON(), fileName);
+                        const blob = new Blob([trsContent], {type: "application/xml"});
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${fileName}.trs`;
                         document.body.appendChild(a); // need to append the element to the dom -> otherwise it will not work in firefox
                         a.click();
                         a.remove();
