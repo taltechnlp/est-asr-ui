@@ -64,114 +64,73 @@ function totalFit(subtitlesAndPauses: SubtitleAndPause[]): number {
 }
 
 /**
- * Get fitness score for a specific partition
+ * Calculate score for a single subtitle candidate
  */
-function getFit(words: EditorWord[], partition: number[]): number {
-	const subtitlesAndPauses: SubtitleAndPause[] = [];
-	let start = 0;
-
-	for (const split of partition) {
-		const text = words
-			.slice(start, split)
-			.map((w) => w.text)
-			.join('')
-			.trim();
-		const pause = words[split + 1] ? words[split + 1].start - words[split].end : 0;
-		subtitlesAndPauses.push([text, pause]);
-		start = split;
-	}
-
-	const text = words
-		.slice(start)
-		.map((w) => w.text)
-		.join('')
-		.trim();
-	subtitlesAndPauses.push([text, 1.0]);
-
-	return totalFit(subtitlesAndPauses);
+function scoreSubtitle(text: string, pause: number): number {
+	return lengthFeature(text, pause) + punctuationFeature(text, pause) + pauseFeature(text, pause);
 }
 
 /**
- * Randomly split words into subtitles using genetic algorithm
+ * Split words into subtitles using 3-word lookahead greedy algorithm
+ * Much faster than genetic algorithm while maintaining similar quality
  */
 function splitWords(words: EditorWord[]): number[] {
 	if (words.length <= 10) {
 		return [];
 	}
 
-	let bestPartitions: [number[], number][] = [[[], getFit(words, [])]];
+	const splits: number[] = [];
+	let currentStart = 0;
+	const lookahead = 3; // Look ahead 3 words when deciding where to break
 
-	const patience = 10;
-	const numPrune = 20;
-	const numCandidateSplits = 3;
-	const numCandidateMerges = 3;
-	const numCandidateShifts = 10;
+	while (currentStart < words.length) {
+		let bestBreakPoint = currentStart + 1;
+		let bestScore = -Infinity;
 
-	let bestScore = -100000;
-	let numNoIncrease = 0;
+		// Try breaking at current+1, current+2, current+3, or current+lookahead+1
+		for (let offset = 1; offset <= lookahead + 1; offset++) {
+			const breakPoint = currentStart + offset;
 
-	while (true) {
-		const generatedPartitions: [number[], number][] = [...bestPartitions];
-
-		for (const [currentPartition] of bestPartitions) {
-			// Generate split candidates
-			for (let i = 0; i < numCandidateSplits; i++) {
-				const newSplit = Math.floor(Math.random() * (words.length - 2)) + 1;
-				if (!currentPartition.includes(newSplit)) {
-					const newPartition = [...currentPartition, newSplit].sort((a, b) => a - b);
-					generatedPartitions.push([newPartition, getFit(words, newPartition)]);
-				}
+			// Don't go past the end
+			if (breakPoint >= words.length) {
+				bestBreakPoint = words.length;
+				break;
 			}
 
-			// Generate merge candidates
-			for (let i = 0; i < numCandidateMerges; i++) {
-				if (currentPartition.length > 1) {
-					const newPartition = [...currentPartition];
-					const removeIndex = Math.floor(Math.random() * newPartition.length);
-					newPartition.splice(removeIndex, 1);
-					generatedPartitions.push([newPartition, getFit(words, newPartition)]);
-				}
+			// Build subtitle text up to this break point
+			const text = words
+				.slice(currentStart, breakPoint)
+				.map((w) => w.text)
+				.join('')
+				.trim();
+
+			// Calculate pause after this break point
+			const pause = words[breakPoint] ? words[breakPoint].start - words[breakPoint - 1].end : 0;
+
+			// Score this break option
+			const score = scoreSubtitle(text, pause);
+
+			// Penalize very long subtitles more heavily to force breaks
+			let adjustedScore = score;
+			if (text.length > 70) {
+				adjustedScore -= 1000; // Hard penalty for too long
 			}
 
-			// Generate shift candidates
-			for (let i = 0; i < numCandidateShifts; i++) {
-				if (currentPartition.length > 0) {
-					const newPartition = [...currentPartition];
-					const shiftIndex = Math.floor(Math.random() * newPartition.length);
-					let newSplit: number;
-
-					if (i % 2 === 0) {
-						newSplit = newPartition[shiftIndex] + Math.floor(Math.random() * 3) + 1;
-					} else {
-						newSplit = newPartition[shiftIndex] - Math.floor(Math.random() * 3) - 1;
-					}
-
-					if (
-						!newPartition.includes(newSplit) &&
-						newSplit < words.length - 1 &&
-						newSplit > 0
-					) {
-						newPartition.splice(shiftIndex, 1);
-						const sortedPartition = [...newPartition, newSplit].sort((a, b) => a - b);
-						generatedPartitions.push([sortedPartition, getFit(words, sortedPartition)]);
-					}
-				}
+			if (adjustedScore > bestScore) {
+				bestScore = adjustedScore;
+				bestBreakPoint = breakPoint;
 			}
 		}
 
-		bestPartitions = generatedPartitions.sort((a, b) => b[1] - a[1]).slice(0, numPrune);
-
-		if (bestPartitions[0][1] > bestScore) {
-			bestScore = bestPartitions[0][1];
-			numNoIncrease = 0;
-		} else {
-			numNoIncrease += 1;
+		// Add the break point (unless it's the final position)
+		if (bestBreakPoint < words.length) {
+			splits.push(bestBreakPoint);
 		}
 
-		if (numNoIncrease > patience) {
-			return bestPartitions[0][0];
-		}
+		currentStart = bestBreakPoint;
 	}
+
+	return splits;
 }
 
 /**

@@ -12,6 +12,7 @@
 	let format = $state();
     let includeNames = $state(true);
     let includeTimeCodes = $state(false);
+    let isGenerating = $state(false);
 </script>
 
 <input type="checkbox" id="download-modal" class="modal-toggle" />
@@ -49,10 +50,14 @@
             </div>
             {/if}
             <div class="mt-5 flex justify-between">
-                <label for="download-modal" class="btn btn-primary"
-                onclick={() => {
+                <button
+                class="btn btn-primary"
+                class:loading={isGenerating}
+                disabled={isGenerating}
+                onclick={async () => {
                     if (format.id === 1) {
                         downloadHandler($editor.getJSON(), '', fileName, includeNames, includeTimeCodes);
+                        document.getElementById('download-modal')?.click();
                     } else if (format.id === 2) {
                         const blob = new Blob([JSON.stringify($editor.getJSON())], {type: "application/json"});
                         const url = window.URL.createObjectURL(blob);
@@ -62,18 +67,34 @@
                         document.body.appendChild(a); // need to append the element to the dom -> otherwise it will not work in firefox
                         a.click();
                         a.remove();
+                        document.getElementById('download-modal')?.click();
                     } else if (format.id === 3) {
-                        const srtContent = toSRT($editor.getJSON());
-                        const blob = new Blob([srtContent], {type: "text/plain"});
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `${fileName}.srt`;
-                        document.body.appendChild(a); // need to append the element to the dom -> otherwise it will not work in firefox
-                        a.click();
-                        a.remove();
+                        isGenerating = true;
+                        try {
+                            // Use setTimeout to allow UI to update with loading state
+                            await new Promise(resolve => setTimeout(resolve, 10));
+                            const srtContent = toSRT($editor.getJSON());
+                            const blob = new Blob([srtContent], {type: "text/plain"});
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `${fileName}.srt`;
+                            document.body.appendChild(a); // need to append the element to the dom -> otherwise it will not work in firefox
+                            a.click();
+                            a.remove();
+                            document.getElementById('download-modal')?.click();
+                        } finally {
+                            isGenerating = false;
+                        }
                     }
-						}}>{$_('editor.download.download')}</label>
+					}}>
+                    {#if isGenerating}
+                        <span class="loading loading-spinner"></span>
+                        {$_('editor.download.generating')}
+                    {:else}
+                        {$_('editor.download.download')}
+                    {/if}
+                </button>
                 <label for="download-modal" class="btn btn-outline">{$_('editor.download.cancel')}</label>
             </div>
         </fieldset>
