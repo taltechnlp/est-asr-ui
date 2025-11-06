@@ -225,6 +225,7 @@
       "description": "Choose the file format and content options.",
       "format": "File format",
       "download": "Download",
+      "generating": "Generating...",
       "cancel": "Cancel"
     },
     "hotkeys": {

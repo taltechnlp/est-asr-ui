@@ -225,6 +225,7 @@
             "description": "Vali failivorming ning täpsusta faili sisu eelistused.",
             "format": "Vali failivorming",
             "download": "Laadi alla",
+            "generating": "Genereerin...",
             "cancel": "Tühista"
         },
         "editing": {

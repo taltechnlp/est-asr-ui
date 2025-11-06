@@ -12,7 +12,7 @@
 
 		// Configure WASM
 		ort.env.wasm.numThreads = 1;
-		ort.env.wasm.simd = true;
+		// Let ONNX auto-detect SIMD support (prevents SIGILL crashes on unsupported CPUs)
 		ort.env.wasm.proxy = false;
 	}
 
