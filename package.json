@@ -2,8 +2,8 @@
   "name": "fe-tekstiks",
   "version": "0.0.1",
   "scripts": {
-    "prod": "ORIGIN=https://uus.tekstiks.ee BODY_SIZE_LIMIT=Infinity PORT=5173 HOST=127.0.0.1 bun run build/index.js",
-    "prelive": "ORIGIN=https://tekstiks.ee BODY_SIZE_LIMIT=Infinity PORT=5180 HOST=127.0.0.1 bun run build/index.js",
+    "prelive": "ORIGIN=https://uus.tekstiks.ee BODY_SIZE_LIMIT=Infinity PORT=5173 HOST=127.0.0.1 bun run build/index.js",
+    "prod": "ORIGIN=https://tekstiks.ee BODY_SIZE_LIMIT=Infinity PORT=5180 HOST=127.0.0.1 bun run build/index.js",
     "dev": "vite dev",
     "build": "vite build",
     "prelive-build": "vite build --outDir /home/aiolev/est-asr-ui/prelive/",
