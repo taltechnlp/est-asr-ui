@@ -431,18 +431,15 @@
 		if (message.is_final) {
 			// Check if server is ending the session (chunk processed)
 			if (message.text.trim() === '[Session Ended]') {
-				console.log('[PSEUDO-STREAM] Server ended session (chunk complete). Starting new session...');
-				// Move cumulative partial to final transcript
-				if (partialTranscript.trim()) {
-					transcript = partialTranscript.trim();
-				}
-				partialTranscript = '';
-
-				// DON'T clear sessionId - keep it until new 'ready' arrives so audio can continue
-				// sessionId will be updated when the new 'ready' message arrives
-
-				// If still recording, start a new session immediately
+				console.log('[PSEUDO-STREAM] Server ended session (chunk complete).');
+				// Only restart session if still recording
 				if (isRecording) {
+					// Move cumulative partial to final transcript
+					if (partialTranscript.trim()) {
+						transcript = partialTranscript.trim();
+					}
+					partialTranscript = '';
+
 					const language = isOfflineModel(selectedLanguage) ? 'parakeet_tdt_v3' : selectedLanguage;
 					console.log('[OFFLINE] Sending new start message with language:', language);
 					sendMessage({
@@ -451,20 +448,27 @@
 						format: 'pcm',
 						language: language
 					});
+				} else {
+					console.log('[PSEUDO-STREAM] Not recording - ignoring session end');
 				}
 				return;
 			}
 
-			// Move to final transcript (server sends cumulative text)
+			// Accept final results even after stop (for pending buffer processing)
 			if (message.text.trim()) {
-				console.log('[PSEUDO-STREAM] Moving cumulative text to final transcript:', message.text.trim());
-				transcript = message.text.trim();
+				console.log('[PSEUDO-STREAM] Received final result:', message.text.trim());
+				// Update partial transcript with the final cumulative result
+				// stopRecording will combine transcript + partialTranscript
+				partialTranscript = message.text.trim();
 			}
-			partialTranscript = '';
 		} else {
-			// Backend sends CUMULATIVE text, so replace (don't concatenate)
-			console.log('[PSEUDO-STREAM] Replacing partial with cumulative text:', message.text);
-			partialTranscript = message.text;
+			// Partial results (is_final: false) - only process if still recording
+			if (isRecording) {
+				console.log('[PSEUDO-STREAM] Replacing partial with cumulative text:', message.text);
+				partialTranscript = message.text;
+			} else {
+				console.log('[PSEUDO-STREAM] Ignoring partial message after stop');
+			}
 		}
 	}
 
@@ -692,7 +696,6 @@
 
 	// Stop recording
 	async function stopRecording() {
-		console.log('[STOP] Stopping recording...');
 		isRecording = false;
 		isVadActive = false;
 		isSpeaking = false;
@@ -700,12 +703,10 @@
 		// Destroy VAD - will be recreated on next start
 		if (vad) {
 			try {
-				console.log('[STOP] Destroying VAD...');
 				vad.destroy();
-				console.log('[STOP] ✓ VAD destroyed');
 				vad = null;
 			} catch (error) {
-				console.error('[STOP] Error destroying VAD:', error);
+				console.error('Error destroying VAD:', error);
 			}
 		}
 
@@ -714,35 +715,42 @@
 
 		// Send stop message
 		if (ws && ws.readyState === WebSocket.OPEN && sessionId) {
-			console.log('[STOP] Sending stop message to server');
 			sendMessage({ type: 'stop' });
 		}
 
 		// Wait for final results from pseudo-streaming models
 		// Server needs time to process remaining buffer (< 4s window) before finalizing
+		// Pseudo-streaming: wait up to 6s for final result, or until final message arrives
+		// True streaming: wait 1s for final result
 		const isOffline = isOfflineModel(selectedLanguage);
-		const waitTime = isOffline ? 2000 : 1000; // 2s for pseudo-streaming, 1s for true streaming
-		console.log(`[STOP] Waiting ${waitTime}ms for final transcription results...`);
-		await new Promise(resolve => setTimeout(resolve, waitTime));
+		const maxWaitTime = isOffline ? 6000 : 1000;
+
+		// Store initial partial transcript to detect when new final result arrives
+		const initialPartial = partialTranscript;
+		const startWait = Date.now();
+
+		// Poll for new results or timeout
+		while (Date.now() - startWait < maxWaitTime) {
+			// If partial transcript changed, we got a final result
+			if (isOffline && partialTranscript !== initialPartial) {
+				break;
+			}
+			await new Promise(resolve => setTimeout(resolve, 200)); // Check every 200ms
+		}
 
 		// Combine final and partial transcripts
 		const finalText = (transcript + ' ' + partialTranscript).trim();
 
 		if (finalText) {
-			console.log('[STOP] Saving recording to past recordings:', finalText);
 			const newRecording: Recording = {
 				id: Date.now().toString(),
 				text: finalText,
 				timestamp: new Date()
 			};
 			pastRecordings = [newRecording, ...pastRecordings];
-			console.log('[STOP] ✓ Saved. Past recordings count:', pastRecordings.length);
 			transcript = '';
 			partialTranscript = '';
-		} else {
-			console.log('[STOP] No transcript to save (empty)');
 		}
-		console.log('[STOP] Recording stopped');
 	}
 
 	// Clear transcript
