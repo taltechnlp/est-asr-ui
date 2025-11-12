@@ -277,7 +277,7 @@
     "dictate": {
         "title": "Dikteeri",
         "intro1": "Sellel lehel saab TalTech kõnetuvastuse abil dikteerida teksti mitmes keeles. Veebilehitseja saadab reaalajaliselt kõne TalTechi Kõnetehnoloogia labori serverisse, kus see muudetakse tekstiks ning saadetakse veebilehtisejasse tagasi.",
-        "intro2": "Eesti ja inglise keele puhul ilmuvad tulemused peaaegu koheselt. Teiste keelte puhul on umbes 15-sekundiline viide enne tulemuste ilmumist.",
+        "intro2": "Eesti ja inglise keele puhul ilmuvad tulemused peaaegu koheselt. Automaatne (Euroopa keeled) 🇧🇬 🇨🇿 🇩🇰 🇩🇪 🇬🇷 🇪🇸 🇫🇮 🇫🇷 🇭🇷 🇭🇺 🇮🇹 🇱🇹 🇱🇻 🇲🇹 🇳🇱 🇵🇱 🇵🇹 🇷🇴 🇷🇺 🇸🇰 🇸🇮 🇸🇪 🇺🇦 puhul ilmuvad tulemused iga 2-4 sekundi tagant automaatse keeletuvastusega.",
         "intro3": "Parima tulemuse saamiseks kasutage head mikrofoni ning rääkige selge häälega mõõdukas tempos. Sõnade vahel pause ei pea tegema.",
         "attention": "Tähelepanu!",
         "freeConnections": "vaba ühendust",
@@ -318,6 +318,7 @@
         "languages": {
             "et": "eesti",
             "en": "inglise",
+            "auto": "Automaatne (Euroopa keeled)",
             "bg": "bulgaaria",
             "cs": "tšehhi",
             "da": "taani",

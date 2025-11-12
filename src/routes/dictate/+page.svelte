@@ -61,7 +61,7 @@
 		'bg', 'cs', 'da', 'de', 'el', 'es', 'fi', 'fr', 'hr', 'hu', 'it',
 		'lt', 'lv', 'mt', 'nl', 'pl', 'pt', 'ro', 'ru', 'sk', 'sl', 'sv', 'uk'
 	];
-	let selectedLanguage = $state('et');
+	let selectedLanguage = $state('auto');
 	let availableModels = $state<string[]>([]);
 
 	// ═══════════════════════════════════════════════════════════════
@@ -76,10 +76,11 @@
 	 * - Full hypothesis in each partial update
 	 * - Session ID stable until user stops
 	 *
-	 * OFFLINE MODELS (Parakeet):
-	 * - 15-second buffer sessions with [Session Ended]
-	 * - Incremental text across sessions
-	 * - Session ID changes frequently during recording
+	 * PSEUDO-STREAMING MODELS (Parakeet with windowed processing):
+	 * - ~2-4 second latency (was 15s, now using overlapping windows)
+	 * - Incremental text with context-aware merging
+	 * - Smooth streaming experience with offline model quality
+	 * - Session ID changes as chunks are processed
 	 */
 	function isOfflineModel(language: string): boolean {
 		return language !== 'et' && language !== 'en';
@@ -187,7 +188,7 @@
 
 				// Note: We don't send utterance_end anymore
 				// - For streaming models (ET/EN): Sessions should stay open across pauses
-				// - For offline models (Parakeet): 15s buffer auto-processes without needing utterance_end
+				// - For pseudo-streaming models (Parakeet): Chunks auto-process every 1.6s without needing utterance_end
 			},
 
 			onVADMisfire: () => {
@@ -421,19 +422,19 @@
 	// ═══════════════════════════════════════════════════════════════
 
 	/**
-	 * Handle transcript messages for offline models (Parakeet).
-	 * Offline models give incremental text across sessions, so we concatenate.
+	 * Handle transcript messages for pseudo-streaming models (Parakeet).
+	 * Backend sends CUMULATIVE text (not deltas), so we replace partialTranscript.
 	 */
 	function handleTranscript_offline(message: any) {
-		console.log('[OFFLINE] Received transcript:', message.text, 'is_final:', message.is_final);
+		console.log('[PSEUDO-STREAM] Received transcript:', message.text, 'is_final:', message.is_final);
 
 		if (message.is_final) {
-			// Check if server is ending the session (15-second buffer limit)
+			// Check if server is ending the session (chunk processed)
 			if (message.text.trim() === '[Session Ended]') {
-				console.log('[OFFLINE] Server ended session (15s buffer). Starting new session...');
-				// Save the partial transcript to final before starting new session
+				console.log('[PSEUDO-STREAM] Server ended session (chunk complete). Starting new session...');
+				// Move cumulative partial to final transcript
 				if (partialTranscript.trim()) {
-					transcript += (transcript ? ' ' : '') + partialTranscript.trim();
+					transcript = partialTranscript.trim();
 				}
 				partialTranscript = '';
 
@@ -454,41 +455,29 @@
 				return;
 			}
 
-			// Add to final transcript
+			// Move to final transcript (server sends cumulative text)
 			if (message.text.trim()) {
-				console.log('[OFFLINE] Adding to final transcript:', message.text.trim());
-				transcript += (transcript ? ' ' : '') + message.text.trim();
+				console.log('[PSEUDO-STREAM] Moving cumulative text to final transcript:', message.text.trim());
+				transcript = message.text.trim();
 			}
 			partialTranscript = '';
 		} else {
-			// Show as partial transcript
-			console.log('[OFFLINE] Setting partial transcript:', message.text);
-
-			// For offline models: finalize previous partial before setting new one
-			// (text is incremental across sessions)
-			if (isRecording && partialTranscript.trim() && message.text.trim()) {
-				console.log('[OFFLINE] Finalizing previous partial before new partial (session chaining)');
-				transcript += (transcript ? ' ' : '') + partialTranscript.trim();
-			}
-
-			if (message.text.trim() || !partialTranscript) {
-				partialTranscript = message.text;
-			} else {
-				console.log('[OFFLINE] Ignoring empty partial transcript - keeping existing text');
-			}
+			// Backend sends CUMULATIVE text, so replace (don't concatenate)
+			console.log('[PSEUDO-STREAM] Replacing partial with cumulative text:', message.text);
+			partialTranscript = message.text;
 		}
 	}
 
 	/**
-	 * Handle error messages for offline models.
+	 * Handle error messages for pseudo-streaming models.
 	 * Suppress "Session not found" errors during session transitions.
 	 */
 	function handleError_offline(message: any) {
-		console.error('[OFFLINE] Server error:', message.message);
+		console.error('[PSEUDO-STREAM] Server error:', message.message);
 
-		// Check if error is "Session not found" during session chaining
+		// Check if error is "Session not found" during chunk chaining
 		if (message.message && message.message.includes('Session not found') && isRecording) {
-			console.log('[OFFLINE] Session not found (during session transition) - suppressing');
+			console.log('[PSEUDO-STREAM] Session not found (during chunk transition) - suppressing');
 			return;
 		}
 
@@ -496,16 +485,16 @@
 	}
 
 	/**
-	 * Handle session ready for offline models.
-	 * Offline models chain sessions every 15 seconds during continuous recording.
+	 * Handle session ready for pseudo-streaming models.
+	 * Pseudo-streaming models process chunks every 1.6s with overlapping windows.
 	 */
 	function handleSessionReady_offline(sessionIdReceived: string) {
 		sessionId = sessionIdReceived;
-		console.log('[OFFLINE] Session ready:', sessionId);
+		console.log('[PSEUDO-STREAM] Session ready:', sessionId);
 	}
 
 	/**
-	 * Handle all server messages for offline models (Parakeet).
+	 * Handle all server messages for pseudo-streaming models (Parakeet).
 	 */
 	function handleServerMessage_offline(message: any) {
 		switch (message.type) {
@@ -525,9 +514,9 @@
 				break;
 
 			case 'session_ended':
-				console.log('[OFFLINE] Session ended by server:', message.session_id);
+				console.log('[PSEUDO-STREAM] Session ended by server:', message.session_id);
 				// Don't clear sessionId yet - keep it for audio sending during transition
-				console.log('[OFFLINE] Keeping session ID for transition...');
+				console.log('[PSEUDO-STREAM] Keeping session ID for transition...');
 				break;
 		}
 	}
@@ -636,10 +625,10 @@
 			}
 
 			// Send start message to establish session
-			// ET and EN use dedicated models, all others use Parakeet (auto LID)
+			// ET and EN use dedicated models, all others use Parakeet (auto LID with pseudo-streaming)
 			const offline = isOfflineModel(selectedLanguage);
 			const language = offline ? 'parakeet_tdt_v3' : selectedLanguage;
-			const modelType = offline ? 'OFFLINE' : 'STREAMING';
+			const modelType = offline ? 'PSEUDO-STREAMING' : 'STREAMING';
 			console.log(`[START] [${modelType}] Sending start message with language:`, language);
 			sendMessage({
 				type: 'start',
@@ -729,10 +718,10 @@
 			sendMessage({ type: 'stop' });
 		}
 
-		// Wait longer for final results from offline models
-		// Server needs time to process remaining buffer (< 15s) before finalizing
+		// Wait for final results from pseudo-streaming models
+		// Server needs time to process remaining buffer (< 4s window) before finalizing
 		const isOffline = isOfflineModel(selectedLanguage);
-		const waitTime = isOffline ? 3000 : 1000; // 3s for offline, 1s for streaming
+		const waitTime = isOffline ? 2000 : 1000; // 2s for pseudo-streaming, 1s for true streaming
 		console.log(`[STOP] Waiting ${waitTime}ms for final transcription results...`);
 		await new Promise(resolve => setTimeout(resolve, waitTime));
 
@@ -958,10 +947,8 @@
 						{/each}
 						<!-- Divider -->
 						<option disabled>──────────────────</option>
-						<!-- Other languages using Parakeet model -->
-						{#each parakeetLanguages as lang}
-							<option value={lang}>{getFlagEmoji(lang)} {$_(`dictate.languages.${lang}`)}</option>
-						{/each}
+						<!-- Auto-detect for all other European languages -->
+						<option value="auto">🌍 {$_('dictate.languages.auto')}</option>
 					</select>
 				</div>
 
