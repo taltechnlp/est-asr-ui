@@ -276,7 +276,7 @@
     "dictate": {
         "title": "Diktoi",
         "intro1": "Tällä sivulla voit dikteerata puhetta useilla eri kielillä TalTechin reaaliaikaisen puheentunnistuksen avulla. Verkkoselain lähettää puheen reaaliajassa TalTechin kieliteknologian laboratorion palvelimelle, jossa se muunnetaan tekstiksi ja lähetetään takaisin selaimelle.",
-        "intro2": "Viron ja englannin kielellä tulokset ilmestyvät lähes välittömästi. Muilla kielillä on noin 15 sekunnin viive ennen tulosten ilmestymistä.",
+        "intro2": "Viron ja englannin kielellä tulokset ilmestyvät lähes välittömästi. Automaattinen (Euroopan kielet) 🇧🇬 🇨🇿 🇩🇰 🇩🇪 🇬🇷 🇪🇸 🇫🇮 🇫🇷 🇭🇷 🇭🇺 🇮🇹 🇱🇹 🇱🇻 🇲🇹 🇳🇱 🇵🇱 🇵🇹 🇷🇴 🇷🇺 🇸🇰 🇸🇮 🇸🇪 🇺🇦 tulokset ilmestyvät 2-4 sekunnin välein automaattisella kielen tunnistuksella.",
         "intro3": "Parhaan tuloksen saavuttamiseksi käytä hyvälaatuista mikrofonia ja puhu selkeästi kohtuullisella nopeudella. Sanojen väliin ei tarvitse tehdä taukoa.",
         "attention": "Huomio!",
         "freeConnections": "vapaat yhteydet",
@@ -317,6 +317,7 @@
         "languages": {
             "et": "viro",
             "en": "englanti",
+            "auto": "Automaattinen (Euroopan kielet)",
             "bg": "bulgaria",
             "cs": "tšekki",
             "da": "tanska",
