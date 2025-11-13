@@ -1,6 +1,11 @@
 import { spawn, execFile } from "child_process";
 import { existsSync, mkdirSync} from 'fs';
 
+// Escape glob metacharacters in file path for Nextflow
+const escapeGlobPattern = (path: string): string => {
+    return path.replace(/([*?[\]{}])/g, '\\$1');
+};
+
 export const runNextflow = (
     fileId: string,
     filePath: string,
@@ -15,6 +20,9 @@ export const runNextflow = (
     estAsrUrl: string,
     nextflowPath: string,
   ) => {
+    // Escape glob metacharacters in the file path
+    const escapedFilePath = escapeGlobPattern(filePath);
+
     let parameters = [
         "-bg",
         "run",
@@ -26,7 +34,7 @@ export const runNextflow = (
       "-with-weblog",
       estAsrUrl + '/api/process',
       "--in",
-      filePath,
+      escapedFilePath,
       "--out_dir",
       resultsDir,
       "--do_punctuation",
