@@ -61,8 +61,26 @@
 		'bg', 'cs', 'da', 'de', 'el', 'es', 'fi', 'fr', 'hr', 'hu', 'it',
 		'lt', 'lv', 'mt', 'nl', 'pl', 'pt', 'ro', 'ru', 'sk', 'sl', 'sv', 'uk'
 	];
-	let selectedLanguage = $state('auto');
+	let selectedLanguage = $state('et'); // Default to Estonian
 	let availableModels = $state<string[]>([]);
+
+	// Cookie helpers for client-side language persistence
+	function getCookie(name: string): string | null {
+		if (!browser) return null;
+		const value = `; ${document.cookie}`;
+		const parts = value.split(`; ${name}=`);
+		if (parts.length === 2) {
+			return parts.pop()?.split(';').shift() || null;
+		}
+		return null;
+	}
+
+	function setCookie(name: string, value: string, days: number = 365) {
+		if (!browser) return;
+		const expires = new Date();
+		expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+		document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Strict`;
+	}
 
 	// ═══════════════════════════════════════════════════════════════
 	// MODEL TYPE HELPERS
@@ -773,7 +791,24 @@
 
 	// Initialize on component mount
 	onMount(() => {
+		// Load language preference from cookie (default to 'et' if not set)
+		const savedLanguage = getCookie('dictate_language');
+		if (savedLanguage) {
+			// Validate that the saved language is still supported
+			const allLanguages = [...primaryLanguages, 'auto', ...parakeetLanguages];
+			if (allLanguages.includes(savedLanguage)) {
+				selectedLanguage = savedLanguage;
+			}
+		}
+
 		initializeSystem();
+	});
+
+	// Save language preference to cookie when it changes
+	$effect(() => {
+		if (browser && selectedLanguage) {
+			setCookie('dictate_language', selectedLanguage);
+		}
 	});
 
 	// Cleanup on component destroy
