@@ -87,21 +87,27 @@
 	// ═══════════════════════════════════════════════════════════════
 
 	/**
-	 * Determine if the selected language uses an offline model (Parakeet).
+	 * Determine if the selected language uses an offline model (Parakeet TDT).
 	 *
 	 * STREAMING MODELS (ET/EN):
 	 * - Continuous session (no [Session Ended])
-	 * - Full hypothesis in each partial update
 	 * - Session ID stable until user stops
 	 *
-	 * PSEUDO-STREAMING MODELS (Parakeet with windowed processing):
-	 * - ~2-4 second latency (was 15s, now using overlapping windows)
-	 * - Incremental text with context-aware merging
-	 * - Smooth streaming experience with offline model quality
+	 * PSEUDO-STREAMING MODELS (Parakeet TDT for other languages):
+	 * - ~2-4 second latency
 	 * - Session ID changes as chunks are processed
 	 */
 	function isOfflineModel(language: string): boolean {
 		return language !== 'et' && language !== 'en';
+	}
+
+	/**
+	 * Get the server language code for the selected language.
+	 */
+	function getServerLanguage(language: string): string {
+		if (language === 'en') return 'fastconformer_en_1040ms';
+		if (isOfflineModel(language)) return 'parakeet_tdt_v3';
+		return language; // 'et' passed as-is
 	}
 
 	// Past recordings
@@ -177,18 +183,14 @@
 					}
 				}
 
-				// Buffer frames for pre-speech (only for VAD-gated languages)
-				if (selectedLanguage !== 'en') {
-					audioBuffer.push(new Float32Array(frame));
-					if (audioBuffer.length > FRAMES_TO_BUFFER) {
-						audioBuffer.shift();
-					}
+				// Buffer frames for pre-speech
+				audioBuffer.push(new Float32Array(frame));
+				if (audioBuffer.length > FRAMES_TO_BUFFER) {
+					audioBuffer.shift();
 				}
 
-				// Stream audio frames to server
-				// EN: VAD disabled - model has aggressive streaming and handles silence well
-				// Other languages: VAD-gated to reduce bandwidth and server load
-				if (selectedLanguage === 'en' || isSpeaking) {
+				// Stream audio frames to server when VAD detects speech
+				if (isSpeaking) {
 					sendAudio(frame);
 				}
 			},
@@ -197,13 +199,11 @@
 				if (DEBUG_VAD) console.log('🎤 [VAD] Speech started - sending pre-speech buffer');
 				isSpeaking = true;
 
-				// Send pre-speech buffer (only for VAD-gated languages, EN sends all frames)
-				if (selectedLanguage !== 'en') {
-					for (const bufferedFrame of audioBuffer) {
-						sendAudio(bufferedFrame);
-					}
-					audioBuffer = [];
+				// Send pre-speech buffer
+				for (const bufferedFrame of audioBuffer) {
+					sendAudio(bufferedFrame);
 				}
+				audioBuffer = [];
 			},
 
 			onSpeechEnd: (audio: Float32Array) => {
@@ -340,9 +340,7 @@
 
 	/**
 	 * Handle transcript messages for streaming models (ET/EN).
-	 *
-	 * EN model: Incremental streaming - returns only NEW text each time, append to partial.
-	 * ET model: Cumulative streaming - returns full hypothesis each time, replace partial.
+	 * Both use cumulative streaming - returns full hypothesis each time, replace partial.
 	 */
 	function handleTranscript_streaming(message: any) {
 		console.log('[STREAMING] Received transcript:', message.text, 'is_final:', message.is_final);
@@ -362,7 +360,7 @@
 
 				// If still recording, start a new session immediately
 				if (isRecording) {
-					const language = isOfflineModel(selectedLanguage) ? 'parakeet_tdt_v3' : selectedLanguage;
+					const language = getServerLanguage(selectedLanguage);
 					console.log('[STREAMING] Sending new start message with language:', language);
 					sendMessage({
 						type: 'start',
@@ -375,33 +373,14 @@
 			}
 
 			// Add to final transcript
-			// For incremental streaming (EN): the accumulated partialTranscript has the full text
-			// For cumulative streaming (ET): message.text has the full text
-			if (selectedLanguage === 'en') {
-				// Incremental: append any remaining text, then save accumulated partial
-				if (message.text) {
-					partialTranscript += message.text;
-				}
-				if (partialTranscript.trim()) {
-					console.log('[STREAMING] Adding accumulated partial to final:', partialTranscript.trim());
-					transcript += (transcript ? ' ' : '') + partialTranscript.trim();
-				}
-			} else if (message.text.trim()) {
-				// Cumulative: message.text contains the full hypothesis
+			if (message.text.trim()) {
 				console.log('[STREAMING] Adding to final transcript:', message.text.trim());
 				transcript += (transcript ? ' ' : '') + message.text.trim();
 			}
 			partialTranscript = '';
 		} else {
-			// EN model: Incremental streaming - append new text
-			// ET model: Cumulative streaming - replace with full hypothesis
-			if (selectedLanguage === 'en') {
-				// Append new text for incremental streaming (EN)
-				if (message.text) {
-					partialTranscript += message.text;
-				}
-			} else if (message.text.trim() || !partialTranscript) {
-				// Replace with full hypothesis for cumulative streaming (ET)
+			// Replace with full hypothesis (cumulative streaming)
+			if (message.text.trim() || !partialTranscript) {
 				partialTranscript = message.text;
 			} else {
 				console.log('[STREAMING] Ignoring empty partial transcript - keeping existing text');
@@ -485,7 +464,7 @@
 					}
 					partialTranscript = '';
 
-					const language = isOfflineModel(selectedLanguage) ? 'parakeet_tdt_v3' : selectedLanguage;
+					const language = getServerLanguage(selectedLanguage);
 					console.log('[OFFLINE] Sending new start message with language:', language);
 					sendMessage({
 						type: 'start',
@@ -674,10 +653,8 @@
 			}
 
 			// Send start message to establish session
-			// ET and EN use dedicated models, all others use Parakeet (auto LID with pseudo-streaming)
-			const offline = isOfflineModel(selectedLanguage);
-			const language = offline ? 'parakeet_tdt_v3' : selectedLanguage;
-			const modelType = offline ? 'PSEUDO-STREAMING' : 'STREAMING';
+			const language = getServerLanguage(selectedLanguage);
+			const modelType = isOfflineModel(selectedLanguage) ? 'PSEUDO-STREAMING' : 'STREAMING';
 			console.log(`[START] [${modelType}] Sending start message with language:`, language);
 			sendMessage({
 				type: 'start',
