@@ -177,14 +177,18 @@
 					}
 				}
 
-				// Always buffer frames for pre-speech
-				audioBuffer.push(new Float32Array(frame));
-				if (audioBuffer.length > FRAMES_TO_BUFFER) {
-					audioBuffer.shift();
+				// Buffer frames for pre-speech (only for VAD-gated languages)
+				if (selectedLanguage !== 'en') {
+					audioBuffer.push(new Float32Array(frame));
+					if (audioBuffer.length > FRAMES_TO_BUFFER) {
+						audioBuffer.shift();
+					}
 				}
 
-				// Stream frame in real-time if speech is active
-				if (isSpeaking) {
+				// Stream audio frames to server
+				// EN: VAD disabled - model has aggressive streaming and handles silence well
+				// Other languages: VAD-gated to reduce bandwidth and server load
+				if (selectedLanguage === 'en' || isSpeaking) {
 					sendAudio(frame);
 				}
 			},
@@ -193,11 +197,13 @@
 				if (DEBUG_VAD) console.log('🎤 [VAD] Speech started - sending pre-speech buffer');
 				isSpeaking = true;
 
-				// Send pre-speech buffer first
-				for (const bufferedFrame of audioBuffer) {
-					sendAudio(bufferedFrame);
+				// Send pre-speech buffer (only for VAD-gated languages, EN sends all frames)
+				if (selectedLanguage !== 'en') {
+					for (const bufferedFrame of audioBuffer) {
+						sendAudio(bufferedFrame);
+					}
+					audioBuffer = [];
 				}
-				audioBuffer = [];
 			},
 
 			onSpeechEnd: (audio: Float32Array) => {
@@ -334,7 +340,9 @@
 
 	/**
 	 * Handle transcript messages for streaming models (ET/EN).
-	 * Streaming models return full hypothesis each time, so we replace the partial.
+	 *
+	 * EN model: Incremental streaming - returns only NEW text each time, append to partial.
+	 * ET model: Cumulative streaming - returns full hypothesis each time, replace partial.
 	 */
 	function handleTranscript_streaming(message: any) {
 		console.log('[STREAMING] Received transcript:', message.text, 'is_final:', message.is_final);
@@ -367,14 +375,33 @@
 			}
 
 			// Add to final transcript
-			if (message.text.trim()) {
+			// For incremental streaming (EN): the accumulated partialTranscript has the full text
+			// For cumulative streaming (ET): message.text has the full text
+			if (selectedLanguage === 'en') {
+				// Incremental: append any remaining text, then save accumulated partial
+				if (message.text) {
+					partialTranscript += message.text;
+				}
+				if (partialTranscript.trim()) {
+					console.log('[STREAMING] Adding accumulated partial to final:', partialTranscript.trim());
+					transcript += (transcript ? ' ' : '') + partialTranscript.trim();
+				}
+			} else if (message.text.trim()) {
+				// Cumulative: message.text contains the full hypothesis
 				console.log('[STREAMING] Adding to final transcript:', message.text.trim());
 				transcript += (transcript ? ' ' : '') + message.text.trim();
 			}
 			partialTranscript = '';
 		} else {
-			// Show as partial transcript - REPLACE (full hypothesis)
-			if (message.text.trim() || !partialTranscript) {
+			// EN model: Incremental streaming - append new text
+			// ET model: Cumulative streaming - replace with full hypothesis
+			if (selectedLanguage === 'en') {
+				// Append new text for incremental streaming (EN)
+				if (message.text) {
+					partialTranscript += message.text;
+				}
+			} else if (message.text.trim() || !partialTranscript) {
+				// Replace with full hypothesis for cumulative streaming (ET)
 				partialTranscript = message.text;
 			} else {
 				console.log('[STREAMING] Ignoring empty partial transcript - keeping existing text');
