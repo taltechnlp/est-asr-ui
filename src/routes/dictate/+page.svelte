@@ -105,7 +105,7 @@
 	 * Get the server language code for the selected language.
 	 */
 	function getServerLanguage(language: string): string {
-		if (language === 'en') return 'fastconformer_en_1040ms';
+		if (language === 'en') return 'fastconformer_ctc_en_1040ms';
 		if (isOfflineModel(language)) return 'parakeet_tdt_v3';
 		return language; // 'et' passed as-is
 	}
@@ -442,6 +442,76 @@
 	}
 
 	// ═══════════════════════════════════════════════════════════════
+	// FASTCONFORMER EN HANDLERS (FINAL-ONLY, LIKE ZIPFORMER)
+	// ═══════════════════════════════════════════════════════════════
+
+	/**
+	 * Handle transcript messages for fastconformer_ctc_en_1040ms model.
+	 * This model returns only NEW text segments (not cumulative).
+	 * Each message is appended directly to transcript - no deduplication needed.
+	 */
+	function handleTranscript_fastconformer_en(message: any) {
+		console.log('[FASTCONFORMER-EN] Received transcript:', message.text, 'is_final:', message.is_final);
+
+		// Check for session end marker
+		if (message.text.trim() === '[Session Ended]') {
+			console.warn('[FASTCONFORMER-EN] ⚠️ Server ended session. Creating new session...');
+			sessionId = null;
+
+			if (isRecording) {
+				const language = getServerLanguage(selectedLanguage);
+				console.log('[FASTCONFORMER-EN] Sending new start message with language:', language);
+				sendMessage({
+					type: 'start',
+					sample_rate: SAMPLE_RATE,
+					format: 'pcm',
+					language: language
+				});
+			}
+			return;
+		}
+
+		// Append new text directly to transcript (no deduplication - each message is unique)
+		if (message.text.trim()) {
+			console.log('[FASTCONFORMER-EN] Appending new text:', message.text.trim());
+			transcript += (transcript ? ' ' : '') + message.text.trim();
+		}
+	}
+
+	/**
+	 * Handle all server messages for fastconformer_en model.
+	 */
+	function handleServerMessage_fastconformer_en(message: any) {
+		switch (message.type) {
+			case 'ready':
+				sessionId = message.session_id;
+				console.log('[FASTCONFORMER-EN] Session ready:', sessionId);
+				if (message.available_models) {
+					availableModels = message.available_models;
+				}
+				break;
+
+			case 'transcript':
+				handleTranscript_fastconformer_en(message);
+				break;
+
+			case 'error':
+				console.error('[FASTCONFORMER-EN] Server error:', message.message);
+				if (message.message && message.message.includes('Session not found') && isRecording) {
+					console.log('[FASTCONFORMER-EN] Session not found (during transition) - suppressing');
+					return;
+				}
+				connectionError = message.message;
+				break;
+
+			case 'session_ended':
+				console.log('[FASTCONFORMER-EN] Session ended by server:', message.session_id);
+				sessionId = null;
+				break;
+		}
+	}
+
+	// ═══════════════════════════════════════════════════════════════
 	// OFFLINE MODEL HANDLERS (PARAKEET)
 	// ═══════════════════════════════════════════════════════════════
 
@@ -554,7 +624,7 @@
 	// ═══════════════════════════════════════════════════════════════
 
 	/**
-	 * Main server message handler - delegates to streaming or offline handlers.
+	 * Main server message handler - delegates to streaming, fastconformer_en, or offline handlers.
 	 */
 	function handleServerMessage(message: any) {
 		console.log('Received message:', message);
@@ -562,7 +632,11 @@
 		// Delegate to appropriate handler based on model type
 		if (isOfflineModel(selectedLanguage)) {
 			handleServerMessage_offline(message);
+		} else if (selectedLanguage === 'en') {
+			// English uses fastconformer_en_1040ms which only returns final text
+			handleServerMessage_fastconformer_en(message);
 		} else {
+			// Estonian uses zipformer with cumulative streaming
 			handleServerMessage_streaming(message);
 		}
 	}
