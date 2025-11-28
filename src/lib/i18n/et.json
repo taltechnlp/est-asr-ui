@@ -317,7 +317,8 @@
         "microphoneInUse": "Mikrofon on teise rakenduse poolt kasutusel",
         "languages": {
             "et": "eesti",
-            "en": "inglise",
+            "en-80ms": "inglise (80ms)",
+            "en-1040ms": "inglise (1040ms)",
             "auto": "Automaatne (Euroopa keeled)",
             "bg": "bulgaaria",
             "cs": "tšehhi",

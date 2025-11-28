@@ -317,7 +317,8 @@
     "microphoneInUse": "Microphone is being used by another application",
     "languages": {
       "et": "Estonian",
-      "en": "English",
+      "en-80ms": "English (80ms)",
+      "en-1040ms": "English (1040ms)",
       "auto": "Auto (European languages)",
       "bg": "Bulgarian",
       "cs": "Czech",
