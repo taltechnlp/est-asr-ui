@@ -316,7 +316,8 @@
         "microphoneInUse": "Mikrofoni on toisen sovelluksen käytössä",
         "languages": {
             "et": "viro",
-            "en": "englanti",
+            "en-80ms": "englanti (80ms)",
+            "en-1040ms": "englanti (1040ms)",
             "auto": "Automaattinen (Euroopan kielet)",
             "bg": "bulgaria",
             "cs": "tšekki",

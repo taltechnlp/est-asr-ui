@@ -55,7 +55,7 @@
 	let transcript = $state('');
 	let partialTranscript = $state('');
 	// Primary languages with dedicated models
-	const primaryLanguages = ['et', 'en'];
+	const primaryLanguages = ['et', 'en-80ms', 'en-1040ms'];
 	// Other languages supported by Parakeet TDT (sorted alphabetically)
 	const parakeetLanguages = [
 		'bg', 'cs', 'da', 'de', 'el', 'es', 'fi', 'fr', 'hr', 'hu', 'it',
@@ -98,14 +98,22 @@
 	 * - Session ID changes as chunks are processed
 	 */
 	function isOfflineModel(language: string): boolean {
-		return language !== 'et' && language !== 'en';
+		return language !== 'et' && !language.startsWith('en-');
+	}
+
+	/**
+	 * Check if the selected language uses a fastconformer EN model.
+	 */
+	function isFastconformerEnModel(language: string): boolean {
+		return language.startsWith('en-');
 	}
 
 	/**
 	 * Get the server language code for the selected language.
 	 */
 	function getServerLanguage(language: string): string {
-		if (language === 'en') return 'fastconformer_ctc_en_1040ms';
+		if (language === 'en-80ms') return 'fastconformer_ctc_en_80ms';
+		if (language === 'en-1040ms') return 'fastconformer_ctc_en_1040ms';
 		if (isOfflineModel(language)) return 'parakeet_tdt_v3';
 		return language; // 'et' passed as-is
 	}
@@ -121,7 +129,7 @@
 	// Get flag emoji for language code
 	function getFlagEmoji(langCode: string): string {
 		const flags: Record<string, string> = {
-			et: '🇪🇪', en: '🇬🇧', bg: '🇧🇬', cs: '🇨🇿', da: '🇩🇰', de: '🇩🇪',
+			et: '🇪🇪', 'en-80ms': '🇬🇧', 'en-1040ms': '🇬🇧', bg: '🇧🇬', cs: '🇨🇿', da: '🇩🇰', de: '🇩🇪',
 			el: '🇬🇷', es: '🇪🇸', fi: '🇫🇮', fr: '🇫🇷', hr: '🇭🇷', hu: '🇭🇺',
 			it: '🇮🇹', lt: '🇱🇹', lv: '🇱🇻', mt: '🇲🇹', nl: '🇳🇱', pl: '🇵🇱',
 			pt: '🇵🇹', ro: '🇷🇴', ru: '🇷🇺', sk: '🇸🇰', sl: '🇸🇮', sv: '🇸🇪', uk: '🇺🇦'
@@ -472,9 +480,17 @@
 		}
 
 		// Append new text directly to transcript (no deduplication - each message is unique)
-		if (message.text.trim()) {
-			console.log('[FASTCONFORMER-EN] Appending new text:', message.text.trim());
-			transcript += (transcript ? ' ' : '') + message.text.trim();
+		const newText = message.text.trim();
+		if (newText) {
+			console.log('[FASTCONFORMER-EN] Appending new text:', newText);
+			if (!transcript) {
+				transcript = newText;
+			} else if (newText.match(/^[.?!,;:]/)) {
+				// No space before punctuation
+				transcript += newText;
+			} else {
+				transcript += ' ' + newText;
+			}
 		}
 	}
 
@@ -632,8 +648,8 @@
 		// Delegate to appropriate handler based on model type
 		if (isOfflineModel(selectedLanguage)) {
 			handleServerMessage_offline(message);
-		} else if (selectedLanguage === 'en') {
-			// English uses fastconformer_en_1040ms which only returns final text
+		} else if (isFastconformerEnModel(selectedLanguage)) {
+			// English uses fastconformer which only returns final text
 			handleServerMessage_fastconformer_en(message);
 		} else {
 			// Estonian uses zipformer with cumulative streaming
