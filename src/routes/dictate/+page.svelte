@@ -450,13 +450,13 @@
 	}
 
 	// ═══════════════════════════════════════════════════════════════
-	// FASTCONFORMER EN HANDLERS (FINAL-ONLY, LIKE ZIPFORMER)
+	// FASTCONFORMER EN HANDLERS (CUMULATIVE - NEEDS DEDUPLICATION)
 	// ═══════════════════════════════════════════════════════════════
 
 	/**
-	 * Handle transcript messages for fastconformer_ctc_en_1040ms model.
-	 * This model returns only NEW text segments (not cumulative).
-	 * Each message is appended directly to transcript - no deduplication needed.
+	 * Handle transcript messages for fastconformer_ctc_en models.
+	 * These models now return CUMULATIVE text (full hypothesis each time), not deltas.
+	 * Need to deduplicate by tracking what we've already processed.
 	 */
 	function handleTranscript_fastconformer_en(message: any) {
 		console.log('[FASTCONFORMER-EN] Received transcript:', message.text, 'is_final:', message.is_final);
@@ -479,18 +479,53 @@
 			return;
 		}
 
-		// Append new text directly to transcript (no deduplication - each message is unique)
-		const newText = message.text.trim();
-		if (newText) {
-			console.log('[FASTCONFORMER-EN] Appending new text:', newText);
-			if (!transcript) {
-				transcript = newText;
-			} else if (newText.match(/^[.?!,;:]/)) {
-				// No space before punctuation
-				transcript += newText;
-			} else {
-				transcript += ' ' + newText;
+		const receivedText = message.text.trim();
+		if (!receivedText) {
+			console.log('[FASTCONFORMER-EN] Ignoring empty transcript');
+			return;
+		}
+
+		if (message.is_final) {
+			// For final results, extract only the new portion that hasn't been added to transcript yet
+			const currentFullText = transcript + (partialTranscript ? ' ' + partialTranscript : '');
+			console.log('[FASTCONFORMER-EN] Current full text:', currentFullText);
+			console.log('[FASTCONFORMER-EN] Received cumulative text:', receivedText);
+
+			// Find the new portion by removing what we already have
+			let newText = receivedText;
+			if (currentFullText && receivedText.startsWith(currentFullText)) {
+				newText = receivedText.substring(currentFullText.length).trim();
+				console.log('[FASTCONFORMER-EN] Extracted new text:', newText);
+			} else if (currentFullText && receivedText.includes(currentFullText)) {
+				// Handle cases where there might be slight variations in the middle
+				const index = receivedText.indexOf(currentFullText);
+				if (index !== -1) {
+					const beforeText = receivedText.substring(0, index).trim();
+					const afterText = receivedText.substring(index + currentFullText.length).trim();
+					newText = (beforeText + ' ' + afterText).trim();
+					console.log('[FASTCONFORMER-EN] Extracted new text (with variation):', newText);
+				}
 			}
+
+			// Add the new portion to transcript
+			if (newText) {
+				console.log('[FASTCONFORMER-EN] Adding new text to final transcript:', newText);
+				if (!transcript) {
+					transcript = newText;
+				} else if (newText.match(/^[.?!,;:]/)) {
+					// No space before punctuation
+					transcript += newText;
+				} else {
+					transcript += ' ' + newText;
+				}
+			} else {
+				console.log('[FASTCONFORMER-EN] No new text to add to final transcript');
+			}
+			partialTranscript = '';
+		} else {
+			// For partial results, replace with the full hypothesis (like streaming models)
+			console.log('[FASTCONFORMER-EN] Updating partial transcript with cumulative text:', receivedText);
+			partialTranscript = receivedText;
 		}
 	}
 
@@ -649,7 +684,7 @@
 		if (isOfflineModel(selectedLanguage)) {
 			handleServerMessage_offline(message);
 		} else if (isFastconformerEnModel(selectedLanguage)) {
-			// English uses fastconformer which only returns final text
+			// English uses fastconformer which now returns cumulative text (needs deduplication)
 			handleServerMessage_fastconformer_en(message);
 		} else {
 			// Estonian uses zipformer with cumulative streaming
