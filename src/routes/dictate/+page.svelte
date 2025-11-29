@@ -456,7 +456,7 @@
 	/**
 	 * Handle transcript messages for fastconformer_ctc_en models.
 	 * These models now return CUMULATIVE text (full hypothesis each time), not deltas.
-	 * Need to deduplicate by tracking what we've already processed.
+	 * Use same pattern as streaming models: replace partial, move to final on is_final.
 	 */
 	function handleTranscript_fastconformer_en(message: any) {
 		console.log('[FASTCONFORMER-EN] Received transcript:', message.text, 'is_final:', message.is_final);
@@ -479,53 +479,19 @@
 			return;
 		}
 
-		const receivedText = message.text.trim();
-		if (!receivedText) {
-			console.log('[FASTCONFORMER-EN] Ignoring empty transcript');
-			return;
-		}
-
 		if (message.is_final) {
-			// For final results, extract only the new portion that hasn't been added to transcript yet
-			const currentFullText = transcript + (partialTranscript ? ' ' + partialTranscript : '');
-			console.log('[FASTCONFORMER-EN] Current full text:', currentFullText);
-			console.log('[FASTCONFORMER-EN] Received cumulative text:', receivedText);
-
-			// Find the new portion by removing what we already have
-			let newText = receivedText;
-			if (currentFullText && receivedText.startsWith(currentFullText)) {
-				newText = receivedText.substring(currentFullText.length).trim();
-				console.log('[FASTCONFORMER-EN] Extracted new text:', newText);
-			} else if (currentFullText && receivedText.includes(currentFullText)) {
-				// Handle cases where there might be slight variations in the middle
-				const index = receivedText.indexOf(currentFullText);
-				if (index !== -1) {
-					const beforeText = receivedText.substring(0, index).trim();
-					const afterText = receivedText.substring(index + currentFullText.length).trim();
-					newText = (beforeText + ' ' + afterText).trim();
-					console.log('[FASTCONFORMER-EN] Extracted new text (with variation):', newText);
-				}
-			}
-
-			// Add the new portion to transcript
-			if (newText) {
-				console.log('[FASTCONFORMER-EN] Adding new text to final transcript:', newText);
-				if (!transcript) {
-					transcript = newText;
-				} else if (newText.match(/^[.?!,;:]/)) {
-					// No space before punctuation
-					transcript += newText;
-				} else {
-					transcript += ' ' + newText;
-				}
-			} else {
-				console.log('[FASTCONFORMER-EN] No new text to add to final transcript');
+			// For final results, add the current partial transcript to final transcript
+			// The received message contains the same cumulative text we already have in partial
+			if (partialTranscript.trim()) {
+				console.log('[FASTCONFORMER-EN] Moving partial to final transcript:', partialTranscript.trim());
+				transcript += (transcript ? ' ' : '') + partialTranscript.trim();
 			}
 			partialTranscript = '';
 		} else {
 			// For partial results, replace with the full hypothesis (like streaming models)
-			console.log('[FASTCONFORMER-EN] Updating partial transcript with cumulative text:', receivedText);
-			partialTranscript = receivedText;
+			// This shows the complete accumulated text so far
+			console.log('[FASTCONFORMER-EN] Updating partial transcript with cumulative text:', message.text.trim());
+			partialTranscript = message.text.trim();
 		}
 	}
 
