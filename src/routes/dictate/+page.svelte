@@ -112,8 +112,8 @@
 	 * Get the server language code for the selected language.
 	 */
 	function getServerLanguage(language: string): string {
-		if (language === 'en-80ms') return 'fastconformer_ctc_en_80ms';
-		if (language === 'en-1040ms') return 'fastconformer_ctc_en_1040ms';
+		if (language === 'en-80ms') return 'fastconformer_transducer_en_80ms';
+		if (language === 'en-1040ms') return 'fastconformer_transducer_en_1040ms';
 		if (isOfflineModel(language)) return 'parakeet_tdt_v3';
 		return language; // 'et' passed as-is
 	}
