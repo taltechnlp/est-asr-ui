@@ -122,7 +122,12 @@
     "fileTooLong": "File duration too long",
     "invalidLang": "Invalid language",
     "finnishUploadFailed": "Error processing the file",
-    "hardwareFailureWarning": "System is experiencing a hardware failure. New uploads currently do not progress or fail."
+    "hardwareFailureWarning": "System is experiencing a hardware failure. New uploads currently do not progress or fail.",
+    "storageUsed": "Storage",
+    "storageUsedPercent": "used",
+    "storageRemaining": "remaining",
+    "storageLimitExceeded": "Account storage limit (2GB) exceeded. Delete files to free up space.",
+    "storageLimitInfo": "Storage limit allows us to provide this service for free. Not intended for long-term storage - please download your transcriptions."
   },
   "me": {
     "title": "Account details | tekstiks.ee",

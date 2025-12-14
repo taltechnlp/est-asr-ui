@@ -122,7 +122,12 @@
         "fileTooLong": "Faili kestus on liiga pikk",
         "invalidLang": "Vale keel",
         "finnishUploadFailed": "Faili töötlemisel tekkis viga",
-        "hardwareFailureWarning": "Süsteemis on riistvararike. Uued üleslaadimised hetkel ebaõnnestuvad."
+        "hardwareFailureWarning": "Süsteemis on riistvararike. Uued üleslaadimised hetkel ebaõnnestuvad.",
+        "storageUsed": "Ruum",
+        "storageUsedPercent": "kasutatud",
+        "storageRemaining": "vaba",
+        "storageLimitExceeded": "Konto mahulimiit (2GB) on täis. Vabasta ruumi failide kustutamisega.",
+        "storageLimitInfo": "Mahulimiit võimaldab meil pakkuda seda teenust tasuta. Teenus pole mõeldud pikaajalise salvestuse jaoks - palun laadige transkriptsioonid alla."
     },
     "me": {
         "title": "Konto andmed | tekstiks.ee",

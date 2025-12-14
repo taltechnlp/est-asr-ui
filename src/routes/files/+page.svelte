@@ -7,6 +7,7 @@
 	import type { ActionResult } from '@sveltejs/kit';
 	import { applyAction, deserialize } from '$app/forms';
 	import type { PageProps } from './$types';
+	import StorageBar from '$lib/components/StorageBar.svelte';
 	let {  form, data }: PageProps = $props();
 
 	let error = $state('');
@@ -39,7 +40,7 @@
 	const printError = (errorText) => {
 		if (errorText === 'fileSizeLimit') {
 			return $_('files.fileSizeLimit');
-		} 
+		}
 		else if (errorText === 'fileTooLong') {
 			return $_('files.fileTooLong');
 		}
@@ -55,6 +56,9 @@
 		else if (errorText === 'invalidLang') {
 			return $_('files.invalidLang');
 		}
+		else if (errorText === 'storageLimitExceeded') {
+			return $_('files.storageLimitExceeded');
+		}
 		else {
 			return $_('files.uploadError');
 		}
@@ -63,15 +67,22 @@
 	async function uploadFile(event: SubmitEvent & { currentTarget: EventTarget & HTMLFormElement}) {
 		event.preventDefault();
 		error = '';
-		
+
 		// Get the form element
 		const form = event.target as HTMLFormElement;
 		const formData = new FormData(form);
-		
+
+		// Client-side storage check
+		const fileInput = formData.get('file') as File;
+		if (fileInput && data.storage && BigInt(fileInput.size) > BigInt(data.storage.remaining)) {
+			error = 'storageLimitExceeded';
+			return;
+		}
+
 		// Add additional form data
 		formData.append('notify', notify ? "yes" : "no");
 		formData.append('lang', selectedLanguage.text);
-		
+
 		loading = true;
 		const response = await fetch(form.action, {
 			method: 'POST',
@@ -111,6 +122,9 @@
 			}
 			else if (result.data.finnishUploadFailed) {
 				error = 'finnishUploadFailed';
+			}
+			else if (result.data.storageLimitExceeded) {
+				error = 'storageLimitExceeded';
 			}
 			applyAction(result);
 		}
@@ -171,8 +185,22 @@
 </div>
 {/if}
 <div class="grid w-full min-h-[100dvh] justify-center content-start grid-cols-[minmax(320px,_1280px)] overflow-x-auto bg-base-100">
-	<div class="flex justify-end max-w-screen-2xl">
-		<button class="btn btn-primary gap-2 mt-5 mb-2 modal-button right" onclick={() => eval(`upload_modal.showModal()`)}>
+	<div class="flex justify-between items-center max-w-screen-2xl mt-4 px-2">
+		{#if data.storage}
+			<StorageBar
+				used={data.storage.used}
+				limit={data.storage.limit}
+				remaining={data.storage.remaining}
+				usedPercent={data.storage.usedPercent}
+			/>
+		{:else}
+			<div></div>
+		{/if}
+		<button
+			class="btn btn-primary btn-sm gap-2"
+			onclick={() => eval(`upload_modal.showModal()`)}
+			disabled={data.storage?.usedPercent >= 100}
+		>
 			{$_('files.uploadButton')}
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
