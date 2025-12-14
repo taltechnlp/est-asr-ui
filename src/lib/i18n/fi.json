@@ -122,7 +122,12 @@
         "fileTooLong": "Tiedoston kesto on liian pitkä",
         "invalidLang": "Valea kieli",
         "finnishUploadFailed": "Tiedoston käsittelyssä tapahtui virhe",
-        "hardwareFailureWarning": "Järjestelmä toipuu laitteistoviasta. Uudet lataukset eivät tällä hetkellä etene tai epäonnistu."
+        "hardwareFailureWarning": "Järjestelmä toipuu laitteistoviasta. Uudet lataukset eivät tällä hetkellä etene tai epäonnistu.",
+        "storageUsed": "Tila",
+        "storageUsedPercent": "käytetty",
+        "storageRemaining": "jäljellä",
+        "storageLimitExceeded": "Tilin tallennusraja (2GB) ylitetty. Poista tiedostoja vapauttaaksesi tilaa.",
+        "storageLimitInfo": "Tallennusraja mahdollistaa tämän palvelun tarjoamisen ilmaiseksi. Ei tarkoitettu pitkäaikaiseen tallennukseen - lataa transkriptiot."
     },
     "me": {
         "title": "Käyttäjätiedot | tekstiks.ee",

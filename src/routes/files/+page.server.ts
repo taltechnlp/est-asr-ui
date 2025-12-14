@@ -7,7 +7,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import { SECRET_UPLOAD_DIR, RESULTS_DIR } from '$env/static/private';
 import { existsSync, mkdirSync, statSync } from 'fs';
 import { promises as fs } from 'fs';
-import { uploadToFinnishAsr, UPLOAD_LIMIT } from "./upload";
+import { uploadToFinnishAsr, UPLOAD_LIMIT, ACCOUNT_STORAGE_LIMIT } from "./upload";
 import path from "path";
 // import { logger } from '$lib/logging/client';
 import { getAudioDurationInSeconds } from "get-audio-duration";
@@ -21,6 +21,23 @@ export const load: PageServerLoad = async ({ locals, fetch, depends }) => {
     if (!session || !session.user.id) {
         redirect(307, "/signin");
     }
+
+    // Fetch storage usage
+    const usageResult = await prisma.file.aggregate({
+        where: { uploader: session.user.id },
+        _sum: { fileSize: true }
+    });
+    const used = usageResult._sum.fileSize ?? 0n;
+    const limit = ACCOUNT_STORAGE_LIMIT;
+    const remaining = limit - used > 0n ? limit - used : 0n;
+    const usedPercent = Number((used * 100n) / limit);
+    const storage = {
+        used: used.toString(),
+        limit: limit.toString(),
+        remaining: remaining.toString(),
+        usedPercent
+    };
+
     const result = await fetch('/api/files');
     try {
         let files = await result.json();
@@ -40,15 +57,15 @@ export const load: PageServerLoad = async ({ locals, fetch, depends }) => {
                         progress: file.progress,
                         oldSystem: file.path.includes('/mnt/volume1/')
                     }
-                    
+
                 }
             )
         }
-        return { files, session };
+        return { files, session, storage };
     }
     catch (error) {
         console.log("Retrieveing user files from API failed", error);
-        return { files: [], session };
+        return { files: [], session, storage };
     }
 }
 
@@ -73,6 +90,17 @@ export const actions: Actions = {
         if (file.size > UPLOAD_LIMIT) {
             console.error("File too large");
             return fail(400, { uploadLimit: true });
+        }
+        // Check account storage limit
+        const usageResult = await prisma.file.aggregate({
+            where: { uploader: session.user.id },
+            _sum: { fileSize: true }
+        });
+        const currentUsage = usageResult._sum.fileSize ?? 0n;
+        const fileSize = BigInt(file.size);
+        if (currentUsage + fileSize > ACCOUNT_STORAGE_LIMIT) {
+            console.error("Account storage limit exceeded");
+            return fail(400, { storageLimitExceeded: true });
         }
         let id: string = uuidv4()
         id = id.replace(/[-]/gi, '').substr(0, 30)
@@ -149,6 +177,7 @@ export const actions: Actions = {
                 data: {
                     ...fileData,
                     duration: duration,
+                    fileSize: fileSize,
                     initialTranscriptionPath: resultPath,
                     notified: false,
                     notify: notify,
@@ -210,6 +239,7 @@ export const actions: Actions = {
                 data: {
                     ...fileData,
                     duration: duration,
+                    fileSize: fileSize,
                     initialTranscriptionPath: resultPath,
                     notified: false,
                     notify: notify,

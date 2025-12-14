@@ -16,6 +16,7 @@ model File {
   filename                 String    @db.Text()
   language                 String    @db.Text()
   duration                 Decimal?
+  fileSize                 BigInt?
   uploadedAt               DateTime?
   mimetype                 String    @db.Text()
   encoding                 String    @db.Text()
