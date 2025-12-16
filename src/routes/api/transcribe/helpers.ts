@@ -60,50 +60,22 @@ export const runNextflow = (
         cwd: pipelineDir,
     }); */
 
-    const nextflowProcess = spawn(nextflowPath, parameters, { 
+    const nextflowProcess = spawn(nextflowPath, parameters, {
         detached: true,
         stdio: 'ignore',
         cwd: pipelineDir
     });
-    /* nextflowProcess.stdout.on('data', async (chunk) => {
-        await writeFile("nextflow_log.txt", chunk).catch(e => {
-            console.log("Writing to log file failed!")
-        });
-    }) */
-    /* nextflowProcess.stdout.on('data', (data) => {
-        console.log(`stdout: ${data}`);
-    }); */
 
-    /* nextflowProcess.on('exit', async function (code) {
-        let failed = false;
-        if (code === 1 || code == 2) {
-            failed = true;
+    // Handle spawn errors (e.g., nextflow not found) to prevent server crash
+    nextflowProcess.on('error', (err) => {
+        console.error(`[NEXTFLOW] Failed to start process: ${err.message}`);
+        if (err.code === 'ENOENT') {
+            console.error(`[NEXTFLOW] Executable not found at path: ${nextflowPath}`);
         }
-        console.log('Nextflow process', workflowName, 'exited with code ', code, "failed", failed);
-        if (fileId && !failed) {
-            await prisma.file.update({
-            where: {
-                id: fileId
-            },
-            data: {
-                state: "READY",
-            }
-            }).then(()=>{
-                console.log("Completed workflow", workflowName)})
-            .catch(e => console.log("Failed to update workflow to completed in the DB", workflowName, e))
-        } else if (fileId && failed) {
-            await prisma.file.update({
-                where: {
-                    id: fileId
-                },
-                data: {
-                    state: "PROCESSING_ERROR",
-                }
-                }).then(()=>{
-                    console.log("Workflow failed", workflowName)})
-                .catch(e => console.log("Failed to update workflow to completed in the DB", workflowName, e))
-            await unlink(filePath);
-        }
-    }) */
+    });
+
+    // Unref to allow the parent process to exit independently
+    nextflowProcess.unref();
+
     return true;
   };
