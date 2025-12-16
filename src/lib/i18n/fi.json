@@ -127,7 +127,15 @@
         "storageUsedPercent": "käytetty",
         "storageRemaining": "jäljellä",
         "storageLimitExceeded": "Tilin tallennusraja (2GB) ylitetty. Poista tiedostoja vapauttaaksesi tilaa.",
-        "storageLimitInfo": "Tallennusraja mahdollistaa tämän palvelun tarjoamisen ilmaiseksi. Ei tarkoitettu pitkäaikaiseen tallennukseen - lataa transkriptiot."
+        "storageLimitInfo": "Tallennusraja mahdollistaa tämän palvelun tarjoamisen ilmaiseksi. Ei tarkoitettu pitkäaikaiseen tallennukseen - lataa transkriptiot.",
+        "selectAll": "Valitse kaikki",
+        "deleteSelected": "Poista valitut",
+        "deleteMultiple": "Poista useita tiedostoja",
+        "deleteMultipleWarning": "Varoitus! Tämä poistaa lopullisesti {count} tiedostoa ja niiden transkriptiot! Oletko varma, että haluat jatkaa?",
+        "deleteAll": "Poista kaikki",
+        "deleting": "Poistetaan...",
+        "storageOverLimit": "Yli rajan!",
+        "storageLimitWarning": "Olet ylittänyt 2GB tallennusrajan. Tämä raja tulee olemaan tiukasti voimassa tulevaisuudessa. Poista tarpeettomat tiedostot."
     },
     "me": {
         "title": "Käyttäjätiedot | tekstiks.ee",

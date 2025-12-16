@@ -20,6 +20,10 @@
 	let selectedLanguage = languageChoices[0];
 	let notify = true;
 
+	let selectedFiles: Set<string> = $state(new Set());
+	let selectAll = $state(false);
+	let bulkDeleting = $state(false);
+
 	let delFileId;
 	const delFile = async (fileId) => {
 		const response = await fetch('/api/files/' + fileId, {
@@ -36,6 +40,42 @@
 		}
 		return;
 	};
+
+	function toggleSelectAll() {
+		if (selectAll) {
+			selectedFiles = new Set();
+			selectAll = false;
+		} else {
+			selectedFiles = new Set(data.files.map(f => f.id));
+			selectAll = true;
+		}
+	}
+
+	function toggleFileSelection(fileId: string, event: Event) {
+		event.stopPropagation();
+		const newSet = new Set(selectedFiles);
+		if (newSet.has(fileId)) {
+			newSet.delete(fileId);
+		} else {
+			newSet.add(fileId);
+		}
+		selectedFiles = newSet;
+		selectAll = data.files.length > 0 && newSet.size === data.files.length;
+	}
+
+	async function deleteSelectedFiles() {
+		bulkDeleting = true;
+		const fileIds = Array.from(selectedFiles);
+		for (const fileId of fileIds) {
+			await fetch('/api/files/' + fileId, { method: 'DELETE' })
+				.catch(e => console.error("Failed to delete file", fileId, e));
+		}
+		(document.getElementById('bulk-del-modal') as HTMLInputElement).checked = false;
+		selectedFiles = new Set();
+		selectAll = false;
+		bulkDeleting = false;
+		await invalidateAll();
+	}
 
 	const printError = (errorText) => {
 		if (errorText === 'fileSizeLimit') {
@@ -72,12 +112,12 @@
 		const form = event.target as HTMLFormElement;
 		const formData = new FormData(form);
 
-		// Client-side storage check
-		const fileInput = formData.get('file') as File;
-		if (fileInput && data.storage && BigInt(fileInput.size) > BigInt(data.storage.remaining)) {
-			error = 'storageLimitExceeded';
-			return;
-		}
+		// Client-side storage check disabled temporarily - allow exceeding limit
+		// const fileInput = formData.get('file') as File;
+		// if (fileInput && data.storage && BigInt(fileInput.size) > BigInt(data.storage.remaining)) {
+		// 	error = 'storageLimitExceeded';
+		// 	return;
+		// }
 
 		// Add additional form data
 		formData.append('notify', notify ? "yes" : "no");
@@ -196,12 +236,20 @@
 		{:else}
 			<div></div>
 		{/if}
-		<button
-			class="btn btn-primary btn-sm gap-2"
-			onclick={() => eval(`upload_modal.showModal()`)}
-			disabled={data.storage?.usedPercent >= 100}
-		>
-			{$_('files.uploadButton')}
+		<div class="flex gap-2">
+			{#if selectedFiles.size > 0}
+				<button
+					class="btn btn-error btn-sm gap-2"
+					onclick={() => (document.getElementById('bulk-del-modal') as HTMLInputElement).checked = true}
+				>
+					{$_('files.deleteSelected')} ({selectedFiles.size})
+				</button>
+			{/if}
+			<button
+				class="btn btn-primary btn-sm gap-2"
+				onclick={() => eval(`upload_modal.showModal()`)}
+			>
+				{$_('files.uploadButton')}
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
 				id="Outline"
@@ -215,11 +263,21 @@
 					d="M22,17v4a1,1,0,0,1-1,1H3a1,1,0,0,1-1-1V17a1,1,0,0,0-1-1H1a1,1,0,0,0-1,1v4a3,3,0,0,0,3,3H21a3,3,0,0,0,3-3V17a1,1,0,0,0-1-1h0A1,1,0,0,0,22,17Z"
 				/></svg
 			>
-		</button>
+			</button>
+		</div>
 	</div>
 	<table class="table table-compact max-w-screen-2xl">
 		<thead>
 			<tr>
+				<th>
+					<input
+						type="checkbox"
+						class="checkbox checkbox-sm"
+						checked={selectAll}
+						onchange={toggleSelectAll}
+						disabled={!data.files || data.files.length === 0}
+					/>
+				</th>
 				<th></th>
 				<th>{$_('files.filename')}</th>
 				<th>{$_('files.status')}</th>
@@ -234,6 +292,14 @@
 						class="{file.state == 'READY' ? 'cursor-pointer' : ''} hover"
 						onclick={() => openFile(file.id, file.state, file.oldSystem)}
 					>
+						<td>
+							<input
+								type="checkbox"
+								class="checkbox checkbox-sm"
+								checked={selectedFiles.has(file.id)}
+								onchange={(e) => toggleFileSelection(file.id, e)}
+							/>
+						</td>
 						<th>{index + 1}</th>
 						<td class="">
 							<p class="break-words whitespace-normal">
@@ -295,9 +361,9 @@
 					</tr>
 				{/each}
 			{:else if error}
-				<tr><td colspan="5" class="text-center">{error}</td></tr>
+				<tr><td colspan="6" class="text-center">{error}</td></tr>
 			{:else}
-				<tr><td colspan="5" class="text-center">{$_('files.noFiles')}</td></tr>
+				<tr><td colspan="6" class="text-center">{$_('files.noFiles')}</td></tr>
 			{/if}
 		</tbody>
 	</table>
@@ -308,6 +374,14 @@
 			<form method="dialog">
 				<button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" aria-label={$_('files.close')}>✕</button>
 			  </form>
+			{#if data.storage?.usedPercent >= 100}
+				<div class="alert alert-warning mb-4">
+					<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+					</svg>
+					<span>{$_('files.storageLimitWarning')}</span>
+				</div>
+			{/if}
 			<form method="POST" enctype="multipart/form-data" onsubmit={uploadFile}>
 				<fieldset disabled={loading} aria-busy={loading} class="fieldset w-full bg-base-200 border border-base-300 p-4 rounded-box">
 					{#if form?.uploadLimit}<p class="error">File is too large!</p>{/if}
@@ -395,6 +469,39 @@
 				<button type="button" class="btn btn-outline" onclick={() => (document.getElementById('del-file-modal') as HTMLInputElement).checked = false}>{$_('files.cancel')}</button>
 				<button type="button" class="btn" onclick={() => delFile(delFileId)} onkeydown={(e) => e.key === 'Enter' && delFile(delFileId)}
 					>{$_('files.delete')}</button>
+			</div>
+		</label>
+	</label>
+
+	<input type="checkbox" id="bulk-del-modal" class="modal-toggle" />
+	<label for="bulk-del-modal" class="modal cursor-pointer">
+		<label class="modal-box relative" for="">
+			<h3 class="font-bold text-lg">{$_('files.deleteMultiple')}</h3>
+			<p class="py-4">
+				{$_('files.deleteMultipleWarning', { values: { count: selectedFiles.size } })}
+			</p>
+			<div class="modal-action">
+				<button
+					type="button"
+					class="btn btn-outline"
+					onclick={() => (document.getElementById('bulk-del-modal') as HTMLInputElement).checked = false}
+					disabled={bulkDeleting}
+				>
+					{$_('files.cancel')}
+				</button>
+				<button
+					type="button"
+					class="btn btn-error"
+					onclick={deleteSelectedFiles}
+					disabled={bulkDeleting}
+				>
+					{#if bulkDeleting}
+						<span class="loading loading-spinner loading-sm"></span>
+						{$_('files.deleting')}
+					{:else}
+						{$_('files.deleteAll')}
+					{/if}
+				</button>
 			</div>
 		</label>
 	</label>

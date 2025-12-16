@@ -22,15 +22,15 @@ export const load: PageServerLoad = async ({ locals, fetch, depends }) => {
         redirect(307, "/signin");
     }
 
-    // Fetch storage usage
+    // Fetch storage usage (allowing to exceed limit temporarily)
     const usageResult = await prisma.file.aggregate({
         where: { uploader: session.user.id },
         _sum: { fileSize: true }
     });
     const used = usageResult._sum.fileSize ?? 0n;
     const limit = ACCOUNT_STORAGE_LIMIT;
-    const remaining = limit - used > 0n ? limit - used : 0n;
-    const usedPercent = Number((used * 100n) / limit);
+    const remaining = limit - used;  // Can be negative when over limit
+    const usedPercent = Number((used * 100n) / limit);  // Can exceed 100
     const storage = {
         used: used.toString(),
         limit: limit.toString(),
@@ -91,7 +91,7 @@ export const actions: Actions = {
             console.error("File too large");
             return fail(400, { uploadLimit: true });
         }
-        // Check account storage limit
+        // Check account storage limit (temporarily allowing to exceed)
         const usageResult = await prisma.file.aggregate({
             where: { uploader: session.user.id },
             _sum: { fileSize: true }
@@ -99,8 +99,9 @@ export const actions: Actions = {
         const currentUsage = usageResult._sum.fileSize ?? 0n;
         const fileSize = BigInt(file.size);
         if (currentUsage + fileSize > ACCOUNT_STORAGE_LIMIT) {
-            console.error("Account storage limit exceeded");
-            return fail(400, { storageLimitExceeded: true });
+            console.warn("Account storage limit exceeded - allowing temporarily", session.user.id);
+            // TODO: Re-enable strict enforcement later
+            // return fail(400, { storageLimitExceeded: true });
         }
         let id: string = uuidv4()
         id = id.replace(/[-]/gi, '').substr(0, 30)

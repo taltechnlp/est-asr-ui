@@ -25,11 +25,19 @@
     }
 
     const badgeClass = $derived(
-        usedPercent > 90
+        usedPercent >= 100
             ? 'badge-error'
-            : usedPercent > 70
-              ? 'badge-warning'
-              : 'badge-ghost'
+            : usedPercent > 90
+                ? 'badge-error'
+                : usedPercent > 70
+                    ? 'badge-warning'
+                    : 'badge-ghost'
+    );
+
+    const progressClass = $derived(
+        usedPercent >= 100
+            ? 'progress-error'
+            : 'progress-primary'
     );
 </script>
 
@@ -37,11 +45,14 @@
     <span class="text-base-content/60">{$_('files.storageUsed')}:</span>
     <div class="flex items-center gap-2">
         <progress
-            class="progress progress-primary w-32 h-2"
-            value={usedPercent}
+            class="progress {progressClass} w-32 h-2"
+            value={Math.min(usedPercent, 100)}
             max="100"
         ></progress>
         <span class="badge {badgeClass} badge-sm">{formatBytes(used)} / {formatBytes(limit)}</span>
+        {#if usedPercent >= 100}
+            <span class="text-error text-xs font-semibold">{$_('files.storageOverLimit')}</span>
+        {/if}
         <div class="tooltip tooltip-bottom" data-tip={$_('files.storageLimitInfo')}>
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="w-4 h-4 stroke-current text-base-content/50 cursor-help">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
