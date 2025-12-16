@@ -292,7 +292,7 @@
 						class="{file.state == 'READY' ? 'cursor-pointer' : ''} hover"
 						onclick={() => openFile(file.id, file.state, file.oldSystem)}
 					>
-						<td>
+						<td class="cursor-default" onclick={(e) => e.stopPropagation()}>
 							<input
 								type="checkbox"
 								class="checkbox checkbox-sm"
@@ -300,7 +300,7 @@
 								onchange={(e) => toggleFileSelection(file.id, e)}
 							/>
 						</td>
-						<th>{index + 1}</th>
+						<th class="cursor-default" onclick={(e) => e.stopPropagation()}>{index + 1}</th>
 						<td class="">
 							<p class="break-words whitespace-normal">
 								{file.filename}
