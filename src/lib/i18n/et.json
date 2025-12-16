@@ -127,7 +127,15 @@
         "storageUsedPercent": "kasutatud",
         "storageRemaining": "vaba",
         "storageLimitExceeded": "Konto mahulimiit (2GB) on täis. Vabasta ruumi failide kustutamisega.",
-        "storageLimitInfo": "Mahulimiit võimaldab meil pakkuda seda teenust tasuta. Teenus pole mõeldud pikaajalise salvestuse jaoks - palun laadige transkriptsioonid alla."
+        "storageLimitInfo": "Mahulimiit võimaldab meil pakkuda seda teenust tasuta. Teenus pole mõeldud pikaajalise salvestuse jaoks - palun laadige transkriptsioonid alla.",
+        "selectAll": "Vali kõik",
+        "deleteSelected": "Kustuta valitud",
+        "deleteMultiple": "Mitme faili kustutamine",
+        "deleteMultipleWarning": "Hoiatus! See kustutab lõplikult {count} faili ja nende transkriptsioonid! Kas oled kindel, et soovid jätkata?",
+        "deleteAll": "Kustuta kõik",
+        "deleting": "Kustutamine...",
+        "storageOverLimit": "Üle limiidi!",
+        "storageLimitWarning": "Olete ületanud 2GB mahulimiidi. Tulevikus rakendatakse seda limiiti rangelt. Palun kustutage mittevajalikud failid."
     },
     "me": {
         "title": "Konto andmed | tekstiks.ee",

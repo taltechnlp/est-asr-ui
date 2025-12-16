@@ -127,7 +127,15 @@
     "storageUsedPercent": "used",
     "storageRemaining": "remaining",
     "storageLimitExceeded": "Account storage limit (2GB) exceeded. Delete files to free up space.",
-    "storageLimitInfo": "Storage limit allows us to provide this service for free. Not intended for long-term storage - please download your transcriptions."
+    "storageLimitInfo": "Storage limit allows us to provide this service for free. Not intended for long-term storage - please download your transcriptions.",
+    "selectAll": "Select all",
+    "deleteSelected": "Delete Selected",
+    "deleteMultiple": "Delete multiple files",
+    "deleteMultipleWarning": "Warning! This will permanently delete {count} files and their transcriptions! Are you sure you want to proceed?",
+    "deleteAll": "Delete all",
+    "deleting": "Deleting...",
+    "storageOverLimit": "Over limit!",
+    "storageLimitWarning": "You have exceeded the 2GB storage limit. This limit will be strictly enforced in the future. Please delete unnecessary files."
   },
   "me": {
     "title": "Account details | tekstiks.ee",
