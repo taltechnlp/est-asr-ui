@@ -2,6 +2,7 @@ import type { Handle, HandleServerError } from '@sveltejs/kit';
 import { sequence } from "@sveltejs/kit/hooks";
 import { redirect } from '@sveltejs/kit';
 import { auth } from "$lib/auth";
+import { prisma } from "$lib/db/client";
 
 // Create Better Auth handle that also provides locals.auth() compatibility
 const authHandle: Handle = async ({ event, resolve }) => {
@@ -34,12 +35,24 @@ const authHandle: Handle = async ({ event, resolve }) => {
 
 					// Validate that it has the expected structure and is logged in
 					if (sessionData.loggedIn && sessionData.userId && sessionData.email) {
+						// Validate user exists in database
+						const user = await prisma.user.findUnique({
+							where: { id: sessionData.userId },
+							select: { id: true, email: true, name: true }
+						});
+
+						if (!user) {
+							// User doesn't exist, remove invalid cookie
+							event.cookies.delete('session', { path: '/' });
+							return null;
+						}
+
 						return {
 							user: {
-								id: sessionData.userId,
-								email: sessionData.email,
-								name: sessionData.name,
-								userId: sessionData.userId // Add userId for compatibility
+								id: user.id,
+								email: user.email,
+								name: user.name,
+								userId: user.id // Add userId for compatibility
 							},
 							expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
 						};
