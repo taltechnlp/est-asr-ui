@@ -43,7 +43,8 @@ export const load = (async ({ locals, fetch }) => {
             filename: true,
             state: true,
             uploadedAt: true,
-            path: true
+            path: true,
+            uploader: true
         },
         orderBy: {
             uploadedAt: 'desc'
@@ -71,7 +72,8 @@ export const load = (async ({ locals, fetch }) => {
                 continue; // Skip to the next file
             }
 
-            const resultDir = join(RESULTS_DIR, session.user.id, newId);
+            // Use the file owner's ID, not the admin's session ID
+            const resultDir = join(RESULTS_DIR, file.uploader, newId);
             const resultPath = join(resultDir, "result.json");
 
             try {
@@ -199,7 +201,8 @@ export const actions = {
         if (!existsSync(file.path)) {
             return { success: false };
         }
-        const resultDir = join(RESULTS_DIR, session.user.id, newId);
+        // Use the file owner's ID, not the admin's session ID
+        const resultDir = join(RESULTS_DIR, file.uploader, newId);
         const resultPath = join(resultDir, "result.json");
         // Replace the externalId with the new id
         await prisma.file.update({

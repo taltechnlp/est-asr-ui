@@ -1,5 +1,6 @@
 import { spawn, execFile } from "child_process";
 import { existsSync, mkdirSync} from 'fs';
+import { join } from 'path';
 
 // Escape glob metacharacters in file path for Nextflow
 const escapeGlobPattern = (path: string): string => {
@@ -23,10 +24,14 @@ export const runNextflow = (
     // Escape glob metacharacters in the file path
     const escapedFilePath = escapeGlobPattern(filePath);
 
+    const workDir = join(pipelineDir, 'work', workflowName);
+
     let parameters = [
         "-bg",
         "run",
       pipelineDir + '/transcribe.nf',
+      "-work-dir",
+      workDir,
       "-profile",
       nextflowProfile,
       "-name",
