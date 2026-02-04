@@ -12,7 +12,7 @@
 
 	let error = $state('');
 	let loading = $state(false);
-	let upload: null | FileList = $state(null); 
+	let upload: null | FileList = $state(null);
 	let languageChoices = [
 		{ id: 0, text: 'estonian' },
 		{ id: 1, text: 'finnish' }
@@ -21,7 +21,7 @@
 	let notify = true;
 
 	let selectedFiles: Set<string> = $state(new Set());
-	let selectAll = $state(false);
+	let selectAll = $derived(data.files && data.files.length > 0 && selectedFiles.size === data.files.length);
 	let bulkDeleting = $state(false);
 
 	let delFileId;
@@ -42,12 +42,10 @@
 	};
 
 	function toggleSelectAll() {
-		if (selectAll) {
+		if (selectedFiles.size === data.files.length) {
 			selectedFiles = new Set();
-			selectAll = false;
 		} else {
 			selectedFiles = new Set(data.files.map(f => f.id));
-			selectAll = true;
 		}
 	}
 
@@ -60,7 +58,6 @@
 			newSet.add(fileId);
 		}
 		selectedFiles = newSet;
-		selectAll = data.files.length > 0 && newSet.size === data.files.length;
 	}
 
 	async function deleteSelectedFiles() {
@@ -72,7 +69,6 @@
 		}
 		(document.getElementById('bulk-del-modal') as HTMLInputElement).checked = false;
 		selectedFiles = new Set();
-		selectAll = false;
 		bulkDeleting = false;
 		await invalidateAll();
 	}
@@ -315,7 +311,7 @@
 								<div class="badge badge-md badge-error pl-2 pr-2">{$_('files.statusError')}</div>
 							{:else if file.state == 'PROCESSING'}
 								<div class="badge badge-md badge-accent pl-2 pr-2">
-									{$_('files.statusProcessing')} 
+									{$_('files.statusProcessing')}
 								</div>
 								{#if file.progress >= 0}
 									{` ${file.progress}%`}
@@ -341,7 +337,7 @@
 							{:else if file.state == 'READY'}
 								<button class="btn btn-outline btn-xs">{$_('files.openButton')}</button>
 							{/if}
-							
+
 							<button
 								class="btn btn-outline btn-xs"
 								onclick={(e) => {
