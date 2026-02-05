@@ -1,16 +1,17 @@
 <script lang="ts">
 	import { _ } from 'svelte-i18n';
-    import Input from '$lib/components/Input.svelte';
+	import Input from '$lib/components/Input.svelte';
 	import Button from '$lib/components/Button.svelte';
-    import type { PageData, ActionData } from './$types'
+	import type { PageData, ActionData } from './$types';
 
-    interface Props {
-        data: PageData;
-        form: ActionData;
-    }
+	interface Props {
+		data: PageData;
+		form: ActionData;
+	}
 
-    let { data, form }: Props = $props();
-    let email = $state(data.email ? data.email : "");
+	let { data, form }: Props = $props();
+	// svelte-ignore state_referenced_locally
+	let email = $state(data.email || '');
 	const printError = (error) => {
 		return $_('passwordReset.error');
 	};
@@ -23,19 +24,19 @@
 <h1 class="max-w-xl mx-auto mt-8 text-2xl font-extrabold">{$_('passwordReset.header')}</h1>
 <div class="max-w-xl mx-auto mt-8">
 	<form method="POST" class="space-y-5">
-        <Input
-            label={$_('signin.email')}
-            id="email"
-            name="email"
-            type="email"
-            bind:value={email}
-            required
-        />
-        <Button type="submit">{$_('passwordReset.submit')}</Button>
-    </form>
-    {#if form?.doesNotExist}
-        <p class="mt-3 text-red-500 text-center font-semibold">{printError("reset.error")}</p>
-    {:else if form?.success}
-    <p class="mt-3 text-center font-semibold">{$_('passwordReset.success')}</p>
-    {/if}
+		<Input
+			label={$_('signin.email')}
+			id="email"
+			name="email"
+			type="email"
+			bind:value={email}
+			required
+		/>
+		<Button type="submit">{$_('passwordReset.submit')}</Button>
+	</form>
+	{#if form?.doesNotExist}
+		<p class="mt-3 text-red-500 text-center font-semibold">{printError('reset.error')}</p>
+	{:else if form?.success}
+		<p class="mt-3 text-center font-semibold">{$_('passwordReset.success')}</p>
+	{/if}
 </div>

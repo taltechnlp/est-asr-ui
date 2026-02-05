@@ -17,39 +17,47 @@
 							</td>
 							<td><kbd class="kbd kbd-md">Tab</kbd></td>
 						</tr>
-                        <tr>
+						<tr>
 							<td>
 								{$_('editor.hotkeys.rewind')}
-							<td><kbd class="kbd kbd-md">Shift</kbd>
-                            +
-                            <kbd class="kbd kbd-md">Tab</kbd>
-                            </td>
+							</td>
+							<td
+								><kbd class="kbd kbd-md">Shift</kbd>
+								+
+								<kbd class="kbd kbd-md">Tab</kbd>
+							</td>
 						</tr>
-                        <tr>
+						<tr>
 							<td>
 								{$_('editor.hotkeys.skipForward')}
 							</td>
-							<td><kbd class="kbd kbd-md">Alt</kbd>
-                            +
-                            <kbd class="kbd kbd-md">Tab</kbd></td>
+							<td
+								><kbd class="kbd kbd-md">Alt</kbd>
+								+
+								<kbd class="kbd kbd-md">Tab</kbd></td
+							>
 						</tr>
-                        <tr>
+						<tr>
 							<td>
 								{$_('file.toolbarUndo')}
 							</td>
-							<td><kbd class="kbd kbd-md">Control</kbd>
-                            +
-                            <kbd class="kbd kbd-md">Z</kbd></td>
+							<td
+								><kbd class="kbd kbd-md">Control</kbd>
+								+
+								<kbd class="kbd kbd-md">Z</kbd></td
+							>
 						</tr>
-                        <tr>
+						<tr>
 							<td>
 								{$_('file.toolbarRedo')}
 							</td>
-							<td><kbd class="kbd kbd-md">Control</kbd>
-                            +
-                            <kbd class="kbd kbd-md">Y</kbd></td>
+							<td
+								><kbd class="kbd kbd-md">Control</kbd>
+								+
+								<kbd class="kbd kbd-md">Y</kbd></td
+							>
 						</tr>
-                        <tr>
+						<tr>
 							<td>
 								{$_('editor.hotkeys.splitParagraph')}
 							</td>
