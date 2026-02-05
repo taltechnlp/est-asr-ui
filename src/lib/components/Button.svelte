@@ -1,6 +1,6 @@
 <script lang="ts">
 	interface Props {
-		type?: string;
+		type?: 'button' | 'reset' | 'submit';
 		loading?: boolean;
 		disabled?: boolean;
 		children?: import('svelte').Snippet;

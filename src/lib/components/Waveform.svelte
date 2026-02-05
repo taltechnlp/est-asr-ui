@@ -52,7 +52,7 @@
 			i += 1;
 		}
 	});
-	let names = $state();
+	let names: any[] = $state([]);
 	run(() => {
 		if ($waveform && $waveform.segments) {
 				$waveform.segments.removeAll();
@@ -83,7 +83,7 @@
 		let colorAccent = styles.getPropertyValue("--color-accent");
 		let colorBase = styles.getPropertyValue("--color-base-100");
 		let colorNeutral = styles.getPropertyValue("--color-neutral");
-		
+
 		const audioContext = new AudioContext();
 		// console.log(names)
 		const options: PeaksOptions = {
@@ -99,7 +99,7 @@
 
 					// Color for segment end marker handles
 					endMarkerColor: colorAccent,
-					
+
 					// Segment waveform color
 					waveformColor: colorAccent,
 
@@ -159,7 +159,7 @@
 				segmentOptions: {
 					overlayOpacity: 0.1,
 				}
-				
+
 			},
 			overview: {
 				container: document.getElementById('overview-container'),
@@ -192,7 +192,7 @@
 				labelText: "Another point"
 				}
 			], */
-			
+
 		};
 
 		Peaks.init(options, function(err, peaks) {
@@ -246,7 +246,7 @@
 				playingTime.set(time);
 			});
 		});
-		
+
 
 		// Subscribe to playback events
 		let audio = document.getElementById("audio") as HTMLMediaElement;
@@ -312,14 +312,14 @@
 	beforeNavigate( () => {
 		// Removing this would cause a crash during away navigation
 		unsubscribeSpeakerNames();
-	}) 
+	})
 
 	onDestroy(() => {
 		unsubscribeSpeakerNames();
 		if ($waveform) {
 			$waveform.destroy();
 		}
-		waveform.set(null); 
+		waveform.set(null);
 		words.set([]);
 		playingTime.set(0);
 	});

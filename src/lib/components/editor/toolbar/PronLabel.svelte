@@ -8,7 +8,7 @@
 	import { v4 as uuidv4 } from 'uuid';
 	let { editor } = $props();
 	let label: string = $state('');
-	let url = $state();
+	let url: boolean = $state(false);
 	let dropdown = $state();
 	let test;
 	run(() => {

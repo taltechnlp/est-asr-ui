@@ -11,7 +11,7 @@
 		{ id: 3, text: `SRT (.srt)` },
 		{ id: 4, text: `TRS (.trs)` }
 	];
-	let format = $state();
+	let format: { id: number; text: string } = $state(undefined);
     let includeNames = $state(true);
     let includeTimeCodes = $state(false);
     let isGenerating = $state(false);

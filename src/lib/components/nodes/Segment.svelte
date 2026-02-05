@@ -56,7 +56,7 @@
 	let newSpeaker = $state('');
 	let editSpeakerId = $state('');
 	let editingValue = $state('');
-	let names = $state();
+	let names: Array<Speaker> = $state([]);
 	speakerNames.subscribe((ns) => {
 		// Update dropdown list where for each id one name is shown only
 		names = ns.reduce((acc, curr) => {
@@ -102,7 +102,7 @@
 	};
 	let cssVarStyles = $derived(`font-size:${$fontSizeStore}px`)
 	let time = $derived(findTimeStamps(getPos() + 1, editor.state));
-	
+
 
 	const handleClick = () => {
 		isListOpen ? (isListOpen = false) : (isListOpen = true);
@@ -277,8 +277,7 @@
 				<span class="text-primary font-bold font-sans">{selectedVal.name}</span>
 				<Icon name="dropdown-arrow" class="invisible group-hover:visible" />
 			</summary>
-			<div class="absolute z-10 m-2 shadow drop-shadow-lg menu bg-base-100 border-2" use:clickOutside
-			onoutclick={() => {
+			<div class="absolute z-10 m-2 shadow drop-shadow-lg menu bg-base-100 border-2" use:clickOutside={() => {
 				isListOpen = false;
 			}}>
 				<div class="p-1 flex">
@@ -378,9 +377,9 @@
 	@media only screen and (max-width: 460px) {
 		:global(.speaker) {
 			grid-template-columns: minmax(70px, auto) auto;
-		}	
+		}
 	}
-	
 
-	
+
+
 </style>
