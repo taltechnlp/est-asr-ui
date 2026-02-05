@@ -33,7 +33,7 @@
 		duration,
 		editor as editorStore,
 		editorMode,
-		waveform, 
+		waveform,
 		fontSize as fontSizeStore,
 		player
 	} from '$lib/stores.svelte';
@@ -46,7 +46,7 @@
 	import Hotkeys from './toolbar/Hotkeys.svelte';
 	import Settings from './toolbar/Settings.svelte';
 	import hotkeys from 'hotkeys-js';
-	
+
 
 	interface Props {
 		content: any;
@@ -84,7 +84,7 @@
 			}
 			hasUnsavedChanges = false;
 			currentFileId = fileId;
-			
+
 			// Create a new debounced function for the new file
 			debouncedSave = debounce(handleSaveLocal, 5000, {
 				leading: false,
@@ -142,11 +142,11 @@
 				attributes: {
 					class: 'editing-container focus:outline-none'
 				}
-				/* handleDOMEvents: { 
+				/* handleDOMEvents: {
                       keydown: (view, event) => {
                         if (event.key === "Enter") {
-                          editor.commands.setSpeaker()   
-                          event.preventDefault()           
+                          editor.commands.setSpeaker()
+                          event.preventDefault()
                         }
                         return false;
                       }
@@ -183,7 +183,7 @@
 		editorMounted.set(true);
 		let prevEditorDoc: Node = $editor.state.doc;
 		const schema = $editor.schema;
-		
+
 
 		hotkeys('tab', function(event, handler){
 			event.preventDefault()
@@ -237,7 +237,7 @@
 		// Capture values at function call time
 		const editorToSave = currentEditor;
 		const fileIdToSave = currentFileId;
-		
+
 		if (!editorToSave || !fileIdToSave) {
 			console.warn('Cannot save: missing editor or fileId', { editor: !!editorToSave, fileId: fileIdToSave });
 			return false;
@@ -271,12 +271,12 @@
 	// Save before navigation to prevent data loss
 	beforeNavigate(async () => {
 		console.log('beforeNavigate triggered', { hasUnsavedChanges, currentFileId, currentEditor: !!currentEditor, demo });
-		
+
 		// Always cancel any pending debounced saves to prevent race conditions
 		if (debouncedSave) {
 			debouncedSave.cancel();
 		}
-		
+
 		// If there are unsaved changes, save them immediately
 		if (hasUnsavedChanges && currentEditor && !demo && currentFileId) {
 			console.log('Saving before navigation for fileId:', currentFileId);
@@ -355,8 +355,8 @@
 						>
 						<Icon data={pencil} scale={1.5} />
 					</button>
-					
-				</div>				
+
+				</div>
 				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
 				{:else if windowWidth <= 460}
 				<div class="flex items-center tooltip tooltip-bottom" data-tip={$_('editor.editing.save')}>
@@ -364,7 +364,7 @@
 						style="color: rgb(48, 49, 51);"
 							class="ml-6 cursor-pointer btn btn-ghost flex"
 						>{$_('editor.editing.save')}</button>
-				</div>				
+				</div>
 				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
 				{/if}
 				<div class="flex items-center tooltip tooltip-bottom" data-tip={$_('editor.settings.tooltip')}>
@@ -378,7 +378,7 @@
 						<label for="hotkeys-modal" class="btn btn-ghost flex">
 							<Icon data={keyboard} scale={1.5} />
 						</label>
-					</div>				
+					</div>
 					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
 					<div class="flex items-center">
 						<button
@@ -402,7 +402,7 @@
 					</div>
 					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
 				{/if}
-				
+
 				{#if $editorMode === 2}
 					<LanguageLabel {editor} />
 					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
@@ -415,7 +415,7 @@
 						<span class="ml-1 leading-3 hidden sm:block"> {$_('file.toolbarDownload')} </span>
 					</label>
 				</div>
-				
+
 			</div>
 		{/if}
 		<EditorContent editor={$editor} />
@@ -429,7 +429,7 @@
 			</div>
 		</BubbleMenu>
 	{/if}
-	<LanguageSelection />
+	<LanguageSelection onSetActive={() => {}} onSave={() => {}} />
 	<Hotkeys />
 	<Settings bind:fontSize={fontSize}></Settings>
 	<Download fileName={fileName} />

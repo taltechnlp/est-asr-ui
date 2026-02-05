@@ -8,7 +8,7 @@
 	// Configure ONNX Runtime to use WASM only (disable WebGPU to avoid warnings)
 	if (browser) {
 		// Disable WebGPU
-		ort.env.webgpu = { disabled: true } as any;
+		(ort.env as any).webgpu = { disabled: true };
 
 		// Configure WASM
 		ort.env.wasm.numThreads = 1;
@@ -172,9 +172,9 @@
 			// Speech detection thresholds
 			positiveSpeechThreshold: 0.5,  // Lowered from 0.6 for better sensitivity
 			negativeSpeechThreshold: 0.35, // Lowered from 0.4
-			preSpeechPadFrames: 10,
-			redemptionFrames: 8,
-			minSpeechFrames: 3,
+			preSpeechPadMs: 10,
+			redemptionMs: 8,
+			minSpeechMs: 3,
 
 			// Callbacks
 			onFrameProcessed: (probabilities, frame: Float32Array) => {
@@ -228,15 +228,7 @@
 				isSpeaking = false;
 			},
 
-			// Error callback
-			onError: (error: any) => {
-				console.error('❌ [VAD] Error:', error);
-				vadError = $_('dictate.vadError') + ': ' + (error.message || error);
-			},
-
 			// Local asset paths
-			workletURL: '/vad/vad.worklet.bundle.min.js',
-			modelURL: '/vad/silero_vad_legacy.onnx',
 			baseAssetPath: '/vad/',
 			onnxWASMBasePath: '/onnx/',
 

@@ -8,7 +8,7 @@
 	let { language, value = $bindable() } = $props();
 
 	let loggedIn = $derived(userState.id.length > 0);
-	const rgx = new RegExp(/(\p{L}{1})\p{L}+/, 'gu');
+	const rgx = /(\p{L}{1})\p{L}+/gu;
 	let initials = $derived.by(() => {
 		let initialsArr = [...userState.name.matchAll(rgx)];
 		return ((initialsArr.shift()?.[1] || '') + (initialsArr.pop()?.[1] || '')).toUpperCase();
@@ -29,7 +29,7 @@
 
 	let currentLanguage: string = $state(language || "et");
 	//let value = $state(value);
-	locale.set(currentLanguage); 
+	locale.set(currentLanguage);
 	locale.subscribe(lang => {
 		currentLanguage = lang}
 	)

@@ -14,7 +14,7 @@
 	let password = $state('');
 	let confirmPassword = $state('');
 	let error = $state();
-	let confirmPasswordInputRef = $state();
+	let confirmPasswordInputRef: HTMLInputElement = $state();
 
 	const dispatch = createEventDispatcher();
 

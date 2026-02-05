@@ -19,7 +19,6 @@
   "devDependencies": {
     "@sveltejs/kit": "^2.17.1",
     "@tailwindcss/typography": "^0.5.2",
-    "@types/bun": "latest",
     "@types/wavesurfer.js": "^6.0.3",
     "@typescript-eslint/eslint-plugin": "^5.10.1",
     "@typescript-eslint/parser": "^5.10.1",

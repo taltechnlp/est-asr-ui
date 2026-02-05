@@ -15,12 +15,12 @@
 
 </script>
 
-<form  method="POST" action="?/login" class="space-y-5 {props.class}" use:enhance={({ props.props.form, props.props.data, cancel }) => {
+<form  method="POST" action="?/login" class="space-y-5 {props.class}" use:enhance={({ cancel }) => {
     return async ({ result }) => {
 		error = null;
 		if (password !== confirmPassword) {
 			error = $_('signup.passwordsDontMatch');
-			confirmPasswordInputRef.focus();
+			(confirmPasswordInputRef as HTMLInputElement)?.focus();
 			cancel();
 			return;
 		}
