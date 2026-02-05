@@ -10,47 +10,59 @@
 	} from '$lib/stores.svelte.js';
 	import type { Word, Speaker } from '$lib/helpers/converters/types';
 	let { data } = $props();
-	let words: Array<Word> = [];
-	let speakers: Array<Speaker> = [];
-	let transcription = $state('');
-	let json = JSON.parse(data.file && data.file.content);
-	let content;
-	// First time transcription from the Estonian JSON format.
-	if (json && !json.type) {
-		content = fromEstFormat(json);
-		({ transcription, words, speakers } = content);
+
+	function initContent() {
+		const words: Array<Word> = [];
+		const speakers: Array<Speaker> = [];
+		let transcription: any = '';
+		const json = JSON.parse(data.file && data.file.content);
+		// First time transcription from the Estonian JSON format.
+		if (json && !json.type) {
+			const content = fromEstFormat(json);
+			return {
+				transcription: content.transcription,
+				words: content.words,
+				speakers: content.speakers
+			};
+		}
+		// Already in Editor format
+		else if (json && json.content) {
+			json.content.forEach((node: any) => {
+				const start =
+					node.content &&
+					node.content[0] &&
+					node.content[0].marks &&
+					node.content[0].marks[0] &&
+					node.content[0].marks[0].attrs &&
+					node.content[0].marks[0].attrs.start
+						? node.content[0].marks[0].attrs.start
+						: -1;
+				const end =
+					node.content &&
+					node.content[node.content.length - 1] &&
+					node.content[node.content.length - 1].marks &&
+					node.content[node.content.length - 1].marks[0].attrs.end
+						? node.content[node.content.length - 1].marks[0].attrs.end
+						: -1;
+				speakers.push({ name: node.attrs['data-name'], id: node.attrs.id, start, end });
+				if (node.content) {
+					node.content.forEach((inlineNode: any) => {
+						if (inlineNode.type === 'text' && inlineNode.marks && inlineNode.marks.length > 0) {
+							inlineNode.marks.forEach((mark: any) => {
+								if (mark.type == 'word') {
+									words.push({ start: mark.attrs.start, end: mark.attrs.end, id: mark.attrs.id });
+								}
+							});
+						}
+					});
+				}
+			});
+			transcription = json;
+		} else transcription = json; // empty editor;
+		return { transcription, words, speakers };
 	}
-	// Already in Editor format
-	else if (json && json.content) {
-		json.content.forEach((node) => {
-			const start =
-				node.content &&
-				node.content[0] &&
-				node.content[0].marks &&
-				node.content[0].marks[0] &&
-				node.content[0].marks[0].attrs &&
-				node.content[0].marks[0].attrs.start
-					? node.content[0].marks[0].attrs.start
-					: -1;
-			const end =
-				node.content && node.content[node.content.length-1] && node.content[node.content.length-1].marks && node.content[node.content.length-1].marks[0].attrs.end
-				? node.content[node.content.length-1].marks[0].attrs.end
-				: -1;
-			speakers.push({ name: node.attrs['data-name'], id: node.attrs.id, start, end });
-			if (node.content) {
-				node.content.forEach((inlineNode) => {
-					if (inlineNode.type === 'text' && inlineNode.marks && inlineNode.marks.length > 0) {
-						inlineNode.marks.forEach((mark) => {
-							if (mark.type == 'word') {
-								words.push({ start: mark.attrs.start, end: mark.attrs.end, id: mark.attrs.id });
-							}
-						});
-					}
-				});
-			}
-		});
-		transcription = json;
-	} else transcription = json; // empty editor;
+
+	const { transcription, words, speakers } = initContent();
 	editorMounted.set(false);
 	speakerNamesStore.set(speakers);
 	wordsStore.set(words);
