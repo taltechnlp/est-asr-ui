@@ -65,6 +65,7 @@
 	let editor: Readable<Editor> = $state();
 
 	// Track current values to prevent closure capture bug
+	// svelte-ignore state_referenced_locally
 	let currentFileId = $state(fileId);
 	let currentEditor: any = $state(null);
 	let hasUnsavedChanges = $state(false);

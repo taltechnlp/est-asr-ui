@@ -27,8 +27,10 @@
 	};
 	const languages = uiLanguages;
 
+	// svelte-ignore state_referenced_locally
 	let currentLanguage: string = $state(language || 'et');
 	//let value = $state(value);
+	// svelte-ignore state_referenced_locally
 	locale.set(language || 'et');
 	locale.subscribe((lang) => {
 		currentLanguage = lang;
