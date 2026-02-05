@@ -27,12 +27,12 @@
 	};
 	const languages = uiLanguages;
 
-	let currentLanguage: string = $state(language || "et");
+	let currentLanguage: string = $state(language || 'et');
 	//let value = $state(value);
-	locale.set(currentLanguage);
-	locale.subscribe(lang => {
-		currentLanguage = lang}
-	)
+	locale.set(language || 'et');
+	locale.subscribe((lang) => {
+		currentLanguage = lang;
+	});
 
 	const dispatch = createEventDispatcher();
 
@@ -42,7 +42,7 @@
 
 		// Update client-side locale
 		locale.set(newLanguage);
-		localStorage.setItem("language", newLanguage);
+		localStorage.setItem('language', newLanguage);
 		dispatch('locale-changed', newLanguage);
 
 		// Update server-side cookie via API
@@ -50,9 +50,9 @@
 			await fetch('/api/language', {
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/json',
+					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify({ language: newLanguage }),
+				body: JSON.stringify({ language: newLanguage })
 			});
 
 			// Reload the page data to reflect the new language
@@ -71,7 +71,6 @@
 			x.style.display = 'none';
 		}
 	}
-
 </script>
 
 <div class="max-w-screen-2xl w-full">
@@ -86,20 +85,30 @@
 		</div>
 		<div class="hidden navbar-end sm:flex">
 			<div class="flex">
-				<a href="/" class="btn btn-ghost btn-md rounded-btn {path == '/' || uiLanguages.includes(path.substring(1)) ? 'text-orange-600' : ''}">
+				<a
+					href="/"
+					class="btn btn-ghost btn-md rounded-btn {path == '/' ||
+					uiLanguages.includes(path.substring(1))
+						? 'text-orange-600'
+						: ''}"
+				>
 					{$_('index.headerTitle')}
 				</a>
 				{#if loggedIn}
 					<a
 						href="/files"
-						class="btn btn-ghost btn-md rounded-btn {path.includes('/files') ? 'text-orange-600' : ''}"
+						class="btn btn-ghost btn-md rounded-btn {path.includes('/files')
+							? 'text-orange-600'
+							: ''}"
 					>
 						{$_('index.headerFiles')}
 					</a>
 				{/if}
 				<a
 					href="/dictate"
-					class="btn btn-ghost btn-md rounded-btn {path.includes('/dictate') ? 'text-orange-600' : ''}"
+					class="btn btn-ghost btn-md rounded-btn {path.includes('/dictate')
+						? 'text-orange-600'
+						: ''}"
 				>
 					{$_('index.headerDictate')}
 				</a>
@@ -109,13 +118,14 @@
 				>
 					{$_('index.headerDemo')}
 				</a>
-				<select class="select select-ghost max-w-xs w-24" bind:value={currentLanguage} onchange={switchLocale}>
+				<select
+					class="select select-ghost max-w-xs w-24"
+					bind:value={currentLanguage}
+					onchange={switchLocale}
+				>
 					{#each languages as value}
 						<option {value}>
-							{String.fromCodePoint(
-								languageDict[value].flag[0],
-								languageDict[value].flag[1]
-							)}
+							{String.fromCodePoint(languageDict[value].flag[0], languageDict[value].flag[1])}
 							{languageDict[value].text}
 						</option>
 					{/each}
@@ -131,7 +141,9 @@
 				{#if !loggedIn}
 					<a
 						href="/signin"
-						class="btn btn-ghost btn-md rounded-btn {path.includes('/signin') ? 'text-orange-600' : ''}"
+						class="btn btn-ghost btn-md rounded-btn {path.includes('/signin')
+							? 'text-orange-600'
+							: ''}"
 					>
 						{$_('index.login')}
 					</a>
@@ -160,7 +172,11 @@
 			</div>
 		</div>
 		<div class="grid sm:hidden">
-			<button class="btn btn-square btn-ghost justify-self-end" onclick={toggleMenu} aria-label={$_('nav.toggleMenu')}>
+			<button
+				class="btn btn-square btn-ghost justify-self-end"
+				onclick={toggleMenu}
+				aria-label={$_('nav.toggleMenu')}
+			>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					fill="none"
@@ -182,7 +198,10 @@
 				<li>
 					<a
 						href="/"
-						class="btn btn-ghost btn-md rounded-btn {path == '/' || uiLanguages.includes(path.substring(1)) ? 'text-orange-600' : ''}"
+						class="btn btn-ghost btn-md rounded-btn {path == '/' ||
+						uiLanguages.includes(path.substring(1))
+							? 'text-orange-600'
+							: ''}"
 					>
 						{$_('index.headerTitle')}
 					</a>
@@ -191,7 +210,9 @@
 					<li>
 						<a
 							href="/files"
-							class="btn btn-ghost btn-md rounded-btn {path.includes('/files') ? 'text-orange-600' : ''}"
+							class="btn btn-ghost btn-md rounded-btn {path.includes('/files')
+								? 'text-orange-600'
+								: ''}"
 						>
 							{$_('index.headerFiles')}
 						</a>
@@ -200,7 +221,9 @@
 				<li>
 					<a
 						href="/dictate"
-						class="btn btn-ghost btn-md rounded-btn {path.includes('/dictate') ? 'text-orange-600' : ''}"
+						class="btn btn-ghost btn-md rounded-btn {path.includes('/dictate')
+							? 'text-orange-600'
+							: ''}"
 					>
 						{$_('index.headerDictate')}
 					</a>
@@ -208,7 +231,9 @@
 				<li>
 					<a
 						href="/demo"
-						class="btn btn-ghost btn-md rounded-btn {path.includes('/demo') ? 'text-orange-600' : ''}"
+						class="btn btn-ghost btn-md rounded-btn {path.includes('/demo')
+							? 'text-orange-600'
+							: ''}"
 					>
 						{$_('index.headerDemo')}
 					</a>
@@ -217,10 +242,7 @@
 					<select class="select max-w-xs" bind:value={currentLanguage} onchange={switchLocale}>
 						{#each languages as value}
 							<option {value}>
-								{String.fromCodePoint(
-									languageDict[value].flag[0],
-									languageDict[value].flag[1]
-								)}
+								{String.fromCodePoint(languageDict[value].flag[0], languageDict[value].flag[1])}
 								{languageDict[value].text}
 							</option>
 						{/each}
@@ -230,7 +252,9 @@
 					<li>
 						<a
 							href="/signin"
-							class="btn btn-ghost btn-md rounded-btn {path.includes('/signin') ? 'text-orange-600' : ''}"
+							class="btn btn-ghost btn-md rounded-btn {path.includes('/signin')
+								? 'text-orange-600'
+								: ''}"
 						>
 							{$_('index.login')}
 						</a>
@@ -240,7 +264,9 @@
 					<li>
 						<a
 							href="/me"
-							class="btn btn-ghost btn-md rounded-btn {path.includes('/me') ? 'text-orange-600' : ''}"
+							class="btn btn-ghost btn-md rounded-btn {path.includes('/me')
+								? 'text-orange-600'
+								: ''}"
 						>
 							<div class="avatar placeholder">
 								<div class="rounded-bt">

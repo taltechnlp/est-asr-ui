@@ -33,7 +33,7 @@
 	// Pre-speech circular buffer
 	const PRE_SPEECH_BUFFER_MS = 300; // 300ms pre-speech buffer
 	const FRAME_SIZE = 1536; // VAD frame size at 16kHz
-	const FRAMES_TO_BUFFER = Math.ceil((PRE_SPEECH_BUFFER_MS / 1000) * SAMPLE_RATE / FRAME_SIZE);
+	const FRAMES_TO_BUFFER = Math.ceil(((PRE_SPEECH_BUFFER_MS / 1000) * SAMPLE_RATE) / FRAME_SIZE);
 	let audioBuffer: Float32Array[] = [];
 	let frameCount = 0; // Track total frames received for debugging
 
@@ -50,7 +50,6 @@
 	// Derived state for localized status
 	let initializationStatus = $derived(initializationStatusKey ? $_(initializationStatusKey) : '');
 
-
 	// Transcript state
 	let transcript = $state('');
 	let partialTranscript = $state('');
@@ -58,8 +57,29 @@
 	const primaryLanguages = ['et', 'en-80ms', 'en-1040ms'];
 	// Other languages supported by Parakeet TDT (sorted alphabetically)
 	const parakeetLanguages = [
-		'bg', 'cs', 'da', 'de', 'el', 'es', 'fi', 'fr', 'hr', 'hu', 'it',
-		'lt', 'lv', 'mt', 'nl', 'pl', 'pt', 'ro', 'ru', 'sk', 'sl', 'sv', 'uk'
+		'bg',
+		'cs',
+		'da',
+		'de',
+		'el',
+		'es',
+		'fi',
+		'fr',
+		'hr',
+		'hu',
+		'it',
+		'lt',
+		'lv',
+		'mt',
+		'nl',
+		'pl',
+		'pt',
+		'ro',
+		'ru',
+		'sk',
+		'sl',
+		'sv',
+		'uk'
 	];
 	let selectedLanguage = $state('et'); // Default to Estonian
 	let availableModels = $state<string[]>([]);
@@ -129,10 +149,32 @@
 	// Get flag emoji for language code
 	function getFlagEmoji(langCode: string): string {
 		const flags: Record<string, string> = {
-			et: '🇪🇪', 'en-80ms': '🇬🇧', 'en-1040ms': '🇬🇧', bg: '🇧🇬', cs: '🇨🇿', da: '🇩🇰', de: '🇩🇪',
-			el: '🇬🇷', es: '🇪🇸', fi: '🇫🇮', fr: '🇫🇷', hr: '🇭🇷', hu: '🇭🇺',
-			it: '🇮🇹', lt: '🇱🇹', lv: '🇱🇻', mt: '🇲🇹', nl: '🇳🇱', pl: '🇵🇱',
-			pt: '🇵🇹', ro: '🇷🇴', ru: '🇷🇺', sk: '🇸🇰', sl: '🇸🇮', sv: '🇸🇪', uk: '🇺🇦'
+			et: '🇪🇪',
+			'en-80ms': '🇬🇧',
+			'en-1040ms': '🇬🇧',
+			bg: '🇧🇬',
+			cs: '🇨🇿',
+			da: '🇩🇰',
+			de: '🇩🇪',
+			el: '🇬🇷',
+			es: '🇪🇸',
+			fi: '🇫🇮',
+			fr: '🇫🇷',
+			hr: '🇭🇷',
+			hu: '🇭🇺',
+			it: '🇮🇹',
+			lt: '🇱🇹',
+			lv: '🇱🇻',
+			mt: '🇲🇹',
+			nl: '🇳🇱',
+			pl: '🇵🇱',
+			pt: '🇵🇹',
+			ro: '🇷🇴',
+			ru: '🇷🇺',
+			sk: '🇸🇰',
+			sl: '🇸🇮',
+			sv: '🇸🇪',
+			uk: '🇺🇦'
 		};
 		return flags[langCode.toLowerCase()] || '🌐';
 	}
@@ -170,7 +212,7 @@
 
 		vad = await MicVAD.new({
 			// Speech detection thresholds
-			positiveSpeechThreshold: 0.5,  // Lowered from 0.6 for better sensitivity
+			positiveSpeechThreshold: 0.5, // Lowered from 0.6 for better sensitivity
 			negativeSpeechThreshold: 0.35, // Lowered from 0.4
 			preSpeechPadMs: 10,
 			redemptionMs: 8,
@@ -183,7 +225,9 @@
 				if (DEBUG_VAD) {
 					// Log every frame for first 100 frames to debug initialization
 					if (frameCount <= 100) {
-						console.log(`[VAD] Frame #${frameCount} - prob: ${probabilities.isSpeech.toFixed(3)}, recording: ${isRecording}, speaking: ${isSpeaking}`);
+						console.log(
+							`[VAD] Frame #${frameCount} - prob: ${probabilities.isSpeech.toFixed(3)}, recording: ${isRecording}, speaking: ${isSpeaking}`
+						);
 					}
 					// Then log periodically
 					else if (frameCount % 50 === 0) {
@@ -348,7 +392,9 @@
 		if (message.is_final) {
 			// Check for unexpected session end (should not happen for streaming, but handle gracefully)
 			if (message.text.trim() === '[Session Ended]') {
-				console.warn('[STREAMING] ⚠️  Server ended session unexpectedly (possibly timeout). Creating new session...');
+				console.warn(
+					'[STREAMING] ⚠️  Server ended session unexpectedly (possibly timeout). Creating new session...'
+				);
 				// Save the partial transcript to final before starting new session
 				if (partialTranscript.trim()) {
 					transcript += (transcript ? ' ' : '') + partialTranscript.trim();
@@ -451,7 +497,12 @@
 	 * Use same pattern as streaming models: replace partial, move to final on is_final.
 	 */
 	function handleTranscript_fastconformer_en(message: any) {
-		console.log('[FASTCONFORMER-EN] Received transcript:', message.text, 'is_final:', message.is_final);
+		console.log(
+			'[FASTCONFORMER-EN] Received transcript:',
+			message.text,
+			'is_final:',
+			message.is_final
+		);
 
 		// Check for session end marker
 		if (message.text.trim() === '[Session Ended]') {
@@ -475,14 +526,20 @@
 			// For final results, add the current partial transcript to final transcript
 			// The received message contains the same cumulative text we already have in partial
 			if (partialTranscript.trim()) {
-				console.log('[FASTCONFORMER-EN] Moving partial to final transcript:', partialTranscript.trim());
+				console.log(
+					'[FASTCONFORMER-EN] Moving partial to final transcript:',
+					partialTranscript.trim()
+				);
 				transcript += (transcript ? ' ' : '') + partialTranscript.trim();
 			}
 			partialTranscript = '';
 		} else {
 			// For partial results, replace with the full hypothesis (like streaming models)
 			// This shows the complete accumulated text so far
-			console.log('[FASTCONFORMER-EN] Updating partial transcript with cumulative text:', message.text.trim());
+			console.log(
+				'[FASTCONFORMER-EN] Updating partial transcript with cumulative text:',
+				message.text.trim()
+			);
 			partialTranscript = message.text.trim();
 		}
 	}
@@ -529,7 +586,12 @@
 	 * Backend sends CUMULATIVE text (not deltas), so we replace partialTranscript.
 	 */
 	function handleTranscript_offline(message: any) {
-		console.log('[PSEUDO-STREAM] Received transcript:', message.text, 'is_final:', message.is_final);
+		console.log(
+			'[PSEUDO-STREAM] Received transcript:',
+			message.text,
+			'is_final:',
+			message.is_final
+		);
 
 		if (message.is_final) {
 			// Check if server is ending the session (chunk processed)
@@ -762,7 +824,14 @@
 			// Verify microphone is working by checking if we have an audio stream
 			// MicVAD stores the stream internally, but we can check via callbacks
 			console.log('[START] ✓ Recording started. Waiting for first audio frame...');
-			console.log('[START] State: isRecording =', isRecording, 'isVadActive =', isVadActive, 'isSpeaking =', isSpeaking);
+			console.log(
+				'[START] State: isRecording =',
+				isRecording,
+				'isVadActive =',
+				isVadActive,
+				'isSpeaking =',
+				isSpeaking
+			);
 
 			// Diagnostic: Check if we're receiving audio frames (doesn't stop recording)
 			setTimeout(() => {
@@ -770,11 +839,19 @@
 					console.log('[START] Frame count after 3s:', frameCount);
 					if (audioBuffer.length === 0 && frameCount === 0) {
 						console.error('[START] ❌ No audio frames received - VAD is not processing audio!');
-						console.error('[START] This indicates microphone permission issue or worklet not loaded.');
+						console.error(
+							'[START] This indicates microphone permission issue or worklet not loaded.'
+						);
 					} else if (audioBuffer.length === 0 && frameCount > 0) {
 						console.warn('[START] ⚠️ Frames processed but buffer empty (frames:', frameCount, ')');
 					} else {
-						console.log('[START] ✓ VAD working! Received', audioBuffer.length, 'audio frames, processed', frameCount, 'total frames.');
+						console.log(
+							'[START] ✓ VAD working! Received',
+							audioBuffer.length,
+							'audio frames, processed',
+							frameCount,
+							'total frames.'
+						);
 					}
 				}
 			}, 3000);
@@ -840,7 +917,7 @@
 			if (isOffline && partialTranscript !== initialPartial) {
 				break;
 			}
-			await new Promise(resolve => setTimeout(resolve, 200)); // Check every 200ms
+			await new Promise((resolve) => setTimeout(resolve, 200)); // Check every 200ms
 		}
 
 		// Combine final and partial transcripts
@@ -922,381 +999,391 @@
 
 <div class="bg-base-100">
 	<div class="container mx-auto px-4 py-8 max-w-4xl">
-	<!-- Header -->
-	<div class="mb-8">
-		<h1 class="text-4xl font-bold mb-4">{$_('dictate.title')}</h1>
-		<div class="prose max-w-none">
-			<p class="mb-2">{$_('dictate.intro1')}</p>
-			<p class="mb-2">{$_('dictate.intro2')}</p>
-			<p class="mb-4">{$_('dictate.intro3')}</p>
-		</div>
-	</div>
-
-	<!-- Error Messages -->
-	{#if connectionError}
-		<div class="alert alert-error mb-6">
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				class="stroke-current shrink-0 h-6 w-6"
-				fill="none"
-				viewBox="0 0 24 24"
-			>
-				<path
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					stroke-width="2"
-					d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-				/>
-			</svg>
-			<span>{connectionError}</span>
-		</div>
-	{/if}
-
-	{#if microphoneError}
-		<div class="alert alert-warning mb-6">
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				class="stroke-current shrink-0 h-6 w-6"
-				fill="none"
-				viewBox="0 0 24 24"
-			>
-				<path
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					stroke-width="2"
-					d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-				/>
-			</svg>
-			<span>{microphoneError}</span>
-		</div>
-	{/if}
-
-	{#if vadError}
-		<div class="alert alert-error mb-6">
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				class="stroke-current shrink-0 h-6 w-6"
-				fill="none"
-				viewBox="0 0 24 24"
-			>
-				<path
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					stroke-width="2"
-					d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-				/>
-			</svg>
-			<span>{vadError}</span>
-		</div>
-	{/if}
-
-	<!-- Recording Controls -->
-	<div class="card bg-base-200 shadow-xl mb-6 relative">
-		<div class="card-body">
-			<!-- Status Badge - Top Right (Connection Status or VAD Status) -->
-			<div class="absolute top-4 right-4">
-				{#if isRecording}
-					<!-- VAD Status when recording -->
-					<div class="badge gap-2 p-3" class:badge-info={!isSpeaking} class:badge-success={isSpeaking}>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="h-4 w-4"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-							/>
-						</svg>
-						{#if isSpeaking}
-							<span>{$_('dictate.speakingDetected')}</span>
-						{:else}
-							<span>{$_('dictate.listeningForSpeech')}</span>
-						{/if}
-					</div>
-				{:else if isWasmLoading || !isWasmReady}
-					<!-- Connection status when not recording -->
-					<div class="badge badge-info gap-2 p-3">
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="h-4 w-4 animate-spin"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-							/>
-						</svg>
-						<span>{initializationStatus}</span>
-					</div>
-				{:else if isWasmReady && isConnected}
-					<div class="badge badge-success gap-2 p-3">
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="h-4 w-4"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-							/>
-						</svg>
-						<span>{initializationStatus}</span>
-					</div>
-				{/if}
-			</div>
-
-			<h2 class="card-title mb-6">{$_('dictate.recognizers')}</h2>
-
-			<div class="flex flex-col items-center justify-center gap-6">
-				<!-- Language Selection -->
-				<div class="form-control w-full max-w-xs">
-					<label class="label justify-center">
-						<span class="label-text font-medium">{$_('files.language')}</span>
-					</label>
-					<select
-						class="select select-lg w-full text-center text-lg"
-						bind:value={selectedLanguage}
-						disabled={isRecording}
-					>
-						<!-- Primary languages with dedicated models -->
-						{#each primaryLanguages as lang}
-							<option value={lang}>{getFlagEmoji(lang)} {$_(`dictate.languages.${lang}`)}</option>
-						{/each}
-						<!-- Divider -->
-						<option disabled>──────────────────</option>
-						<!-- Auto-detect for all other European languages -->
-						<option value="auto">🌍 {$_('dictate.languages.auto')}</option>
-					</select>
-				</div>
-
-				<!-- Recording Button -->
-				{#if !isRecording}
-					<div class="flex flex-col items-center gap-3">
-						<button
-							class="btn btn-circle btn-primary w-24 h-24 hover:scale-105 transition-transform shadow-lg"
-							onclick={startRecording}
-							disabled={!isWasmReady || !isConnected}
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								class="h-12 w-12"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-								stroke-width="2"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
-								/>
-							</svg>
-						</button>
-						<span class="text-base font-semibold">{$_('dictate.startRecording')}</span>
-					</div>
-				{:else}
-					<div class="flex flex-col items-center gap-3">
-						<button class="btn btn-circle btn-error w-24 h-24 animate-pulse shadow-lg" onclick={stopRecording}>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								class="h-12 w-12"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-								stroke-width="2"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-								/>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"
-								/>
-							</svg>
-						</button>
-						<span class="text-base font-semibold">{$_('dictate.stopRecording')}</span>
-					</div>
-				{/if}
-			</div>
-
-	</div>
-</div>
-
-<!-- Transcript Display -->
-<div class="card bg-base-200 shadow-xl">
-		<div class="card-body">
-			<div class="flex justify-between items-center mb-4">
-				<h2 class="card-title">{$_('dictate.transcript')}</h2>
-				<div class="flex gap-2">
-					<!-- Copy Button -->
-					<button
-						class="btn btn-sm btn-ghost btn-circle"
-						onclick={() => copyToClipboard(transcript)}
-						disabled={!transcript}
-						title="Copy to clipboard"
-					>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="h-4 w-4"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-							/>
-						</svg>
-					</button>
-					<!-- Delete Button -->
-					<button
-						class="btn btn-sm btn-ghost btn-circle"
-						onclick={clearTranscript}
-						disabled={!transcript && !partialTranscript}
-						title="Clear transcript"
-					>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="h-4 w-4"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-							/>
-						</svg>
-					</button>
-					<!-- Download Button -->
-					<button
-						class="btn btn-sm btn-primary btn-circle"
-						onclick={downloadTranscript}
-						disabled={!transcript}
-						title="Download transcript"
-					>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="h-4 w-4"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-							/>
-						</svg>
-					</button>
-				</div>
-			</div>
-
-			<div
-				class="bg-base-100 rounded-lg p-6 min-h-[80px] font-mono text-sm whitespace-pre-wrap"
-			>
-				{#if transcript || partialTranscript}
-					<div class="space-y-2">
-						{#if transcript}
-							<p class="text-base-content">{transcript}</p>
-						{/if}
-						{#if partialTranscript}
-							<p class="text-base-content/50 italic">{partialTranscript}</p>
-						{/if}
-					</div>
-				{:else}
-					<p class="text-base-content/50 italic">{$_('dictate.resultsPlaceholder')}</p>
-				{/if}
+		<!-- Header -->
+		<div class="mb-8">
+			<h1 class="text-4xl font-bold mb-4">{$_('dictate.title')}</h1>
+			<div class="prose max-w-none">
+				<p class="mb-2">{$_('dictate.intro1')}</p>
+				<p class="mb-2">{$_('dictate.intro2')}</p>
+				<p class="mb-4">{$_('dictate.intro3')}</p>
 			</div>
 		</div>
-	</div>
 
-	<!-- Past Recordings -->
-	{#if pastRecordings.length > 0}
-		<div class="mt-6 space-y-4">
-			<h2 class="text-2xl font-bold">{$_('dictate.pastRecordings')}</h2>
-			{#each pastRecordings as recording (recording.id)}
-				<div class="card bg-base-200 shadow-xl">
-					<div class="card-body">
-						<div class="flex justify-between items-start mb-2">
-							<div class="text-sm text-base-content/60">
-								{formatTimestamp(recording.timestamp)}
-							</div>
-							<div class="flex gap-2">
-								<!-- Copy Button -->
-								<button
-									class="btn btn-sm btn-ghost btn-circle"
-									onclick={() => copyToClipboard(recording.text)}
-									title="Copy to clipboard"
-								>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										class="h-4 w-4"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke="currentColor"
-									>
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-										/>
-									</svg>
-								</button>
-								<!-- Delete Button -->
-								<button
-									class="btn btn-sm btn-ghost btn-circle"
-									onclick={() => deleteRecording(recording.id)}
-									title="Delete recording"
-								>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										class="h-4 w-4"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke="currentColor"
-									>
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-										/>
-									</svg>
-								</button>
-							</div>
-						</div>
+		<!-- Error Messages -->
+		{#if connectionError}
+			<div class="alert alert-error mb-6">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="stroke-current shrink-0 h-6 w-6"
+					fill="none"
+					viewBox="0 0 24 24"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+					/>
+				</svg>
+				<span>{connectionError}</span>
+			</div>
+		{/if}
+
+		{#if microphoneError}
+			<div class="alert alert-warning mb-6">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="stroke-current shrink-0 h-6 w-6"
+					fill="none"
+					viewBox="0 0 24 24"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+					/>
+				</svg>
+				<span>{microphoneError}</span>
+			</div>
+		{/if}
+
+		{#if vadError}
+			<div class="alert alert-error mb-6">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="stroke-current shrink-0 h-6 w-6"
+					fill="none"
+					viewBox="0 0 24 24"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+					/>
+				</svg>
+				<span>{vadError}</span>
+			</div>
+		{/if}
+
+		<!-- Recording Controls -->
+		<div class="card bg-base-200 shadow-xl mb-6 relative">
+			<div class="card-body">
+				<!-- Status Badge - Top Right (Connection Status or VAD Status) -->
+				<div class="absolute top-4 right-4">
+					{#if isRecording}
+						<!-- VAD Status when recording -->
 						<div
-							class="bg-base-100 rounded-lg p-4 font-mono text-sm whitespace-pre-wrap"
+							class="badge gap-2 p-3"
+							class:badge-info={!isSpeaking}
+							class:badge-success={isSpeaking}
 						>
-							{recording.text}
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-4 w-4"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+								/>
+							</svg>
+							{#if isSpeaking}
+								<span>{$_('dictate.speakingDetected')}</span>
+							{:else}
+								<span>{$_('dictate.listeningForSpeech')}</span>
+							{/if}
 						</div>
+					{:else if isWasmLoading || !isWasmReady}
+						<!-- Connection status when not recording -->
+						<div class="badge badge-info gap-2 p-3">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-4 w-4 animate-spin"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+								/>
+							</svg>
+							<span>{initializationStatus}</span>
+						</div>
+					{:else if isWasmReady && isConnected}
+						<div class="badge badge-success gap-2 p-3">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-4 w-4"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+								/>
+							</svg>
+							<span>{initializationStatus}</span>
+						</div>
+					{/if}
+				</div>
+
+				<h2 class="card-title mb-6">{$_('dictate.recognizers')}</h2>
+
+				<div class="flex flex-col items-center justify-center gap-6">
+					<!-- Language Selection -->
+					<div class="form-control w-full max-w-xs">
+						<label class="label justify-center" for="dictate-language-select">
+							<span class="label-text font-medium">{$_('files.language')}</span>
+						</label>
+						<select
+							id="dictate-language-select"
+							class="select select-lg w-full text-center text-lg"
+							bind:value={selectedLanguage}
+							disabled={isRecording}
+						>
+							<!-- Primary languages with dedicated models -->
+							{#each primaryLanguages as lang}
+								<option value={lang}>{getFlagEmoji(lang)} {$_(`dictate.languages.${lang}`)}</option>
+							{/each}
+							<!-- Divider -->
+							<option disabled>──────────────────</option>
+							<!-- Auto-detect for all other European languages -->
+							<option value="auto">🌍 {$_('dictate.languages.auto')}</option>
+						</select>
+					</div>
+
+					<!-- Recording Button -->
+					{#if !isRecording}
+						<div class="flex flex-col items-center gap-3">
+							<button
+								class="btn btn-circle btn-primary w-24 h-24 hover:scale-105 transition-transform shadow-lg"
+								onclick={startRecording}
+								disabled={!isWasmReady || !isConnected}
+								aria-label="Start recording"
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									class="h-12 w-12"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+									/>
+								</svg>
+							</button>
+							<span class="text-base font-semibold">{$_('dictate.startRecording')}</span>
+						</div>
+					{:else}
+						<div class="flex flex-col items-center gap-3">
+							<button
+								class="btn btn-circle btn-error w-24 h-24 animate-pulse shadow-lg"
+								onclick={stopRecording}
+								aria-label="Stop recording"
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									class="h-12 w-12"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+									/>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"
+									/>
+								</svg>
+							</button>
+							<span class="text-base font-semibold">{$_('dictate.stopRecording')}</span>
+						</div>
+					{/if}
+				</div>
+			</div>
+		</div>
+
+		<!-- Transcript Display -->
+		<div class="card bg-base-200 shadow-xl">
+			<div class="card-body">
+				<div class="flex justify-between items-center mb-4">
+					<h2 class="card-title">{$_('dictate.transcript')}</h2>
+					<div class="flex gap-2">
+						<!-- Copy Button -->
+						<button
+							class="btn btn-sm btn-ghost btn-circle"
+							onclick={() => copyToClipboard(transcript)}
+							disabled={!transcript}
+							title="Copy to clipboard"
+							aria-label="Copy to clipboard"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-4 w-4"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+								/>
+							</svg>
+						</button>
+						<!-- Delete Button -->
+						<button
+							class="btn btn-sm btn-ghost btn-circle"
+							onclick={clearTranscript}
+							disabled={!transcript && !partialTranscript}
+							title="Clear transcript"
+							aria-label="Clear transcript"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-4 w-4"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+								/>
+							</svg>
+						</button>
+						<!-- Download Button -->
+						<button
+							class="btn btn-sm btn-primary btn-circle"
+							onclick={downloadTranscript}
+							disabled={!transcript}
+							title="Download transcript"
+							aria-label="Download transcript"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-4 w-4"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+								/>
+							</svg>
+						</button>
 					</div>
 				</div>
-			{/each}
+
+				<div class="bg-base-100 rounded-lg p-6 min-h-[80px] font-mono text-sm whitespace-pre-wrap">
+					{#if transcript || partialTranscript}
+						<div class="space-y-2">
+							{#if transcript}
+								<p class="text-base-content">{transcript}</p>
+							{/if}
+							{#if partialTranscript}
+								<p class="text-base-content/50 italic">{partialTranscript}</p>
+							{/if}
+						</div>
+					{:else}
+						<p class="text-base-content/50 italic">{$_('dictate.resultsPlaceholder')}</p>
+					{/if}
+				</div>
+			</div>
 		</div>
-	{/if}
+
+		<!-- Past Recordings -->
+		{#if pastRecordings.length > 0}
+			<div class="mt-6 space-y-4">
+				<h2 class="text-2xl font-bold">{$_('dictate.pastRecordings')}</h2>
+				{#each pastRecordings as recording (recording.id)}
+					<div class="card bg-base-200 shadow-xl">
+						<div class="card-body">
+							<div class="flex justify-between items-start mb-2">
+								<div class="text-sm text-base-content/60">
+									{formatTimestamp(recording.timestamp)}
+								</div>
+								<div class="flex gap-2">
+									<!-- Copy Button -->
+									<button
+										class="btn btn-sm btn-ghost btn-circle"
+										onclick={() => copyToClipboard(recording.text)}
+										title="Copy to clipboard"
+										aria-label="Copy to clipboard"
+									>
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											class="h-4 w-4"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+										>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+											/>
+										</svg>
+									</button>
+									<!-- Delete Button -->
+									<button
+										class="btn btn-sm btn-ghost btn-circle"
+										onclick={() => deleteRecording(recording.id)}
+										title="Delete recording"
+										aria-label="Delete recording"
+									>
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											class="h-4 w-4"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+										>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+											/>
+										</svg>
+									</button>
+								</div>
+							</div>
+							<div class="bg-base-100 rounded-lg p-4 font-mono text-sm whitespace-pre-wrap">
+								{recording.text}
+							</div>
+						</div>
+					</div>
+				{/each}
+			</div>
+		{/if}
 	</div>
 </div>

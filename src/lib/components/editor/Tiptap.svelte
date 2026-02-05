@@ -3,12 +3,16 @@
 
 	import { onMount, onDestroy } from 'svelte';
 	import { beforeNavigate } from '$app/navigation';
-	import { getDebugJSON } from '@tiptap/core';
 	import type { Node, Schema } from 'prosemirror-model';
 	import Document from '@tiptap/extension-document';
 	import { LabelHighlight } from '../marks/labelHighlight';
 	import { PronHighlight } from '../marks/pronHighlight';
-	import { Editor, EditorContent, /* FloatingMenu,  */BubbleMenu, createEditor } from 'svelte-tiptap';
+	import {
+		Editor,
+		EditorContent,
+		/* FloatingMenu,  */ BubbleMenu,
+		createEditor
+	} from 'svelte-tiptap';
 	import type { Readable } from 'svelte/store';
 	import Text from '@tiptap/extension-text';
 	import DropCursor from '@tiptap/extension-dropcursor';
@@ -37,7 +41,7 @@
 		fontSize as fontSizeStore,
 		player
 	} from '$lib/stores.svelte';
-	import { Change, ChangeSet, Span, simplifyChanges } from 'prosemirror-changeset';
+	import { ChangeSet } from 'prosemirror-changeset';
 	import { _, locale } from 'svelte-i18n';
 	import { transactionsHaveChange } from '$lib/components/editor/api/transaction';
 	import LanguageSelection from './toolbar/LanguageSelection.svelte';
@@ -47,7 +51,6 @@
 	import Settings from './toolbar/Settings.svelte';
 	import hotkeys from 'hotkeys-js';
 
-
 	interface Props {
 		content: any;
 		fileName: any;
@@ -56,20 +59,14 @@
 		demo: any;
 	}
 
-	let {
-		content,
-		fileName,
-		fileId,
-		uploadedAt,
-		demo
-	}: Props = $props();
+	let { content, fileName, fileId, uploadedAt, demo }: Props = $props();
 
 	let element: HTMLDivElement | undefined;
 	let editor: Readable<Editor> = $state();
 
 	// Track current values to prevent closure capture bug
 	let currentFileId = $state(fileId);
-	let currentEditor = $state(editor);
+	let currentEditor: any = $state(null);
 	let hasUnsavedChanges = $state(false);
 	let debouncedSave: any = $state();
 
@@ -184,25 +181,24 @@
 		let prevEditorDoc: Node = $editor.state.doc;
 		const schema = $editor.schema;
 
-
-		hotkeys('tab', function(event, handler){
-			event.preventDefault()
+		hotkeys('tab', function (event, handler) {
+			event.preventDefault();
 			if ($waveform) {
 				// console.log($waveform)
 				if ($player && $player.playing) $waveform.player.pause();
-            	else if ($player && !$player.playing) $waveform.player.play();
+				else if ($player && !$player.playing) $waveform.player.play();
 			}
 		});
-		hotkeys('shift+tab', function(event, handler){
-			event.preventDefault()
+		hotkeys('shift+tab', function (event, handler) {
+			event.preventDefault();
 			if ($waveform) {
-				$waveform.player.seek($waveform.player.getCurrentTime() - 1)
+				$waveform.player.seek($waveform.player.getCurrentTime() - 1);
 			}
 		});
-		hotkeys('alt+tab', function(event, handler){
-			event.preventDefault()
+		hotkeys('alt+tab', function (event, handler) {
+			event.preventDefault();
 			if ($waveform) {
-				$waveform.player.seek($waveform.player.getCurrentTime() + 1)
+				$waveform.player.seek($waveform.player.getCurrentTime() + 1);
 			}
 		});
 		if (windowWidth <= 460) {
@@ -212,10 +208,9 @@
 	});
 
 	let windowWidth = $state(window.innerWidth);
-	const updateWindowSize = () => windowWidth = window.innerWidth;
-	window.addEventListener("resize", updateWindowSize);
+	const updateWindowSize = () => (windowWidth = window.innerWidth);
+	window.addEventListener('resize', updateWindowSize);
 	let editable = $state(true);
-
 
 	onDestroy(() => {
 		// Remove beforeunload listener
@@ -230,7 +225,7 @@
 		if ($editor) {
 			$editor.destroy();
 		}
-		window.removeEventListener("resize", updateWindowSize)
+		window.removeEventListener('resize', updateWindowSize);
 	});
 
 	async function handleSaveLocal() {
@@ -239,13 +234,21 @@
 		const fileIdToSave = currentFileId;
 
 		if (!editorToSave || !fileIdToSave) {
-			console.warn('Cannot save: missing editor or fileId', { editor: !!editorToSave, fileId: fileIdToSave });
+			console.warn('Cannot save: missing editor or fileId', {
+				editor: !!editorToSave,
+				fileId: fileIdToSave
+			});
 			return false;
 		}
 
 		// Double-check we're still on the same file
 		if (fileIdToSave !== fileId) {
-			console.warn('File changed during save, aborting save for:', fileIdToSave, 'current:', fileId);
+			console.warn(
+				'File changed during save, aborting save for:',
+				fileIdToSave,
+				'current:',
+				fileId
+			);
 			return false;
 		}
 
@@ -261,16 +264,19 @@
 	}
 
 	// Initialize the debounced function
-	if (!debouncedSave) {
-		debouncedSave = debounce(handleSaveLocal, 5000, {
-			leading: false,
-			trailing: true
-		});
-	}
+	debouncedSave = debounce(handleSaveLocal, 5000, {
+		leading: false,
+		trailing: true
+	});
 
 	// Save before navigation to prevent data loss
 	beforeNavigate(async () => {
-		console.log('beforeNavigate triggered', { hasUnsavedChanges, currentFileId, currentEditor: !!currentEditor, demo });
+		console.log('beforeNavigate triggered', {
+			hasUnsavedChanges,
+			currentFileId,
+			currentEditor: !!currentEditor,
+			demo
+		});
 
 		// Always cancel any pending debounced saves to prevent race conditions
 		if (debouncedSave) {
@@ -293,7 +299,7 @@
 			}
 			// Standard way to show "Are you sure you want to leave?" dialog
 			event.preventDefault();
-			return event.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+			return (event.returnValue = 'You have unsaved changes. Are you sure you want to leave?');
 		}
 	}
 
@@ -301,7 +307,7 @@
 		const result = await fetch(`/api/files/${currentFileId}`, {
 			method: 'PUT',
 			body: JSON.stringify($currentEditor.getJSON())
-		}).catch(e=> console.error("Saving file failed", currentFileId))
+		}).catch((e) => console.error('Saving file failed', currentFileId));
 		if (!result || !result.ok) {
 			return false;
 		}
@@ -309,11 +315,10 @@
 	}
 
 	let isActive = $derived((name, attrs = {}) => $editor.isActive(name, attrs));
-	let fontSize: string = $state(localStorage.getItem('fontSize'));
+	let fontSize: string = $state(localStorage.getItem('fontSize') || '16');
 	run(() => {
-		fontSizeStore.set(fontSize)
+		fontSizeStore.set(fontSize);
 	});
-	if (!fontSize) fontSize = "16"; // 16px default
 </script>
 
 <div class="w-full fixed top-2 left-0 right-0 flex justify-center z-20"></div>
@@ -347,34 +352,52 @@
 		{#if $editor}
 			<div class="toolbar sticky top-0 z-10 pt-1 pb-1 bg-base-200">
 				{#if !editable}
-				<div class="flex items-center tooltip tooltip-bottom" data-tip={$_('editor.editing.edit')}>
-					<button
-							onclick={() => {$editor.setEditable(true, true); editable = true;}}
+					<div
+						class="flex items-center tooltip tooltip-bottom"
+						data-tip={$_('editor.editing.edit')}
+					>
+						<button
+							onclick={() => {
+								$editor.setEditable(true, true);
+								editable = true;
+							}}
 							style="color: rgb(48, 49, 51);"
 							class="ml-6 cursor-pointer btn btn-ghost flex"
 						>
-						<Icon data={pencil} scale={1.5} />
-					</button>
-
-				</div>
-				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
+							<Icon data={pencil} scale={1.5} />
+						</button>
+					</div>
+					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
 				{:else if windowWidth <= 460}
-				<div class="flex items-center tooltip tooltip-bottom" data-tip={$_('editor.editing.save')}>
-					<button onclick={() => {$editor.setEditable(false, true); editable = false;}}
-						style="color: rgb(48, 49, 51);"
-							class="ml-6 cursor-pointer btn btn-ghost flex"
-						>{$_('editor.editing.save')}</button>
-				</div>
-				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
+					<div
+						class="flex items-center tooltip tooltip-bottom"
+						data-tip={$_('editor.editing.save')}
+					>
+						<button
+							onclick={() => {
+								$editor.setEditable(false, true);
+								editable = false;
+							}}
+							style="color: rgb(48, 49, 51);"
+							class="ml-6 cursor-pointer btn btn-ghost flex">{$_('editor.editing.save')}</button
+						>
+					</div>
+					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
 				{/if}
-				<div class="flex items-center tooltip tooltip-bottom" data-tip={$_('editor.settings.tooltip')}>
-					<label for="settings-modal" class="btn btn-ghost flex  ">
+				<div
+					class="flex items-center tooltip tooltip-bottom"
+					data-tip={$_('editor.settings.tooltip')}
+				>
+					<label for="settings-modal" class="btn btn-ghost flex">
 						<Icon data={settings} scale={1.5} />
 					</label>
 				</div>
 				<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
 				{#if windowWidth > 460}
-					<div class="flex items-center tooltip tooltip-bottom" data-tip={$_('editor.hotkeys.tooltip')}>
+					<div
+						class="flex items-center tooltip tooltip-bottom"
+						data-tip={$_('editor.hotkeys.tooltip')}
+					>
 						<label for="hotkeys-modal" class="btn btn-ghost flex">
 							<Icon data={keyboard} scale={1.5} />
 						</label>
@@ -389,8 +412,8 @@
 							data-tip={$_('file.toolbarUndo')}
 						>
 							<Icon data={rotateLeft} scale={1.5} />
-					</button>
-					<button
+						</button>
+						<button
 							onclick={() => $editor.chain().focus().redo().run()}
 							class:disabled={!$editor.can().redo()}
 							style="color: rgb(48, 49, 51);"
@@ -398,7 +421,7 @@
 							data-tip={$_('file.toolbarRedo')}
 						>
 							<Icon data={rotateRigth} scale={1.5} />
-					</button>
+						</button>
 					</div>
 					<div class="divider divider-horizontal ml-1 mr-1 sm:ml-2 sm:mr-2"></div>
 				{/if}
@@ -415,7 +438,6 @@
 						<span class="ml-1 leading-3 hidden sm:block"> {$_('file.toolbarDownload')} </span>
 					</label>
 				</div>
-
 			</div>
 		{/if}
 		<EditorContent editor={$editor} />
@@ -431,8 +453,8 @@
 	{/if}
 	<LanguageSelection onSetActive={() => {}} onSave={() => {}} />
 	<Hotkeys />
-	<Settings bind:fontSize={fontSize}></Settings>
-	<Download fileName={fileName} />
+	<Settings bind:fontSize></Settings>
+	<Download {fileName} />
 </div>
 
 <style>
@@ -455,5 +477,4 @@
 		padding: 5px 5px;
 		border-radius: var(--rounded-box, 0.5rem);
 	}
-
 </style>

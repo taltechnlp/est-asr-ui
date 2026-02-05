@@ -8,7 +8,7 @@
 	import { applyAction, deserialize } from '$app/forms';
 	import type { PageProps } from './$types';
 	import StorageBar from '$lib/components/StorageBar.svelte';
-	let {  form, data }: PageProps = $props();
+	let { form, data }: PageProps = $props();
 
 	let error = $state('');
 	let loading = $state(false);
@@ -17,18 +17,20 @@
 		{ id: 0, text: 'estonian' },
 		{ id: 1, text: 'finnish' }
 	];
-	let selectedLanguage = languageChoices[0];
-	let notify = true;
+	let selectedLanguage = $state(languageChoices[0]);
+	let notify = $state(true);
 
 	let selectedFiles: Set<string> = $state(new Set());
-	let selectAll = $derived(data.files && data.files.length > 0 && selectedFiles.size === data.files.length);
+	let selectAll = $derived(
+		data.files && data.files.length > 0 && selectedFiles.size === data.files.length
+	);
 	let bulkDeleting = $state(false);
 
 	let delFileId;
 	const delFile = async (fileId) => {
 		const response = await fetch('/api/files/' + fileId, {
 			method: 'DELETE'
-		}).catch(e => console.error("Failed to delete file", fileId));
+		}).catch((e) => console.error('Failed to delete file', fileId));
 		(document.getElementById('del-file-modal') as HTMLInputElement).checked = false;
 		if (!response) {
 			return;
@@ -45,7 +47,7 @@
 		if (selectedFiles.size === data.files.length) {
 			selectedFiles = new Set();
 		} else {
-			selectedFiles = new Set(data.files.map(f => f.id));
+			selectedFiles = new Set(data.files.map((f) => f.id));
 		}
 	}
 
@@ -64,8 +66,9 @@
 		bulkDeleting = true;
 		const fileIds = Array.from(selectedFiles);
 		for (const fileId of fileIds) {
-			await fetch('/api/files/' + fileId, { method: 'DELETE' })
-				.catch(e => console.error("Failed to delete file", fileId, e));
+			await fetch('/api/files/' + fileId, { method: 'DELETE' }).catch((e) =>
+				console.error('Failed to delete file', fileId, e)
+			);
 		}
 		(document.getElementById('bulk-del-modal') as HTMLInputElement).checked = false;
 		selectedFiles = new Set();
@@ -76,31 +79,24 @@
 	const printError = (errorText) => {
 		if (errorText === 'fileSizeLimit') {
 			return $_('files.fileSizeLimit');
-		}
-		else if (errorText === 'fileTooLong') {
+		} else if (errorText === 'fileTooLong') {
 			return $_('files.fileTooLong');
-		}
-		else if (errorText === 'noFile') {
+		} else if (errorText === 'noFile') {
 			return $_('files.noFile');
-		}
-		else if (errorText === 'fileSaveFailed') {
+		} else if (errorText === 'fileSaveFailed') {
 			return $_('files.fileSaveFailed');
-		}
-		else if (errorText === 'finnishUploadFailed') {
+		} else if (errorText === 'finnishUploadFailed') {
 			return $_('files.finnishUploadFailed');
-		}
-		else if (errorText === 'invalidLang') {
+		} else if (errorText === 'invalidLang') {
 			return $_('files.invalidLang');
-		}
-		else if (errorText === 'storageLimitExceeded') {
+		} else if (errorText === 'storageLimitExceeded') {
 			return $_('files.storageLimitExceeded');
-		}
-		else {
+		} else {
 			return $_('files.uploadError');
 		}
 	};
 
-	async function uploadFile(event: SubmitEvent & { currentTarget: EventTarget & HTMLFormElement}) {
+	async function uploadFile(event: SubmitEvent & { currentTarget: EventTarget & HTMLFormElement }) {
 		event.preventDefault();
 		error = '';
 
@@ -116,7 +112,7 @@
 		// }
 
 		// Add additional form data
-		formData.append('notify', notify ? "yes" : "no");
+		formData.append('notify', notify ? 'yes' : 'no');
 		formData.append('lang', selectedLanguage.text);
 
 		loading = true;
@@ -145,21 +141,16 @@
 			console.log('Upload failed', result.data);
 			if (result.data.uploadLimit) {
 				error = 'fileSizeLimit';
-			}
-			else if (result.data.fileTooLong) {
+			} else if (result.data.fileTooLong) {
 				error = 'fileTooLong';
-			}
-			else if (result.data.fileSaveFailed) {
+			} else if (result.data.fileSaveFailed) {
 				error = 'fileSaveFailed';
-			}
-			else if (result.data.noFile) {
+			} else if (result.data.noFile) {
 				error = 'noFile';
 				console.log('Unexpected uploaderror', result.data);
-			}
-			else if (result.data.finnishUploadFailed) {
+			} else if (result.data.finnishUploadFailed) {
 				error = 'finnishUploadFailed';
-			}
-			else if (result.data.storageLimitExceeded) {
+			} else if (result.data.storageLimitExceeded) {
 				error = 'storageLimitExceeded';
 			}
 			applyAction(result);
@@ -171,16 +162,15 @@
 			goto(result.location);
 		}
 
-		await awaitTimeout(10000).then(() =>
-			{if (donePolling) longPolling();}
-		);
-	};
+		await awaitTimeout(10000).then(() => {
+			if (donePolling) longPolling();
+		});
+	}
 
 	function openFile(fileId, fileState, isOld) {
 		if (isOld) {
 			window.location.href = `https://tekstiks.ee/files/`;
-		}
-		else if (fileState == 'READY') {
+		} else if (fileState == 'READY') {
 			goto(`/files/${fileId}`);
 		}
 	}
@@ -197,7 +187,7 @@
 		} while (!donePolling);
 	};
 	if (browser) {
-		onMount(longPolling)
+		onMount(longPolling);
 	}
 
 	let uploadModal: HTMLDialogElement;
@@ -213,14 +203,26 @@
 	<title>{$_('files.title')}</title>
 </svelte:head>
 {#if false}
-<div role="alert" class="alert alert-error mx-auto max-w-7xl">
-	<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
-	  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-	</svg>
-	<span>{$_('files.hardwareFailureWarning')}</span>
-</div>
+	<div role="alert" class="alert alert-error mx-auto max-w-7xl">
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			class="h-6 w-6 shrink-0 stroke-current"
+			fill="none"
+			viewBox="0 0 24 24"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+			/>
+		</svg>
+		<span>{$_('files.hardwareFailureWarning')}</span>
+	</div>
 {/if}
-<div class="grid w-full min-h-[100dvh] justify-center content-start grid-cols-[minmax(320px,_1280px)] overflow-x-auto bg-base-100">
+<div
+	class="grid w-full min-h-[100dvh] justify-center content-start grid-cols-[minmax(320px,_1280px)] overflow-x-auto bg-base-100"
+>
 	<div class="flex justify-between items-center max-w-screen-2xl mt-4 px-2">
 		{#if data.storage}
 			<StorageBar
@@ -236,29 +238,27 @@
 			{#if selectedFiles.size > 0}
 				<button
 					class="btn btn-error btn-sm gap-2"
-					onclick={() => (document.getElementById('bulk-del-modal') as HTMLInputElement).checked = true}
+					onclick={() =>
+						((document.getElementById('bulk-del-modal') as HTMLInputElement).checked = true)}
 				>
 					{$_('files.deleteSelected')} ({selectedFiles.size})
 				</button>
 			{/if}
-			<button
-				class="btn btn-primary btn-sm gap-2"
-				onclick={() => eval(`upload_modal.showModal()`)}
-			>
+			<button class="btn btn-primary btn-sm gap-2" onclick={() => eval(`upload_modal.showModal()`)}>
 				{$_('files.uploadButton')}
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				id="Outline"
-				viewBox="0 0 24 24"
-				fill="#fff"
-				class="h-4 w-4"
-				aria-label={$_('files.uploadIcon')}
-				><path
-					d="M11.007,2.578,11,18.016a1,1,0,0,0,1,1h0a1,1,0,0,0,1-1l.007-15.421,2.912,2.913a1,1,0,0,0,1.414,0h0a1,1,0,0,0,0-1.414L14.122.879a3,3,0,0,0-4.244,0L6.667,4.091a1,1,0,0,0,0,1.414h0a1,1,0,0,0,1.414,0Z"
-				/><path
-					d="M22,17v4a1,1,0,0,1-1,1H3a1,1,0,0,1-1-1V17a1,1,0,0,0-1-1H1a1,1,0,0,0-1,1v4a3,3,0,0,0,3,3H21a3,3,0,0,0,3-3V17a1,1,0,0,0-1-1h0A1,1,0,0,0,22,17Z"
-				/></svg
-			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					id="Outline"
+					viewBox="0 0 24 24"
+					fill="#fff"
+					class="h-4 w-4"
+					aria-label={$_('files.uploadIcon')}
+					><path
+						d="M11.007,2.578,11,18.016a1,1,0,0,0,1,1h0a1,1,0,0,0,1-1l.007-15.421,2.912,2.913a1,1,0,0,0,1.414,0h0a1,1,0,0,0,0-1.414L14.122.879a3,3,0,0,0-4.244,0L6.667,4.091a1,1,0,0,0,0,1.414h0a1,1,0,0,0,1.414,0Z"
+					/><path
+						d="M22,17v4a1,1,0,0,1-1,1H3a1,1,0,0,1-1-1V17a1,1,0,0,0-1-1H1a1,1,0,0,0-1,1v4a3,3,0,0,0,3,3H21a3,3,0,0,0,3-3V17a1,1,0,0,0-1-1h0A1,1,0,0,0,22,17Z"
+					/></svg
+				>
 			</button>
 		</div>
 	</div>
@@ -304,7 +304,7 @@
 						</td>
 						<td>
 							{#if file.oldSystem}
-							<div class="badge badge-md badge-info pl-2 pr-2">{$_('files.statusOld')}</div>
+								<div class="badge badge-md badge-info pl-2 pr-2">{$_('files.statusOld')}</div>
 							{:else if file.state == 'READY'}
 								<div class="badge badge-md badge-success pl-2 pr-2">{$_('files.statusReady')}</div>
 							{:else if file.state == 'PROCESSING_ERROR'}
@@ -331,7 +331,7 @@
 						</td>
 						<td class="">
 							{#if file.oldSystem}
-							    <a href="https://tekstiks.ee/files">
+								<a href="https://tekstiks.ee/files">
 									<button class="btn btn-outline btn-xs">{$_('files.toOldSystem')}</button>
 								</a>
 							{:else if file.state == 'READY'}
@@ -351,8 +351,8 @@
 										e.stopPropagation();
 										(document.getElementById('del-file-modal') as HTMLInputElement).checked = true;
 									}
-								}}
-								>{$_('files.deleteButton')}</button>
+								}}>{$_('files.deleteButton')}</button
+							>
 						</td>
 					</tr>
 				{/each}
@@ -364,22 +364,43 @@
 		</tbody>
 	</table>
 
-	<dialog id="upload_modal" class="modal cursor-pointer modal-bottom sm:modal-middle" bind:this={uploadModal}>
+	<dialog
+		id="upload_modal"
+		class="modal cursor-pointer modal-bottom sm:modal-middle"
+		bind:this={uploadModal}
+	>
 		<div class="modal-box relative">
 			<h3 class="text-lg font-bold mb-4">{$_('files.uploadHeader')}</h3>
 			<form method="dialog">
-				<button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" aria-label={$_('files.close')}>✕</button>
-			  </form>
+				<button
+					class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+					aria-label={$_('files.close')}>✕</button
+				>
+			</form>
 			{#if data.storage?.usedPercent >= 100}
 				<div class="alert alert-warning mb-4">
-					<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						class="stroke-current shrink-0 h-6 w-6"
+						fill="none"
+						viewBox="0 0 24 24"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+						/>
 					</svg>
 					<span>{$_('files.storageLimitWarning')}</span>
 				</div>
 			{/if}
 			<form method="POST" enctype="multipart/form-data" onsubmit={uploadFile}>
-				<fieldset disabled={loading} aria-busy={loading} class="fieldset w-full bg-base-200 border border-base-300 p-4 rounded-box">
+				<fieldset
+					disabled={loading}
+					aria-busy={loading}
+					class="fieldset w-full bg-base-200 border border-base-300 p-4 rounded-box"
+				>
 					{#if form?.uploadLimit}<p class="error">File is too large!</p>{/if}
 					{#if form?.fileTooLong}<p class="error">File is too long!</p>{/if}
 					<label class="form-control w-full max-w-xs">
@@ -430,24 +451,29 @@
 						<li class="py-4 pt-0">{$_('files.fileDurationLimit')}</li>
 					</ul>
 				</fieldset>
-					{#if error}
-						<p class="mt-3 mb-3 text-red-500 text-center font-semibold">{printError(error)}</p>
-					{/if}
-					{#if form?.uploadLimit}
-						<p class="mt-3 mb-3 text-red-500 text-center font-semibold">{printError("fileTooLong")}</p>
-					{/if}
-					{#if loading}
-						<button class="btn" disabled aria-label={$_('files.uploadButton')}
-							><span class="btn btn-ghost btn-xs loading" aria-label={$_('files.loading')}></span></button
-						>
-					{:else if upload}
-						<button type="submit" class="btn btn-active btn-primary" aria-label={$_('files.uploadButton')}
-							>{$_('files.uploadButton')}</button
-						>
-					{:else}
-						<button class="btn" disabled>{$_('files.uploadButton')}</button>
-					{/if}
-				</form>
+				{#if error}
+					<p class="mt-3 mb-3 text-red-500 text-center font-semibold">{printError(error)}</p>
+				{/if}
+				{#if form?.uploadLimit}
+					<p class="mt-3 mb-3 text-red-500 text-center font-semibold">
+						{printError('fileTooLong')}
+					</p>
+				{/if}
+				{#if loading}
+					<button class="btn" disabled aria-label={$_('files.uploadButton')}
+						><span class="btn btn-ghost btn-xs loading" aria-label={$_('files.loading')}
+						></span></button
+					>
+				{:else if upload}
+					<button
+						type="submit"
+						class="btn btn-active btn-primary"
+						aria-label={$_('files.uploadButton')}>{$_('files.uploadButton')}</button
+					>
+				{:else}
+					<button class="btn" disabled>{$_('files.uploadButton')}</button>
+				{/if}
+			</form>
 		</div>
 		<form method="dialog" class="modal-backdrop">
 			<button aria-label={$_('files.close')}>close</button>
@@ -462,9 +488,19 @@
 				{$_('files.fileDeletionWarning')}
 			</p>
 			<div class="modal-action">
-				<button type="button" class="btn btn-outline" onclick={() => (document.getElementById('del-file-modal') as HTMLInputElement).checked = false}>{$_('files.cancel')}</button>
-				<button type="button" class="btn" onclick={() => delFile(delFileId)} onkeydown={(e) => e.key === 'Enter' && delFile(delFileId)}
-					>{$_('files.delete')}</button>
+				<button
+					type="button"
+					class="btn btn-outline"
+					onclick={() =>
+						((document.getElementById('del-file-modal') as HTMLInputElement).checked = false)}
+					>{$_('files.cancel')}</button
+				>
+				<button
+					type="button"
+					class="btn"
+					onclick={() => delFile(delFileId)}
+					onkeydown={(e) => e.key === 'Enter' && delFile(delFileId)}>{$_('files.delete')}</button
+				>
 			</div>
 		</label>
 	</label>
@@ -480,7 +516,8 @@
 				<button
 					type="button"
 					class="btn btn-outline"
-					onclick={() => (document.getElementById('bulk-del-modal') as HTMLInputElement).checked = false}
+					onclick={() =>
+						((document.getElementById('bulk-del-modal') as HTMLInputElement).checked = false)}
 					disabled={bulkDeleting}
 				>
 					{$_('files.cancel')}
