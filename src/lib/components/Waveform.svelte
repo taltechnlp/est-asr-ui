@@ -200,15 +200,14 @@
 			if(err) console.log("Error initiating Peaks", err);
 			peaksInstance = peaks;
 			if (peaksInstance)	waveform.set(peaksInstance);
-			// Event subscriptions
-			peaksInstance.on('peaks.ready', function () {
-				peaksReady = true;
-				duration.set(peaksInstance.player.getDuration());
-				peaksInstance.player.pause();
-				player.update((x) => {
-					return { ...x, ready: true };
-				});
+			// peaks.js v4: peaks.ready event removed, init callback means ready
+			peaksReady = true;
+			duration.set(peaksInstance.player.getDuration());
+			peaksInstance.player.pause();
+			player.update((x) => {
+				return { ...x, ready: true };
 			});
+			// Event subscriptions
 			peaksInstance.on('player.playing', function() {
 				player.update((x) => {
 					return { ...x, playing: true };
