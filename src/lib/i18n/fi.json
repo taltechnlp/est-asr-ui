@@ -10,7 +10,7 @@
         "or": "TAI"
     },
     "index": {
-        "title": "Kotisivu | teksiks.ee",
+        "title": "Kotisivu | tekstiks.ee",
         "headerTitle": "Kotisivu",
         "headerFiles": "Tiedostot",
         "headerDictate": "Sanele",
@@ -209,7 +209,7 @@
         "title": "Demo"
     },
     "passwordReset": {
-        "title": "Unohtunut salasana | teksiks.ee",
+        "title": "Unohtunut salasana | tekstiks.ee",
         "header": "Unohtunut salasana",
         "submit": "Pyydä salasanan vaihtoa",
         "success": "Pyyntö onnistui! Sähköpostiisi on lähetetty linkki, josta voit vaihtaa salasanan!",
