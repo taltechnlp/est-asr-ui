@@ -13,7 +13,7 @@
 		waveform
 	} from '$lib/stores.svelte';
 	import Peaks, { type PeaksInstance, type PeaksOptions } from 'peaks.js';
-	let { url } = $props();
+	let { url, mimeType = undefined } = $props();
 
 	let peaksInstance: PeaksInstance;
 	let peaksReady = false;
@@ -339,7 +339,7 @@
 	<div id="zoomview-container" class="waveform-container w-full"></div>
 	<div id="overview-container" class="w-full h-auto "></div>
 	<audio id="audio">
-		<source src={url} type="audio/mpeg">
+		<source src={url} type={mimeType || undefined}>
 	</audio>
 </div>
 

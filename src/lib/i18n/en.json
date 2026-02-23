@@ -98,7 +98,7 @@
     "statusProcessing": "PROCESSING",
     "statusUploaded": "QUEUED",
     "uploadHeader": "Upload a speech recording",
-    "supportedFormats": "Supported formats: wav, mp3, ogg, mp2, m4a, mp4, flac, amr, mpg.",
+    "supportedFormats": "Supported formats include wav, wave, mp3, mp2, m4a, aac, flac, ogg/opus, amr, aiff, wma, webm, mp4, mov, avi, mkv, mpeg, 3gp and more.",
     "fileSizeLimit": "File size limit is 1000MB.",
     "fileDurationLimit": "Duration up to 2 hours",
     "cancel": "Cancel",

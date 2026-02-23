@@ -1,6 +1,5 @@
 import { prisma } from '$lib/db/client';
 import { v4 as uuidv4 } from 'uuid';
-import { writeFile } from 'fs/promises';
 import { join } from 'path';
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
@@ -14,6 +13,40 @@ import { getAudioDurationInSeconds } from 'get-audio-duration';
 import { Buffer } from 'node:buffer';
 import { Readable } from 'stream';
 import { unlink } from 'fs/promises';
+import { spawn } from 'child_process';
+
+const OPUS_MIME_TYPE = 'audio/ogg; codecs=opus';
+
+const convertToOpus = async (inputPath: string, outputPath: string): Promise<void> => {
+	await new Promise<void>((resolve, reject) => {
+		const ffmpeg = spawn('ffmpeg', [
+			'-y',
+			'-i',
+			inputPath,
+			'-vn',
+			'-map_metadata',
+			'-1',
+			'-acodec',
+			'libopus',
+			'-b:a',
+			'32k',
+			'-vbr',
+			'on',
+			'-compression_level',
+			'10',
+			outputPath
+		]);
+
+		ffmpeg.on('error', (err) => reject(err));
+		ffmpeg.on('close', (code) => {
+			if (code === 0) {
+				resolve();
+			} else {
+				reject(new Error(`ffmpeg exited with code ${code}`));
+			}
+		});
+	});
+};
 
 export const load: PageServerLoad = async ({ locals, fetch, depends }) => {
 	depends('/api/files');
@@ -93,8 +126,8 @@ export const actions: Actions = {
 			_sum: { fileSize: true }
 		});
 		const currentUsage = usageResult._sum.fileSize ?? 0n;
-		const fileSize = BigInt(file.size);
-		if (currentUsage + fileSize > ACCOUNT_STORAGE_LIMIT) {
+		const uploadedFileSize = BigInt(file.size);
+		if (currentUsage + uploadedFileSize > ACCOUNT_STORAGE_LIMIT) {
 			console.warn('Account storage limit exceeded - allowing temporarily', session.user.id);
 			// TODO: Re-enable strict enforcement later
 			// return fail(400, { storageLimitExceeded: true });
@@ -107,6 +140,7 @@ export const actions: Actions = {
 			mkdirSync(uploadDir, { recursive: true });
 		}
 		const saveTo = join(uploadDir, newFilename);
+		const convertedPath = `${saveTo}.opus`;
 		console.log(
 			`File [${newFilename}]: filename: %j, mimeType: %j, path: %j`,
 			file.name,
@@ -128,12 +162,13 @@ export const actions: Actions = {
 			id: id,
 			uploadedAt,
 			filename: file.name,
-			mimetype: file.type,
+			mimetype: OPUS_MIME_TYPE,
 			encoding: '7bit',
-			path: saveTo,
+			path: convertedPath,
 			externalId,
 			language: lang
 		};
+		let fileSize = uploadedFileSize;
 		try {
 			const arrayBuffer = await file.arrayBuffer();
 			const buffer = Buffer.from(arrayBuffer);
@@ -145,23 +180,40 @@ export const actions: Actions = {
 			console.error(err);
 			return fail(400, { fileSaveFailed: true });
 		}
-		let duration = 0;
-		let error = false;
 		try {
-			await getAudioDurationInSeconds(saveTo).then((dur) => {
+			await convertToOpus(saveTo, convertedPath);
+			await unlink(saveTo).catch((e) =>
+				console.error('Failed to remove source file after Opus conversion', e)
+			);
+			fileSize = BigInt(statSync(convertedPath).size);
+			console.log('File converted to Opus at', convertedPath);
+		} catch (err) {
+			console.error('Failed to convert uploaded file to Opus', err);
+			await unlink(saveTo).catch((e) =>
+				console.error('Failed to remove source file after conversion error', e)
+			);
+			await unlink(convertedPath).catch((e) =>
+				console.error('Failed to remove failed Opus output file', e)
+			);
+			return fail(400, { fileSaveFailed: true });
+		}
+		let duration = 0;
+		let durationError = false;
+		try {
+			await getAudioDurationInSeconds(fileData.path).then((dur) => {
 				duration = dur;
 				console.log('File duration in seconds:', duration);
 				if (duration > 7200) {
 					// not more than 2h
-					error = true;
+					durationError = true;
 				}
 			});
 		} catch (e) {
-			console.log('Failed to read file duration at', saveTo);
-			error = true;
+			console.log('Failed to read file duration at', fileData.path);
+			durationError = true;
 		}
-		if (error) {
-			await unlink(saveTo).catch((e) =>
+		if (durationError) {
+			await unlink(fileData.path).catch((e) =>
 				console.error('Failed to remove uploaded file that was too long', e)
 			);
 			return fail(400, { fileTooLong: true });
@@ -195,7 +247,7 @@ export const actions: Actions = {
 				},
 				body: JSON.stringify({
 					fileId: id,
-					filePath: saveTo,
+					filePath: fileData.path,
 					resultDir,
 					workflowName: externalId
 				})
@@ -230,7 +282,7 @@ export const actions: Actions = {
 			return { success: true, file: fileData, error: undefined };
 		} else {
 			// Finnish
-			const uploadResult = await uploadToFinnishAsr(fileData.path, fileData.filename);
+			const uploadResult = await uploadToFinnishAsr(fileData.path, path.basename(fileData.path));
 			if (!uploadResult.externalId) {
 				console.error('Upload FIN', 'Upload failed', fileData, uploadResult);
 				return fail(400, { finnishUploadFailed: true });
