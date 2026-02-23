@@ -5,6 +5,8 @@
 		"allowSyntheticDefaultImports": true,
 		"typeRoots": ["./node_modules/@types", "./src/types"],
 		"esModuleInterop": true,
-		"moduleResolution": "bundler"
+		"moduleResolution": "bundler",
+		"skipLibCheck": true,
+		"skipDefaultLibCheck": true
 	}
 }

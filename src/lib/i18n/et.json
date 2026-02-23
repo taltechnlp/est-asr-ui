@@ -10,14 +10,14 @@
         "or": "VÕI"
     },
     "index": {
-        "title": "Esileht | tekstiks.ee",
-        "headerTitle": "Esileht",
+        "title": "Eesti kõnetuvastus ja transkribeerimine | tekstiks.ee",
+        "headerTitle": "Avaleht",
         "headerFiles": "Failid",
         "headerDictate": "Dikteeri",
         "headerDemo": "Demo",
         "login": "Logi sisse",
         "heroHeader": "Kõnetuvastus ehk kõne tekstiks",
-        "heroDescription": "Rakendus eestikeelsete helisalvestiste automaatseks transkribeerimiseks ning tuvastusvigade korrigeerimiseks.",
+        "heroDescription": "Teisenda eestikeelsed helisalvestised automaatselt tekstiks, paranda transkriptsiooni veebis ja laadi tulemus alla.",
         "ctaButton": "Alusta",
         "demoButton": "Vaata demo",
         "howItWorks": "Kuidas see töötab?",
@@ -290,7 +290,7 @@
     },
     "dictate": {
         "title": "Dikteeri",
-        "intro1": "Sellel lehel saab TalTech kõnetuvastuse abil dikteerida teksti mitmes keeles. Veebilehitseja saadab reaalajaliselt kõne TalTechi Kõnetehnoloogia labori serverisse, kus see muudetakse tekstiks ning saadetakse veebilehtisejasse tagasi.",
+        "intro1": "Sellel lehel saad TalTechi kõnetuvastuse abil dikteerida teksti mitmes keeles. Veebilehitseja saadab kõne reaalajas TalTechi kõnetehnoloogia labori serverisse, kus see teisendatakse tekstiks ja saadetakse brauserisse tagasi.",
         "intro2": "Eesti ja inglise keele puhul ilmuvad tulemused peaaegu koheselt. Automaatne (Euroopa keeled) 🇧🇬 🇨🇿 🇩🇰 🇩🇪 🇬🇷 🇪🇸 🇫🇮 🇫🇷 🇭🇷 🇭🇺 🇮🇹 🇱🇹 🇱🇻 🇲🇹 🇳🇱 🇵🇱 🇵🇹 🇷🇴 🇷🇺 🇸🇰 🇸🇮 🇸🇪 🇺🇦 puhul ilmuvad tulemused iga 2-4 sekundi tagant automaatse keeletuvastusega.",
         "intro3": "Parima tulemuse saamiseks kasutage head mikrofoni ning rääkige selge häälega mõõdukas tempos. Sõnade vahel pause ei pea tegema.",
         "attention": "Tähelepanu!",
