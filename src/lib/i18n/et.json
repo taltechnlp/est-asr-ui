@@ -98,7 +98,7 @@
         "statusProcessing": "TÖÖDELDAKSE",
         "statusUploaded": "JÄRJEKORRAS",
         "uploadHeader": "Helisalvestise ülesse laadimine",
-        "supportedFormats": "Toetatud formaadid: wav, mp3, ogg, mp2, m4a, mp4, flac, amr, mpg.",
+        "supportedFormats": "Toetatud formaadid hõlmavad: wav, wave, mp3, mp2, m4a, aac, flac, ogg/opus, amr, aiff, wma, webm, mp4, mov, avi, mkv, mpeg, 3gp ja rohkem.",
         "fileSizeLimit": "Faili suurus kuni 1000MB.",
         "fileDurationLimit": "Kestus kuni 2 tundi",
         "cancel": "Tühista",

@@ -3,11 +3,7 @@ import { error, redirect } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import {
   createReadStream,
-  promises as fs,
-  readFile,
-  ReadStream,
   stat,
-  statSync,
 } from "fs";
 import { promisify } from "util";
 
@@ -35,6 +31,7 @@ export const GET: RequestHandler = async ({ params, locals, request }) => {
 
   if ((session.user.id === file.User.id )) {
     let location = file.path;
+    const mimeType = file.mimetype || "application/octet-stream";
     const fileInfo = promisify(stat);
 
     /** Calculate Size of file */
@@ -77,7 +74,7 @@ export const GET: RequestHandler = async ({ params, locals, request }) => {
           "Content-Range": `bytes ${start}-${end}/${size}`,
           "Accept-Ranges": "bytes",
           "Content-Length": (end - start + 1).toString(),
-          "Content-Type": "audio/mpeg",
+          "Content-Type": mimeType,
         },
         status: 206,
       });
@@ -92,7 +89,7 @@ export const GET: RequestHandler = async ({ params, locals, request }) => {
       return new Response(readableStream, {
         headers: {
           "Content-Length": size.toString(),
-          "Content-Type": "audio/mpeg",
+          "Content-Type": mimeType,
         },
         status: 200,
       });

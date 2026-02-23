@@ -428,7 +428,7 @@
 							class="file-input file-input-primary w-full max-w-xs"
 							type="file"
 							bind:files={upload}
-							accept="audio/*,video/*,audio/wav,audio/x-wav,audio/mp3,audio/mpeg,audio/ogg,video/ogg,video/x-mpeg2,video/mpeg2,audio/x-m4a,audio/flac,audio/x-flac,audio/x-amr,audio/amr"
+							accept="audio/*,video/*,.wav,.wave,.mp3,.mp2,.m4a,.aac,.flac,.ogg,.oga,.opus,.amr,.aiff,.aif,.aifc,.wma,.mka,.webm,.mp4,.m4v,.mov,.avi,.mkv,.mpeg,.mpg,.3gp,.3gpp,.3g2"
 							id="file"
 							name="file"
 							lang={data.language}

@@ -98,7 +98,7 @@
         "statusProcessing": "KÄSITELLÄÄN",
         "statusUploaded": "JONOSSA",
         "uploadHeader": "Lähetä äänitiedosto",
-        "supportedFormats": "Tuetut tiedostomuodot: wav, mp3, ogg",
+        "supportedFormats": "Tuetut tiedostomuodot sisältävät: wav, wave, mp3, mp2, m4a, aac, flac, ogg/opus, amr, aiff, wma, webm, mp4, mov, avi, mkv, mpeg, 3gp ja muita.",
         "fileSizeLimit": "Tiedoston enimmäiskoko on noin 1000MB",
         "fileDurationLimit": "Kesto enintään 2 tuntia",
         "cancel": "Poista",

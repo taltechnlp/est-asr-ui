@@ -93,15 +93,16 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
         }
         let peaks = null;
         if (peaksExist) peaks = await fs.readFile(peaksPath, 'utf-8'); */
-        return {
-            file: {
-                id: file.id,
-                state: file.state,
-                content: content,
-                path: file.path,
-                name: file.filename,
-                uploadedAt: file.uploadedAt
-            },
-            url: url.origin,
-        }
+	return {
+		file: {
+			id: file.id,
+			state: file.state,
+			content: content,
+			path: file.path,
+			mimetype: file.mimetype,
+			name: file.filename,
+			uploadedAt: file.uploadedAt
+		},
+		url: url.origin
+	};
 }

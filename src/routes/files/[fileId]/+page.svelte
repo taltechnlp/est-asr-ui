@@ -77,6 +77,6 @@
 			fileName={data.file.name}
 			uploadedAt={data.file.uploadedAt}
 		/>
-		<Player url={`${data.url}/uploaded/${data.file.id}`} />
+		<Player url={`${data.url}/uploaded/${data.file.id}`} mimeType={data.file.mimetype} />
 	</div>
 </main>
