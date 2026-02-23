@@ -174,27 +174,42 @@
 			goto(`/files/${fileId}`);
 		}
 	}
-	let donePolling;
-	const awaitTimeout = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
+	let donePolling = true;
+	let pollingTimeout: ReturnType<typeof setTimeout> | null = null;
+	const awaitTimeout = (delay) =>
+		new Promise<void>((resolve) => {
+			pollingTimeout = setTimeout(() => {
+				pollingTimeout = null;
+				resolve();
+			}, delay);
+		});
+	const shouldPoll = () =>
+		data.files.some((file) => file.state === 'PROCESSING' || file.state === 'UPLOADED');
+
 	const longPolling = async () => {
 		donePolling = false;
-		if (!data.files.find((x) => x.state == 'PROCESSING' || x.state == 'UPLOADED')) {
-			donePolling = true;
-		}
-		do {
+		while (!donePolling && shouldPoll()) {
 			await awaitTimeout(10000);
+			if (donePolling) {
+				break;
+			}
 			await invalidateAll();
-		} while (!donePolling);
+		}
+		donePolling = true;
 	};
 	if (browser) {
-		onMount(longPolling);
+		onMount(() => {
+			void longPolling();
+		});
 	}
 
 	let uploadModal: HTMLDialogElement;
 
 	onDestroy(() => {
-		if (!donePolling) {
-			donePolling = true;
+		donePolling = true;
+		if (pollingTimeout) {
+			clearTimeout(pollingTimeout);
+			pollingTimeout = null;
 		}
 	});
 </script>

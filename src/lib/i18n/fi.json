@@ -226,6 +226,7 @@
         "languageDescription": "Kielen kuvaus",
         "languageActivate": "Aktivoida",
         "languageAction": "Toiminta",
+        "loadingContent": "Ladataan editoria...",
         "languageSelectionHeading": "Valitse kielenvaihtotunnisteet",
         "languageSelectionDescription": "Aktivoi vain tekstissä käytetyt kielet. ",
         "save": "Tallentaa",

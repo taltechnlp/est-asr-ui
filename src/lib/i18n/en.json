@@ -226,6 +226,7 @@
     "languageDescription": "Language description",
     "languageActivate": "Activate",
     "languageAction": "Action",
+    "loadingContent": "Loading editor...",
     "languageSelectionHeading": "Choose language change labels",
     "languageSelectionDescription": "Activate only the languages that are used in the text. New languages can be added if neede.",
     "save": "Save",
