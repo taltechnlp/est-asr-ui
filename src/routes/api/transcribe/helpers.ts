@@ -1,4 +1,4 @@
-import { spawn, execFile } from 'child_process';
+import { spawn } from 'child_process';
 import { existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 
@@ -23,13 +23,19 @@ export const runNextflow = (
 ) => {
 	// Escape glob metacharacters in the file path
 	const escapedFilePath = escapeGlobPattern(filePath);
+	const scriptPath = join(pipelineDir, 'transcribe.nf');
 
 	const workDir = join(pipelineDir, 'work', workflowName);
+
+	if (!existsSync(scriptPath)) {
+		console.error(`[NEXTFLOW] Script not found: ${scriptPath}`);
+		return false;
+	}
 
 	let parameters = [
 		'-bg',
 		'run',
-		pipelineDir + '/transcribe.nf',
+		scriptPath,
 		'-work-dir',
 		workDir,
 		'-profile',
