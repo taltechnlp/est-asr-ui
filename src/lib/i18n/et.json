@@ -10,7 +10,7 @@
         "or": "VÕI"
     },
     "index": {
-        "title": "Esileht | teksiks.ee",
+        "title": "Esileht | tekstiks.ee",
         "headerTitle": "Esileht",
         "headerFiles": "Failid",
         "headerDictate": "Dikteeri",
@@ -209,7 +209,7 @@
         "title": "Demo"
     },
     "passwordReset": {
-        "title": "Parooli lähtestamine | teksiks.ee",
+        "title": "Parooli lähtestamine | tekstiks.ee",
         "header": "Parooli lähtestamine",
         "submit": "Telli lähtestamise link",
         "success": "Päring edukas! Kontrolli oma postkasti, seal peaks varsti olema parooli lähtestamise link!",

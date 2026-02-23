@@ -10,7 +10,7 @@
     "or": "OR"
   },
   "index": {
-    "title": "Home | teksiks.ee",
+    "title": "Home | tekstiks.ee",
     "headerTitle": "Home",
     "headerFiles": "Files",
     "headerDictate": "Dictate",
@@ -209,7 +209,7 @@
     "title": "Demo"
   },
   "passwordReset": {
-    "title": "Password reset | teksiks.ee",
+    "title": "Password reset | tekstiks.ee",
     "header": "Password reset",
     "submit": "Request password reset",
     "success": "Request successful! Check your email for a password reset link.",
