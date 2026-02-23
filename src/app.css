@@ -1,7 +1,8 @@
 @import "tailwindcss";
 @plugin "daisyui" {
 	themes: cmyk --default;
-  }
+	exclude: properties, radialprogress;
+}
  
 @layer base {
   :root {

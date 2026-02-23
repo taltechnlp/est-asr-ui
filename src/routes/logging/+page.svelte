@@ -1,6 +1,6 @@
 <script lang="ts">
     import { logEvent } from '$lib/logging/events';
-    import type { EventType } from '$lib/db/client'; // Import from the correct location
+    import type { EventType } from '$lib/logging/types';
     import { onMount } from 'svelte';
 
     let editorContent: string = '';

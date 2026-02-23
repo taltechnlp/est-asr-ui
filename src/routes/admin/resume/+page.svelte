@@ -3,6 +3,12 @@
     import { _ } from 'svelte-i18n';
     let { data }: { data: PageData } = $props();
     let error = $state('');
+    const openUploadModal = () => {
+		const modal = document.getElementById('upload_modal');
+		if (modal instanceof HTMLDialogElement) {
+			modal.showModal();
+		}
+	};
     const toTime = (timestampt) => {
 		const ts = new Date(timestampt);
 		const date = ts.toLocaleDateString('et-ET', {
@@ -24,7 +30,7 @@
 </svelte:head>
 <div class="grid w-full min-h-[100dvh] justify-center content-start grid-cols-[minmax(320px,_1280px)] overflow-x-auto bg-base-100">
 	<div class="flex justify-end max-w-screen-2xl">
-		<button class="btn btn-primary gap-2 mt-5 mb-2 modal-button right" onclick={() => eval(`upload_modal.showModal()`)}>
+		<button class="btn btn-primary gap-2 mt-5 mb-2 modal-button right" onclick={openUploadModal}>
 			{$_('files.uploadButton')}
 			<svg
 				xmlns="http://www.w3.org/2000/svg"

@@ -259,7 +259,7 @@
 					{$_('files.deleteSelected')} ({selectedFiles.size})
 				</button>
 			{/if}
-			<button class="btn btn-primary btn-sm gap-2" onclick={() => eval(`upload_modal.showModal()`)}>
+			<button class="btn btn-primary btn-sm gap-2" onclick={() => uploadModal?.showModal()}>
 				{$_('files.uploadButton')}
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
