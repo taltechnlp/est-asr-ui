@@ -7,6 +7,24 @@ import {
 } from "fs";
 import { promisify } from "util";
 
+const resolveMimeType = (filePath: string, storedMimeType: string | null) => {
+  const lowerPath = filePath.toLowerCase();
+
+  if (lowerPath.endsWith(".opus")) {
+    return "audio/ogg; codecs=opus";
+  }
+
+  if (storedMimeType?.startsWith("audio/ogg")) {
+    return "audio/ogg; codecs=opus";
+  }
+
+  if (storedMimeType) {
+    return storedMimeType;
+  }
+
+  return "application/octet-stream";
+};
+
 // Return the audio or video file for playback. Authorization requried.
 export const GET: RequestHandler = async ({ params, locals, request }) => {
 
@@ -31,7 +49,7 @@ export const GET: RequestHandler = async ({ params, locals, request }) => {
 
   if ((session.user.id === file.User.id )) {
     let location = file.path;
-    const mimeType = file.mimetype || "application/octet-stream";
+    const mimeType = resolveMimeType(location, file.mimetype);
     const fileInfo = promisify(stat);
 
     /** Calculate Size of file */

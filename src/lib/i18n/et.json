@@ -226,6 +226,7 @@
         "languageDescription": "Keele nimetus",
         "languageActivate": "Aktiveeri",
         "languageAction": "Tegevus",
+        "loadingContent": "Redaktori laadimine...",
         "languageSelectionHeading": "Keelevahetuse siltide haldamine",
         "languageSelectionDescription": "Aktiveeri vaid endale vajalikud keeled. Vajadusel saab keelevalikuid lisada.",
         "save": "Salvesta",

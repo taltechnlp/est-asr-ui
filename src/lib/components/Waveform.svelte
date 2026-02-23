@@ -14,6 +14,10 @@
 	} from '$lib/stores.svelte';
 	import Peaks, { type PeaksInstance, type PeaksOptions } from 'peaks.js';
 	let { url, mimeType = undefined } = $props();
+	const mediaUrl = $derived(encodeURI(url));
+	const mediaType = $derived(
+		mimeType?.includes('opus') ? 'audio/ogg; codecs=opus' : mimeType || undefined
+	);
 
 	let peaksInstance: PeaksInstance;
 	let peaksReady = false;
@@ -59,7 +63,7 @@
 				names.forEach((m) => {
 					$waveform.segments.add(m);
 				});
-			} else console.log("not ready"/* , names */)
+			}
 	});
 	const speakerFilter = (s) => s && s.start && s.start !== -1 && s.end && s.end !== -1 && s.name;
 	const unsubscribeSpeakerNames = speakerNames.subscribe((speakers) => {
@@ -77,6 +81,17 @@
 		// console.log("updated", speakers)
 		});
 	onMount(() => {
+		player.set({
+			playing: false,
+			muted: false,
+			ready: false
+		});
+		const audioElement = document.getElementById('audio') as HTMLMediaElement | null;
+		if (!audioElement) {
+			console.error('Audio element not found for waveform initialization');
+			return;
+		}
+
 		let styles = getComputedStyle(document.documentElement);
 		let colorPrimary = styles.getPropertyValue("--color-primary");
 		let colorSecondary = styles.getPropertyValue("--color-secondary");
@@ -169,7 +184,7 @@
 				enablePoints: false,
 				enableSegments: true,
 			},
-			mediaElement: document.getElementById('audio'),
+			mediaElement: audioElement,
 			webAudio: {
 				audioContext: audioContext,
 				scale: 128,
@@ -197,9 +212,12 @@
 
 		Peaks.init(options, function(err, peaks) {
 		// Do something when the waveform is displayed and ready, or handle errors
-			if(err) console.log("Error initiating Peaks", err);
+			if (err || !peaks) {
+				console.error('Error initiating Peaks', err, { url: mediaUrl, mimeType: mediaType });
+				return;
+			}
 			peaksInstance = peaks;
-			if (peaksInstance)	waveform.set(peaksInstance);
+			waveform.set(peaksInstance);
 			// peaks.js v4: peaks.ready event removed, init callback means ready
 			peaksReady = true;
 			duration.set(peaksInstance.player.getDuration());
@@ -248,7 +266,7 @@
 
 
 		// Subscribe to playback events
-		let audio = document.getElementById("audio") as HTMLMediaElement;
+		let audio = audioElement;
 		audio.ontimeupdate = function() {onPlayback()};
 		function onPlayback() {
 			const candidateWords = wordLookup[Math.floor(audio.currentTime)];
@@ -319,6 +337,11 @@
 			$waveform.destroy();
 		}
 		waveform.set(null);
+		player.set({
+			playing: false,
+			muted: false,
+			ready: false
+		});
 		words.set([]);
 		playingTime.set(0);
 	});
@@ -338,8 +361,8 @@
 <div>
 	<div id="zoomview-container" class="waveform-container w-full"></div>
 	<div id="overview-container" class="w-full h-auto "></div>
-	<audio id="audio">
-		<source src={url} type={mimeType || undefined}>
+	<audio id="audio" preload="auto">
+		<source src={mediaUrl} type={mediaType}>
 	</audio>
 </div>
 
