@@ -1,6 +1,7 @@
 // --- Event Logging ---
 
-import { db, type EventType, type EventStatus, type IUserActionEvent } from '$lib/db/client';
+import { db } from '$lib/logging/db';
+import type { EventStatus, IUserActionEvent } from '$lib/logging/types';
 import { browser } from '$app/environment'; // Use SvelteKit's environment detection
 
 let worker: Worker | null = null;

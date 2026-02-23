@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-import type { IUserActionEvent } from '$lib/db/client'; // Assuming this path is correct
+import type { IUserActionEvent } from '$lib/logging/types';
 
 const MAX_BATCH_SIZE = 50; // Send events in batches of 50
 const SYNC_INTERVAL = 5000; // Send events every 5 seconds

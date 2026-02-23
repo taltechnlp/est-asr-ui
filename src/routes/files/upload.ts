@@ -1,4 +1,4 @@
-import { readFile, writeFile } from 'fs/promises';
+import { readFile } from 'fs/promises';
 import { SECRET_UPLOAD_DIR, FIN_ASR_UPLOAD_URL, EST_ASR_URL } from '$env/static/private';
 import { statSync} from 'fs';
 import type { FinUploadResult, EstUploadResult } from "$lib/helpers/api.d";

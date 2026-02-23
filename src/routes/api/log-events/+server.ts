@@ -1,5 +1,5 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import type { IUserActionEvent } from '$lib/db/client';
+import type { IUserActionEvent } from '$lib/logging/types';
 import { json } from '@sveltejs/kit';
 
 // Define the expected request body structure

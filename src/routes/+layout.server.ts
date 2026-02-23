@@ -1,6 +1,5 @@
 import type { LayoutServerLoad } from './$types';
 import { uiLanguages } from '$lib/i18n';
-import { auth } from '$lib/auth';
 
 export const load: LayoutServerLoad = async ({ request, locals, cookies, depends }) => {
 	depends('data:session');
