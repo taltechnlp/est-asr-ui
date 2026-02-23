@@ -7,6 +7,7 @@
 
 <svelte:head>
 	<title>{$_('index.title')}</title>
+	<meta name="description" content={$_('index.heroDescription')} />
 </svelte:head>
 
 <div class="flex flex-col w-full pl-1 pr-1 pt-5 pb-7 justify-center hero z-20">

@@ -995,6 +995,7 @@
 
 <svelte:head>
 	<title>{$_('dictate.title')} | tekstiks.ee</title>
+	<meta name="description" content={$_('dictate.intro1')} />
 </svelte:head>
 
 <div class="bg-base-100">

@@ -53,12 +53,4 @@
 	  grid-template-rows: auto auto; /* Adjust as needed */
 	  gap: 0.5rem; /* Optional: Add some spacing */
 	}
-  
-	td.grid-container > input {
-	  /* Style the range input */
-	}
-  
-	td.grid-container > span {
-	  /* Style the labels */
-	}
 </style>

@@ -365,10 +365,6 @@
 		height: max-content;
 		min-width: 50px;
 	}
-	.speaker-time-container {
-		/* grid-row-start: 1;
-		grid-column-start: 2; */
-	}
 	.speaker-time {
 		justify-self: start;
 		font-size: small;
