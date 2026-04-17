@@ -9,7 +9,8 @@ import type {
     FinAsrResult,
     SectionType,
 } from "./api.d";
-import { FIN_ASR_RESULTS_URL } from "$env/static/private";
+import { FIN_ASR_RESULTS_URL, ASR_BACKEND } from "$env/static/private";
+import { getRayJobStatus, rayResponseToEditorContent } from "$lib/asr/ray";
 // import { logger } from "../logging/client";
 
 let finToEstFormat: (sucRes: FinAsrFinished) => EditorContent = function (
@@ -122,6 +123,26 @@ let finToEstFormat: (sucRes: FinAsrFinished) => EditorContent = function (
     return true;
 }; */
 
+const writeEditorContent = async (
+    targetPath: string,
+    content: EditorContent
+): Promise<boolean> => {
+    const parentDir = path.dirname(targetPath);
+    try {
+        await fs.mkdir(parentDir, { recursive: true });
+    } catch (err) {
+        console.error("Error creating directory:", err);
+        return false;
+    }
+    try {
+        await fs.writeFile(targetPath, JSON.stringify(content));
+        return true;
+    } catch (err) {
+        console.error("Error writing result file:", err);
+        return false;
+    }
+};
+
 export const checkCompletion = async (
     fileId: string,
     state: string,
@@ -130,7 +151,88 @@ export const checkCompletion = async (
     language: string,
     initialTranscriptionPath: string,
     fetch: Function
-): Promise<{ done: boolean }> => {
+): Promise<{ done: boolean; progress?: number }> => {
+    if (language === "estonian" && ASR_BACKEND === "ray") {
+        if (!externalId) {
+            return { done: false };
+        }
+        const status = await getRayJobStatus(externalId);
+        if (!status) {
+            return { done: false };
+        }
+        if (status.state === "succeeded" && status.result) {
+            const formatted = rayResponseToEditorContent(status.result);
+            const ok = await writeEditorContent(initialTranscriptionPath, formatted);
+            if (!ok) {
+                await prisma.file.update({
+                    data: { state: "PROCESSING_ERROR" },
+                    where: { id: fileId },
+                });
+                return { done: true };
+            }
+            await prisma.file.update({
+                data: {
+                    initialTranscriptionPath,
+                    state: "READY",
+                },
+                where: { id: fileId },
+            });
+            return { done: true, progress: 100 };
+        }
+        if (status.state === "failed" || status.state === "cancelled") {
+            await prisma.file.update({
+                data: { state: "PROCESSING_ERROR" },
+                where: { id: fileId },
+            });
+            console.error(
+                `Ray job ${externalId} for ${fileId} ended in state ${status.state}`,
+                status.error
+            );
+            return { done: true };
+        }
+        const nowSeconds = Date.now() / 1000;
+        const elapsed = Math.max(0, nowSeconds - status.created_at);
+        const etaSeconds =
+            typeof status.eta_seconds === "number"
+                ? Math.max(0, status.eta_seconds)
+                : null;
+
+        // Stall guard: Ray Serve shutdowns (or crashed replicas) can leave a
+        // job in `running`/`pending` forever, with result=None and error=None.
+        // If the job is overdue by a wide margin, assume it's orphaned and
+        // fail the file so the user can retry.
+        const RAY_STALL_MIN_SECONDS = 30 * 60; // absolute floor: 30 min
+        const RAY_STALL_GRACE_MULTIPLIER = 3; // or 3× the original ETA, whichever is larger
+        const initialBudget = etaSeconds !== null ? elapsed + etaSeconds : RAY_STALL_MIN_SECONDS;
+        const stallThreshold = Math.max(RAY_STALL_MIN_SECONDS, initialBudget * RAY_STALL_GRACE_MULTIPLIER);
+        if (elapsed > stallThreshold) {
+            await prisma.file.update({
+                data: { state: "PROCESSING_ERROR" },
+                where: { id: fileId },
+            });
+            console.error(
+                `Ray job ${externalId} for ${fileId} stalled: elapsed ${Math.floor(elapsed / 60)} min, threshold ${Math.floor(stallThreshold / 60)} min, state=${status.state}`
+            );
+            return { done: true };
+        }
+
+        // Derive a smooth, monotonic progress from Ray's ETA countdown.
+        // Ray fixes `expected_completion_at` at job start; `eta_seconds` is
+        // max(0, expected_completion_at - now), so it decreases 1:1 with wall
+        // time. That makes elapsed / (elapsed + eta) a linear 0→1 ramp that
+        // reaches ~1 as ETA drains to 0. If the actual run overruns the
+        // estimate, ETA stays at 0 and we cap at 95% until the state flips
+        // to "succeeded".
+        let rawProgress = 0;
+        if (etaSeconds !== null) {
+            const total = elapsed + etaSeconds;
+            rawProgress = total > 0 ? elapsed / total : 0;
+        } else if (typeof status.progress === "number") {
+            rawProgress = status.progress;
+        }
+        const progress = Math.max(1, Math.min(95, Math.floor(rawProgress * 100)));
+        return { done: false, progress };
+    }
     if (language === "finnish") {
         const result = await fetch(FIN_ASR_RESULTS_URL, {
             method: "POST",
@@ -252,11 +354,23 @@ export const getFiles = async (id) => {
             if (file.state !== "READY" && file.state !== "ABORTED" && file.state !== "PROCESSING_ERROR") {
                 if (file.language === "finnish") {
                     await checkCompletion(file.id, file.state, file.externalId, file.path, file.language, file.initialTranscriptionPath, fetch);
-                }
-                if (file.workflows && file.workflows.length > 0 && file.workflows[0].processes) {
+                } else if (file.language === "estonian" && ASR_BACKEND === "ray") {
+                    const rayStatus = await checkCompletion(
+                        file.id,
+                        file.state,
+                        file.externalId,
+                        file.path,
+                        file.language,
+                        file.initialTranscriptionPath,
+                        fetch
+                    );
+                    if (typeof rayStatus.progress === "number") {
+                        progress = rayStatus.progress;
+                    }
+                } else if (file.workflows && file.workflows.length > 0 && file.workflows[0].processes) {
                     const totalSteps = file.workflows[0].progressLength || 30;
                     progress = Math.min(100, Math.floor(file.workflows[0].processes.length / totalSteps * 100));
-                } 
+                }
             }
             return {
                 id: file.id,

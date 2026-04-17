@@ -251,18 +251,22 @@ export const actions: Actions = {
 					resultDir,
 					workflowName: externalId
 				})
-			}).catch((e) => console.error('Could not start Nextflow process', e));
+			}).catch((e) => console.error('Could not start transcription', e));
 			if (result && result.ok) {
 				const body = await result.json();
 				if (body.requestId) {
+					const updateData: { state: string; externalId?: string } = {
+						state: 'PROCESSING'
+					};
+					if (body.backend === 'ray') {
+						updateData.externalId = body.requestId;
+					}
 					await prisma.file
 						.update({
 							where: {
 								id: fileData.id
 							},
-							data: {
-								state: 'PROCESSING'
-							}
+							data: updateData
 						})
 						.catch((e) => console.error('Could not save file PROCESSING status to DB', e));
 				}
