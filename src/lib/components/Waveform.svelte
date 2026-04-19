@@ -37,8 +37,11 @@
 		highlight: false
 	};
 	words.subscribe(function (w) {
-		let max = 0;
-		if (w.length > 0 && w[w.length-1].end) max = Math.floor(w[w.length-1].end);
+		let maxEnd = 0;
+		for (let k = 0; k < w.length; k++) {
+			if (w[k].end && w[k].end > maxEnd) maxEnd = w[k].end;
+		}
+		const max = Math.floor(maxEnd);
 		for (let i = 0; i <= max; i++) {
 			wordLookup[i] = [];
 		};

@@ -174,7 +174,7 @@ export const rayResponseToEditorContent = (
 			speaker: speakerId,
 			transcript: seg.text,
 			unnormalized_transcript: seg.text,
-			words: words.length > 0 ? words : undefined
+			words
 		};
 		sections.push({
 			start: seg.start,
