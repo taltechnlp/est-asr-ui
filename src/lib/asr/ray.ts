@@ -1,5 +1,8 @@
-import { ASR_RAY_URL } from '$env/static/private';
+import { ASR_RAY_URL, ASR_RAY_TOKEN } from '$env/static/private';
 import type { EditorContent, Speakers, SectionType, Turn, Word } from '$lib/helpers/api.d';
+
+const authHeaders = (): Record<string, string> =>
+	ASR_RAY_TOKEN ? { Authorization: `Bearer ${ASR_RAY_TOKEN}` } : {};
 
 export type RayJobState = 'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled';
 
@@ -47,6 +50,7 @@ export interface RayJobStatus {
 	created_at: number;
 	updated_at: number;
 	eta_seconds: number | null;
+	expected_completion_at: number | null;
 }
 
 export interface RayJobCreated {
@@ -72,7 +76,7 @@ export const submitRayJob = async (
 	try {
 		const res = await fetch(rayUrl('/jobs'), {
 			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
+			headers: { 'Content-Type': 'application/json', ...authHeaders() },
 			body: JSON.stringify({
 				input_audio_path: inputAudioPath,
 				diarization: true,
@@ -102,7 +106,9 @@ export const getRayJobStatus = async (
 	jobId: string
 ): Promise<RayJobStatus | null> => {
 	try {
-		const res = await fetch(rayUrl(`/jobs/${encodeURIComponent(jobId)}`));
+		const res = await fetch(rayUrl(`/jobs/${encodeURIComponent(jobId)}`), {
+			headers: authHeaders()
+		});
 		if (!res.ok) {
 			if (res.status !== 404) {
 				console.error(`[RAY] /jobs/${jobId} returned ${res.status}`);

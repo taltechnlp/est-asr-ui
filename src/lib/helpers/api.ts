@@ -200,10 +200,15 @@ export const checkCompletion = async (
         // Stall guard: Ray Serve shutdowns (or crashed replicas) can leave a
         // job in `running`/`pending` forever, with result=None and error=None.
         // If the job is overdue by a wide margin, assume it's orphaned and
-        // fail the file so the user can retry.
-        const RAY_STALL_MIN_SECONDS = 30 * 60; // absolute floor: 30 min
-        const RAY_STALL_GRACE_MULTIPLIER = 3; // or 3× the original ETA, whichever is larger
-        const initialBudget = etaSeconds !== null ? elapsed + etaSeconds : RAY_STALL_MIN_SECONDS;
+        // fail the file so the user can retry. Anchor on Ray's
+        // `expected_completion_at` (fixed at job start) — `eta_seconds` drains
+        // to 0 on overrun and can't back out the original budget.
+        const RAY_STALL_MIN_SECONDS = 30 * 60;
+        const RAY_STALL_GRACE_MULTIPLIER = 3;
+        const initialBudget =
+            typeof status.expected_completion_at === "number"
+                ? Math.max(0, status.expected_completion_at - status.created_at)
+                : RAY_STALL_MIN_SECONDS;
         const stallThreshold = Math.max(RAY_STALL_MIN_SECONDS, initialBudget * RAY_STALL_GRACE_MULTIPLIER);
         if (elapsed > stallThreshold) {
             await prisma.file.update({
