@@ -134,7 +134,7 @@ export const actions: Actions = {
 		}
 		let id: string = uuidv4();
 		id = id.replace(/[-]/gi, '').substr(0, 30);
-		const newFilename = `${id}_${file.name}`;
+		const newFilename = `${id}_${file.name.replace(/[\[\]]/g, '')}`;
 		const uploadDir = join(SECRET_UPLOAD_DIR, session.user.id);
 		if (!existsSync(uploadDir)) {
 			mkdirSync(uploadDir, { recursive: true });
@@ -162,9 +162,9 @@ export const actions: Actions = {
 			id: id,
 			uploadedAt,
 			filename: file.name,
-			mimetype: OPUS_MIME_TYPE,
+			mimetype: file.type || 'application/octet-stream',
 			encoding: '7bit',
-			path: convertedPath,
+			path: saveTo,
 			externalId,
 			language: lang
 		};
@@ -180,39 +180,51 @@ export const actions: Actions = {
 			console.error(err);
 			return fail(400, { fileSaveFailed: true });
 		}
-		try {
-			await convertToOpus(saveTo, convertedPath);
-			await unlink(saveTo).catch((e) =>
-				console.error('Failed to remove source file after Opus conversion', e)
-			);
-			fileSize = BigInt(statSync(convertedPath).size);
-			console.log('File converted to Opus at', convertedPath);
-		} catch (err) {
-			console.error('Failed to convert uploaded file to Opus', err);
-			await unlink(saveTo).catch((e) =>
-				console.error('Failed to remove source file after conversion error', e)
-			);
-			await unlink(convertedPath).catch((e) =>
-				console.error('Failed to remove failed Opus output file', e)
-			);
-			return fail(400, { fileSaveFailed: true });
+		// Convert to opus only for Estonian (Finnish ASR doesn't support opus)
+		if (lang === 'estonian') {
+			try {
+				await convertToOpus(saveTo, convertedPath);
+				await unlink(saveTo).catch((e) =>
+					console.error('Failed to remove source file after Opus conversion', e)
+				);
+				fileSize = BigInt(statSync(convertedPath).size);
+				fileData.path = convertedPath;
+				fileData.mimetype = OPUS_MIME_TYPE;
+				console.log('File converted to Opus at', convertedPath);
+			} catch (err) {
+				console.error('Failed to convert uploaded file to Opus', err);
+				await unlink(saveTo).catch((e) =>
+					console.error('Failed to remove source file after conversion error', e)
+				);
+				await unlink(convertedPath).catch((e) =>
+					console.error('Failed to remove failed Opus output file', e)
+				);
+				return fail(400, { fileSaveFailed: true });
+			}
 		}
 		let duration = 0;
-		let durationError = false;
+		let durationReadFailed = false;
+		let durationTooLong = false;
 		try {
 			await getAudioDurationInSeconds(fileData.path).then((dur) => {
 				duration = dur;
 				console.log('File duration in seconds:', duration);
 				if (duration > 7200) {
 					// not more than 2h
-					durationError = true;
+					durationTooLong = true;
 				}
 			});
 		} catch (e) {
 			console.log('Failed to read file duration at', fileData.path);
-			durationError = true;
+			durationReadFailed = true;
 		}
-		if (durationError) {
+		if (durationReadFailed) {
+			await unlink(fileData.path).catch((e) =>
+				console.error('Failed to remove unreadable uploaded file', e)
+			);
+			return fail(400, { fileSaveFailed: true });
+		}
+		if (durationTooLong) {
 			await unlink(fileData.path).catch((e) =>
 				console.error('Failed to remove uploaded file that was too long', e)
 			);
