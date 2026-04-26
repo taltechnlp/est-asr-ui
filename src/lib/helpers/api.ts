@@ -9,8 +9,9 @@ import type {
     FinAsrResult,
     SectionType,
 } from "./api.d";
-import { FIN_ASR_RESULTS_URL, ASR_BACKEND } from "$env/static/private";
+import { FIN_ASR_RESULTS_URL, ASR_BACKEND, ORIGIN } from "$env/static/private";
 import { getRayJobStatus, rayResponseToEditorContent } from "$lib/asr/ray";
+import { sendEmail, createEmail } from "$lib/email";
 // import { logger } from "../logging/client";
 
 let finToEstFormat: (sucRes: FinAsrFinished) => EditorContent = function (
@@ -143,6 +144,53 @@ const writeEditorContent = async (
     }
 };
 
+const sendRayCompletionEmail = async (
+    fileId: string,
+    success: boolean
+): Promise<void> => {
+    try {
+        const file = await prisma.file.findUnique({
+            where: { id: fileId },
+            select: {
+                id: true,
+                filename: true,
+                notify: true,
+                notified: true,
+                User: { select: { email: true } },
+            },
+        });
+        if (!file || !file.notify || file.notified || !file.User?.email) return;
+        if (success) {
+            await sendEmail({
+                to: file.User.email,
+                subject: "Transkribeerimine õnnestus - tekstiks.ee",
+                html: createEmail(`Teie faili nimega ${file.filename} transkribeerimine õnnestus!
+
+                \n\n
+                <a href="${ORIGIN}/files/${file.id}">Tuvastatud tekst asub siin.</a>`),
+            });
+        } else {
+            await sendEmail({
+                to: file.User.email,
+                subject: "Transkribeerimine ebaõnnestus - tekstiks.ee",
+                html: createEmail(`Teenusel tekstiks.ee ei õnnestunud teie faili paraku transkribeerida.
+
+                \n\n
+                Rikete kohta võib infot saada kasutajatoelt, kirjutades konetuvastus@taltech.ee aadressile.
+
+                \n\n
+                <a href="${ORIGIN}/files">Klõpsa siia, et tutvuda oma ülesse laaditud failidega.</a>`),
+            });
+        }
+        await prisma.file.update({
+            data: { notified: true },
+            where: { id: fileId },
+        });
+    } catch (e) {
+        console.error("Failed to send Ray completion email", e);
+    }
+};
+
 export const checkCompletion = async (
     fileId: string,
     state: string,
@@ -168,6 +216,7 @@ export const checkCompletion = async (
                     data: { state: "PROCESSING_ERROR" },
                     where: { id: fileId },
                 });
+                await sendRayCompletionEmail(fileId, false);
                 return { done: true };
             }
             await prisma.file.update({
@@ -177,6 +226,7 @@ export const checkCompletion = async (
                 },
                 where: { id: fileId },
             });
+            await sendRayCompletionEmail(fileId, true);
             return { done: true, progress: 100 };
         }
         if (status.state === "failed" || status.state === "cancelled") {
@@ -188,6 +238,7 @@ export const checkCompletion = async (
                 `Ray job ${externalId} for ${fileId} ended in state ${status.state}`,
                 status.error
             );
+            await sendRayCompletionEmail(fileId, false);
             return { done: true };
         }
         const nowSeconds = Date.now() / 1000;
@@ -218,6 +269,7 @@ export const checkCompletion = async (
             console.error(
                 `Ray job ${externalId} for ${fileId} stalled: elapsed ${Math.floor(elapsed / 60)} min, threshold ${Math.floor(stallThreshold / 60)} min, state=${status.state}`
             );
+            await sendRayCompletionEmail(fileId, false);
             return { done: true };
         }
 
