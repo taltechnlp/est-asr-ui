@@ -333,21 +333,6 @@
 			</div>
 		</div>
 
-		<div class="stat">
-			<fieldset>
-				<legend class="stat-title">{$_('file.editingMode')}</legend>
-				<div class="stat-desc flex flex-col">
-					<label for="">
-						<input type="radio" name="mode" value={1} bind:group={$editorMode} />
-						{$_('file.editingModeRegular')}
-					</label>
-					<label for="">
-						<input type="radio" name="mode" value={2} bind:group={$editorMode} />
-						{$_('file.editingModeAnnotation')}
-					</label>
-				</div>
-			</fieldset>
-		</div>
 	</div>
 	<div class="editor max-w-5xl">
 		{#if $editor}
