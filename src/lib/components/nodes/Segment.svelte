@@ -370,11 +370,6 @@
 		font-size: small;
 		color: rgba(156, 163, 175);
 	}
-	@media only screen and (max-width: 460px) {
-		:global(.speaker) {
-			grid-template-columns: minmax(70px, auto) auto;
-		}
-	}
 
 
 
