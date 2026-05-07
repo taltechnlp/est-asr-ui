@@ -302,6 +302,9 @@
             "title": "Viga",
             "description": "Tekkis ootamatu viga."
         },
+        "messages": {
+            "unauthorized": "Autentimata"
+        },
         "goHome": "Mine avalehele",
         "goBack": "Mine tagasi"
     },

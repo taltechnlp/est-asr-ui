@@ -301,6 +301,9 @@
             "title": "Virhe",
             "description": "Odottamaton virhe tapahtui."
         },
+        "messages": {
+            "unauthorized": "Ei valtuutusta"
+        },
         "goHome": "Kotisivulle",
         "goBack": "Takaisin"
     },

@@ -5,6 +5,7 @@ import google from 'svelte-awesome/icons/google';
 import facebook from 'svelte-awesome/icons/facebook';
 import github from 'svelte-awesome/icons/github';
 import { auth } from '$lib/auth';
+import { parseSetCookieHeader } from 'better-auth/cookies';
 
 export const load = (async (event) => {
     let session = await event.locals.auth();
@@ -81,20 +82,30 @@ export const actions: Actions = {
     },
 
     logout: async ({ request, cookies }) => {
-        // Use Better Auth's built-in signOut endpoint
-        // This properly handles all cookie deletion with the exact same attributes used when creating them
+        // Better Auth's signOut invalidates the server-side session and returns
+        // Set-Cookie headers that clear the browser's session cookies. Without
+        // forwarding those, the cookie cache (better-auth.session_data, valid
+        // for 5 min) keeps the user appearing logged in for Google/Facebook
+        // sign-ins.
         try {
-            await auth.api.signOut({
-                headers: request.headers
+            const result = await auth.api.signOut({
+                headers: request.headers,
+                returnHeaders: true,
             });
+            const setCookie = result.headers.get('set-cookie');
+            if (setCookie) {
+                const parsed = parseSetCookieHeader(setCookie);
+                for (const [name, attrs] of parsed) {
+                    cookies.delete(name, { path: attrs.path || '/' });
+                }
+            }
         } catch (error) {
             console.log('[LOGOUT] Error during signOut:', error);
         }
 
-        // Also clear the legacy session cookie if it exists
+        // Also clear the legacy session cookie used by email/password sign-in
         cookies.delete('session', { path: '/' });
 
-        // Redirect to the sign-in page
         redirect(302, '/signin');
     }
 };
