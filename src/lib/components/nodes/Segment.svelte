@@ -57,6 +57,10 @@
 	let editSpeakerId = $state('');
 	let editingValue = $state('');
 	let names: Array<Speaker> = $state([]);
+	let newSpeakerInputEl: HTMLInputElement | null = $state(null);
+	let editInputEl: HTMLInputElement | null = $state(null);
+	let summaryEl: HTMLElement | null = $state(null);
+	const newSpeakerInputId = `speaker-new-${uuidv4().substring(32 - 8)}`;
 	speakerNames.subscribe((ns) => {
 		// Update dropdown list where for each id one name is shown only
 		names = ns.reduce((acc, curr) => {
@@ -112,6 +116,42 @@
 			editingValue = '';
 		}
 	};
+
+	const closePopover = () => {
+		if (!isListOpen) return;
+		isListOpen = false;
+		newSpeaker = '';
+		editSpeakerId = '';
+		editingValue = '';
+		summaryEl?.focus();
+	};
+
+	const handlePopoverKeydown = (e: KeyboardEvent) => {
+		if (e.key === 'Escape') {
+			e.stopPropagation();
+			if (editSpeakerId) {
+				editSpeakerId = '';
+				editingValue = '';
+			} else {
+				closePopover();
+			}
+		}
+	};
+
+	$effect(() => {
+		if (isListOpen) {
+			queueMicrotask(() => newSpeakerInputEl?.focus());
+		}
+	});
+
+	$effect(() => {
+		if (editSpeakerId) {
+			queueMicrotask(() => {
+				editInputEl?.focus();
+				editInputEl?.select();
+			});
+		}
+	});
 	const getStartTime = (node) => {
 		return node.content.content &&
 			node.content.content[0] &&
@@ -272,57 +312,88 @@
 <NodeViewWrapper class="svelte-component speaker {selected}">
 	<div class="top-container flex">
 		<details class="dropdown speaker-name-container" bind:open={isListOpen} contentEditable={false}>
-			<summary class="m-1 speaker-name flex group cursor-pointer w-auto hover:bg-accent">
+			<summary
+				class="m-1 speaker-name flex group cursor-pointer w-auto hover:bg-accent"
+				bind:this={summaryEl}
+				aria-haspopup="dialog"
+				aria-expanded={isListOpen}
+			>
 				<Icon name="user" class="" />
 				<span class="text-primary font-bold font-sans">{selectedVal.name}</span>
 				<Icon name="dropdown-arrow" class="invisible group-hover:visible" />
 			</summary>
-			<div class="absolute z-10 m-2 shadow drop-shadow-lg menu bg-base-100 border-2" use:clickOutside={() => {
-				isListOpen = false;
-			}}>
-				<div class="p-1 flex">
+			<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+			<div
+				class="speaker-popover absolute z-10 mt-1 w-72 bg-base-100 border border-base-300 rounded-md shadow-lg"
+				role="dialog"
+				tabindex="-1"
+				aria-label={$_('speakerSelect.addNew')}
+				use:clickOutside={() => closePopover()}
+				onkeydown={handlePopoverKeydown}
+			>
+				<div class="p-3 border-b border-base-300">
+					<label for={newSpeakerInputId} class="block text-xs font-semibold text-gray-600 mb-1">
+						{$_('speakerSelect.addNew')}
+					</label>
 					<input
+						id={newSpeakerInputId}
+						class="input input-bordered input-sm w-full"
 						placeholder={$_('speakerSelect.addNew')}
 						bind:value={newSpeaker}
+						bind:this={newSpeakerInputEl}
 						onkeypress={(e) => handleKeypress(e, newSpeaker)}
 					/>
-					<button
-						class="btn btn-outline btn-xs w-min ml-1 hover:text-primary"
-						onclick={() => handleNewSpeakerSave(newSpeaker, time)}
-						>{$_('speakerSelect.save')}</button
-					>
-				</div>
-				<ul class="filter drop-shadow-lg">
-					{#each names as speaker}
-						<li
-							class="rounded-md hover:bg-accent {speaker.id == selectedVal.id
-								? 'flex justify-between flex-row p-1 bg-info'
-								: 'flex justify-between flex-row p-1'}"
+					<div class="flex justify-end mt-2">
+						<button
+							class="btn btn-primary btn-xs"
+							onclick={() => handleNewSpeakerSave(newSpeaker, time)}
+							disabled={!newSpeaker.trim()}
 						>
+							{$_('speakerSelect.save')}
+						</button>
+					</div>
+				</div>
+				<ul class="p-1 max-h-60 overflow-y-auto" role="menu">
+					{#each names as speaker}
+						<li role="none" class="rounded-md {speaker.id == selectedVal.id ? 'bg-info/30' : ''}">
 							{#if speaker.id === editSpeakerId}
-								<input class="w-48 flex-grow border-2 hover:bg-accent" bind:value={editingValue} />
-								<div class="flex">
-									<button
-										class="btn btn-xs btn-outline w-min hover:text-primary"
-										onclick={() => {
-											handleRenameAll(speaker);
-										}}>{$_('speakerSelect.save')}</button
-									>
+								<div class="p-2 space-y-2">
+									<input
+										class="input input-bordered input-sm w-full"
+										bind:value={editingValue}
+										bind:this={editInputEl}
+										onkeypress={(e) => {
+											if (e.charCode === 13) handleRenameAll(speaker);
+										}}
+									/>
+									<div class="flex justify-end">
+										<button
+											class="btn btn-primary btn-xs"
+											onclick={() => handleRenameAll(speaker)}
+											disabled={!editingValue.trim()}
+										>
+											{$_('speakerSelect.save')}
+										</button>
+									</div>
 								</div>
 							{:else}
-								<button
-									onclick={() => {
-										selectSpeaker(speaker.id);
-										isListOpen = false;
-									}}
-									class="cursor-pointer inline flex-grow text-left"
-								>
-									{speaker.name}
-								</button>
-								<div>
-									<button class="btn btn-xs btn-outline w-min hover:text-primary" onclick={() => handleStartEdit(speaker)}
-										>{$_('speakerSelect.edit')}</button
+								<div class="flex items-center justify-between gap-2 p-1 hover:bg-accent rounded-md">
+									<button
+										role="menuitem"
+										onclick={() => {
+											selectSpeaker(speaker.id);
+											closePopover();
+										}}
+										class="flex-grow text-left truncate cursor-pointer px-1"
 									>
+										{speaker.name}
+									</button>
+									<button
+										class="btn btn-xs btn-ghost flex-shrink-0 hover:text-primary"
+										onclick={() => handleStartEdit(speaker)}
+									>
+										{$_('speakerSelect.edit')}
+									</button>
 								</div>
 							{/if}
 						</li>
