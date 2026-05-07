@@ -70,13 +70,14 @@
 			};
 		}}
 	>
-		<Input label={$_('signup.email')} id="email" name="email" type="email" bind:value={email} />
-		<Input label={$_('signup.name')} id="name" name="name" type="text" bind:value={fullName} />
+		<Input label={$_('signup.email')} id="email" name="email" type="email" autocomplete="email" bind:value={email} />
+		<Input label={$_('signup.name')} id="name" name="name" type="text" autocomplete="name" bind:value={fullName} />
 		<Input
 			label={$_('signup.password')}
 			id="password"
 			name="password"
 			type="password"
+			autocomplete="new-password"
 			bind:value={password}
 		/>
 		<Input
@@ -84,6 +85,7 @@
 			id="confirm-password"
 			name="confirm-password"
 			type="password"
+			autocomplete="new-password"
 			bind:value={confirmPassword}
 		/>
 		<Button type="submit" loading={isLoading}>

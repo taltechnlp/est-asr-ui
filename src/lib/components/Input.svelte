@@ -6,6 +6,7 @@
 	export let type = 'text';
 	export let name;
 	export let required = false;
+	export let autocomplete = undefined;
 
 	export let inputRef = null;
 
@@ -24,6 +25,7 @@
 			{name}
 			{id}
 			{required}
+			autocomplete={autocomplete}
 			bind:value
 			bind:this={inputRef}
 			class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"

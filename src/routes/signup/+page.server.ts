@@ -41,15 +41,13 @@ export const actions: Actions = {
         const password = data.get('password') as string;
         const name = data.get('name') as string;
         
-        console.log('[SIGNUP] Form data received:');
-        console.log('  - email:', email);
-        console.log('  - name:', name);
-        console.log('  - password length:', password?.length);
-        console.log('  - all form entries:');
-        for (const [key, value] of data.entries()) {
-            console.log(`    ${key}: ${value}`);
-        }
-        
+        console.log('[SIGNUP] Form data received:', {
+            email,
+            name,
+            passwordLength: password?.length
+        });
+
+
         let language = cookies.get("language");
         if (!language || !uiLanguages.includes(language)){
             language = "et";
