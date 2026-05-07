@@ -1,10 +1,16 @@
 import type { Actions } from './$types'
 import { prisma } from "$lib/db/client";
 import { hash } from 'bcrypt'
-import { sendEmail, createEmail } from '$lib/email';
+import { sendEmail } from '$lib/email';
+import { buildVerificationEmail } from '$lib/emails/verifyEmail';
 import { fail, redirect } from '@sveltejs/kit';
 import { uiLanguages } from '$lib/i18n';
 import { generateShortId } from '$lib/utils/generateId';
+import { randomBytes } from 'crypto';
+import { promisify } from 'util';
+
+const VERIFICATION_TOKEN_TTL_MS = 1000 * 60 * 60 * 24; // 24h
+const VERIFICATION_IDENTIFIER_PREFIX = 'email-verification:';
 
 const validateEmail = (email) => {
     return String(email)
@@ -92,15 +98,21 @@ export const actions: Actions = {
             });
 
             console.log('[SIGNUP] User created successfully:', user.id, user.email);
-            
-            // Send welcome email
-            const signupMailRes = await sendEmail({
-                to: user.email,
-                subject: "Konto loodud",
-                html: createEmail(`Konto e-posti aadressiga ${user.email} edukalt loodud!
-                \n\n
-                `)
-            }).catch(e => console.log("User creation email sending failed", e));
+
+            const randomBytesAsync = promisify(randomBytes);
+            const token = (await randomBytesAsync(20)).toString('hex');
+            await prisma.verification.create({
+                data: {
+                    id: generateShortId(),
+                    identifier: `${VERIFICATION_IDENTIFIER_PREFIX}${user.id}`,
+                    value: token,
+                    expiresAt: new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS)
+                }
+            });
+
+            const { subject, html } = buildVerificationEmail(token, language);
+            await sendEmail({ to: user.email, subject, html })
+                .catch(e => console.log('Verification email sending failed', e));
 
             console.log("User created", user.id, user.email, user.name);
             return { success: true, user: {

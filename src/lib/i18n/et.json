@@ -65,7 +65,9 @@
         "invalidCredentials": "Vale e-posti aadress või parool.",
         "loginError": "Sisselogimise viga. Palun proovi uuesti.",
         "missingCredentials": "E-posti aadress ja parool on nõutud.",
-        "serverError": "Sisselogimise ajal tekkis viga."
+        "serverError": "Sisselogimise ajal tekkis viga.",
+        "emailNotVerified": "E-posti aadress pole kinnitatud. Palun kontrolli oma postkasti.",
+        "resendVerification": "Saada kinnituskiri uuesti"
     },
     "signup": {
         "header": "Registreeru | tekstiks.ee",
@@ -78,8 +80,23 @@
         "passwordsDontMatch": "Sisestatud paroolid ei kattu!",
         "userExists": "Kasutaja selle e-posti aadressiga juba eksisteerib! Parooli ununemisel saab seda lähtestada.",
         "emailIncorrect": "E-posti aadress pole korrektne!",
-        "success": "Konto loomine õnnestus! Kinnituskiri saadetud.",
+        "success": "Konto loomine õnnestus! Saatsime sulle kinnituskirja - palun ava postkast ja klõpsa kinnituslingil, et sisse logida.",
         "retry": "Konto loomine ebaõnnestus. Palun proovi uuesti."
+    },
+    "verifyEmail": {
+        "title": "E-posti kinnitamine | tekstiks.ee",
+        "header": "E-posti aadressi kinnitamine",
+        "success": "E-posti aadress on kinnitatud! Nüüd saad sisse logida.",
+        "expired": "Kinnituslink on aegunud. Telli uus link allpool.",
+        "invalid": "Kinnituslink on vigane või juba kasutatud. Telli uus link allpool.",
+        "error": "Kinnitamisel tekkis viga. Palun proovi hiljem uuesti.",
+        "noToken": "Kinnituslink puudub.",
+        "resendIntro": "Sisesta oma e-posti aadress, et saata kinnituskiri uuesti.",
+        "email": "E-posti aadress",
+        "resend": "Saada kinnituskiri uuesti",
+        "resendSuccess": "Kui konto on olemas ja kinnitamata, on uus kinnituskiri teel.",
+        "resendInvalid": "E-posti aadress on nõutud.",
+        "toSignin": "Logi sisse"
     },
     "files": {
         "title": "Failid | tekstiks.ee",

@@ -40,11 +40,12 @@
 			if (error === 'AccountNotLinked') return $_('auth.AccountNotLinked');
 			if (error === 'CallbackRouteError') return $_('auth.CallbackRouteError');
 			if (error === 'OAuthAccountNotLinked') return $_('auth.AccountNotLinked');
-			
+
 			// Server form errors
 			if (error === 'Invalid email or password') return $_('signin.invalidCredentials');
 			if (error === 'Email and password are required') return $_('signin.missingCredentials');
 			if (error === 'An error occurred during login') return $_('signin.serverError');
+			if (error === 'EmailNotVerified') return $_('signin.emailNotVerified');
 			
 			// Legacy error codes (if any still exist)
 			if (error === 'passwordError') return $_('signin.passwordError');
@@ -102,6 +103,11 @@
 </div>
 {#if errorCode}
 <p class="mt-3 text-red-500 text-center font-semibold">{getErrorMessage(errorCode)}</p>
+{#if errorCode === 'EmailNotVerified'}
+<p class="mt-2 text-center">
+	<a class="link" href={`/verify-email${email ? `?email=${encodeURIComponent(email)}` : ''}`}>{$_('signin.resendVerification')}</a>
+</p>
+{/if}
 {/if}
 
 <form method="POST" class="space-y-5 max-w-xl mx-auto mt-8" use:enhance={() => {

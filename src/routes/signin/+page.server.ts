@@ -49,6 +49,14 @@ export const actions: Actions = {
         });
       }
 
+      if (!user.emailVerified) {
+        console.log('[SIGNIN] Email not verified for user:', email);
+        return fail(403, {
+          error: 'EmailNotVerified',
+          email: user.email
+        });
+      }
+
       console.log('[SIGNIN] Password valid, creating session...');
       
       // The session cookie is signed and carries its own expiry
