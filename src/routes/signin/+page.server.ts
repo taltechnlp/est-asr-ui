@@ -48,6 +48,14 @@ export const actions: Actions = {
         });
       }
 
+      if (!user.emailVerified) {
+        console.log('[SIGNIN] Email not verified for user:', email);
+        return fail(403, {
+          error: 'EmailNotVerified',
+          email: user.email
+        });
+      }
+
       console.log('[SIGNIN] Password valid, creating session...');
       
       // Create a simple session by setting cookies

@@ -65,7 +65,9 @@
     "invalidCredentials": "Invalid email or password.",
     "loginError": "Login failed. Please try again.",
     "missingCredentials": "Email and password are required.",
-    "serverError": "An error occurred during login."
+    "serverError": "An error occurred during login.",
+    "emailNotVerified": "Email address is not verified. Please check your inbox.",
+    "resendVerification": "Resend verification email"
   },
   "signup": {
     "header": "Register | tekstiks.ee",
@@ -78,8 +80,23 @@
     "passwordsDontMatch": "Sisestatud paroolid ei kattu!",
     "userExists": "An account exists with this email aadress! Password can be reset.",
     "emailIncorrect": "Email address is not correct!",
-    "success": "Account was successfully created! Confirmation email was sent.",
+    "success": "Account created! We sent you a confirmation email - please open it and click the verification link to sign in.",
     "retry": "Failed to create account. Please try again."
+  },
+  "verifyEmail": {
+    "title": "Email verification | tekstiks.ee",
+    "header": "Verify your email address",
+    "success": "Email address verified! You can now sign in.",
+    "expired": "The verification link has expired. Request a new one below.",
+    "invalid": "The verification link is invalid or already used. Request a new one below.",
+    "error": "Something went wrong while verifying. Please try again later.",
+    "noToken": "No verification link provided.",
+    "resendIntro": "Enter your email address to resend the verification email.",
+    "email": "Email address",
+    "resend": "Resend verification email",
+    "resendSuccess": "If the account exists and is unverified, a new verification email is on its way.",
+    "resendInvalid": "Email address is required.",
+    "toSignin": "Sign in"
   },
   "files": {
     "title": "Files | tekstiks.ee",

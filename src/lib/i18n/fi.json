@@ -65,7 +65,9 @@
         "invalidCredentials": "Virheellinen sähköposti tai salasana.",
         "loginError": "Kirjautuminen epäonnistui. Yritä uudelleen.",
         "missingCredentials": "Sähköposti ja salasana ovat pakollisia.",
-        "serverError": "Kirjautumisen aikana tapahtui virhe."
+        "serverError": "Kirjautumisen aikana tapahtui virhe.",
+        "emailNotVerified": "Sähköpostiosoitetta ei ole vahvistettu. Tarkista postilaatikkosi.",
+        "resendVerification": "Lähetä vahvistusviesti uudelleen"
     },
     "signup": {
         "header": "Rekisteröidy | tekstiks.ee",
@@ -78,8 +80,23 @@
         "passwordsDontMatch": "Salasana ei ole oikein!",
         "userExists": "Käyttäjätili on jo olemassa tällä sähköpostiosoitteella. Salasanan voi asettaa uudelleen.",
         "emailIncorrect": "Sähköpostiosoite ei ole oikein!",
-        "success": "Tilin luominen onnistui! Vahvistussähköposti lähetetty.",
+        "success": "Tilin luominen onnistui! Lähetimme sinulle vahvistusviestin - avaa se ja napsauta vahvistuslinkkiä kirjautuaksesi sisään.",
         "retry": "Tilin luominen epäonnistui. Yritä uudelleen."
+    },
+    "verifyEmail": {
+        "title": "Sähköpostin vahvistus | tekstiks.ee",
+        "header": "Vahvista sähköpostiosoitteesi",
+        "success": "Sähköpostiosoite on vahvistettu! Voit nyt kirjautua sisään.",
+        "expired": "Vahvistuslinkki on vanhentunut. Pyydä uusi alla.",
+        "invalid": "Vahvistuslinkki on virheellinen tai jo käytetty. Pyydä uusi alla.",
+        "error": "Vahvistuksen aikana tapahtui virhe. Yritä myöhemmin uudelleen.",
+        "noToken": "Vahvistuslinkkiä ei annettu.",
+        "resendIntro": "Syötä sähköpostiosoitteesi lähettääksesi vahvistusviestin uudelleen.",
+        "email": "Sähköpostiosoite",
+        "resend": "Lähetä vahvistusviesti uudelleen",
+        "resendSuccess": "Jos tili on olemassa eikä sitä ole vahvistettu, uusi vahvistusviesti on tulossa.",
+        "resendInvalid": "Sähköpostiosoite on pakollinen.",
+        "toSignin": "Kirjaudu sisään"
     },
     "files": {
         "title": "Tiedostot | tekstiks.ee",
