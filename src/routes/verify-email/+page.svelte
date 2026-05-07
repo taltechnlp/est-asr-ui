@@ -50,6 +50,7 @@
                 id="email"
                 name="email"
                 type="email"
+                autocomplete="email"
                 bind:value={email}
                 required
             />

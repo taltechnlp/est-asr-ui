@@ -127,6 +127,7 @@
 		id="email"
 		name="email"
 		type="email"
+		autocomplete="email"
 		bind:value={email}
 		required
 	/>
@@ -135,6 +136,7 @@
 		id="password"
 		name="password"
 		type="password"
+		autocomplete="current-password"
 		bind:value={password}
 		required
 	/>
