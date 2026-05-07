@@ -311,7 +311,7 @@
   "dictate": {
     "title": "Dictate",
     "intro1": "This page allows you to dictate speech in multiple languages using TalTech realtime speech recognition. The web browser sends speech in real-time to the TalTech Laboratory of Language Technology server, where it is transformed into text and returned back to the browser.",
-    "intro2": "For Estonian and English, results appear almost immediately. For Auto (European languages) 🇧🇬 🇨🇿 🇩🇰 🇩🇪 🇬🇷 🇪🇸 🇫🇮 🇫🇷 🇭🇷 🇭🇺 🇮🇹 🇱🇹 🇱🇻 🇲🇹 🇳🇱 🇵🇱 🇵🇹 🇷🇴 🇷🇺 🇸🇰 🇸🇮 🇸🇪 🇺🇦, results appear every 2-4 seconds with automatic language detection.",
+    "intro2": "Results appear almost immediately.",
     "intro3": "For best results, use a good quality microphone and speak clearly at a moderate pace. You don't need to pause between words.",
     "attention": "Attention!",
     "freeConnections": "free connections",
@@ -352,31 +352,7 @@
     "languages": {
       "et": "Estonian",
       "en-80ms": "English (80ms)",
-      "en-1040ms": "English (1040ms)",
-      "auto": "Auto (European languages)",
-      "bg": "Bulgarian",
-      "cs": "Czech",
-      "da": "Danish",
-      "de": "German",
-      "el": "Greek",
-      "es": "Spanish",
-      "fi": "Finnish",
-      "fr": "French",
-      "hr": "Croatian",
-      "hu": "Hungarian",
-      "it": "Italian",
-      "lt": "Lithuanian",
-      "lv": "Latvian",
-      "mt": "Maltese",
-      "nl": "Dutch",
-      "pl": "Polish",
-      "pt": "Portuguese",
-      "ro": "Romanian",
-      "ru": "Russian",
-      "sk": "Slovak",
-      "sl": "Slovenian",
-      "sv": "Swedish",
-      "uk": "Ukrainian"
+      "en-1040ms": "English (1040ms)"
     }
   }
 }

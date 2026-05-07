@@ -311,7 +311,7 @@
     "dictate": {
         "title": "Dikteeri",
         "intro1": "Sellel lehel saad TalTechi kõnetuvastuse abil dikteerida teksti mitmes keeles. Veebilehitseja saadab kõne reaalajas TalTechi kõnetehnoloogia labori serverisse, kus see teisendatakse tekstiks ja saadetakse brauserisse tagasi.",
-        "intro2": "Eesti ja inglise keele puhul ilmuvad tulemused peaaegu koheselt. Automaatne (Euroopa keeled) 🇧🇬 🇨🇿 🇩🇰 🇩🇪 🇬🇷 🇪🇸 🇫🇮 🇫🇷 🇭🇷 🇭🇺 🇮🇹 🇱🇹 🇱🇻 🇲🇹 🇳🇱 🇵🇱 🇵🇹 🇷🇴 🇷🇺 🇸🇰 🇸🇮 🇸🇪 🇺🇦 puhul ilmuvad tulemused iga 2-4 sekundi tagant automaatse keeletuvastusega.",
+        "intro2": "Tulemused ilmuvad peaaegu koheselt.",
         "intro3": "Parima tulemuse saamiseks kasutage head mikrofoni ning rääkige selge häälega mõõdukas tempos. Sõnade vahel pause ei pea tegema.",
         "attention": "Tähelepanu!",
         "freeConnections": "vaba ühendust",
@@ -352,31 +352,7 @@
         "languages": {
             "et": "eesti",
             "en-80ms": "inglise (80ms)",
-            "en-1040ms": "inglise (1040ms)",
-            "auto": "Automaatne (Euroopa keeled)",
-            "bg": "bulgaaria",
-            "cs": "tšehhi",
-            "da": "taani",
-            "de": "saksa",
-            "el": "kreeka",
-            "es": "hispaania",
-            "fi": "soome",
-            "fr": "prantsuse",
-            "hr": "horvaadi",
-            "hu": "ungari",
-            "it": "itaalia",
-            "lt": "leedu",
-            "lv": "läti",
-            "mt": "malta",
-            "nl": "hollandi",
-            "pl": "poola",
-            "pt": "portugali",
-            "ro": "rumeenia",
-            "ru": "vene",
-            "sk": "slovaki",
-            "sl": "sloveeni",
-            "sv": "rootsi",
-            "uk": "ukraina"
+            "en-1040ms": "inglise (1040ms)"
         }
     }
 }
