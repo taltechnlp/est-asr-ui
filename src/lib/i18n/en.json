@@ -302,6 +302,9 @@
       "title": "Error",
       "description": "An unexpected error occurred."
     },
+    "messages": {
+      "unauthorized": "Unauthorized"
+    },
     "goHome": "Go Home",
     "goBack": "Go Back"
   },

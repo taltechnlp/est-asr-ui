@@ -5,7 +5,10 @@
 
 	// Get the error status from the page store
 	$: status = $page.status;
-	$: message = $page.error?.message || 'An unexpected error occurred';
+	$: rawMessage = $page.error?.message || 'An unexpected error occurred';
+	$: messageKey = `error.messages.${rawMessage}`;
+	$: translatedMessage = $_(messageKey);
+	$: message = translatedMessage === messageKey ? rawMessage : translatedMessage;
 
 	// Get translated error info based on status code
 	$: errorKey = [404, 401, 403, 500, 503].includes(status) ? status.toString() : 'default';
