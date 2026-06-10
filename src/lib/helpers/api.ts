@@ -10,9 +10,12 @@ import type {
     SectionType,
 } from "./api.d";
 import { FIN_ASR_RESULTS_URL, ASR_BACKEND, ORIGIN } from "$env/static/private";
-import { getRayJobStatus, rayResponseToEditorContent } from "$lib/asr/ray";
+import { getRayJobStatus, rayResponseToEditorContent, submitRayJob } from "$lib/asr/ray";
 import { sendEmail, createEmail } from "$lib/email";
 // import { logger } from "../logging/client";
+
+const RAY_JOB_ID_RE =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 let finToEstFormat: (sucRes: FinAsrFinished) => EditorContent = function (
     sucRes: FinAsrFinished,
@@ -201,8 +204,23 @@ export const checkCompletion = async (
     fetch: Function
 ): Promise<{ done: boolean; progress?: number }> => {
     if (language === "estonian" && ASR_BACKEND === "ray") {
-        if (!externalId) {
-            return { done: false };
+        if (!externalId || !RAY_JOB_ID_RE.test(externalId)) {
+            if (state !== "UPLOADED") {
+                return { done: false };
+            }
+            const submitted = await submitRayJob(filePath);
+            if (!submitted) {
+                return { done: false };
+            }
+            await prisma.file.update({
+                data: {
+                    externalId: submitted.jobId,
+                    state: "PROCESSING",
+                },
+                where: { id: fileId },
+            });
+            console.log(`Submitted Ray job ${submitted.jobId} for ${fileId} from ${state}`);
+            return { done: false, progress: 1 };
         }
         const status = await getRayJobStatus(externalId);
         if (!status) {
