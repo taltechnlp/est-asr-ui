@@ -30,7 +30,7 @@ const mapTurns = (turn: Turn, sps: Speakers) => {
         id = nameExists(speakers, name).id;
     }
     speakers.push({ name, id, start: turn.start });
-    return `<speaker data-name="${name}" id="${id}" >${turn.words.reduce(combineWords, '')}</speaker>`;
+    return `<speaker data-name="${name}" id="${id}" >${(turn.words ?? []).reduce(combineWords, '')}</speaker>`;
 };
 
 export const fromEstFormat = (transcription: EditorContent) => {

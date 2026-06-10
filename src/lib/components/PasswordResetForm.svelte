@@ -38,6 +38,7 @@
 		id="password"
 		name="password"
 		type="password"
+		autocomplete="new-password"
 		bind:value={password}
 	/>
 	<Input
@@ -45,6 +46,7 @@
 		id="confirm-password"
 		name="confirm-password"
 		type="password"
+		autocomplete="new-password"
 		bind:value={confirmPassword}
 		bind:inputRef={confirmPasswordInputRef}
 	/>
