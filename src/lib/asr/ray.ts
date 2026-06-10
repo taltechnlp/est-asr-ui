@@ -1,6 +1,9 @@
 import { ASR_RAY_URL, ASR_RAY_TOKEN } from '$env/static/private';
 import type { EditorContent, Speakers, SectionType, Turn, Word } from '$lib/helpers/api.d';
 
+const authHeaders = (): Record<string, string> =>
+	ASR_RAY_TOKEN ? { Authorization: `Bearer ${ASR_RAY_TOKEN}` } : {};
+
 export type RayJobState = 'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled';
 
 export interface RayWord {
@@ -47,6 +50,7 @@ export interface RayJobStatus {
 	created_at: number;
 	updated_at: number;
 	eta_seconds: number | null;
+	expected_completion_at: number | null;
 }
 
 export interface RayJobCreated {
@@ -57,12 +61,6 @@ export interface RayJobCreated {
 }
 
 const rayUrl = (path: string) => `${ASR_RAY_URL.replace(/\/+$/, '')}${path}`;
-
-const rayHeaders = (extra?: Record<string, string>): Record<string, string> => {
-	const headers: Record<string, string> = { ...(extra ?? {}) };
-	if (ASR_RAY_TOKEN) headers.Authorization = `Bearer ${ASR_RAY_TOKEN}`;
-	return headers;
-};
 
 const describeNetworkError = (err: unknown): string => {
 	const cause = (err as { cause?: { code?: string; message?: string } } | null)?.cause;
@@ -78,7 +76,7 @@ export const submitRayJob = async (
 	try {
 		const res = await fetch(rayUrl('/jobs'), {
 			method: 'POST',
-			headers: rayHeaders({ 'Content-Type': 'application/json' }),
+			headers: { 'Content-Type': 'application/json', ...authHeaders() },
 			body: JSON.stringify({
 				input_audio_path: inputAudioPath,
 				diarization: true,
@@ -109,7 +107,7 @@ export const getRayJobStatus = async (
 ): Promise<RayJobStatus | null> => {
 	try {
 		const res = await fetch(rayUrl(`/jobs/${encodeURIComponent(jobId)}`), {
-			headers: rayHeaders()
+			headers: authHeaders()
 		});
 		if (!res.ok) {
 			if (res.status !== 404) {
@@ -176,7 +174,7 @@ export const rayResponseToEditorContent = (
 			speaker: speakerId,
 			transcript: seg.text,
 			unnormalized_transcript: seg.text,
-			words: words.length > 0 ? words : undefined
+			words
 		};
 		sections.push({
 			start: seg.start,

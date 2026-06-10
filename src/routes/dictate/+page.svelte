@@ -55,32 +55,6 @@
 	let partialTranscript = $state('');
 	// Primary languages with dedicated models
 	const primaryLanguages = ['et', 'en-80ms', 'en-1040ms'];
-	// Other languages supported by Parakeet TDT (sorted alphabetically)
-	const parakeetLanguages = [
-		'bg',
-		'cs',
-		'da',
-		'de',
-		'el',
-		'es',
-		'fi',
-		'fr',
-		'hr',
-		'hu',
-		'it',
-		'lt',
-		'lv',
-		'mt',
-		'nl',
-		'pl',
-		'pt',
-		'ro',
-		'ru',
-		'sk',
-		'sl',
-		'sv',
-		'uk'
-	];
 	let selectedLanguage = $state('et'); // Default to Estonian
 	let availableModels = $state<string[]>([]);
 
@@ -106,35 +80,13 @@
 	// MODEL TYPE HELPERS
 	// ═══════════════════════════════════════════════════════════════
 
-	/**
-	 * Determine if the selected language uses an offline model (Parakeet TDT).
-	 *
-	 * STREAMING MODELS (ET/EN):
-	 * - Continuous session (no [Session Ended])
-	 * - Session ID stable until user stops
-	 *
-	 * PSEUDO-STREAMING MODELS (Parakeet TDT for other languages):
-	 * - ~2-4 second latency
-	 * - Session ID changes as chunks are processed
-	 */
-	function isOfflineModel(language: string): boolean {
-		return language !== 'et' && !language.startsWith('en-');
-	}
-
-	/**
-	 * Check if the selected language uses a fastconformer EN model.
-	 */
 	function isFastconformerEnModel(language: string): boolean {
 		return language.startsWith('en-');
 	}
 
-	/**
-	 * Get the server language code for the selected language.
-	 */
 	function getServerLanguage(language: string): string {
 		if (language === 'en-80ms') return 'fastconformer_transducer_en_80ms';
 		if (language === 'en-1040ms') return 'fastconformer_transducer_en_1040ms';
-		if (isOfflineModel(language)) return 'parakeet_tdt_v3';
 		return language; // 'et' passed as-is
 	}
 
@@ -151,30 +103,7 @@
 		const flags: Record<string, string> = {
 			et: '🇪🇪',
 			'en-80ms': '🇬🇧',
-			'en-1040ms': '🇬🇧',
-			bg: '🇧🇬',
-			cs: '🇨🇿',
-			da: '🇩🇰',
-			de: '🇩🇪',
-			el: '🇬🇷',
-			es: '🇪🇸',
-			fi: '🇫🇮',
-			fr: '🇫🇷',
-			hr: '🇭🇷',
-			hu: '🇭🇺',
-			it: '🇮🇹',
-			lt: '🇱🇹',
-			lv: '🇱🇻',
-			mt: '🇲🇹',
-			nl: '🇳🇱',
-			pl: '🇵🇱',
-			pt: '🇵🇹',
-			ro: '🇷🇴',
-			ru: '🇷🇺',
-			sk: '🇸🇰',
-			sl: '🇸🇮',
-			sv: '🇸🇪',
-			uk: '🇺🇦'
+			'en-1040ms': '🇬🇧'
 		};
 		return flags[langCode.toLowerCase()] || '🌐';
 	}
@@ -578,133 +507,14 @@
 	}
 
 	// ═══════════════════════════════════════════════════════════════
-	// OFFLINE MODEL HANDLERS (PARAKEET)
+	// MAIN MESSAGE HANDLER (DELEGATES TO STREAMING OR FASTCONFORMER)
 	// ═══════════════════════════════════════════════════════════════
 
-	/**
-	 * Handle transcript messages for pseudo-streaming models (Parakeet).
-	 * Backend sends CUMULATIVE text (not deltas), so we replace partialTranscript.
-	 */
-	function handleTranscript_offline(message: any) {
-		console.log(
-			'[PSEUDO-STREAM] Received transcript:',
-			message.text,
-			'is_final:',
-			message.is_final
-		);
-
-		if (message.is_final) {
-			// Check if server is ending the session (chunk processed)
-			if (message.text.trim() === '[Session Ended]') {
-				console.log('[PSEUDO-STREAM] Server ended session (chunk complete).');
-				// Only restart session if still recording
-				if (isRecording) {
-					// Move cumulative partial to final transcript
-					if (partialTranscript.trim()) {
-						transcript = partialTranscript.trim();
-					}
-					partialTranscript = '';
-
-					const language = getServerLanguage(selectedLanguage);
-					console.log('[OFFLINE] Sending new start message with language:', language);
-					sendMessage({
-						type: 'start',
-						sample_rate: SAMPLE_RATE,
-						format: 'pcm',
-						language: language
-					});
-				} else {
-					console.log('[PSEUDO-STREAM] Not recording - ignoring session end');
-				}
-				return;
-			}
-
-			// Accept final results even after stop (for pending buffer processing)
-			if (message.text.trim()) {
-				console.log('[PSEUDO-STREAM] Received final result:', message.text.trim());
-				// Update partial transcript with the final cumulative result
-				// stopRecording will combine transcript + partialTranscript
-				partialTranscript = message.text.trim();
-			}
-		} else {
-			// Partial results (is_final: false) - only process if still recording
-			if (isRecording) {
-				console.log('[PSEUDO-STREAM] Replacing partial with cumulative text:', message.text);
-				partialTranscript = message.text;
-			} else {
-				console.log('[PSEUDO-STREAM] Ignoring partial message after stop');
-			}
-		}
-	}
-
-	/**
-	 * Handle error messages for pseudo-streaming models.
-	 * Suppress "Session not found" errors during session transitions.
-	 */
-	function handleError_offline(message: any) {
-		console.error('[PSEUDO-STREAM] Server error:', message.message);
-
-		// Check if error is "Session not found" during chunk chaining
-		if (message.message && message.message.includes('Session not found') && isRecording) {
-			console.log('[PSEUDO-STREAM] Session not found (during chunk transition) - suppressing');
-			return;
-		}
-
-		connectionError = message.message;
-	}
-
-	/**
-	 * Handle session ready for pseudo-streaming models.
-	 * Pseudo-streaming models process chunks every 1.6s with overlapping windows.
-	 */
-	function handleSessionReady_offline(sessionIdReceived: string) {
-		sessionId = sessionIdReceived;
-		console.log('[PSEUDO-STREAM] Session ready:', sessionId);
-	}
-
-	/**
-	 * Handle all server messages for pseudo-streaming models (Parakeet).
-	 */
-	function handleServerMessage_offline(message: any) {
-		switch (message.type) {
-			case 'ready':
-				handleSessionReady_offline(message.session_id);
-				if (message.available_models) {
-					availableModels = message.available_models;
-				}
-				break;
-
-			case 'transcript':
-				handleTranscript_offline(message);
-				break;
-
-			case 'error':
-				handleError_offline(message);
-				break;
-
-			case 'session_ended':
-				console.log('[PSEUDO-STREAM] Session ended by server:', message.session_id);
-				// Don't clear sessionId yet - keep it for audio sending during transition
-				console.log('[PSEUDO-STREAM] Keeping session ID for transition...');
-				break;
-		}
-	}
-
-	// ═══════════════════════════════════════════════════════════════
-	// MAIN MESSAGE HANDLER (DELEGATES TO STREAMING OR OFFLINE)
-	// ═══════════════════════════════════════════════════════════════
-
-	/**
-	 * Main server message handler - delegates to streaming, fastconformer_en, or offline handlers.
-	 */
 	function handleServerMessage(message: any) {
 		console.log('Received message:', message);
 
-		// Delegate to appropriate handler based on model type
-		if (isOfflineModel(selectedLanguage)) {
-			handleServerMessage_offline(message);
-		} else if (isFastconformerEnModel(selectedLanguage)) {
-			// English uses fastconformer which now returns cumulative text (needs deduplication)
+		if (isFastconformerEnModel(selectedLanguage)) {
+			// English uses fastconformer which returns cumulative text
 			handleServerMessage_fastconformer_en(message);
 		} else {
 			// Estonian uses zipformer with cumulative streaming
@@ -799,8 +609,7 @@
 
 			// Send start message to establish session
 			const language = getServerLanguage(selectedLanguage);
-			const modelType = isOfflineModel(selectedLanguage) ? 'PSEUDO-STREAMING' : 'STREAMING';
-			console.log(`[START] [${modelType}] Sending start message with language:`, language);
+			console.log('[START] [STREAMING] Sending start message with language:', language);
 			sendMessage({
 				type: 'start',
 				sample_rate: SAMPLE_RATE,
@@ -900,25 +709,8 @@
 			sendMessage({ type: 'stop' });
 		}
 
-		// Wait for final results from pseudo-streaming models
-		// Server needs time to process remaining buffer (< 4s window) before finalizing
-		// Pseudo-streaming: wait up to 6s for final result, or until final message arrives
-		// True streaming: wait 1s for final result
-		const isOffline = isOfflineModel(selectedLanguage);
-		const maxWaitTime = isOffline ? 6000 : 1000;
-
-		// Store initial partial transcript to detect when new final result arrives
-		const initialPartial = partialTranscript;
-		const startWait = Date.now();
-
-		// Poll for new results or timeout
-		while (Date.now() - startWait < maxWaitTime) {
-			// If partial transcript changed, we got a final result
-			if (isOffline && partialTranscript !== initialPartial) {
-				break;
-			}
-			await new Promise((resolve) => setTimeout(resolve, 200)); // Check every 200ms
-		}
+		// Wait briefly for final results from streaming models
+		await new Promise((resolve) => setTimeout(resolve, 1000));
 
 		// Combine final and partial transcripts
 		const finalText = (transcript + ' ' + partialTranscript).trim();
@@ -957,12 +749,8 @@
 	onMount(() => {
 		// Load language preference from cookie (default to 'et' if not set)
 		const savedLanguage = getCookie('dictate_language');
-		if (savedLanguage) {
-			// Validate that the saved language is still supported
-			const allLanguages = [...primaryLanguages, 'auto', ...parakeetLanguages];
-			if (allLanguages.includes(savedLanguage)) {
-				selectedLanguage = savedLanguage;
-			}
+		if (savedLanguage && primaryLanguages.includes(savedLanguage)) {
+			selectedLanguage = savedLanguage;
 		}
 
 		initializeSystem();
@@ -1154,14 +942,9 @@
 							bind:value={selectedLanguage}
 							disabled={isRecording}
 						>
-							<!-- Primary languages with dedicated models -->
 							{#each primaryLanguages as lang}
 								<option value={lang}>{getFlagEmoji(lang)} {$_(`dictate.languages.${lang}`)}</option>
 							{/each}
-							<!-- Divider -->
-							<option disabled>──────────────────</option>
-							<!-- Auto-detect for all other European languages -->
-							<option value="auto">🌍 {$_('dictate.languages.auto')}</option>
 						</select>
 					</div>
 
