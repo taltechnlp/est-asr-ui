@@ -1,4 +1,4 @@
-import { ASR_RAY_URL } from '$env/static/private';
+import { ASR_RAY_URL, ASR_RAY_TOKEN } from '$env/static/private';
 import type { EditorContent, Speakers, SectionType, Turn, Word } from '$lib/helpers/api.d';
 
 export type RayJobState = 'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled';
@@ -58,6 +58,12 @@ export interface RayJobCreated {
 
 const rayUrl = (path: string) => `${ASR_RAY_URL.replace(/\/+$/, '')}${path}`;
 
+const rayHeaders = (extra?: Record<string, string>): Record<string, string> => {
+	const headers: Record<string, string> = { ...(extra ?? {}) };
+	if (ASR_RAY_TOKEN) headers.Authorization = `Bearer ${ASR_RAY_TOKEN}`;
+	return headers;
+};
+
 const describeNetworkError = (err: unknown): string => {
 	const cause = (err as { cause?: { code?: string; message?: string } } | null)?.cause;
 	const code = cause?.code;
@@ -72,7 +78,7 @@ export const submitRayJob = async (
 	try {
 		const res = await fetch(rayUrl('/jobs'), {
 			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
+			headers: rayHeaders({ 'Content-Type': 'application/json' }),
 			body: JSON.stringify({
 				input_audio_path: inputAudioPath,
 				diarization: true,
@@ -102,7 +108,9 @@ export const getRayJobStatus = async (
 	jobId: string
 ): Promise<RayJobStatus | null> => {
 	try {
-		const res = await fetch(rayUrl(`/jobs/${encodeURIComponent(jobId)}`));
+		const res = await fetch(rayUrl(`/jobs/${encodeURIComponent(jobId)}`), {
+			headers: rayHeaders()
+		});
 		if (!res.ok) {
 			if (res.status !== 404) {
 				console.error(`[RAY] /jobs/${jobId} returned ${res.status}`);
