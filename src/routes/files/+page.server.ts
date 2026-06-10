@@ -15,9 +15,13 @@ import { Readable } from 'stream';
 import { unlink } from 'fs/promises';
 import { spawn } from 'child_process';
 
-const OPUS_MIME_TYPE = 'audio/ogg; codecs=opus';
+const FLAC_MIME_TYPE = 'audio/flac';
 
-const convertToOpus = async (inputPath: string, outputPath: string): Promise<void> => {
+// Transcode uploads to 16 kHz mono FLAC for the ASR pipeline. FLAC is lossless and
+// universally decodable (ffmpeg/libsndfile/sox/torchaudio), unlike Opus which the
+// forced-alignment/diarization loaders mishandle (caused partial/garbled transcripts).
+// 16 kHz mono is the ASR target rate, avoiding a downstream resample.
+const convertForAsr = async (inputPath: string, outputPath: string): Promise<void> => {
 	await new Promise<void>((resolve, reject) => {
 		const ffmpeg = spawn('ffmpeg', [
 			'-y',
@@ -26,14 +30,16 @@ const convertToOpus = async (inputPath: string, outputPath: string): Promise<voi
 			'-vn',
 			'-map_metadata',
 			'-1',
-			'-acodec',
-			'libopus',
-			'-b:a',
-			'32k',
-			'-vbr',
-			'on',
+			'-ac',
+			'1',
+			'-ar',
+			'16000',
+			'-sample_fmt',
+			's16', // without this ffmpeg writes 32-bit FLAC (~2x the size)
+			'-c:a',
+			'flac',
 			'-compression_level',
-			'10',
+			'8',
 			outputPath
 		]);
 
@@ -140,7 +146,7 @@ export const actions: Actions = {
 			mkdirSync(uploadDir, { recursive: true });
 		}
 		const saveTo = join(uploadDir, newFilename);
-		const convertedPath = `${saveTo}.opus`;
+		const convertedPath = `${saveTo}.flac`;
 		console.log(
 			`File [${newFilename}]: filename: %j, mimeType: %j, path: %j`,
 			file.name,
@@ -180,24 +186,25 @@ export const actions: Actions = {
 			console.error(err);
 			return fail(400, { fileSaveFailed: true });
 		}
-		// Convert to opus only for Estonian (Finnish ASR doesn't support opus)
+		// Transcode to 16 kHz mono FLAC for Estonian (the ASR pipeline reads it reliably).
+		// Finnish ASR receives the original upload unchanged.
 		if (lang === 'estonian') {
 			try {
-				await convertToOpus(saveTo, convertedPath);
+				await convertForAsr(saveTo, convertedPath);
 				await unlink(saveTo).catch((e) =>
-					console.error('Failed to remove source file after Opus conversion', e)
+					console.error('Failed to remove source file after FLAC conversion', e)
 				);
 				fileSize = BigInt(statSync(convertedPath).size);
 				fileData.path = convertedPath;
-				fileData.mimetype = OPUS_MIME_TYPE;
-				console.log('File converted to Opus at', convertedPath);
+				fileData.mimetype = FLAC_MIME_TYPE;
+				console.log('File converted to FLAC at', convertedPath);
 			} catch (err) {
-				console.error('Failed to convert uploaded file to Opus', err);
+				console.error('Failed to convert uploaded file to FLAC', err);
 				await unlink(saveTo).catch((e) =>
 					console.error('Failed to remove source file after conversion error', e)
 				);
 				await unlink(convertedPath).catch((e) =>
-					console.error('Failed to remove failed Opus output file', e)
+					console.error('Failed to remove failed FLAC output file', e)
 				);
 				return fail(400, { fileSaveFailed: true });
 			}

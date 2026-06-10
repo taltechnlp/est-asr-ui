@@ -14,6 +14,10 @@ const resolveMimeType = (filePath: string, storedMimeType: string | null) => {
     return "audio/ogg; codecs=opus";
   }
 
+  if (lowerPath.endsWith(".flac")) {
+    return "audio/flac";
+  }
+
   if (storedMimeType?.startsWith("audio/ogg")) {
     return "audio/ogg; codecs=opus";
   }
