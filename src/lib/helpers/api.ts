@@ -6,6 +6,8 @@ import path from "path";
 import type {
     EditorContent,
     FinAsrFinished,
+    FinAsrInProgress,
+    FinAsrPending,
     FinAsrResult,
     SectionType,
 } from "./api.d";
@@ -201,7 +203,8 @@ export const checkCompletion = async (
     filePath: string,
     language: string,
     initialTranscriptionPath: string,
-    fetch: Function
+    fetch: Function,
+    duration?: number
 ): Promise<{ done: boolean; progress?: number }> => {
     if (language === "estonian" && ASR_BACKEND === "ray") {
         if (!externalId || !RAY_JOB_ID_RE.test(externalId)) {
@@ -320,7 +323,47 @@ export const checkCompletion = async (
         const body: FinAsrResult = await result.json();
         if (!body) return { done: false };
         if (!body.done) {
-            return { done: false };
+            // Derive progress from how far transcription has advanced through the
+            // audio. The in-progress response streams partial `result.sections`;
+            // the last section's `end` (seconds) over the total audio duration is
+            // a real, monotonic 0→1 measure. Before any section is emitted (the
+            // "pending" phase) fall back to a gentle elapsed-time creep off
+            // `processing_started` so the bar isn't frozen at the floor. Cap at
+            // 95 until the job flips to done (state → READY).
+            // The remote acknowledges an in-flight job (not done, no error), so
+            // reflect that in the UI: move UPLOADED → PROCESSING once, which is
+            // also the state the progress bar renders under. Guarded on the
+            // passed-in state so repeat polls don't re-write.
+            if (state === "UPLOADED") {
+                await prisma.file.update({
+                    data: { state: "PROCESSING" },
+                    where: { id: fileId },
+                });
+            }
+            const inFlight = body as FinAsrPending & FinAsrInProgress;
+            const sections = inFlight.result?.sections;
+            const hasDuration = typeof duration === "number" && duration > 0;
+            let progress = 1;
+            if (Array.isArray(sections) && sections.length > 0 && hasDuration) {
+                // If the remote ever streams partial results, prefer the real
+                // coverage: last transcribed second over total audio seconds.
+                const lastEnd = sections[sections.length - 1]?.end ?? 0;
+                progress = Math.min(95, Math.floor((lastEnd / (duration as number)) * 100));
+            } else if (typeof inFlight.processing_started === "number" && hasDuration) {
+                // Observed behaviour: the remote sits in "pending" with no partial
+                // sections, then returns the whole result at once. Synthesize an
+                // ETA from the known audio duration and a measured real-time
+                // factor (~9x observed; assume a conservative 8x so the bar lags
+                // slightly rather than stalling at the 95% cap before done).
+                const FIN_ASSUMED_RTF = 8;
+                const estimatedTotal = (duration as number) / FIN_ASSUMED_RTF;
+                const elapsed = Math.max(0, Date.now() / 1000 - inFlight.processing_started);
+                if (estimatedTotal > 0) {
+                    progress = Math.min(95, Math.floor((elapsed / estimatedTotal) * 100));
+                }
+            }
+            progress = Math.max(1, progress);
+            return { done: false, progress };
         } // Error case
         else if (body.error) {
             await prisma.file.update({
@@ -428,7 +471,25 @@ export const getFiles = async (id) => {
             let status = file.state;
             if (file.state !== "READY" && file.state !== "ABORTED" && file.state !== "PROCESSING_ERROR") {
                 if (file.language === "finnish") {
-                    await checkCompletion(file.id, file.state, file.externalId, file.path, file.language, file.initialTranscriptionPath, fetch);
+                    const finStatus = await checkCompletion(
+                        file.id,
+                        file.state,
+                        file.externalId,
+                        file.path,
+                        file.language,
+                        file.initialTranscriptionPath,
+                        fetch,
+                        file.duration ? file.duration.toNumber() : undefined
+                    );
+                    if (typeof finStatus.progress === "number") {
+                        progress = finStatus.progress;
+                        // checkCompletion just moved an in-flight job UPLOADED →
+                        // PROCESSING in the DB; mirror it on the in-memory record
+                        // so the progress bar shows on this same response.
+                        if (file.state === "UPLOADED") {
+                            file.state = "PROCESSING";
+                        }
+                    }
                 } else if (file.language === "estonian" && ASR_BACKEND === "ray") {
                     const rayStatus = await checkCompletion(
                         file.id,
