@@ -152,7 +152,17 @@
     "deleteAll": "Delete all",
     "deleting": "Deleting...",
     "storageOverLimit": "Over limit!",
-    "storageLimitWarning": "You have exceeded the 2GB storage limit. This limit will be strictly enforced in the future. Please delete unnecessary files."
+    "storageLimitWarning": "You have exceeded the 2GB storage limit. This limit will be strictly enforced in the future. Please delete unnecessary files.",
+    "selectFile": "Select file",
+    "formats": {
+      "docx": "Word (.docx)",
+      "odt": "OpenDocument (.odt)",
+      "txt": "Plain text (.txt)",
+      "srt": "Subtitles (.srt)",
+      "trs": "Transcriber (.trs)",
+      "json": "JSON (.json)"
+    },
+    "formatLabel": "Format"
   },
   "me": {
     "title": "Account details | tekstiks.ee",
@@ -278,10 +288,6 @@
     }
   },
   "error": {
-    "404": {
-      "title": "Page Not Found",
-      "description": "The page you're looking for doesn't exist."
-    },
     "401": {
       "title": "Unauthorized",
       "description": "You need to be logged in to access this page."
@@ -289,6 +295,10 @@
     "403": {
       "title": "Forbidden",
       "description": "You don't have permission to access this resource."
+    },
+    "404": {
+      "title": "Page Not Found",
+      "description": "The page you're looking for doesn't exist."
     },
     "500": {
       "title": "Server Error",

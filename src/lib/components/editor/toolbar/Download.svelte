@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { _ } from 'svelte-i18n';
     import { editor } from '$lib/stores.svelte';
-    import { downloadHandler } from '$lib/download';
+    import { downloadHandler, downloadOdtHandler } from '$lib/download';
     import { toSRT } from '$lib/helpers/converters/srtFormat';
     import { toTRS } from '$lib/helpers/converters/trsFormat';
     let { fileName } = $props();
 	let downloadOptions = [
 		{ id: 1, text: `Word (.docx)` },
+		{ id: 5, text: `OpenDocument (.odt)` },
 		{ id: 2, text: `JSON` },
 		{ id: 3, text: `SRT (.srt)` },
 		{ id: 4, text: `TRS (.trs)` }
@@ -37,7 +38,7 @@
                     {/each}
                 </select>
             </label>
-            {#if format && format.id === 1}
+            {#if format && (format.id === 1 || format.id === 5)}
             <div class="form-control mt-3">
                 <label class="label cursor-pointer flex">
                     <span class="label-text">{$_('editor.download.includeNames')}</span>
@@ -60,6 +61,14 @@
                     if (format.id === 1) {
                         downloadHandler($editor.getJSON(), '', fileName, includeNames, includeTimeCodes);
                         document.getElementById('download-modal')?.click();
+                    } else if (format.id === 5) {
+                        isGenerating = true;
+                        try {
+                            await downloadOdtHandler($editor.getJSON(), '', fileName, includeNames, includeTimeCodes);
+                            document.getElementById('download-modal')?.click();
+                        } finally {
+                            isGenerating = false;
+                        }
                     } else if (format.id === 2) {
                         const blob = new Blob([JSON.stringify($editor.getJSON())], {type: "application/json"});
                         const url = window.URL.createObjectURL(blob);

@@ -152,7 +152,17 @@
         "deleteAll": "Kustuta kõik",
         "deleting": "Kustutamine...",
         "storageOverLimit": "Üle limiidi!",
-        "storageLimitWarning": "Olete ületanud 2GB mahulimiidi. Tulevikus rakendatakse seda limiiti rangelt. Palun kustutage mittevajalikud failid."
+        "storageLimitWarning": "Olete ületanud 2GB mahulimiidi. Tulevikus rakendatakse seda limiiti rangelt. Palun kustutage mittevajalikud failid.",
+        "selectFile": "Vali fail",
+        "formats": {
+            "docx": "Word (.docx)",
+            "odt": "OpenDocument (.odt)",
+            "txt": "Lihttekst (.txt)",
+            "srt": "Subtiitrid (.srt)",
+            "trs": "Transcriber (.trs)",
+            "json": "JSON (.json)"
+        },
+        "formatLabel": "Vorming"
     },
     "me": {
         "title": "Konto andmed | tekstiks.ee",
@@ -251,7 +261,7 @@
         "addNew": "Lisa",
         "download": {
             "includeNames": "Koos kõnelejate nimedega",
-            "includeTimeCodes": "Koos teksiplokkide algusaegadega",
+            "includeTimeCodes": "Koos tekstiplokkide algusaegadega",
             "heading": "Failina alla laadimine",
             "description": "Vali failivorming ning täpsusta faili sisu eelistused.",
             "format": "Vali failivorming",
@@ -278,10 +288,6 @@
         }
     },
     "error": {
-        "404": {
-            "title": "Lehekülge ei leitud",
-            "description": "Otsitavat lehekülge ei eksisteeri."
-        },
         "401": {
             "title": "Autentimata",
             "description": "Selle lehe vaatamiseks peate olema sisse logitud."
@@ -289,6 +295,10 @@
         "403": {
             "title": "Juurdepääs keelatud",
             "description": "Teil puudub õigus selle ressursi vaatamiseks."
+        },
+        "404": {
+            "title": "Lehekülge ei leitud",
+            "description": "Otsitavat lehekülge ei eksisteeri."
         },
         "500": {
             "title": "Serveri viga",

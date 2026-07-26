@@ -152,7 +152,17 @@
         "deleteAll": "Poista kaikki",
         "deleting": "Poistetaan...",
         "storageOverLimit": "Yli rajan!",
-        "storageLimitWarning": "Olet ylittänyt 2GB tallennusrajan. Tämä raja tulee olemaan tiukasti voimassa tulevaisuudessa. Poista tarpeettomat tiedostot."
+        "storageLimitWarning": "Olet ylittänyt 2GB tallennusrajan. Tämä raja tulee olemaan tiukasti voimassa tulevaisuudessa. Poista tarpeettomat tiedostot.",
+        "selectFile": "Valitse tiedosto",
+        "formats": {
+            "docx": "Word (.docx)",
+            "odt": "OpenDocument (.odt)",
+            "txt": "Pelkkä teksti (.txt)",
+            "srt": "Tekstitys (.srt)",
+            "trs": "Transcriber (.trs)",
+            "json": "JSON (.json)"
+        },
+        "formatLabel": "Muoto"
     },
     "me": {
         "title": "Käyttäjätiedot | tekstiks.ee",
@@ -277,10 +287,6 @@
         }
     },
     "error": {
-        "404": {
-            "title": "Sivua ei löydy",
-            "description": "Etsimääsi sivua ei ole olemassa."
-        },
         "401": {
             "title": "Ei valtuutusta",
             "description": "Sinun täytyy kirjautua sisään päästäksesi tälle sivulle."
@@ -288,6 +294,10 @@
         "403": {
             "title": "Kielletty",
             "description": "Sinulla ei ole oikeutta käyttää tätä resurssia."
+        },
+        "404": {
+            "title": "Sivua ei löydy",
+            "description": "Etsimääsi sivua ei ole olemassa."
         },
         "500": {
             "title": "Palvelinvirhe",
