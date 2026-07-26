@@ -41,11 +41,11 @@
     );
 </script>
 
-<div class="flex items-center gap-3 text-sm">
+<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
     <span class="text-base-content/60">{$_('files.storageUsed')}:</span>
-    <div class="flex items-center gap-2">
+    <div class="flex min-w-0 flex-wrap items-center gap-2">
         <progress
-            class="progress {progressClass} w-32 h-2"
+            class="progress {progressClass} w-24 sm:w-32 h-2"
             value={Math.min(usedPercent, 100)}
             max="100"
         ></progress>

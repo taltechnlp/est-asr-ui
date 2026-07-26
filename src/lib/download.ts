@@ -1,4 +1,7 @@
-import { Document, Packer, Paragraph, TextRun, SectionType } from 'docx';
+import { Packer } from 'docx';
+import { buildTranscriptDocx } from '$lib/helpers/converters/docxFormat';
+import { buildTranscriptOdt } from '$lib/helpers/converters/odtFormat';
+import type { EditorDoc } from '$lib/helpers/converters/editorDoc';
 
 export const handleSave = async (editor, fileId) => {
 	const result = await fetch(`/api/files/${fileId}`, {
@@ -11,108 +14,57 @@ export const handleSave = async (editor, fileId) => {
 	return true;
 };
 
-export const downloadHandler = (content: MyEditorContent, author, title, exportNames, exportTimeCodes) => {
-	const doc = new Document({
-		creator: author,
+export const downloadHandler = (
+	content: EditorDoc,
+	author: string,
+	title: string,
+	exportNames: boolean,
+	exportTimeCodes: boolean
+) => {
+	const doc = buildTranscriptDocx(content, {
 		title,
-		sections: processContent(content, exportNames, exportTimeCodes)
+		author,
+		includeNames: exportNames,
+		includeTimeCodes: exportTimeCodes
 	});
 
 	Packer.toBlob(doc).then((blob) => {
-		const url = window.URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = `${title}.docx`;
-		document.body.appendChild(a); // we need to append the element to the dom -> otherwise it will not work in firefox
-		a.click();
-		a.remove(); //afterwards we remove the element again
+		saveBlob(blob, `${title}.docx`);
 	});
 };
 
-const mapSentences = (sentence: Sentence) => {
-	let text = "";
-	if (sentence && sentence.content) {
-		text = sentence.content.reduce((sum, word) => {
-			if (word.text) return sum + word.text;
-			else return sum;
-		}, '')
-	}
-	return new Paragraph({
-		children: [
-			new TextRun(
-				text
-			)
-		]
+export const downloadOdtHandler = async (
+	content: EditorDoc,
+	author: string,
+	title: string,
+	exportNames: boolean,
+	exportTimeCodes: boolean
+) => {
+	const bytes = await buildTranscriptOdt(content, {
+		title,
+		author,
+		includeNames: exportNames,
+		includeTimeCodes: exportTimeCodes
 	});
+
+	// Copy into a fresh ArrayBuffer-backed view: a Uint8Array over a SharedArrayBuffer
+	// is not a valid BlobPart, and the builder's return type does not rule that out.
+	const bytesCopy = new Uint8Array(bytes.byteLength);
+	bytesCopy.set(bytes);
+
+	saveBlob(
+		new Blob([bytesCopy.buffer], { type: 'application/vnd.oasis.opendocument.text' }),
+		`${title}.odt`
+	);
 };
 
-const processContent = (content, exportNames, exportTimeCodes) => {
-	let children;
-	if (content && content.content && content.content.length > 0) {
-		children = content.content.reduce((acc, val) => {
-			if (exportNames && val.attrs && val.attrs['data-name']) {
-				acc = acc.concat(
-					new Paragraph({
-						children: [new TextRun(val.attrs['data-name'])]
-					})
-				);
-			}
-			if (exportTimeCodes && val.content && val.content.length > 0) {
-				let startTime = undefined;
-				val.content.find(element => {
-					if (element.marks) element.marks.find(mark=> {
-						if (mark.attrs && mark.attrs.start) {
-							startTime = mark.attrs.start;
-							return true;
-						} else return false
-					})
-					else return false;
-				})
-				if (startTime) {
-					const time = new Date(0);
-					time.setSeconds(startTime);
-					acc = acc.concat(
-						new Paragraph({
-							children: [new TextRun(startTime < 3600 ? time.toISOString().substr(14, 5) : time.toISOString().substr(11, 8))]
-						})
-					);
-				}
-			}
-			return acc.concat(mapSentences(val));
-		}, [])
-	} else children = new Paragraph({
-		children: [new TextRun("")]
-	});
-	return [
-		{
-			properties: {
-				type: SectionType.CONTINUOUS
-			},
-			children
-		}
-	];
-};
-
-type Sentence = {
-	type?: string;
-	attrs?: {
-		'data-name'?: string;
-		id?: string;
-	};
-	content?: {
-		text?: string;
-		type?: string;
-		marks?: {
-			type: string;
-			attrs?: {
-				start: string;
-				end: string;
-			};
-		}[];
-	}[];
-};
-
-type MyEditorContent = {
-	type?: string;
-	content?: Sentence[];
-};
+function saveBlob(blob: Blob, filename: string) {
+	const url = window.URL.createObjectURL(blob);
+	const a = document.createElement('a');
+	a.href = url;
+	a.download = filename;
+	document.body.appendChild(a); // we need to append the element to the dom -> otherwise it will not work in firefox
+	a.click();
+	a.remove(); //afterwards we remove the element again
+	window.URL.revokeObjectURL(url);
+}

@@ -2,12 +2,13 @@
 	import { goto, invalidate, invalidateAll } from '$app/navigation';
 	import { onDestroy, onMount } from 'svelte';
 	import { _ } from 'svelte-i18n';
-	import { toTime } from './helpers';
+	import { toTime, toDateParts } from './helpers';
 	import { browser } from '$app/environment';
 	import type { ActionResult } from '@sveltejs/kit';
 	import { applyAction, deserialize } from '$app/forms';
 	import type { PageProps } from './$types';
 	import StorageBar from '$lib/components/StorageBar.svelte';
+	import FormatStrip from '$lib/components/FormatStrip.svelte';
 	let { form, data }: PageProps = $props();
 
 	let error = $state('');
@@ -25,6 +26,28 @@
 		data.files && data.files.length > 0 && selectedFiles.size === data.files.length
 	);
 	let bulkDeleting = $state(false);
+
+	// Only one file's format strip is open at a time — a list of open drawers is unreadable.
+	let openFormatsFor: string | null = $state(null);
+
+	function toggleFormats(fileId: string, event: Event) {
+		event.stopPropagation();
+		openFormatsFor = openFormatsFor === fileId ? null : fileId;
+	}
+
+	/** Leading rail state: quiet for finished files, coloured only for the exceptions. */
+	function railClass(file) {
+		if (file.oldSystem) return 'bg-base-300';
+		if (file.state === 'PROCESSING_ERROR') return 'bg-error';
+		if (file.state === 'PROCESSING') return 'bg-accent';
+		if (file.state === 'UPLOADED') return 'bg-info';
+		return 'bg-base-300';
+	}
+
+	function railFill(file) {
+		if (file.state !== 'PROCESSING') return 100;
+		return file.progress >= 0 ? Math.min(file.progress, 100) : 100;
+	}
 
 	let delFileId;
 	const delFile = async (fileId) => {
@@ -235,149 +258,214 @@
 		<span>{$_('files.hardwareFailureWarning')}</span>
 	</div>
 {/if}
-<div
-	class="grid w-full min-h-[100dvh] justify-center content-start grid-cols-[minmax(320px,_1280px)] overflow-x-auto bg-base-100"
->
-	<div class="flex justify-between items-center max-w-screen-2xl mt-4 px-2">
-		{#if data.storage}
-			<StorageBar
-				used={data.storage.used}
-				limit={data.storage.limit}
-				remaining={data.storage.remaining}
-				usedPercent={data.storage.usedPercent}
-			/>
-		{:else}
-			<div></div>
+{#snippet statusBadge(file)}
+	{#if file.oldSystem}
+		<span class="badge badge-info badge-sm">{$_('files.statusOld')}</span>
+	{:else if file.state == 'READY'}
+		<span class="badge badge-success badge-sm">{$_('files.statusReady')}</span>
+	{:else if file.state == 'PROCESSING_ERROR'}
+		<span class="badge badge-error badge-sm">{$_('files.statusError')}</span>
+	{:else if file.state == 'PROCESSING'}
+		<span class="badge badge-accent badge-sm">{$_('files.statusProcessing')}</span>
+		{#if file.progress >= 0}
+			<span class="text-xs tabular-nums text-base-content/60">{file.progress}%</span>
 		{/if}
-		<div class="flex gap-2">
-			{#if selectedFiles.size > 0}
-				<button
-					class="btn btn-error btn-sm gap-2"
-					onclick={() =>
-						((document.getElementById('bulk-del-modal') as HTMLInputElement).checked = true)}
-				>
-					{$_('files.deleteSelected')} ({selectedFiles.size})
-				</button>
+		<span class="loading loading-spinner loading-xs" aria-label={$_('files.loading')}></span>
+	{:else if file.state == 'UPLOADED'}
+		<span class="badge badge-info badge-sm">{$_('files.statusUploaded')}</span>
+		<span class="loading loading-spinner loading-xs" aria-label={$_('files.loading')}></span>
+	{/if}
+{/snippet}
+
+{#snippet downloadToggle(file)}
+	<button
+		class="btn btn-outline btn-xs gap-1"
+		aria-expanded={openFormatsFor === file.id}
+		onclick={(e) => toggleFormats(file.id, e)}
+	>
+		{$_('files.downloadButton')}
+		<svg
+			viewBox="0 0 12 12"
+			class="h-2.5 w-2.5 transition-transform duration-150 motion-reduce:transition-none {openFormatsFor ===
+			file.id
+				? 'rotate-180'
+				: ''}"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			aria-hidden="true"
+		>
+			<path d="M2 4.5 6 8.5 10 4.5" stroke-linecap="round" stroke-linejoin="round" />
+		</svg>
+	</button>
+{/snippet}
+
+{#snippet deleteAction(file, extraClass)}
+	<button
+		class="btn btn-ghost btn-xs text-error/80 hover:bg-error/10 hover:text-error {extraClass}"
+		onclick={(e) => {
+			delFileId = file.id;
+			e.stopPropagation();
+			(document.getElementById('del-file-modal') as HTMLInputElement).checked = true;
+		}}
+	>
+		{$_('files.deleteButton')}
+	</button>
+{/snippet}
+
+<div class="min-h-[100dvh] w-full bg-base-100">
+	<div class="mx-auto w-full max-w-6xl px-3 pb-20 pt-4 sm:px-4">
+		<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+			{#if data.storage}
+				<StorageBar
+					used={data.storage.used}
+					limit={data.storage.limit}
+					remaining={data.storage.remaining}
+					usedPercent={data.storage.usedPercent}
+				/>
+			{:else}
+				<div></div>
 			{/if}
-			<button class="btn btn-primary btn-sm gap-2" onclick={() => uploadModal?.showModal()}>
-				{$_('files.uploadButton')}
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					id="Outline"
-					viewBox="0 0 24 24"
-					fill="#fff"
-					class="h-4 w-4"
-					aria-label={$_('files.uploadIcon')}
-					><path
-						d="M11.007,2.578,11,18.016a1,1,0,0,0,1,1h0a1,1,0,0,0,1-1l.007-15.421,2.912,2.913a1,1,0,0,0,1.414,0h0a1,1,0,0,0,0-1.414L14.122.879a3,3,0,0,0-4.244,0L6.667,4.091a1,1,0,0,0,0,1.414h0a1,1,0,0,0,1.414,0Z"
-					/><path
-						d="M22,17v4a1,1,0,0,1-1,1H3a1,1,0,0,1-1-1V17a1,1,0,0,0-1-1H1a1,1,0,0,0-1,1v4a3,3,0,0,0,3,3H21a3,3,0,0,0,3-3V17a1,1,0,0,0-1-1h0A1,1,0,0,0,22,17Z"
-					/></svg
+			<div class="flex shrink-0 gap-2">
+				<button
+					class="btn btn-primary btn-sm gap-2 max-sm:w-full"
+					onclick={() => uploadModal?.showModal()}
 				>
-			</button>
+					{$_('files.uploadButton')}
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 24 24"
+						fill="currentColor"
+						class="h-4 w-4"
+						aria-hidden="true"
+						><path
+							d="M11.007,2.578,11,18.016a1,1,0,0,0,1,1h0a1,1,0,0,0,1-1l.007-15.421,2.912,2.913a1,1,0,0,0,1.414,0h0a1,1,0,0,0,0-1.414L14.122.879a3,3,0,0,0-4.244,0L6.667,4.091a1,1,0,0,0,0,1.414h0a1,1,0,0,0,1.414,0Z"
+						/><path
+							d="M22,17v4a1,1,0,0,1-1,1H3a1,1,0,0,1-1-1V17a1,1,0,0,0-1-1H1a1,1,0,0,0-1,1v4a3,3,0,0,0,3,3H21a3,3,0,0,0,3-3V17a1,1,0,0,0-1-1h0A1,1,0,0,0,22,17Z"
+						/></svg
+					>
+				</button>
+			</div>
 		</div>
-	</div>
-	<table class="table table-compact max-w-screen-2xl">
-		<thead>
-			<tr>
-				<th>
+
+		<!-- One list at every width: it stacks on a phone and lines up into columns
+		     from md up, so a long filename never has to compete for horizontal room. -->
+		{#if data.files && data.files.length > 0}
+			<div class="mt-4 flex items-center justify-between gap-2">
+				<label class="flex cursor-pointer items-center gap-2 text-sm text-base-content/70">
 					<input
 						type="checkbox"
 						class="checkbox checkbox-sm"
 						checked={selectAll}
 						onchange={toggleSelectAll}
-						disabled={!data.files || data.files.length === 0}
 					/>
-				</th>
-				<th></th>
-				<th>{$_('files.filename')}</th>
-				<th>{$_('files.status')}</th>
-				<th>{$_('files.uploadedAt')}</th>
-				<th>{$_('files.actions')}</th>
-			</tr>
-		</thead>
-		<tbody>
-			{#if data.files && data.files.length > 0}
-				{#each data.files as file, index}
-					<tr
-						class="{file.state == 'READY' ? 'cursor-pointer' : ''} hover"
-						onclick={() => openFile(file.id, file.state, file.oldSystem)}
+					{$_('files.selectAll')}
+				</label>
+				{#if selectedFiles.size > 0}
+					<button
+						class="btn btn-error btn-xs"
+						onclick={() =>
+							((document.getElementById('bulk-del-modal') as HTMLInputElement).checked = true)}
 					>
-						<td class="cursor-default" onclick={(e) => e.stopPropagation()}>
+						{$_('files.deleteSelected')} ({selectedFiles.size})
+					</button>
+				{/if}
+			</div>
+
+			<ul class="mt-2 flex flex-col gap-2">
+				{#each data.files as file (file.id)}
+					<li class="relative overflow-hidden rounded-lg border border-base-300 bg-base-100">
+						<!-- Status rail: a hairline when a file is done, coloured only when it isn't. -->
+						<span class="absolute inset-y-0 left-0 w-1 bg-base-200" aria-hidden="true"></span>
+						<span
+							class="absolute left-0 top-0 w-1 {railClass(file)}"
+							style="height: {railFill(file)}%"
+							aria-hidden="true"
+						></span>
+
+						<div class="flex items-start gap-3 py-3 pl-4 pr-3 md:items-center">
 							<input
 								type="checkbox"
-								class="checkbox checkbox-sm"
+								class="checkbox checkbox-sm mt-0.5 shrink-0 md:mt-0"
 								checked={selectedFiles.has(file.id)}
 								onchange={(e) => toggleFileSelection(file.id, e)}
+								aria-label="{$_('files.selectFile')}: {file.filename}"
 							/>
-						</td>
-						<th class="cursor-default" onclick={(e) => e.stopPropagation()}>{index + 1}</th>
-						<td class="">
-							<p class="break-words whitespace-normal">
-								{file.filename}
-							</p>
-						</td>
-						<td>
-							{#if file.oldSystem}
-								<div class="badge badge-md badge-info pl-2 pr-2">{$_('files.statusOld')}</div>
-							{:else if file.state == 'READY'}
-								<div class="badge badge-md badge-success pl-2 pr-2">{$_('files.statusReady')}</div>
-							{:else if file.state == 'PROCESSING_ERROR'}
-								<div class="badge badge-md badge-error pl-2 pr-2">{$_('files.statusError')}</div>
-							{:else if file.state == 'PROCESSING'}
-								<div class="badge badge-md badge-accent pl-2 pr-2">
-									{$_('files.statusProcessing')}
+							<div class="min-w-0 flex-1 md:flex md:items-center md:gap-4">
+								<div class="min-w-0 md:flex-1">
+									{#if file.state === 'READY' && !file.oldSystem}
+										<button
+											class="block w-full break-words text-left text-[15px] font-medium leading-snug hover:text-primary"
+											onclick={() => openFile(file.id, file.state, file.oldSystem)}
+										>
+											{file.filename}
+										</button>
+									{:else}
+										<p class="break-words text-[15px] font-medium leading-snug text-base-content/80">
+											{file.filename}
+										</p>
+									{/if}
 								</div>
-								{#if file.progress >= 0}
-									{` ${file.progress}%`}
-								{/if}
-								<span class="btn btn-ghost btn-xs" aria-label={$_('files.loading')}></span>
-								<span class="loading loading-spinner loading-xs"></span>
-							{:else if file.state == 'UPLOADED' && file.queued}
-								<div class="badge badge-md badge-info pl-2 pr-2">{$_('files.statusUploaded')}</div>
-								<span class="loading loading-spinner loading-xs"></span>
-							{:else if file.state == 'UPLOADED'}
-								<div class="badge badge-md badge-info pl-2 pr-2">{$_('files.statusUploaded')}</div>
-								<span class="loading loading-spinner loading-xs"></span>
-							{/if}
-						</td>
-						<td class="">
-							{toTime(file.uploadedAt)}
-						</td>
-						<td class="">
-							{#if file.oldSystem}
-								<a href="https://tekstiks.ee/files">
-									<button class="btn btn-outline btn-xs">{$_('files.toOldSystem')}</button>
-								</a>
-							{:else if file.state == 'READY'}
-								<button class="btn btn-outline btn-xs">{$_('files.openButton')}</button>
-							{/if}
 
-							<button
-								class="btn btn-outline btn-xs"
-								onclick={(e) => {
-									delFileId = file.id;
-									e.stopPropagation();
-									(document.getElementById('del-file-modal') as HTMLInputElement).checked = true;
-								}}
-								onkeydown={(e) => {
-									if (e.key === 'Enter') {
-										delFileId = file.id;
-										e.stopPropagation();
-										(document.getElementById('del-file-modal') as HTMLInputElement).checked = true;
-									}
-								}}>{$_('files.deleteButton')}</button
-							>
-						</td>
-					</tr>
+								<!-- Fixed width from md up so status and date line up down the list. -->
+								<div
+									class="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 md:mt-0 md:w-72 md:shrink-0 md:flex-nowrap md:justify-between"
+								>
+									<div class="flex items-center gap-1.5">
+										{@render statusBadge(file)}
+									</div>
+									<span
+										class="whitespace-nowrap tabular-nums text-base-content/60"
+										title={toTime(file.uploadedAt)}
+									>
+										<span class="text-xs">{toDateParts(file.uploadedAt).date}</span>
+										<span class="text-[11px] text-base-content/45">
+											{toDateParts(file.uploadedAt).time}
+										</span>
+									</span>
+								</div>
+
+								<div
+									class="mt-2.5 flex flex-wrap items-center gap-1.5 md:mt-0 md:w-52 md:shrink-0 md:flex-nowrap md:justify-end"
+								>
+									{#if file.oldSystem}
+										<a class="btn btn-outline btn-xs" href="https://tekstiks.ee/files">
+											{$_('files.toOldSystem')}
+										</a>
+									{:else if file.state === 'READY'}
+										<button
+											class="btn btn-primary btn-xs"
+											onclick={() => openFile(file.id, file.state, file.oldSystem)}
+										>
+											{$_('files.openButton')}
+										</button>
+										{@render downloadToggle(file)}
+									{/if}
+									{@render deleteAction(file, 'max-md:ml-auto')}
+								</div>
+							</div>
+						</div>
+
+						{#if openFormatsFor === file.id && file.state === 'READY' && !file.oldSystem}
+							<!-- pl-12 lines the drawer up with the filename, not the checkbox. -->
+							<div class="border-t border-base-200 bg-base-200/40 pl-12 pr-3 md:flex md:justify-end">
+								<FormatStrip fileId={file.id} filename={file.filename} />
+							</div>
+						{/if}
+					</li>
 				{/each}
-			{:else if error}
-				<tr><td colspan="6" class="text-center">{error}</td></tr>
-			{:else}
-				<tr><td colspan="6" class="text-center">{$_('files.noFiles')}</td></tr>
-			{/if}
-		</tbody>
-	</table>
+			</ul>
+		{/if}
+
+		{#if !data.files || data.files.length === 0}
+			<div class="mt-6 rounded-lg border border-dashed border-base-300 px-6 py-12 text-center">
+				<p class="text-base-content/60">{error ? error : $_('files.noFiles')}</p>
+				<button class="btn btn-primary btn-sm mt-4" onclick={() => uploadModal?.showModal()}>
+					{$_('files.uploadButton')}
+				</button>
+			</div>
+		{/if}
+	</div>
 
 	<dialog
 		id="upload_modal"
@@ -458,7 +546,9 @@
 						</label>
 					</div>
 				</fieldset>
-				<fieldset class="fieldset w-md bg-base-200 border border-base-300 p-4 rounded-box mb-4">
+				<fieldset
+					class="fieldset w-full max-w-md bg-base-200 border border-base-300 p-4 rounded-box mb-4"
+				>
 					<legend class="fieldset-legend">{$_('files.requirements')}</legend>
 					<ul class="list-disc list-inside">
 						<li class="py-4">{$_('files.supportedFormats')}</li>
