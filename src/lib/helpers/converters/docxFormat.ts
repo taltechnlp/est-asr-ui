@@ -5,7 +5,11 @@
  * (Packer.toBlob) and the file list's server export (Packer.toBuffer).
  */
 
-import { Document, Paragraph, SectionType, TextRun } from 'docx';
+// docx is CommonJS; named ESM imports fail under Node at runtime, so
+// destructure the default export and keep type-only imports separate.
+import docx from 'docx';
+import type { Document, Paragraph } from 'docx';
+const { Document: DocxDocument, Paragraph: DocxParagraph, SectionType, TextRun } = docx;
 import { formatTimecode, turnStart, turnText, type EditorDoc } from './editorDoc';
 
 type Options = {
@@ -21,24 +25,24 @@ export function buildTranscriptDocx(doc: EditorDoc, options: Options = {}): Docu
 
 	for (const speaker of doc?.content ?? []) {
 		if (includeNames && speaker.attrs?.['data-name']) {
-			children.push(new Paragraph({ children: [new TextRun(speaker.attrs['data-name'])] }));
+			children.push(new DocxParagraph({ children: [new TextRun(speaker.attrs['data-name'])] }));
 		}
 
 		if (includeTimeCodes) {
 			const start = turnStart(speaker);
 			if (start !== undefined) {
-				children.push(new Paragraph({ children: [new TextRun(formatTimecode(start))] }));
+				children.push(new DocxParagraph({ children: [new TextRun(formatTimecode(start))] }));
 			}
 		}
 
-		children.push(new Paragraph({ children: [new TextRun(turnText(speaker))] }));
+		children.push(new DocxParagraph({ children: [new TextRun(turnText(speaker))] }));
 	}
 
 	if (children.length === 0) {
-		children.push(new Paragraph({ children: [new TextRun('')] }));
+		children.push(new DocxParagraph({ children: [new TextRun('')] }));
 	}
 
-	return new Document({
+	return new DocxDocument({
 		creator: author,
 		title,
 		sections: [

@@ -1,7 +1,8 @@
 import { prisma } from '$lib/db/client';
 import { promises as fs } from 'fs';
 import { error } from '@sveltejs/kit';
-import { Packer } from 'docx';
+import docx from 'docx';
+const { Packer } = docx;
 import { toEditorDoc } from '$lib/helpers/converters/editorDoc';
 import { buildTranscriptDocx } from '$lib/helpers/converters/docxFormat';
 import { buildTranscriptOdt } from '$lib/helpers/converters/odtFormat';

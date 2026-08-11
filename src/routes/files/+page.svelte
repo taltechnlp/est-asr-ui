@@ -397,7 +397,7 @@
 								<div class="min-w-0 md:flex-1">
 									{#if file.state === 'READY' && !file.oldSystem}
 										<button
-											class="block w-full break-words text-left text-[15px] font-medium leading-snug hover:text-primary"
+											class="block w-full cursor-pointer break-words text-left text-[15px] font-medium leading-snug hover:text-primary"
 											onclick={() => openFile(file.id, file.state, file.oldSystem)}
 										>
 											{file.filename}
