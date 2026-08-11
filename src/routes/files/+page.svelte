@@ -472,7 +472,8 @@
 		class="modal cursor-pointer modal-bottom sm:modal-middle"
 		bind:this={uploadModal}
 	>
-		<div class="modal-box relative">
+		<!-- dvh: 100vh on mobile ignores the browser chrome, hiding the submit button -->
+		<div class="modal-box relative max-h-[calc(100dvh-2rem)]">
 			<h3 class="text-lg font-bold mb-4">{$_('files.uploadHeader')}</h3>
 			<form method="dialog">
 				<button
@@ -551,9 +552,9 @@
 				>
 					<legend class="fieldset-legend">{$_('files.requirements')}</legend>
 					<ul class="list-disc list-inside">
-						<li class="py-4">{$_('files.supportedFormats')}</li>
-						<li class="py-4 pt-0">{$_('files.fileSizeLimit')}</li>
-						<li class="py-4 pt-0">{$_('files.fileDurationLimit')}</li>
+						<li class="py-1">{$_('files.supportedFormats')}</li>
+						<li class="py-1">{$_('files.fileSizeLimit')}</li>
+						<li class="py-1">{$_('files.fileDurationLimit')}</li>
 					</ul>
 				</fieldset>
 				{#if error}
@@ -564,20 +565,23 @@
 						{printError('fileTooLong')}
 					</p>
 				{/if}
-				{#if loading}
-					<button class="btn" disabled aria-label={$_('files.uploadButton')}
-						><span class="btn btn-ghost btn-xs loading" aria-label={$_('files.loading')}
-						></span></button
-					>
-				{:else if upload}
-					<button
-						type="submit"
-						class="btn btn-active btn-primary"
-						aria-label={$_('files.uploadButton')}>{$_('files.uploadButton')}</button
-					>
-				{:else}
-					<button class="btn" disabled>{$_('files.uploadButton')}</button>
-				{/if}
+				<!-- sticky so the submit button stays visible when the modal content scrolls on mobile -->
+				<div class="sticky bottom-0 -mx-6 -mb-6 px-6 py-3 bg-base-100 border-t border-base-300">
+					{#if loading}
+						<button class="btn" disabled aria-label={$_('files.uploadButton')}
+							><span class="btn btn-ghost btn-xs loading" aria-label={$_('files.loading')}
+							></span></button
+						>
+					{:else if upload}
+						<button
+							type="submit"
+							class="btn btn-active btn-primary"
+							aria-label={$_('files.uploadButton')}>{$_('files.uploadButton')}</button
+						>
+					{:else}
+						<button class="btn" disabled>{$_('files.uploadButton')}</button>
+					{/if}
+				</div>
 			</form>
 		</div>
 		<form method="dialog" class="modal-backdrop">
