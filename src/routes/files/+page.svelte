@@ -372,16 +372,18 @@
 				{/if}
 			</div>
 
-			<ul class="mt-2 flex flex-col gap-2">
+			<ul class="mt-2 divide-y divide-base-200">
 				{#each data.files as file (file.id)}
-					<li class="relative overflow-hidden rounded-lg border border-base-300 bg-base-100">
-						<!-- Status rail: a hairline when a file is done, coloured only when it isn't. -->
-						<span class="absolute inset-y-0 left-0 w-1 bg-base-200" aria-hidden="true"></span>
-						<span
-							class="absolute left-0 top-0 w-1 {railClass(file)}"
-							style="height: {railFill(file)}%"
-							aria-hidden="true"
-						></span>
+					<li class="relative overflow-hidden transition-colors hover:bg-base-200/40">
+						<!-- Status rail only while a file is still in flight (or errored) — done rows stay clean. -->
+						{#if !file.oldSystem && file.state !== 'READY'}
+							<span class="absolute inset-y-0 left-0 w-1 bg-base-200" aria-hidden="true"></span>
+							<span
+								class="absolute left-0 top-0 w-1 {railClass(file)}"
+								style="height: {railFill(file)}%"
+								aria-hidden="true"
+							></span>
+						{/if}
 
 						<div class="flex items-start gap-3 py-3 pl-4 pr-3 md:items-center">
 							<input
