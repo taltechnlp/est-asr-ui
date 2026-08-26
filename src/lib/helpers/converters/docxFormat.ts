@@ -5,11 +5,8 @@
  * (Packer.toBlob) and the file list's server export (Packer.toBuffer).
  */
 
-// docx is CommonJS; named ESM imports fail under Node at runtime, so
-// destructure the default export and keep type-only imports separate.
-import docx from 'docx';
+import { Document as DocxDocument, Paragraph as DocxParagraph, SectionType, TextRun } from 'docx';
 import type { Document, Paragraph } from 'docx';
-const { Document: DocxDocument, Paragraph: DocxParagraph, SectionType, TextRun } = docx;
 import { formatTimecode, turnStart, turnText, type EditorDoc } from './editorDoc';
 
 type Options = {
