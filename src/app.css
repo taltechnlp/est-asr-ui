@@ -5,8 +5,12 @@
 }
  
 @layer base {
-  /* Native <select> popups inherit the select's background; with DaisyUI's
-     transparent `select-ghost` the page shows through the option list. */
+  /* Chrome paints the native <select> popup with the select's own background;
+     DaisyUI's `select-ghost` is transparent, so the page showed through the
+     option list. The navbar is base-100 anyway, so this is visually a no-op. */
+  select.select-ghost {
+    background-color: var(--color-base-100);
+  }
   select option {
     background-color: var(--color-base-100);
     color: var(--color-base-content);
