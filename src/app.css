@@ -5,6 +5,13 @@
 }
  
 @layer base {
+  /* Native <select> popups inherit the select's background; with DaisyUI's
+     transparent `select-ghost` the page shows through the option list. */
+  select option {
+    background-color: var(--color-base-100);
+    color: var(--color-base-content);
+  }
+
   :root {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
