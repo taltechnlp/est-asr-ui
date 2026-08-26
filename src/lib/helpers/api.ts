@@ -14,6 +14,7 @@ import type {
 import { FIN_ASR_RESULTS_URL, ASR_BACKEND, ORIGIN } from "$env/static/private";
 import { getRayJobStatus, rayResponseToEditorContent, submitRayJob } from "$lib/asr/ray";
 import { sendEmail, createEmail } from "$lib/email";
+import { pregeneratePeaks } from "$lib/server/peaks";
 // import { logger } from "../logging/client";
 
 const RAY_JOB_ID_RE =
@@ -247,6 +248,7 @@ export const checkCompletion = async (
                 },
                 where: { id: fileId },
             });
+            pregeneratePeaks(fileId);
             await sendRayCompletionEmail(fileId, true);
             return { done: true, progress: 100 };
         }
@@ -412,11 +414,10 @@ export const checkCompletion = async (
                         id: fileId,
                     },
                 });
+                pregeneratePeaks(fileId);
             });
             writeStream.write(text);
             writeStream.end();
-            // Pre-generate waveform peaks
-            // await generatePeaks(fileId);
             return { done: true };
         }
     }

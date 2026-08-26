@@ -1,6 +1,7 @@
 import { prisma } from '$lib/db/client';
 import { promises as fs } from 'fs';
 import { error } from '@sveltejs/kit';
+import { peaksPathFor } from '$lib/server/peaks';
 import type { RequestHandler } from './$types';
 
 async function getOwnedFile(fileId: string, userId: string) {
@@ -60,6 +61,7 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 	await fs.rm(file.path).catch((deleteError) => {
 		console.log('Failed to remove file from disk!', deleteError);
 	});
+	await fs.rm(peaksPathFor(file.path), { force: true }).catch(() => {});
 
 	await prisma.file
 		.delete({

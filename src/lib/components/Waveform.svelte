@@ -102,8 +102,6 @@
 		let colorBase = styles.getPropertyValue("--color-base-100");
 		let colorNeutral = styles.getPropertyValue("--color-neutral");
 
-		const audioContext = new AudioContext();
-		// console.log(names)
 		const options: PeaksOptions = {
 			segmentOptions: {
 					// Enable segment markers
@@ -188,12 +186,14 @@
 				enableSegments: true,
 			},
 			mediaElement: audioElement,
-			webAudio: {
-				audioContext: audioContext,
-				scale: 128,
-				multiChannel: false
+			// Waveform data comes precomputed from the server (see
+			// src/lib/server/peaks.ts) so the browser never has to download and
+			// decode the whole media file just to draw the waveform.
+			dataUri: {
+				arraybuffer: `${mediaUrl}/peaks`
 			},
 			withCredentials: true,
+			// Must all be >= the precomputed data scale (PEAKS_SCALE = 512).
 			zoomLevels: [512, 1024, 2048, 4096],
 			keyboard: true,
 			nudgeIncrement: 0.01,
@@ -213,9 +213,21 @@
 
 		};
 
-		Peaks.init(options, function(err, peaks) {
-		// Do something when the waveform is displayed and ready, or handle errors
+		const onPeaksReady = function(err: Error | undefined, peaks: PeaksInstance | undefined) {
 			if (err || !peaks) {
+				if (options.dataUri) {
+					// Server-side peaks unavailable: fall back to decoding the media
+					// in the browser (slow and memory-hungry for long files).
+					console.warn('Precomputed peaks unavailable, decoding audio in browser', err, { url: mediaUrl });
+					delete options.dataUri;
+					options.webAudio = {
+						audioContext: new AudioContext(),
+						scale: 128,
+						multiChannel: false
+					};
+					Peaks.init(options, onPeaksReady);
+					return;
+				}
 				console.error('Error initiating Peaks', err, { url: mediaUrl, mimeType: mediaType });
 				return;
 			}
@@ -265,7 +277,8 @@
 			peaksInstance.on('player.seeked', (time) => {
 				playingTime.set(time);
 			});
-		});
+		};
+		Peaks.init(options, onPeaksReady);
 
 
 		// Subscribe to playback events

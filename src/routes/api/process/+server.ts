@@ -6,6 +6,7 @@ import type { IWeblog } from '$lib/helpers/api.d'
 // import { logger } from '$lib/logging/client';
 import { sendEmail, createEmail } from "$lib/email";
 import { ORIGIN } from '$env/static/private';
+import { pregeneratePeaks } from '$lib/server/peaks';
 
 export const POST: RequestHandler = async ({ request, fetch }) => {
     const workflow: IWeblog = await request.json();
@@ -227,6 +228,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
                                     id: updatedWf.file_id,
                                 }
                             });
+                            pregeneratePeaks(updatedWf.file_id);
                         if (file.notify) {
                             await sendEmail({
                                 to: file.User.email,
