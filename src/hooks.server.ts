@@ -3,11 +3,11 @@ import { sequence } from "@sveltejs/kit/hooks";
 import { redirect } from '@sveltejs/kit';
 import { auth } from "$lib/auth";
 import { prisma } from "$lib/db/client";
-import { startFinnishPoller } from "$lib/server/finnishPoller";
+import { startAsrPoller } from "$lib/server/asrPoller";
 import { SESSION_COOKIE, readSessionToken } from "$lib/server/session";
 
 // Start background pollers once when the server module is first loaded at runtime.
-startFinnishPoller();
+startAsrPoller();
 
 // Create Better Auth handle that also provides locals.auth() compatibility
 const authHandle: Handle = async ({ event, resolve }) => {

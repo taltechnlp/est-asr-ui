@@ -507,8 +507,6 @@
 					aria-busy={loading}
 					class="fieldset w-full bg-base-200 border border-base-300 p-4 rounded-box"
 				>
-					{#if form?.uploadLimit}<p class="error">File is too large!</p>{/if}
-					{#if form?.fileTooLong}<p class="error">File is too long!</p>{/if}
 					<label class="form-control w-full max-w-xs">
 						<div class="label">
 							<span class="label-text">{$_('files.language')}</span>
@@ -559,16 +557,15 @@
 						<li class="py-1">{$_('files.fileDurationLimit')}</li>
 					</ul>
 				</fieldset>
-				{#if error}
-					<p class="mt-3 mb-3 text-red-500 text-center font-semibold">{printError(error)}</p>
-				{/if}
-				{#if form?.uploadLimit}
-					<p class="mt-3 mb-3 text-red-500 text-center font-semibold">
-						{printError('fileTooLong')}
-					</p>
-				{/if}
-				<!-- sticky so the submit button stays visible when the modal content scrolls on mobile -->
+				<!-- Sticky so the submit button stays visible when the modal content scrolls.
+				     The error lives inside the bar: as a preceding sibling it was overlapped by
+				     the bar the moment the modal scrolled, which clipped the message in half. -->
 				<div class="sticky bottom-0 -mx-6 -mb-6 px-6 py-3 bg-base-100 border-t border-base-300">
+					{#if error}
+						<p role="alert" class="mb-3 text-error text-center font-semibold">
+							{printError(error)}
+						</p>
+					{/if}
 					{#if loading}
 						<button class="btn" disabled aria-label={$_('files.uploadButton')}
 							><span class="btn btn-ghost btn-xs loading" aria-label={$_('files.loading')}
