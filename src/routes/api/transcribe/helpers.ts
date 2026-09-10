@@ -1,6 +1,7 @@
 import { spawn } from 'child_process';
 import { existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import { PROCESS_WEBHOOK_TOKEN } from '$lib/server/processToken';
 
 // Escape glob metacharacters in file path for Nextflow
 const escapeGlobPattern = (path: string): string => {
@@ -43,7 +44,7 @@ export const runNextflow = (
 		'-name',
 		workflowName,
 		'-with-weblog',
-		estAsrUrl + '/api/process',
+		estAsrUrl + '/api/process?token=' + PROCESS_WEBHOOK_TOKEN,
 		'--in',
 		escapedFilePath,
 		'--out_dir',

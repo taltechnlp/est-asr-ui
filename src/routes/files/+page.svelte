@@ -127,12 +127,11 @@
 		const form = event.target as HTMLFormElement;
 		const formData = new FormData(form);
 
-		// Client-side storage check disabled temporarily - allow exceeding limit
-		// const fileInput = formData.get('file') as File;
-		// if (fileInput && data.storage && BigInt(fileInput.size) > BigInt(data.storage.remaining)) {
-		// 	error = 'storageLimitExceeded';
-		// 	return;
-		// }
+		const fileInput = formData.get('file') as File;
+		if (fileInput && data.storage && BigInt(fileInput.size) > BigInt(data.storage.remaining)) {
+			error = 'storageLimitExceeded';
+			return;
+		}
 
 		// Add additional form data
 		formData.append('notify', notify ? 'yes' : 'no');

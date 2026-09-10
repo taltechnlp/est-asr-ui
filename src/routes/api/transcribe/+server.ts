@@ -10,7 +10,12 @@ import {
 import { runNextflow } from './helpers';
 import { submitRayJob } from '$lib/asr/ray';
 
-export const POST: RequestHandler = async ({ request }) => {
+// Internal endpoint: only reachable through SvelteKit's server-side fetch from
+// the upload and admin resume actions, never from the public network.
+export const POST: RequestHandler = async ({ request, isSubRequest }) => {
+	if (!isSubRequest) {
+		return json({ error: 'forbidden' }, { status: 403 });
+	}
 	const { fileId, filePath, resultDir, workflowName, resume } = await request.json();
 
 	if (ASR_BACKEND === 'ray') {

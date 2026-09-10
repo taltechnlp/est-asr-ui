@@ -7,8 +7,13 @@ import type { IWeblog } from '$lib/helpers/api.d'
 import { sendEmail, createEmail } from "$lib/email";
 import { ORIGIN } from '$env/static/private';
 import { pregeneratePeaks } from '$lib/server/peaks';
+import { isValidProcessToken } from '$lib/server/processToken';
 
-export const POST: RequestHandler = async ({ request, fetch }) => {
+export const POST: RequestHandler = async ({ request, fetch, url }) => {
+    // Only the Nextflow weblog started by /api/transcribe knows the token.
+    if (!isValidProcessToken(url.searchParams.get('token'))) {
+        return new Response('Forbidden', { status: 403 });
+    }
     const workflow: IWeblog = await request.json();
     if (!workflow) {
         console.error("Nextflow sent an empty POST message.");
