@@ -61,6 +61,12 @@ export const load: PageServerLoad = async ({ locals, fetch, depends }) => {
 		redirect(307, '/signin');
 	}
 
+	const account = await prisma.user.findUnique({
+		where: { id: session.user.id },
+		select: { emailVerified: true }
+	});
+	const emailVerified = !!account?.emailVerified;
+
 	// Fetch storage usage
 	const usageResult = await prisma.file.aggregate({
 		where: { uploader: session.user.id },
@@ -97,10 +103,10 @@ export const load: PageServerLoad = async ({ locals, fetch, depends }) => {
 				};
 			});
 		}
-		return { files, session, storage };
+		return { files, session, storage, emailVerified };
 	} catch (error) {
 		console.log('Retrieveing user files from API failed', error);
-		return { files: [], session, storage };
+		return { files: [], session, storage, emailVerified };
 	}
 };
 
@@ -109,6 +115,16 @@ export const actions: Actions = {
 		let session = await locals.auth();
 		if (!session || !session.user.id) {
 			redirect(307, '/signin');
+		}
+		// Uploads require a confirmed email address so that delivery mails
+		// and account recovery actually reach the user.
+		const account = await prisma.user.findUnique({
+			where: { id: session.user.id },
+			select: { emailVerified: true }
+		});
+		if (!account?.emailVerified) {
+			console.warn('Upload refused, email not verified', session.user.id);
+			return fail(403, { emailNotVerified: true });
 		}
 		const data = await request.formData();
 		const lang = data.get('lang') as string;

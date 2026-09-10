@@ -114,6 +114,8 @@
 			return $_('files.invalidLang');
 		} else if (errorText === 'storageLimitExceeded') {
 			return $_('files.storageLimitExceeded');
+		} else if (errorText === 'emailNotVerified') {
+			return $_('files.emailNotVerified');
 		} else {
 			return $_('files.uploadError');
 		}
@@ -174,6 +176,8 @@
 				error = 'finnishUploadFailed';
 			} else if (result.data.storageLimitExceeded) {
 				error = 'storageLimitExceeded';
+			} else if (result.data.emailNotVerified) {
+				error = 'emailNotVerified';
 			}
 			applyAction(result);
 		}
@@ -314,6 +318,19 @@
 
 <div class="min-h-[100dvh] w-full bg-base-100">
 	<div class="mx-auto w-full max-w-6xl px-3 pb-20 pt-4 sm:px-4">
+		{#if !data.emailVerified}
+			<div role="alert" class="alert alert-warning mb-4">
+				<span>
+					{$_('files.emailNotVerified')}
+					<a
+						class="link font-semibold"
+						href={`/verify-email?email=${encodeURIComponent(data.session?.user?.email ?? '')}`}
+					>
+						{$_('files.verifyLink')}
+					</a>
+				</span>
+			</div>
+		{/if}
 		<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 			{#if data.storage}
 				<StorageBar
@@ -329,6 +346,7 @@
 				<button
 					class="btn btn-primary btn-sm gap-2 max-sm:w-full"
 					onclick={() => uploadModal?.showModal()}
+					disabled={!data.emailVerified}
 				>
 					{$_('files.uploadButton')}
 					<svg
@@ -461,7 +479,11 @@
 		{#if !data.files || data.files.length === 0}
 			<div class="mt-6 rounded-lg border border-dashed border-base-300 px-6 py-12 text-center">
 				<p class="text-base-content/60">{error ? error : $_('files.noFiles')}</p>
-				<button class="btn btn-primary btn-sm mt-4" onclick={() => uploadModal?.showModal()}>
+				<button
+					class="btn btn-primary btn-sm mt-4"
+					onclick={() => uploadModal?.showModal()}
+					disabled={!data.emailVerified}
+				>
 					{$_('files.uploadButton')}
 				</button>
 			</div>
