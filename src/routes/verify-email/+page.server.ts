@@ -1,35 +1,16 @@
 import type { Actions, PageServerLoad } from './$types';
 import { prisma } from '$lib/db/client';
 import { fail } from '@sveltejs/kit';
-import { randomBytes } from 'crypto';
-import { promisify } from 'util';
 import { compare } from 'bcrypt';
-import { sendEmail } from '$lib/email';
-import { buildVerificationEmail } from '$lib/emails/verifyEmail';
-import { buildEmailChangeEmail } from '$lib/emails/changeEmail';
-import { generateShortId } from '$lib/utils/generateId';
-import { uiLanguages } from '$lib/i18n';
-
-const VERIFICATION_TOKEN_TTL_MS = 1000 * 60 * 60 * 24; // 24h
-const VERIFICATION_IDENTIFIER_PREFIX = 'email-verification:';
-// Pending address change for an unverified account: `email-change:<userId>:<newEmail>`.
-// The address is only written to the user row once the link sent to the new
-// address is opened, so a mistyped address can never lock someone out.
-const EMAIL_CHANGE_IDENTIFIER_PREFIX = 'email-change:';
-
-const randomBytesAsync = promisify(randomBytes);
-const newToken = async () => (await randomBytesAsync(20)).toString('hex');
-
-const EMAIL_RE =
-    /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-
-const emailTaken = async (email: string, exceptUserId: string) => {
-    const other = await prisma.user.findFirst({
-        where: { email: { equals: email, mode: 'insensitive' }, id: { not: exceptUserId } },
-        select: { id: true }
-    });
-    return !!other;
-};
+import {
+    VERIFICATION_IDENTIFIER_PREFIX,
+    EMAIL_CHANGE_IDENTIFIER_PREFIX,
+    EMAIL_RE,
+    emailTaken,
+    requestEmailChange,
+    sendVerificationEmail,
+    uiLanguage
+} from '$lib/server/emailChange';
 
 const consumeToken = async (token: string) => {
     const record = await prisma.verification.findFirst({
@@ -98,9 +79,6 @@ export const load: PageServerLoad = async ({ url }) => {
     }
 };
 
-const uiLanguage = (cookieLang: string | undefined) =>
-    cookieLang && uiLanguages.includes(cookieLang) ? cookieLang : 'et';
-
 export const actions: Actions = {
     resend: async ({ request, cookies }) => {
         const data = await request.formData();
@@ -109,27 +87,16 @@ export const actions: Actions = {
 
         const language = uiLanguage(cookies.get('language'));
 
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma.user.findFirst({
+            where: { email: { equals: email, mode: 'insensitive' } }
+        });
         // Don't reveal whether the email exists
         if (!user || user.emailVerified || !user.password) {
             return { resendSuccess: true };
         }
 
         try {
-            await prisma.verification.deleteMany({
-                where: { identifier: `${VERIFICATION_IDENTIFIER_PREFIX}${user.id}` }
-            });
-            const token = await newToken();
-            await prisma.verification.create({
-                data: {
-                    id: generateShortId(),
-                    identifier: `${VERIFICATION_IDENTIFIER_PREFIX}${user.id}`,
-                    value: token,
-                    expiresAt: new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS)
-                }
-            });
-            const { subject, html } = buildVerificationEmail(token, language);
-            await sendEmail({ to: user.email, subject, html });
+            await sendVerificationEmail(user, language);
         } catch (e) {
             console.error('[VERIFY-EMAIL] Resend failed', e);
         }
@@ -137,9 +104,9 @@ export const actions: Actions = {
         return { resendSuccess: true };
     },
 
-    // Lets someone who mistyped their address at signup fix it. Only allowed
-    // while the account is still unverified, only with the account password,
-    // and the change takes effect only after the new address confirms it.
+    // Lets someone who mistyped their address at signup fix it without signing
+    // in. Only allowed while the account is still unverified and only with the
+    // account password; verified accounts change their address on /me.
     change: async ({ request, cookies }) => {
         const data = await request.formData();
         const currentEmail = (data.get('currentEmail') as string | null)?.trim();
@@ -163,35 +130,16 @@ export const actions: Actions = {
         if (user.emailVerified) {
             return fail(400, { change: 'alreadyVerified' as const, currentEmail, newEmail });
         }
-        if (newEmail === user.email.toLowerCase()) {
-            return fail(400, { change: 'sameEmail' as const, currentEmail, newEmail });
-        }
-        if (await emailTaken(newEmail, user.id)) {
-            return fail(400, { change: 'emailTaken' as const, currentEmail, newEmail });
-        }
 
         const language = uiLanguage(cookies.get('language'));
         try {
-            await prisma.verification.deleteMany({
-                where: { identifier: { startsWith: `${EMAIL_CHANGE_IDENTIFIER_PREFIX}${user.id}:` } }
-            });
-            const token = await newToken();
-            await prisma.verification.create({
-                data: {
-                    id: generateShortId(),
-                    identifier: `${EMAIL_CHANGE_IDENTIFIER_PREFIX}${user.id}:${newEmail}`,
-                    value: token,
-                    expiresAt: new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS)
-                }
-            });
-            const { subject, html } = buildEmailChangeEmail(token, language);
-            await sendEmail({ to: newEmail, subject, html });
+            const error = await requestEmailChange(user, newEmail, language);
+            if (error) return fail(400, { change: error, currentEmail, newEmail });
         } catch (e) {
             console.error('[VERIFY-EMAIL] Email change request failed', e);
             return fail(500, { change: 'error' as const, currentEmail, newEmail });
         }
 
-        console.log(`[VERIFY-EMAIL] Email change requested for user ${user.id} -> ${newEmail}`);
         return { change: 'sent' as const, newEmail };
     }
 };

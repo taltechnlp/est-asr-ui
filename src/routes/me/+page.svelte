@@ -8,7 +8,22 @@
 	import google from 'svelte-awesome/icons/google';
 	import Icon from 'svelte-awesome/components/Icon.svelte';
 	import type { PageProps } from './$types';
-	let { data }: PageProps = $props();
+	let { data, form }: PageProps = $props();
+
+	let changeOpened = $state(false);
+	const showChange = $derived(changeOpened || (!!form?.change && form.change !== 'sent'));
+
+	const changeErrorText = (code: string) => {
+		switch (code) {
+			case 'missing': return $_('me.changeMissing');
+			case 'invalidEmail': return $_('me.changeInvalidEmail');
+			case 'invalidPassword': return $_('me.changeInvalidPassword');
+			case 'noPassword': return $_('me.changeNoPassword');
+			case 'sameEmail': return $_('me.changeSameEmail');
+			case 'emailTaken': return $_('me.changeEmailTaken');
+			default: return $_('me.changeError');
+		}
+	};
 
 	const handleSignOut = async () => {
 		try {
@@ -44,7 +59,23 @@
 	<h2 class="text-xl mb-10 font-extrabold mt-6">{$_('me.header')}</h2>
 	<div class="grid grid-cols-2 gap-5">
 		<p>{$_('me.email')}:</p>
-		<p>{userState.email}</p>
+		<div>
+			<p>{data.user.email}</p>
+			{#if !data.user.emailVerified}
+				<p class="text-warning font-semibold">{$_('me.emailNotVerified')}</p>
+				{#if data.user.passwordSet}
+					{#if form?.resend === 'sent'}
+						<p class="text-green-700">{$_('me.resendSent')}</p>
+					{:else if form?.resend === 'error'}
+						<p class="text-red-500">{$_('me.resendError')}</p>
+					{:else}
+						<form method="POST" action="?/resendVerification">
+							<button class="btn btn-outline btn-sm mt-1">{$_('me.resendVerification')}</button>
+						</form>
+					{/if}
+				{/if}
+			{/if}
+		</div>
 
 		<p>{$_('me.name')}:</p>
 		<p>{userState.name}</p>
@@ -64,7 +95,34 @@
 			</div>
 		{/if}
 	</div>
-	<h3 class="text-lg mb-10 font-extrabold mt-6">{$_('me.connectedAccounts')}</h3>
+	{#if data.user.passwordSet}
+		<h3 class="text-lg mb-4 font-extrabold mt-10">{$_('me.changeEmailHeader')}</h3>
+		<p class="mb-4">{$_('me.changeEmailIntro')}</p>
+		{#if form?.change === 'sent'}
+			<p class="text-green-700 font-semibold">{$_('me.changeEmailSent', { values: { email: form.newEmail } })}</p>
+		{:else if !showChange}
+			<button class="btn btn-outline btn-sm justify-self-start" onclick={() => (changeOpened = true)}>
+				{$_('me.changeEmailOpen')}
+			</button>
+		{:else}
+			<form method="POST" action="?/changeEmail" class="grid gap-3">
+				{#if form?.change}
+					<p class="text-red-500">{changeErrorText(form.change)}</p>
+				{/if}
+				<label class="form-control">
+					<span class="label-text">{$_('me.newEmail')}</span>
+					<input class="input input-bordered" type="email" name="newEmail" required value={form?.newEmail ?? ''} />
+				</label>
+				<label class="form-control">
+					<span class="label-text">{$_('me.currentPassword')}</span>
+					<input class="input input-bordered" type="password" name="password" required autocomplete="current-password" />
+				</label>
+				<button class="btn btn-primary btn-sm justify-self-start" type="submit">{$_('me.changeEmailButton')}</button>
+			</form>
+		{/if}
+	{/if}
+
+	<h3 class="text-lg mb-10 font-extrabold mt-10">{$_('me.connectedAccounts')}</h3>
 	<div class="grid grid-cols-2 gap-5 place-content-between">
 		<p><Icon data={facebook} scale={1.5} /> Facebook</p>
 		{#if data.accounts.facebook}

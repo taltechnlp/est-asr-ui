@@ -6,6 +6,9 @@ import facebook from 'svelte-awesome/icons/facebook';
 import github from 'svelte-awesome/icons/github';
 import { auth } from '$lib/auth';
 import { parseSetCookieHeader } from 'better-auth/cookies';
+import { fail } from '@sveltejs/kit';
+import { compare } from 'bcrypt';
+import { requestEmailChange, sendVerificationEmail, uiLanguage } from '$lib/server/emailChange';
 
 export const load = (async (event) => {
     let session = await event.locals.auth();
@@ -43,8 +46,9 @@ export const load = (async (event) => {
     return {
         accounts,
         user: {
+            email: user.email,
             passwordSet: user.password ? true : false,
-            emailVerified: user.emailVerified,
+            emailVerified: !!user.emailVerified,
             image: user.image
         }
     };
@@ -79,6 +83,57 @@ export const actions: Actions = {
             }
         })
         return { success: true };
+    },
+
+    // Re-sends the verification link to the account's current address.
+    resendVerification: async ({ locals, cookies }) => {
+        const session = await locals.auth();
+        if (!session || !session.user.id) {
+            redirect(307, "/signin");
+        }
+        const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+        if (!user || user.emailVerified || !user.password) {
+            return { resend: 'sent' as const };
+        }
+        try {
+            await sendVerificationEmail(user, uiLanguage(cookies.get('language')));
+        } catch (e) {
+            console.error('[ME] Resend verification failed', e);
+            return fail(500, { resend: 'error' as const });
+        }
+        return { resend: 'sent' as const };
+    },
+
+    // Changes the account's address. Requires the account password, and the
+    // change takes effect only after the new address confirms via the link.
+    changeEmail: async ({ request, locals, cookies }) => {
+        const session = await locals.auth();
+        if (!session || !session.user.id) {
+            redirect(307, "/signin");
+        }
+        const data = await request.formData();
+        const password = data.get('password') as string | null;
+        const newEmail = (data.get('newEmail') as string | null)?.trim().toLowerCase();
+        if (!password || !newEmail) {
+            return fail(400, { change: 'missing' as const, newEmail });
+        }
+
+        const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+        if (!user || !user.password) {
+            return fail(400, { change: 'noPassword' as const, newEmail });
+        }
+        if (!(await compare(password, user.password))) {
+            return fail(400, { change: 'invalidPassword' as const, newEmail });
+        }
+
+        try {
+            const error = await requestEmailChange(user, newEmail, uiLanguage(cookies.get('language')));
+            if (error) return fail(400, { change: error, newEmail });
+        } catch (e) {
+            console.error('[ME] Email change request failed', e);
+            return fail(500, { change: 'error' as const, newEmail });
+        }
+        return { change: 'sent' as const, newEmail };
     },
 
     logout: async ({ request, cookies }) => {
