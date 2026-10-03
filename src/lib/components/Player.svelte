@@ -4,7 +4,7 @@
 	import minus from 'svelte-awesome/icons/minusCircle';
 	import plus from 'svelte-awesome/icons/plusCircle';
 	import { player, waveform } from '$lib/stores.svelte';
-	let { url, mimeType = undefined } = $props();
+	let { url, mimeType = undefined, peaksUrl = undefined } = $props();
 	let rate = $state('1.0x');
 	let zoom = $state(1);
 	const togglePlay = () => {
@@ -145,7 +145,7 @@
 		</div>
 		<div class="flex justify-center items-center"></div>
 	</div>
-	<Waveform {url} {mimeType} />
+	<Waveform {url} {mimeType} {peaksUrl} />
 </div>
 
 <style>

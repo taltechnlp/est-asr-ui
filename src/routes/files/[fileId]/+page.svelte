@@ -130,6 +130,10 @@
 				<span>Failed to load editor content ({loadError?.message ?? 'unknown_error'}).</span>
 			</div>
 		{/await}
-		<Player url={`/uploaded/${data.file.id}`} mimeType={data.file.mimetype} />
+		<Player
+			url={`/uploaded/${data.file.id}`}
+			peaksUrl={`/uploaded/${data.file.id}/peaks`}
+			mimeType={data.file.mimetype}
+		/>
 	</div>
 </main>

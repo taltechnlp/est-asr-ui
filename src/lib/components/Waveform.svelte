@@ -13,8 +13,9 @@
 		waveform
 	} from '$lib/stores.svelte';
 	import Peaks, { type PeaksInstance, type PeaksOptions } from 'peaks.js';
-	let { url, mimeType = undefined } = $props();
+	let { url, mimeType = undefined, peaksUrl = undefined } = $props();
 	const mediaUrl = $derived(encodeURI(url));
+	const peaksDataUrl = $derived(peaksUrl ? encodeURI(peaksUrl) : undefined);
 	const mediaType = $derived(
 		mimeType?.includes('opus') ? 'audio/ogg; codecs=opus' : mimeType || undefined
 	);
@@ -186,12 +187,6 @@
 				enableSegments: true,
 			},
 			mediaElement: audioElement,
-			// Waveform data comes precomputed from the server (see
-			// src/lib/server/peaks.ts) so the browser never has to download and
-			// decode the whole media file just to draw the waveform.
-			dataUri: {
-				arraybuffer: `${mediaUrl}/peaks`
-			},
 			withCredentials: true,
 			// Must all be >= the precomputed data scale (PEAKS_SCALE = 512).
 			zoomLevels: [512, 1024, 2048, 4096],
@@ -213,18 +208,29 @@
 
 		};
 
+		// Decode the media in the browser (slow and memory-hungry for long files).
+		const useWebAudio = () => {
+			delete options.dataUri;
+			options.webAudio = {
+				audioContext: new AudioContext(),
+				scale: 128,
+				multiChannel: false
+			};
+		};
+		if (peaksDataUrl) {
+			// Waveform data comes precomputed (see src/lib/server/peaks.ts) so the
+			// browser never has to download and decode the whole media file just
+			// to draw the waveform.
+			options.dataUri = { arraybuffer: peaksDataUrl };
+		} else {
+			useWebAudio();
+		}
+
 		const onPeaksReady = function(err: Error | undefined, peaks: PeaksInstance | undefined) {
 			if (err || !peaks) {
 				if (options.dataUri) {
-					// Server-side peaks unavailable: fall back to decoding the media
-					// in the browser (slow and memory-hungry for long files).
 					console.warn('Precomputed peaks unavailable, decoding audio in browser', err, { url: mediaUrl });
-					delete options.dataUri;
-					options.webAudio = {
-						audioContext: new AudioContext(),
-						scale: 128,
-						multiChannel: false
-					};
+					useWebAudio();
 					Peaks.init(options, onPeaksReady);
 					return;
 				}
