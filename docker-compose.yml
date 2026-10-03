@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:15
+    image: postgres:18
     restart: always
     ports:
       - "4123:5432"
@@ -8,6 +8,7 @@ services:
       POSTGRES_USER: prisma
       POSTGRES_PASSWORD: prisma
     volumes:
-      - postgres:/var/lib/postgresql/data
+      # 18+ keeps its data in a per-major subdirectory (/var/lib/postgresql/18/docker)
+      - pgdata:/var/lib/postgresql
 volumes:
-  postgres:
+  pgdata:

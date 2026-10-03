@@ -19,6 +19,8 @@ The database should be installed locally or via a Docker container. A docker-com
 
 When using the Docker container, a database is created and a user is created. The connection string in `.env` must match with database IP, port, user and database name. Then finally, the `prisma/migrations` folder contains SQL scripts that must be executed in order to generate the necessary DB schema. This can be done by running `npx prisma migrate deploy`.
 
+The compose file pins the PostgreSQL major version. A new major version cannot read the data directory of an older one, so do not just change the image tag on an existing installation: run `scripts/upgrade-postgres.sh` (`preflight`, `rehearse`, then `cutover` with the app stopped). It dumps the database, starts the new version on a fresh volume and restores into it, leaving the old volume in place for `rollback`.
+
 Prisma is able to generate an API to interact with the database. After the initial schema creation and after any change to the schema, a new API should be generated. Prisma is installed locally with other npm packages. To execute it use the following command:
 
 `npx prisma generate`
