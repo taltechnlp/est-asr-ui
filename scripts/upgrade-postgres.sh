@@ -17,6 +17,7 @@
 # Environment: BACKUP_DIR (default ./backups), SERVICE (default postgres),
 # OLD_CONTAINER (default: the compose service's current container).
 set -euo pipefail
+umask 077 # the dumps contain everything, password hashes included
 cd "$(dirname "$0")/.."
 
 BACKUP_DIR=${BACKUP_DIR:-backups}

@@ -3,10 +3,12 @@ services:
     image: postgres:18
     restart: always
     ports:
-      - "4123:5432"
+      # Loopback only: a bare "4123:5432" publishes the database to the whole network
+      - "127.0.0.1:4123:5432"
     environment:
       POSTGRES_USER: prisma
-      POSTGRES_PASSWORD: prisma
+      # Set POSTGRES_PASSWORD in .env (and use it in DATABASE_URL) anywhere but local dev
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-prisma}
     volumes:
       # 18+ keeps its data in a per-major subdirectory (/var/lib/postgresql/18/docker)
       - pgdata:/var/lib/postgresql
