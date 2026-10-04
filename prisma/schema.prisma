@@ -83,7 +83,8 @@ model User {
   resetToken       String?
   resetTokenExpiry BigInt?
   role             Role      @default(USER)
-  emailVerified    DateTime?
+  emailVerified    Boolean   @default(false)
+  emailVerifiedAt  DateTime?
   image            String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt

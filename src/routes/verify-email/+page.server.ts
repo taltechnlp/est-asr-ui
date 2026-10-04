@@ -40,7 +40,7 @@ const consumeToken = async (token: string) => {
         await prisma.$transaction([
             prisma.user.update({
                 where: { id: userId },
-                data: { email: newEmail, emailVerified: new Date() }
+                data: { email: newEmail, emailVerified: true, emailVerifiedAt: new Date() }
             }),
             prisma.verification.deleteMany({
                 where: {
@@ -58,7 +58,7 @@ const consumeToken = async (token: string) => {
     await prisma.$transaction([
         prisma.user.update({
             where: { id: userId },
-            data: { emailVerified: new Date() }
+            data: { emailVerified: true, emailVerifiedAt: new Date() }
         }),
         prisma.verification.delete({ where: { id: record.id } })
     ]);

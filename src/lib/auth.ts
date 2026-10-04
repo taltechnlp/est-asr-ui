@@ -30,6 +30,15 @@ export const auth = betterAuth({
     user: {
         fields: {
             emailVerified: "emailVerified"
+        },
+        additionalFields: {
+            // When the address was confirmed. Set by the hooks below, never by clients.
+            emailVerifiedAt: {
+                type: "date",
+                required: false,
+                input: false,
+                returned: false
+            }
         }
     },
     
@@ -38,14 +47,22 @@ export const auth = betterAuth({
         user: {
             create: {
                 before: async (user) => {
-                    // Transform emailVerified from boolean to DateTime/null
-                    const transformedUser = { ...user } as any;
-                    if (typeof user.emailVerified === 'boolean') {
-                        transformedUser.emailVerified = user.emailVerified ? new Date() : null;
+                    // Social sign-ups arrive with a confirmed address
+                    if (user.emailVerified) {
+                        return {
+                            data: { ...user, emailVerifiedAt: new Date() },
+                        };
                     }
-                    return {
-                        data: transformedUser,
-                    };
+                },
+            },
+            update: {
+                before: async (user) => {
+                    // Keep emailVerifiedAt in step when better-auth changes emailVerified
+                    if (typeof user.emailVerified === 'boolean') {
+                        return {
+                            data: { ...user, emailVerifiedAt: user.emailVerified ? new Date() : null },
+                        };
+                    }
                 },
             },
         },
@@ -68,10 +85,11 @@ export const auth = betterAuth({
         },
     },
     
-    // Configure email and password authentication
+    // Passwords go through the app's own /signup and /signin (bcrypt in user.password,
+    // behind the email confirmation gate). better-auth's password endpoints would hand
+    // out sessions without that gate, so they stay off.
     emailAndPassword: {
-        enabled: true,
-        requireEmailVerification: false, // Set to true if you want email verification
+        enabled: false,
     },
     
     // Custom pages configuration
