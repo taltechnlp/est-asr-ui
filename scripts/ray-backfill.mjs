@@ -4,11 +4,11 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import nodemailer from 'nodemailer';
-import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '../src/lib/generated/prisma/client.ts';
 
 const ROOT = process.cwd();
 const ENV_PATH = path.join(ROOT, '.env');
-const prisma = new PrismaClient();
 const RAY_JOB_ID_RE =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const RAY_BACKFILL_MARKER = 'ray-backfill:';
@@ -46,6 +46,9 @@ const loadEnv = async (envPath) => {
 };
 
 const env = await loadEnv(ENV_PATH);
+const prisma = new PrismaClient({
+	adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL || env.DATABASE_URL })
+});
 const rayBaseUrl = (env.ASR_RAY_URL || '').replace(/\/+$/, '');
 const rayToken = env.ASR_RAY_TOKEN || '';
 const resultsDir = env.RESULTS_DIR || '/slurm-share/results';

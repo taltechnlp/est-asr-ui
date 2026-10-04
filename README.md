@@ -27,7 +27,7 @@ Prisma is able to generate an API to interact with the database. After the initi
 
 The audio player consumes much less memory if the soundwave is generated server-side. For this `python`, `ffmpeg` and `audiowaveform` have to be available in path as both are executed. Instructions for installing Audiowaveform: https://github.com/bbc/audiowaveform . 
 
-Node LTS versions can be used only. 16.x and 18.x have been tested. 
+Node 22.12+ is required (`.npmrc` sets `engine-strict`, and some dependencies no longer install on Node 20). The scripts in `scripts/` import the generated Prisma client as TypeScript, so run them with `bun` or Node 22.18+.
 
 ## Developing
 

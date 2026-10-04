@@ -6,7 +6,7 @@
 	import github from 'svelte-awesome/icons/github';
 	import facebook from 'svelte-awesome/icons/facebook';
 	import google from 'svelte-awesome/icons/google';
-	import Icon from 'svelte-awesome/components/Icon.svelte';
+	import Icon from 'svelte-awesome';
 	import type { PageProps } from './$types';
 	let { data, form }: PageProps = $props();
 

@@ -23,7 +23,7 @@
 	import { Word } from '../marks/word';
 	import { WordColor } from '../plugins/wordColor';
 	import { Annotation } from '../plugins/annotation';
-	import Icon from 'svelte-awesome/components/Icon.svelte';
+	import Icon from 'svelte-awesome';
 	import rotateLeft from 'svelte-awesome/icons/rotateLeft';
 	import rotateRigth from 'svelte-awesome/icons/rotateRight';
 	import download from 'svelte-awesome/icons/download';

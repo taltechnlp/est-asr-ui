@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { prisma } from "$lib/db/client";
-import { Role } from '@prisma/client';
+import { Role } from '$lib/generated/prisma/enums';
 import { v4 as uuidv4 } from 'uuid';
 import { join } from 'path';
 import { existsSync} from 'fs';

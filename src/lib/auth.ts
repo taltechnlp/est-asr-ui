@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "./db/client";
 import { 
     AUTH_SECRET, 
     FACEBOOK_CLIENT_ID, 
@@ -9,8 +9,6 @@ import {
     GOOGLE_CLIENT_SECRET 
 } from "$env/static/private";
 import { generateShortId } from "./utils/generateId";
-
-const prisma = new PrismaClient();
 
 export const auth = betterAuth({
     database: prismaAdapter(prisma, {

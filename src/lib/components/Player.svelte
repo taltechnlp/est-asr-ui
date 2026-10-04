@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Waveform from '$lib/components/Waveform.svelte';
-	import Icon from 'svelte-awesome/components/Icon.svelte';
+	import Icon from 'svelte-awesome';
 	import minus from 'svelte-awesome/icons/minusCircle';
 	import plus from 'svelte-awesome/icons/plusCircle';
 	import { player, waveform } from '$lib/stores.svelte';

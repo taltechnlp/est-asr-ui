@@ -1,7 +1,11 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '../src/lib/generated/prisma/client.ts';
 import { statSync, existsSync } from 'fs';
 
-const prisma = new PrismaClient();
+if (existsSync('.env')) process.loadEnvFile('.env');
+const prisma = new PrismaClient({
+    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL })
+});
 
 interface MigrationResult {
     updated: number;

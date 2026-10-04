@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { run } from 'svelte/legacy';
 
-	import Icon from 'svelte-awesome/components/Icon.svelte';
+	import Icon from 'svelte-awesome';
 	import comment from 'svelte-awesome/icons/comment';
 	import close from 'svelte-awesome/icons/close';
 	import { _ } from 'svelte-i18n';

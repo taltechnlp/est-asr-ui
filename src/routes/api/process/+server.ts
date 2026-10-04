@@ -1,6 +1,6 @@
 import type { RequestHandler } from './$types';
 import { prisma } from "$lib/db/client";
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "$lib/generated/prisma/client";
 import { error } from '@sveltejs/kit';
 import type { IWeblog } from '$lib/helpers/api.d'
 // import { logger } from '$lib/logging/client';

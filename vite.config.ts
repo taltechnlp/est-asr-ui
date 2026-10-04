@@ -9,11 +9,6 @@ export default defineConfig({
 			allow: ['..']
 		}
 	},
-	optimizeDeps: {
-		esbuildOptions: {
-			target: 'esnext'
-		}
-	},
 	ssr: {
 		external: [
 			'better-auth',
@@ -32,29 +27,11 @@ export default defineConfig({
 	build: {
 		sourcemap: false,
 		cssMinify: 'lightningcss',
-		chunkSizeWarningLimit: 1100,
-		rollupOptions: {
-			onwarn(warning, warn) {
-				// Known third-party warnings from transitive dependencies.
-				if (
-					warning.code === 'UNUSED_EXTERNAL_IMPORT' &&
-					warning.message.includes('node_modules/better-auth/')
-				) {
-					return;
-				}
-				if (
-					warning.code === 'UNRESOLVED_IMPORT' &&
-					warning.message.includes('".prisma/client/index-browser"')
-				) {
-					return;
-				}
-				if (
-					warning.code === 'CIRCULAR_DEPENDENCY' &&
-					warning.message.includes('node_modules/')
-				) {
-					return;
-				}
-				warn(warning);
+		chunkSizeWarningLimit: 1200,
+		rolldownOptions: {
+			checks: {
+				// The adapter runs inside closeBundle, so every build trips this check
+				pluginTimings: false
 			}
 		}
 	}
