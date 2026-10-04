@@ -97,6 +97,14 @@ export const auth = betterAuth({
         }
     },
     
+    // nginx does not forward the client IP. Without one, better-auth 1.7 counts all
+    // visitors against one shared limit (3 sign-ins per 10 s for the whole site);
+    // earlier versions skipped rate limiting. Keep it off until the proxy sends
+    // X-Forwarded-For.
+    rateLimit: {
+        enabled: false
+    },
+
     // Configure ID generation to use shorter IDs
     advanced: {
         database: {
