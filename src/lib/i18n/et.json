@@ -213,7 +213,15 @@
         "changeNoPassword": "E-posti aadressi muutmiseks määra kõigepealt parool.",
         "changeSameEmail": "Uus aadress on sama mis praegune.",
         "changeEmailTaken": "Seda e-posti aadressi kasutab juba teine konto.",
-        "changeError": "Kinnituskirja saatmine ebaõnnestus. Palun proovi hiljem uuesti."
+        "changeError": "Kinnituskirja saatmine ebaõnnestus. Palun proovi hiljem uuesti.",
+        "closeAccountHeader": "Konto sulgemine",
+        "closeAccountIntro": "Konto sulgemisel kustutatakse see jäädavalt koos kõigi üles laaditud failide ja transkriptsioonidega. Seda ei saa tagasi võtta.",
+        "closeAccountOpen": "Sulge konto",
+        "closeAccountConfirm": "Saan aru, et konto {email} ja kõik selle failid kustutatakse jäädavalt.",
+        "closeAccountButton": "Sulge konto jäädavalt",
+        "closeAccountCancel": "Loobu",
+        "closeAccountNotConfirmed": "Kinnitamiseks märgi ruut.",
+        "closeAccountError": "Konto sulgemine ebaõnnestus. Palun proovi hiljem uuesti."
     },
     "auth": {
         "AccessDenied": "Sisselogimismeetod on juba seotud teise Tekstiks.ee kontoga või sama e-posti aadressi kasutatakse juba teise Tekstiks.ee konto jaoks.",

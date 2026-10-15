@@ -10,6 +10,9 @@
 	import type { PageProps } from './$types';
 	let { data, form }: PageProps = $props();
 
+	let closeOpened = $state(false);
+	const showClose = $derived(closeOpened || !!form?.close);
+
 	let changeOpened = $state(false);
 	const showChange = $derived(changeOpened || (!!form?.change && form.change !== 'sent'));
 
@@ -157,4 +160,38 @@
 			<button class="btn btn-info" type="submit">{$_('me.logoutButton')}</button>
 		</form>
 	</div>
+
+	<h3 class="text-lg mb-4 font-extrabold mt-10">{$_('me.closeAccountHeader')}</h3>
+	<p class="mb-4">{$_('me.closeAccountIntro')}</p>
+	{#if !showClose}
+		<button class="btn btn-outline btn-sm btn-error justify-self-start mb-10" onclick={() => (closeOpened = true)}>
+			{$_('me.closeAccountOpen')}
+		</button>
+	{:else}
+		<form method="POST" action="?/closeAccount" class="grid gap-3 mb-10">
+			{#if form?.close === 'invalidPassword'}
+				<p class="text-red-500">{$_('me.changeInvalidPassword')}</p>
+			{:else if form?.close === 'notConfirmed'}
+				<p class="text-red-500">{$_('me.closeAccountNotConfirmed')}</p>
+			{:else if form?.close}
+				<p class="text-red-500">{$_('me.closeAccountError')}</p>
+			{/if}
+			<label class="label cursor-pointer justify-start gap-3 whitespace-normal">
+				<input class="checkbox checkbox-error" type="checkbox" name="confirm" required />
+				<span>{$_('me.closeAccountConfirm', { values: { email: data.user.email } })}</span>
+			</label>
+			{#if data.user.passwordSet}
+				<label class="form-control">
+					<span class="label-text">{$_('me.currentPassword')}</span>
+					<input class="input input-bordered" type="password" name="password" required autocomplete="current-password" />
+				</label>
+			{/if}
+			<div class="flex gap-3">
+				<button class="btn btn-error btn-sm" type="submit">{$_('me.closeAccountButton')}</button>
+				<button class="btn btn-ghost btn-sm" type="button" onclick={() => { closeOpened = false; form = null; }}>
+					{$_('me.closeAccountCancel')}
+				</button>
+			</div>
+		</form>
+	{/if}
 </div>

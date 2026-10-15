@@ -8,7 +8,18 @@ import { auth } from '$lib/auth';
 import { parseSetCookieHeader } from 'better-auth/cookies';
 import { fail } from '@sveltejs/kit';
 import { compare } from 'bcrypt';
-import { requestEmailChange, sendVerificationEmail, uiLanguage } from '$lib/server/emailChange';
+import {
+    EMAIL_CHANGE_IDENTIFIER_PREFIX,
+    VERIFICATION_IDENTIFIER_PREFIX,
+    requestEmailChange,
+    sendVerificationEmail,
+    uiLanguage
+} from '$lib/server/emailChange';
+import { SESSION_COOKIE } from '$lib/server/session';
+import { peaksPathFor } from '$lib/server/peaks';
+import { SECRET_UPLOAD_DIR, RESULTS_DIR } from '$env/static/private';
+import { rm } from 'fs/promises';
+import { join } from 'path';
 
 export const load = (async (event) => {
     let session = await event.locals.auth();
@@ -134,6 +145,70 @@ export const actions: Actions = {
             return fail(500, { change: 'error' as const, newEmail });
         }
         return { change: 'sent' as const, newEmail };
+    },
+
+    // Deletes the account with its files. Needs an explicit confirmation, and the
+    // account password when one is set.
+    closeAccount: async ({ request, locals, cookies }) => {
+        const session = await locals.auth();
+        if (!session || !session.user.id) {
+            redirect(307, "/signin");
+        }
+        const data = await request.formData();
+        if (data.get('confirm') !== 'on') {
+            return fail(400, { close: 'notConfirmed' as const });
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            include: { files: { select: { path: true, initialTranscriptionPath: true } } }
+        });
+        if (!user) {
+            redirect(307, "/signin");
+        }
+        if (user.password) {
+            const password = data.get('password') as string | null;
+            if (!password || !(await compare(password, user.password))) {
+                return fail(400, { close: 'invalidPassword' as const });
+            }
+        }
+
+        try {
+            // Sessions, linked accounts and file rows go with the user (onDelete: Cascade)
+            await prisma.$transaction([
+                prisma.verification.deleteMany({
+                    where: {
+                        OR: [
+                            { identifier: `${VERIFICATION_IDENTIFIER_PREFIX}${user.id}` },
+                            { identifier: { startsWith: `${EMAIL_CHANGE_IDENTIFIER_PREFIX}${user.id}:` } }
+                        ]
+                    }
+                }),
+                prisma.user.delete({ where: { id: user.id } })
+            ]);
+        } catch (e) {
+            console.error('[ME] Closing account failed', e);
+            return fail(500, { close: 'error' as const });
+        }
+
+        const paths = user.files.flatMap((f) => [f.path, peaksPathFor(f.path), f.initialTranscriptionPath]);
+        await Promise.all(
+            [...paths, join(SECRET_UPLOAD_DIR, user.id), join(RESULTS_DIR, user.id)]
+                .filter(Boolean)
+                .map((p) => rm(p, { recursive: true, force: true }).catch((e) =>
+                    console.error('[ME] Failed to remove', p, e)
+                ))
+        );
+        console.log(`[ME] Account ${user.id} closed, ${user.files.length} files removed`);
+
+        // The session rows are gone, but better-auth's cookie cache would keep the
+        // browser signed in for a few more minutes
+        for (const { name } of cookies.getAll()) {
+            if (name === SESSION_COOKIE || /^(__Secure-)?better-auth\./.test(name)) {
+                cookies.delete(name, { path: '/' });
+            }
+        }
+        redirect(303, '/signin');
     },
 
     logout: async ({ request, cookies }) => {

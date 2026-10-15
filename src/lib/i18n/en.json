@@ -213,7 +213,15 @@
     "changeNoPassword": "Set a password first to change the email address.",
     "changeSameEmail": "The new address is the same as the current one.",
     "changeEmailTaken": "Another account already uses this email address.",
-    "changeError": "Sending the confirmation email failed. Please try again later."
+    "changeError": "Sending the confirmation email failed. Please try again later.",
+    "closeAccountHeader": "Close account",
+    "closeAccountIntro": "Closing the account permanently deletes it together with all uploaded files and transcriptions. This cannot be undone.",
+    "closeAccountOpen": "Close account",
+    "closeAccountConfirm": "I understand that the account {email} and all its files will be permanently deleted.",
+    "closeAccountButton": "Permanently close account",
+    "closeAccountCancel": "Cancel",
+    "closeAccountNotConfirmed": "Tick the box to confirm.",
+    "closeAccountError": "Closing the account failed. Please try again later."
   },
   "auth": {
     "AccessDenied": "The login method is already connected to another Tekstiks.ee account or the same email is being used by another Tekstiks.ee account.",
