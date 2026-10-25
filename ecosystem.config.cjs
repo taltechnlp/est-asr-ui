@@ -12,6 +12,16 @@ module.exports = {
         HOST: '127.0.0.1',
         NODE_ENV: 'production'
       }
+    },
+    {
+      name: 'asr-watchdog',
+      script: 'scripts/asr-watchdog.mjs',
+      interpreter: '/usr/bin/node',
+      cwd: '/home/aiolev/est-asr-ui',
+      restart_delay: 10000,
+      env: {
+        ASR_WATCHDOG_PM2: '/usr/local/bin/pm2'
+      }
     }
   ]
 };
