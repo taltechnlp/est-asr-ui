@@ -5,8 +5,8 @@ import type { FinUploadResult, EstUploadResult } from "$lib/helpers/api.d";
 import { promises as fs } from 'fs'; 
 import axios from 'axios';
 import Form from 'form-data';
+import { UPLOAD_LIMIT } from '$lib/upload-limits';
 
-export const UPLOAD_LIMIT = 1024 * 1024 * 1000  // 1000MB
 export const ACCOUNT_STORAGE_LIMIT = 2n * 1024n * 1024n * 1024n;  // 2GB per account
 export const uploadResult = {
     0: "failed", 

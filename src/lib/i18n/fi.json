@@ -134,6 +134,7 @@
         "uploadHeader": "Lähetä äänitiedosto",
         "supportedFormats": "Tuetut tiedostomuodot sisältävät: wav, wave, mp3, mp2, m4a, aac, flac, ogg/opus, amr, aiff, wma, webm, mp4, mov, avi, mkv, mpeg, 3gp ja muita.",
         "fileSizeLimit": "Tiedoston enimmäiskoko on noin 1000MB",
+        "fileTooLarge": "Tiedosto on liian suuri: yhden tiedoston enimmäiskoko on 1000MB. Videosta kannattaa ladata vain ääniraita, joka on paljon pienempi.",
         "fileDurationLimit": "Kesto enintään 2 tuntia",
         "cancel": "Poista",
         "delete": "Poista lopullisesti",
@@ -311,6 +312,7 @@
             "description": "Valitse tiedostomuoto ja sisältöasetukset.",
             "format": "Tiedosto muoto",
             "download": "ladata",
+            "generating": "Luodaan...",
             "cancel": "Peruuttaa"
         },
         "editing": {

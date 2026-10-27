@@ -134,6 +134,7 @@
         "uploadHeader": "Helisalvestise ülesse laadimine",
         "supportedFormats": "Toetatud formaadid hõlmavad: wav, wave, mp3, mp2, m4a, aac, flac, ogg/opus, amr, aiff, wma, webm, mp4, mov, avi, mkv, mpeg, 3gp ja rohkem.",
         "fileSizeLimit": "Faili suurus kuni 1000MB.",
+        "fileTooLarge": "Fail on liiga suur: ühe faili suurim lubatud maht on 1000MB. Video puhul laadi üles ainult heliriba, see on palju väiksem.",
         "fileDurationLimit": "Kestus kuni 2 tundi",
         "cancel": "Tühista",
         "delete": "Kustuta lõplikult",

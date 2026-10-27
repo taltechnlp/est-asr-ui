@@ -9,6 +9,7 @@
 	import type { PageProps } from './$types';
 	import StorageBar from '$lib/components/StorageBar.svelte';
 	import FormatStrip from '$lib/components/FormatStrip.svelte';
+	import { UPLOAD_LIMIT } from '$lib/upload-limits';
 	let { form, data }: PageProps = $props();
 
 	let error = $state('');
@@ -100,8 +101,8 @@
 	}
 
 	const printError = (errorText) => {
-		if (errorText === 'fileSizeLimit') {
-			return $_('files.fileSizeLimit');
+		if (errorText === 'fileTooLarge') {
+			return $_('files.fileTooLarge');
 		} else if (errorText === 'fileTooLong') {
 			return $_('files.fileTooLong');
 		} else if (errorText === 'noFile') {
@@ -130,6 +131,11 @@
 		const formData = new FormData(form);
 
 		const fileInput = formData.get('file') as File;
+		// Checked before the quota, so a file over the per-file limit is not reported as a full account
+		if (fileInput && fileInput.size > UPLOAD_LIMIT) {
+			error = 'fileTooLarge';
+			return;
+		}
 		if (fileInput && data.storage && BigInt(fileInput.size) > BigInt(data.storage.remaining)) {
 			error = 'storageLimitExceeded';
 			return;
@@ -140,11 +146,25 @@
 		formData.append('lang', selectedLanguage.text);
 
 		loading = true;
-		const response = await fetch(form.action, {
-			method: 'POST',
-			body: formData
-		});
-		const result: ActionResult = deserialize(await response.text());
+		let result: ActionResult;
+		try {
+			const response = await fetch(form.action, {
+				method: 'POST',
+				body: formData
+			});
+			// nginx answers an oversized body with its own HTML page, not an action result
+			if (response.status === 413) {
+				loading = false;
+				error = 'fileTooLarge';
+				return;
+			}
+			result = deserialize(await response.text());
+		} catch (e) {
+			loading = false;
+			error = 'uploadError';
+			console.log('Upload failed', e);
+			return;
+		}
 		// console.log('Upload result', result);
 		if (result.type === 'success') {
 			// rerun all `load` functions, following the successful update
@@ -164,7 +184,7 @@
 			loading = false;
 			console.log('Upload failed', result.data);
 			if (result.data.uploadLimit) {
-				error = 'fileSizeLimit';
+				error = 'fileTooLarge';
 			} else if (result.data.fileTooLong) {
 				error = 'fileTooLong';
 			} else if (result.data.fileSaveFailed) {
