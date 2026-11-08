@@ -20,6 +20,15 @@ import { pregeneratePeaks } from "$lib/server/peaks";
 const RAY_JOB_ID_RE =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+// Ray fails a job as `orphaned` when its ingress restarts while the job is in
+// flight: the head's weekly walltime requeue, a crash, or an operator restart.
+// Nothing about the file caused that, so the file goes back to UPLOADED and the
+// poller submits it again. The cap guards against a file that crashes the
+// ingress itself and would otherwise be resubmitted forever. It is per process,
+// which is enough for that.
+const RAY_ORPHAN_RESUBMIT_LIMIT = 3;
+const rayOrphanResubmits = new Map<string, number>();
+
 let finToEstFormat: (sucRes: FinAsrFinished) => EditorContent = function (
     sucRes: FinAsrFinished,
 ) {
@@ -251,6 +260,24 @@ export const checkCompletion = async (
             pregeneratePeaks(fileId);
             await sendRayCompletionEmail(fileId, true);
             return { done: true, progress: 100 };
+        }
+        if (status.state === "failed" && status.error?.error === "orphaned") {
+            const attempts = rayOrphanResubmits.get(fileId) ?? 0;
+            if (attempts < RAY_ORPHAN_RESUBMIT_LIMIT) {
+                // Conditional on the orphaned job id, so a files-page poll racing
+                // the background poller resets the file only once.
+                const reset = await prisma.file.updateMany({
+                    data: { state: "UPLOADED", externalId: null },
+                    where: { id: fileId, externalId },
+                });
+                if (reset.count > 0) {
+                    rayOrphanResubmits.set(fileId, attempts + 1);
+                    console.log(
+                        `Ray job ${externalId} for ${fileId} was orphaned by an ingress restart; resubmitting (${attempts + 1}/${RAY_ORPHAN_RESUBMIT_LIMIT})`
+                    );
+                }
+                return { done: false, progress: 0 };
+            }
         }
         if (status.state === "failed" || status.state === "cancelled") {
             await prisma.file.update({
