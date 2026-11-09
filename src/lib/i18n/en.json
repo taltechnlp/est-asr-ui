@@ -269,14 +269,86 @@
   "terms": {
     "title": "Terms of Use | tekstiks.ee",
     "h1": "Terms of use of the service",
-    "serviceProvider": "Service provider",
-    "terms1": "Tekstiks.ee is a publicly available service where you can use speech recognition software created by the Language Technology Laboratory of the Institute of Software Science, of Tallinn University of Technology. The speech recognition software is open source and can be deployed locally (on-premise).",
-    "terms2": "When using speech recognition in Finnish, the audio recording and its file name are transferred in an unpersonalized form to the speech recognition service of the Language Bank of Finland. Their service is a data processor but does not store data long-term.",
-    "terms3": "To use the service, it is necessary to create an account. The account is only used to allow later access to the audio and video recordings you upload. It also helps to protect the textual transcription produced as a result of speech recognition and the user's privacy.",
-    "terms4": "Data is stored on servers managed by Tallinn University of Technology. These are located in Estonia. The user has the freedom to delete uploaded files, as a result of which these are permanently deleted together with the associated textual transcriptions.",
-    "terms5": "The system does not store more personal data about the user than the e-mail address and name requested during registration. At the moment, there are no other services that monitor user behavior. The service provider is free to use them, in this case by asking for additional consent.",
-    "terms6": "The data uploaded to the system may be used to improve the system during troubleshooting. Call recordings are not used together with user identification data.",
-    "validFrom": "Terms of use are valid from 23.10.2022"
+    "sections": [
+      {
+        "h": "Service and data controller",
+        "blocks": [
+          "Tekstiks.ee is a research and demonstration environment of the Laboratory of Language Technology at the Department of Software Science, Tallinn University of Technology, where you can use the laboratory's speech recognition software. The software is open source; anyone can install it themselves and use it in the same way.",
+          "The controller of personal data is Tallinn University of Technology (registry code 74000323, Ehitajate tee 5, 19086 Tallinn). The service is maintained and developed by Aivo Olev. Contact: konetuvastus@taltech.ee."
+        ]
+      },
+      {
+        "h": "Who the service is for",
+        "blocks": [
+          "The service is intended for private individuals for personal use and for study and research. It is not intended for companies or organisations to process the personal data of clients, employees or other people in the course of their business or professional activities.",
+          "We do not enter into data processing agreements (Article 28 of the General Data Protection Regulation, GDPR), do not guarantee uninterrupted operation of the service, and provide support on a best-effort basis."
+        ]
+      },
+      {
+        "h": "Other people's data in recordings",
+        "blocks": [
+          "If a recording contains people other than the user, the user is responsible for having the right to process the recording and for informing those people. The GDPR does not apply to processing carried out for purely personal or household purposes (Article 2(2)(c)); for any other purpose, the GDPR's requirements apply to the user.",
+          "Please do not upload recordings containing special categories of personal data (such as health data) unless you have a clear legal basis for doing so."
+        ]
+      },
+      {
+        "h": "What data we process",
+        "blocks": [
+          {
+            "list": [
+              "Account data: name, e-mail address, and either a password hash or a Google/Facebook account identifier and profile picture.",
+              "Sign-in data: the session's IP address and browser user agent.",
+              "Uploaded audio and video files, their names and durations, and transcripts including the user's corrections."
+            ]
+          },
+          "No analytics or advertising services that track user behaviour are used. If such services are introduced in the future, separate consent will be requested."
+        ]
+      },
+      {
+        "h": "Purpose and legal basis",
+        "blocks": [
+          "Data is processed to provide the service: to manage the account, transcribe recordings, and store files and transcripts so the user can keep working on them. The legal basis is the agreement with the user under these terms (Article 6(1)(b) GDPR).",
+          "If processing of a particular file fails, the service developer may view that file and its processing logs to find and fix the error. Otherwise, users' files are not opened.",
+          "Recordings and transcripts are not used to train speech recognition models or for any other purpose without the user's separate consent."
+        ]
+      },
+      {
+        "h": "Where data is processed and who receives it",
+        "blocks": [
+          "Speech recognition, speaker diarization and punctuation of Estonian recordings, and storage of all files and transcripts, take place on servers managed by Tallinn University of Technology in Estonia. Data is not transferred outside the European Union.",
+          {
+            "list": [
+              "For Finnish speech recognition, the audio file is sent to the speech recognition service of the Language Bank of Finland (Kielipankki) in Finland. The file name is replaced with a random identifier. The Language Bank's service does not store data long-term.",
+              "Notification and account e-mails are sent via the Microsoft 365 e-mail service. An e-mail contains the e-mail address and the message (for example the name of the transcribed file), but never recordings or transcripts.",
+              "When signing in with a Google or Facebook account, the respective provider processes the sign-in data."
+            ]
+          },
+          "Data is not disclosed or sold to any other third parties."
+        ]
+      },
+      {
+        "h": "Retention and deletion",
+        "blocks": [
+          "Files and transcripts are kept until the user deletes them.",
+          "When a file is deleted, the audio file, all its transcripts and other data related to the file are deleted immediately and permanently. Temporary processing data on the speech recognition servers is deleted within 24 hours after processing ends. No separate backups of users' files are made.",
+          "The account can be closed on the profile page. Closing the account deletes the account data and all of the account's files and transcripts."
+        ]
+      },
+      {
+        "h": "Your rights",
+        "blocks": [
+          "You have the right to access, rectify and erase your personal data, to restrict or object to its processing, and to receive your data in a machine-readable format. You can delete your files and transcripts yourself; for anything else, write to konetuvastus@taltech.ee.",
+          "If you believe your personal data is processed unlawfully, you may lodge a complaint with the Estonian Data Protection Inspectorate (www.aki.ee)."
+        ]
+      },
+      {
+        "h": "Changes to these terms",
+        "blocks": [
+          "Users will be notified of material changes to these terms on the website or by e-mail before the changes take effect."
+        ]
+      }
+    ],
+    "validFrom": "Terms of use are valid from 09.11.2026"
   },
   "demo": {
     "title": "Demo"

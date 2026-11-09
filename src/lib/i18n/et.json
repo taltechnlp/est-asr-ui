@@ -49,7 +49,7 @@
         "finnish": "Soomekeelse kõne tuvastamine",
         "finnish1": "Soome keele kõnetuvastus on välja töötatud koostöös Soome keelepanga ja Aalto ülikooliga. Kõnesalvestisi töötleb Soome Keelepanga teenus.",
         "contact": "Kontakt",
-        "terms": "Kasutustingmused"
+        "terms": "Kasutustingimused"
     },
     "signin": {
         "passwordError": "Viga sisse logimisel. Vale parool.",
@@ -269,14 +269,86 @@
     "terms": {
         "title": "Kasutustingimused | tekstiks.ee",
         "h1": "Teenuse kasutamise tingimused",
-        "serviceProvider": "Teenuse osutaja",
-        "terms1": "Tekstiks.ee on avalikikult kasutatav demonstratsioon ja keskkond, kus saab kasutada Tallinna Tehnikaülikooli Tarkvarateaduse instituudi alla kuuluva Keeletehnoloogia laboratooriumi kõnetuvastuse tarkvara. Kõnetuvastuse tarkvara on vabavaraline ning kõigil on võimalus see iseseisvalt paigaldada ning seda seejärel samaväärselt kasutada.",
-        "terms2": "Soomekeelse kõnetuvastuse kasutamisel edastatakse helisalvestis ning selle failinimi isikustamata kujul Soome Keelepanga kõnetuvastuse teenusele. Nende teenus on andmete töötleja kuid ei talleta andmeid pikaajaliselt.",
-        "terms3": "Teenuse kasutamiseks on vajalik konto loomine. Kontot kasutatakse vaid, et võimaldada hilisemat ligipääsu ülesse laetavatele heli- ja videosalvestistele. Samuti aitab see kaitsta kõnetuvastuse tulemusena valmivat tekstilist transkriptsiooni ning kasutaja privaatsust.",
-        "terms4": "Andmeid hoiustatakse Tallinna Tehnikaülikooli hallatavatel serveritel. Need asuvad Eesti territooriumil. Kasutajal on vabadus ülesse laetud failid kustutada, mille tulmusena kustutatakse need üheskoos seotud tekstiliste transkriptsioonidega lõplikult.",
-        "terms5": "Süsteem ei hoiusta kasutaja kohta rohkem isikuandmeid kui registreerimisel küsitav eposti aadress ning nimi. Hetkel pole kasutusele võetud ka muid kasutaja käitumist jälgivaid teenuseid. Teenuse osutajal on vabadus neid kasutusele võtta, sel juhul täiendavat nõusolukut küsides.",
-        "terms6": "Süsteemis ülesse laetavaid andmeid võidakse kasutada süsteemi vigade lahendamise käigus süsteemi parendamise eesmärgil. Kõnesalvestisi ei kasutata üheskoos kasutajat identifitseerivate andmetega.",
-        "validFrom": "Kasutustingimused kehtivad alates 23.10.2022"
+        "sections": [
+            {
+                "h": "Teenus ja vastutav töötleja",
+                "blocks": [
+                    "Tekstiks.ee on Tallinna Tehnikaülikooli Tarkvarateaduse instituudi keeletehnoloogia laboratooriumi teadus- ja demokeskkond, kus saab kasutada laboratooriumi kõnetuvastuse tarkvara. Tarkvara on vabavaraline ning igaüks saab selle ise paigaldada ja samaväärselt kasutada.",
+                    "Isikuandmete vastutav töötleja on Tallinna Tehnikaülikool (registrikood 74000323, Ehitajate tee 5, 19086 Tallinn). Teenust haldab ja arendab Aivo Olev. Kontakt: konetuvastus@taltech.ee."
+                ]
+            },
+            {
+                "h": "Kellele teenus on mõeldud",
+                "blocks": [
+                    "Teenus on mõeldud eraisikutele isiklikuks kasutuseks ning õppe- ja teadustööks. Teenus ei ole mõeldud ettevõtetele ega asutustele klientide, töötajate või teiste inimeste isikuandmete töötlemiseks oma majandus- või kutsetegevuses.",
+                    "Me ei sõlmi isikuandmete töötlemise lepinguid (isikuandmete kaitse üldmääruse ehk IKÜMi artikkel 28), ei taga teenuse katkematut toimimist ning tugi toimub parima tahte põhimõttel."
+                ]
+            },
+            {
+                "h": "Teiste inimeste andmed salvestistes",
+                "blocks": [
+                    "Kui salvestisel on peale kasutaja ka teisi inimesi, vastutab kasutaja selle eest, et tal on õigus salvestist töödelda ja et neid inimesi on sellest teavitatud. Puhtalt isiklikul või koduseks otstarbeks tehtavale töötlemisele IKÜM ei kohaldu (artikli 2 lõike 2 punkt c); muul eesmärgil töötlemisel kehtivad IKÜMi nõuded kasutajale endale.",
+                    "Palume mitte üles laadida eriliiki isikuandmeid (näiteks terviseandmeid) sisaldavaid salvestisi, kui selleks puudub selge õiguslik alus."
+                ]
+            },
+            {
+                "h": "Milliseid andmeid töötleme",
+                "blocks": [
+                    {
+                        "list": [
+                            "Konto andmed: nimi, e-posti aadress ning parooli räsi või Google'i/Facebooki konto tunnus ja profiilipilt.",
+                            "Sisselogimise andmed: sessiooni IP-aadress ja brauseri tunnus.",
+                            "Üles laaditud heli- ja videofailid, nende nimed ja kestus ning transkriptsioonid koos kasutaja tehtud parandustega."
+                        ]
+                    },
+                    "Kasutaja käitumist jälgivaid analüütika- ega reklaamiteenuseid ei kasutata. Kui neid tulevikus kasutusele võetakse, küsitakse selleks eraldi nõusolekut."
+                ]
+            },
+            {
+                "h": "Töötlemise eesmärk ja õiguslik alus",
+                "blocks": [
+                    "Andmeid töödeldakse teenuse osutamiseks: konto haldamiseks, salvestiste transkribeerimiseks ning failide ja transkriptsioonide säilitamiseks, et kasutaja saaks nendega hiljem edasi töötada. Õiguslik alus on nende kasutustingimuste kohane kokkulepe kasutajaga (IKÜMi artikli 6 lõike 1 punkt b).",
+                    "Kui konkreetse faili töötlemine ebaõnnestub, võib teenuse arendaja vea leidmiseks ja parandamiseks seda faili ja selle töötluslogisid vaadata. Muul juhul kasutajate faile ei avata.",
+                    "Salvestisi ja transkriptsioone ei kasutata kõnetuvastusmudelite treenimiseks ega muul eesmärgil ilma kasutaja eraldi nõusolekuta."
+                ]
+            },
+            {
+                "h": "Kus andmeid töödeldakse ja kellele neid edastatakse",
+                "blocks": [
+                    "Eestikeelsete salvestiste kõnetuvastus, kõnelejate eristamine ja kirjavahemärgistamine ning kõigi failide ja transkriptsioonide hoidmine toimub Tallinna Tehnikaülikooli hallatavates serverites Eestis. Andmeid ei edastata väljapoole Euroopa Liitu.",
+                    {
+                        "list": [
+                            "Soomekeelse kõnetuvastuse puhul edastatakse helifail Soome Keelepanga (Kielipankki) kõnetuvastusteenusele Soomes. Faili nimi asendatakse juhusliku tunnusega. Keelepanga teenus ei säilita andmeid pikaajaliselt.",
+                            "Teavitus- ja kontokirjad saadetakse Microsoft 365 e-postiteenuse kaudu. Kirjaga edastatakse e-posti aadress ja kirja sisu (näiteks transkribeeritud faili nimi), kuid mitte salvestisi ega transkriptsioone.",
+                            "Google'i või Facebooki kontoga sisselogimisel töötleb sisselogimisega seotud andmeid vastav teenusepakkuja."
+                        ]
+                    },
+                    "Muudele kolmandatele isikutele andmeid ei edastata ega müüda."
+                ]
+            },
+            {
+                "h": "Säilitamine ja kustutamine",
+                "blocks": [
+                    "Faile ja transkriptsioone säilitatakse seni, kuni kasutaja need kustutab.",
+                    "Faili kustutamisel kustutatakse kohe ja lõplikult helifail, kõik selle transkriptsioonid ning muud failiga seotud andmed. Kõnetuvastusserveri ajutised töötlusandmed kustutatakse hiljemalt 24 tunni jooksul pärast töötluse lõppu. Kasutajate failidest eraldi varukoopiaid ei tehta.",
+                    "Konto saab sulgeda oma profiili lehel. Konto sulgemisel kustutatakse konto andmed ning kõik konto failid koos transkriptsioonidega."
+                ]
+            },
+            {
+                "h": "Kasutaja õigused",
+                "blocks": [
+                    "Kasutajal on õigus tutvuda oma isikuandmetega, neid parandada ja kustutada, nõuda nende töötlemise piiramist, esitada töötlemise kohta vastuväiteid ning saada oma andmed masinloetaval kujul. Faile ja transkriptsioone saab kasutaja ise kustutada; muudes küsimustes kirjutage aadressile konetuvastus@taltech.ee.",
+                    "Kui leiate, et teie isikuandmeid töödeldakse õigusvastaselt, võite pöörduda Andmekaitse Inspektsiooni poole (www.aki.ee)."
+                ]
+            },
+            {
+                "h": "Tingimuste muutmine",
+                "blocks": [
+                    "Tingimuste olulisest muutmisest teavitatakse kasutajaid enne muudatuse jõustumist teenuse veebilehel või e-posti teel."
+                ]
+            }
+        ],
+        "validFrom": "Kasutustingimused kehtivad alates 09.11.2026"
     },
     "demo": {
         "title": "Demo"

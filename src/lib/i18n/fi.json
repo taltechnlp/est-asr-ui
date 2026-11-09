@@ -267,16 +267,88 @@
         "finnishServiceDetails": "Suomalaista puheentunnistuspalvelua hallinnoi Suomen Kielipankki."
     },
     "terms": {
-        "title": "Käyttösäännöt | tekstiks.ee",
+        "title": "Käyttöehdot | tekstiks.ee",
         "h1": "Palvelun käyttöehdot",
-        "serviceProvider": "Palveluntarjoaja",
-        "terms1": "Tekstiks.ee on julkisesti saatavilla oleva palvelu, jossa voit käyttää Tallinnan teknillisen yliopiston Ohjelmistotieteen instituutin kieliteknologian laboratorion luomaa puheentunnistusohjelmistoa. Puheentunnistusohjelmisto on avoimen lähdekoodin, ja se voidaan ottaa käyttöön paikallisesti.",
-        "terms2": "Suomenkielistä puheentunnistusta käytettäessä äänitallenne ja sen tiedostonimi siirretään persoonattomassa muodossa Kielipankin puheentunnistuspalveluun. Heidän palvelunsa on tietojenkäsittelijä, mutta ei tallenna tietoja pitkällä aikavälillä.",
-        "terms3": "Palvelun käyttäminen edellyttää tilin luomista. Tiliä käytetään vain mahdollistamaan myöhemmin lataamiesi ääni- ja videotallenteiden käyttö. Se auttaa myös suojaamaan puheentunnistuksen tuloksena syntyvää tekstitranskriptiota ja käyttäjän yksityisyyttä.",
-        "terms4": "Tiedot tallennetaan Tallinnan teknillisen yliopiston hallinnoimille palvelimille. Nämä sijaitsevat Virossa. Käyttäjällä on vapaus poistaa ladattuja tiedostoja, minkä seurauksena ne poistetaan pysyvästi yhdessä niihin liittyvien tekstitranskriptioiden kanssa.",
-        "terms5": "Järjestelmä ei tallenna käyttäjästä enempää henkilötietoja kuin rekisteröinnin yhteydessä pyydetty sähköpostiosoite ja nimi. Tällä hetkellä ei ole muita palveluita, jotka valvovat käyttäjien käyttäytymistä. Palveluntarjoaja voi vapaasti käyttää niitä, tässä tapauksessa pyytämällä lisäsuostumusta.",
-        "terms6": "Järjestelmään ladattuja tietoja voidaan käyttää järjestelmän parantamiseen vianmäärityksen aikana. Puhelutallenteita ei käytetä yhdessä käyttäjän tunnistetietojen kanssa.",
-        "validFrom": "Käyttöehdot ovat voimassa 23.10.2022 alkaen."
+        "sections": [
+            {
+                "h": "Palvelu ja rekisterinpitäjä",
+                "blocks": [
+                    "Tekstiks.ee on Tallinnan teknillisen yliopiston ohjelmistotieteen instituutin kieliteknologian laboratorion tutkimus- ja demoympäristö, jossa voi käyttää laboratorion puheentunnistusohjelmistoa. Ohjelmisto on avointa lähdekoodia, ja kuka tahansa voi asentaa sen itse ja käyttää sitä samalla tavalla.",
+                    "Henkilötietojen rekisterinpitäjä on Tallinnan teknillinen yliopisto (rekisterinumero 74000323, Ehitajate tee 5, 19086 Tallinna). Palvelua ylläpitää ja kehittää Aivo Olev. Yhteystiedot: konetuvastus@taltech.ee."
+                ]
+            },
+            {
+                "h": "Kenelle palvelu on tarkoitettu",
+                "blocks": [
+                    "Palvelu on tarkoitettu yksityishenkilöille henkilökohtaiseen käyttöön sekä opiskeluun ja tutkimukseen. Palvelua ei ole tarkoitettu yrityksille tai organisaatioille asiakkaiden, työntekijöiden tai muiden henkilöiden henkilötietojen käsittelyyn liike- tai ammattitoiminnassa.",
+                    "Emme tee henkilötietojen käsittelysopimuksia (yleisen tietosuoja-asetuksen eli GDPR:n 28 artikla), emme takaa palvelun keskeytyksetöntä toimintaa, ja tukea annetaan parhaan kyvyn mukaan."
+                ]
+            },
+            {
+                "h": "Muiden henkilöiden tiedot tallenteissa",
+                "blocks": [
+                    "Jos tallenteella on käyttäjän lisäksi muita henkilöitä, käyttäjä vastaa siitä, että hänellä on oikeus käsitellä tallennetta ja että näille henkilöille on kerrottu siitä. GDPR:ää ei sovelleta puhtaasti henkilökohtaiseen tai kotitalouden toimintaan liittyvään käsittelyyn (2 artiklan 2 kohdan c alakohta); muussa tarkoituksessa tapahtuvassa käsittelyssä GDPR:n vaatimukset koskevat käyttäjää itseään.",
+                    "Pyydämme, ettei palveluun ladata erityisiin henkilötietoryhmiin kuuluvia tietoja (esimerkiksi terveystietoja) sisältäviä tallenteita, ellei siihen ole selvää oikeusperustetta."
+                ]
+            },
+            {
+                "h": "Mitä tietoja käsittelemme",
+                "blocks": [
+                    {
+                        "list": [
+                            "Tilin tiedot: nimi, sähköpostiosoite sekä salasanan tiiviste tai Google-/Facebook-tilin tunniste ja profiilikuva.",
+                            "Kirjautumistiedot: istunnon IP-osoite ja selaimen tunniste.",
+                            "Ladatut ääni- ja videotiedostot, niiden nimet ja kesto sekä litteraatit käyttäjän tekemine korjauksineen."
+                        ]
+                    },
+                    "Käyttäjien toimintaa seuraavia analytiikka- tai mainospalveluita ei käytetä. Jos niitä otetaan tulevaisuudessa käyttöön, siihen pyydetään erillinen suostumus."
+                ]
+            },
+            {
+                "h": "Käsittelyn tarkoitus ja oikeusperuste",
+                "blocks": [
+                    "Tietoja käsitellään palvelun tarjoamiseksi: tilin hallintaan, tallenteiden litterointiin sekä tiedostojen ja litteraattien säilyttämiseen, jotta käyttäjä voi jatkaa niiden parissa myöhemmin. Oikeusperuste on näiden käyttöehtojen mukainen sopimus käyttäjän kanssa (GDPR:n 6 artiklan 1 kohdan b alakohta).",
+                    "Jos tietyn tiedoston käsittely epäonnistuu, palvelun kehittäjä voi tarkastella kyseistä tiedostoa ja sen käsittelylokeja virheen löytämiseksi ja korjaamiseksi. Muutoin käyttäjien tiedostoja ei avata.",
+                    "Tallenteita ja litteraatteja ei käytetä puheentunnistusmallien kouluttamiseen eikä muihin tarkoituksiin ilman käyttäjän erillistä suostumusta."
+                ]
+            },
+            {
+                "h": "Missä tietoja käsitellään ja kenelle niitä luovutetaan",
+                "blocks": [
+                    "Vironkielisten tallenteiden puheentunnistus, puhujien erottelu ja välimerkitys sekä kaikkien tiedostojen ja litteraattien säilytys tapahtuvat Tallinnan teknillisen yliopiston hallinnoimilla palvelimilla Virossa. Tietoja ei siirretä Euroopan unionin ulkopuolelle.",
+                    {
+                        "list": [
+                            "Suomenkielisessä puheentunnistuksessa äänitiedosto lähetetään Kielipankin puheentunnistuspalveluun Suomeen. Tiedoston nimi korvataan satunnaisella tunnisteella. Kielipankin palvelu ei säilytä tietoja pitkäaikaisesti.",
+                            "Ilmoitus- ja tilisähköpostit lähetetään Microsoft 365 -sähköpostipalvelun kautta. Viestissä välitetään sähköpostiosoite ja viestin sisältö (esimerkiksi litteroidun tiedoston nimi), mutta ei tallenteita tai litteraatteja.",
+                            "Google- tai Facebook-tilillä kirjauduttaessa kirjautumiseen liittyviä tietoja käsittelee kyseinen palveluntarjoaja."
+                        ]
+                    },
+                    "Tietoja ei luovuteta tai myydä muille kolmansille osapuolille."
+                ]
+            },
+            {
+                "h": "Säilytys ja poistaminen",
+                "blocks": [
+                    "Tiedostot ja litteraatit säilytetään, kunnes käyttäjä poistaa ne.",
+                    "Kun tiedosto poistetaan, äänitiedosto, kaikki sen litteraatit ja muut tiedostoon liittyvät tiedot poistetaan välittömästi ja pysyvästi. Puheentunnistuspalvelimien tilapäiset käsittelytiedot poistetaan viimeistään 24 tunnin kuluttua käsittelyn päättymisestä. Käyttäjien tiedostoista ei tehdä erillisiä varmuuskopioita.",
+                    "Tilin voi sulkea profiilisivulla. Tilin sulkeminen poistaa tilin tiedot sekä kaikki tilin tiedostot ja litteraatit."
+                ]
+            },
+            {
+                "h": "Käyttäjän oikeudet",
+                "blocks": [
+                    "Sinulla on oikeus tarkastaa henkilötietosi, oikaista ja poistaa ne, rajoittaa niiden käsittelyä tai vastustaa sitä sekä saada tietosi koneluettavassa muodossa. Voit poistaa tiedostosi ja litteraattisi itse; muissa asioissa kirjoita osoitteeseen konetuvastus@taltech.ee.",
+                    "Jos katsot, että henkilötietojasi käsitellään lainvastaisesti, voit tehdä valituksen Viron tietosuojaviranomaiselle (Andmekaitse Inspektsioon, www.aki.ee)."
+                ]
+            },
+            {
+                "h": "Käyttöehtojen muuttaminen",
+                "blocks": [
+                    "Käyttöehtojen olennaisista muutoksista ilmoitetaan käyttäjille verkkosivulla tai sähköpostitse ennen muutosten voimaantuloa."
+                ]
+            }
+        ],
+        "validFrom": "Käyttöehdot ovat voimassa 09.11.2026 alkaen."
     },
     "demo": {
         "title": "Demo"

@@ -1,6 +1,8 @@
 import { prisma } from '$lib/db/client';
 import { promises as fs } from 'fs';
+import { dirname, isAbsolute, join } from 'path';
 import { error } from '@sveltejs/kit';
+import { SECRET_UPLOAD_DIR, RESULTS_DIR } from '$env/static/private';
 import { peaksPathFor } from '$lib/server/peaks';
 import type { RequestHandler } from './$types';
 
@@ -57,12 +59,10 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 		error(401, 'Not authenticated user');
 	}
 
-	const file = await getOwnedFile(params.fileId, session.user.id);
-	await fs.rm(file.path).catch((deleteError) => {
-		console.log('Failed to remove file from disk!', deleteError);
-	});
-	await fs.rm(peaksPathFor(file.path), { force: true }).catch(() => {});
+	const userId = session.user.id;
+	const file = await getOwnedFile(params.fileId, userId);
 
+	// Row first, so the ASR poller can no longer write a result for this file
 	await prisma.file
 		.delete({
 			where: {
@@ -73,6 +73,31 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 			console.log('Failed to remove file from DB!', deleteError);
 			error(503, 'fileNotDeleted');
 		});
+
+	// Everything derived from an upload is named `<fileId>_<original name>...`
+	// (the original, its .flac/.opus conversions, waveform peaks)
+	const uploadDir = join(SECRET_UPLOAD_DIR, userId);
+	const derived =
+		dirname(file.path) === uploadDir
+			? (await fs.readdir(uploadDir).catch(() => [] as string[]))
+					.filter((name) => name.startsWith(`${params.fileId}_`))
+					.map((name) => join(uploadDir, name))
+			: [];
+	const paths = [
+		file.path,
+		peaksPathFor(file.path),
+		...derived,
+		file.initialTranscriptionPath,
+		// result.json plus the .txt/.srt/.trs/.ctm exports next to it
+		join(RESULTS_DIR, userId, params.fileId)
+	].filter((p): p is string => Boolean(p) && isAbsolute(p));
+	await Promise.all(
+		paths.map((p) =>
+			fs.rm(p, { recursive: true, force: true }).catch((deleteError) => {
+				console.log('Failed to remove file from disk!', p, deleteError);
+			})
+		)
+	);
 
 	console.log(`file ${params.fileId} deleted`);
 	return new Response('', { status: 200 });
